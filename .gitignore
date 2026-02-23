@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear on external disks
+.Spotlight-V100
+.Trashes
+
+# Compiled files
+*.pyc
+*.out
+
+# Virtual environments and dependencies
+venv/
+node_modules/
+.sass-cache/   
+
+# Images
+standalone/latest/assets/images/
