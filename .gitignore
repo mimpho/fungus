@@ -17,7 +17,4 @@
 # Virtual environments and dependencies
 venv/
 node_modules/
-.sass-cache/   
-
-# Images
-standalone/latest/assets/images/
+.sass-cache/
