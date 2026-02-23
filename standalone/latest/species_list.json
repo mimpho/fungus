@@ -1,0 +1,807 @@
+
+[
+  {
+    "id": "esp-001",
+    "name": "Boletus edulis"
+  },
+  {
+    "id": "esp-002",
+    "name": "Boletus aereus"
+  },
+  {
+    "id": "esp-003",
+    "name": "Boletus pinophilus"
+  },
+  {
+    "id": "esp-004",
+    "name": "Boletus reticulatus"
+  },
+  {
+    "id": "esp-005",
+    "name": "Imleria badia"
+  },
+  {
+    "id": "esp-006",
+    "name": "Leccinum scabrum"
+  },
+  {
+    "id": "esp-007",
+    "name": "Leccinum versipelle"
+  },
+  {
+    "id": "esp-008",
+    "name": "Suillus luteus"
+  },
+  {
+    "id": "esp-009",
+    "name": "Suillus granulatus"
+  },
+  {
+    "id": "esp-010",
+    "name": "Suillus bellini"
+  },
+  {
+    "id": "esp-011",
+    "name": "Xerocomus subtomentosus"
+  },
+  {
+    "id": "esp-012",
+    "name": "Caloboletus calopus"
+  },
+  {
+    "id": "esp-013",
+    "name": "Suillellus luridus"
+  },
+  {
+    "id": "esp-014",
+    "name": "Neoboletus erythropus"
+  },
+  {
+    "id": "esp-015",
+    "name": "Rubroboletus satanas"
+  },
+  {
+    "id": "esp-016",
+    "name": "Gyroporus cyanescens"
+  },
+  {
+    "id": "esp-017",
+    "name": "Gyroporus castaneus"
+  },
+  {
+    "id": "esp-018",
+    "name": "Chalciporus piperatus"
+  },
+  {
+    "id": "esp-019",
+    "name": "Neoboletus luridiformis"
+  },
+  {
+    "id": "esp-020",
+    "name": "Paxillus involutus"
+  },
+  {
+    "id": "esp-021",
+    "name": "Aureoboletus gentilis"
+  },
+  {
+    "id": "esp-022",
+    "name": "Tapinella atrotomentosa"
+  },
+  {
+    "id": "esp-023",
+    "name": "Russula virescens"
+  },
+  {
+    "id": "esp-024",
+    "name": "Russula cyanoxantha"
+  },
+  {
+    "id": "esp-025",
+    "name": "Russula delica"
+  },
+  {
+    "id": "esp-026",
+    "name": "Russula emetica"
+  },
+  {
+    "id": "esp-027",
+    "name": "Russula aurea"
+  },
+  {
+    "id": "esp-028",
+    "name": "Russula parazurea"
+  },
+  {
+    "id": "esp-029",
+    "name": "Russula olivacea"
+  },
+  {
+    "id": "esp-030",
+    "name": "Russula vesca"
+  },
+  {
+    "id": "esp-031",
+    "name": "Russula foetens"
+  },
+  {
+    "id": "esp-032",
+    "name": "Russula nigricans"
+  },
+  {
+    "id": "esp-033",
+    "name": "Russula xerampelina"
+  },
+  {
+    "id": "esp-034",
+    "name": "Russula mustelina"
+  },
+  {
+    "id": "esp-035",
+    "name": "Lactarius deliciosus"
+  },
+  {
+    "id": "esp-036",
+    "name": "Lactarius sanguifluus"
+  },
+  {
+    "id": "esp-037",
+    "name": "Lactarius deterrimus"
+  },
+  {
+    "id": "esp-038",
+    "name": "Lactifluus piperatus"
+  },
+  {
+    "id": "esp-039",
+    "name": "Lactarius torminosus"
+  },
+  {
+    "id": "esp-040",
+    "name": "Lactarius indigo"
+  },
+  {
+    "id": "esp-041",
+    "name": "Lactarius volemus"
+  },
+  {
+    "id": "esp-042",
+    "name": "Lactifluus vellereus"
+  },
+  {
+    "id": "esp-043",
+    "name": "Russula laurocerasi"
+  },
+  {
+    "id": "esp-044",
+    "name": "Russula pseudointegra"
+  },
+  {
+    "id": "esp-045",
+    "name": "Cantharellus cibarius"
+  },
+  {
+    "id": "esp-046",
+    "name": "Cantharellus pallens"
+  },
+  {
+    "id": "esp-047",
+    "name": "Cantharellus aurora"
+  },
+  {
+    "id": "esp-048",
+    "name": "Craterellus cornucopioides"
+  },
+  {
+    "id": "esp-049",
+    "name": "Craterellus lutescens"
+  },
+  {
+    "id": "esp-050",
+    "name": "Craterellus tubaeformis"
+  },
+  {
+    "id": "esp-051",
+    "name": "Hydnum repandum"
+  },
+  {
+    "id": "esp-052",
+    "name": "Hydnum rufescens"
+  },
+  {
+    "id": "esp-053",
+    "name": "Gomphus clavatus"
+  },
+  {
+    "id": "esp-054",
+    "name": "Pseudocraterellus undulatus"
+  },
+  {
+    "id": "esp-055",
+    "name": "Amanita caesarea"
+  },
+  {
+    "id": "esp-056",
+    "name": "Amanita muscaria"
+  },
+  {
+    "id": "esp-057",
+    "name": "Amanita phalloides"
+  },
+  {
+    "id": "esp-058",
+    "name": "Amanita verna"
+  },
+  {
+    "id": "esp-059",
+    "name": "Amanita virosa"
+  },
+  {
+    "id": "esp-060",
+    "name": "Amanita pantherina"
+  },
+  {
+    "id": "esp-061",
+    "name": "Amanita rubescens"
+  },
+  {
+    "id": "esp-062",
+    "name": "Amanita ovoidea"
+  },
+  {
+    "id": "esp-063",
+    "name": "Amanita spissa"
+  },
+  {
+    "id": "esp-064",
+    "name": "Amanita crocea"
+  },
+  {
+    "id": "esp-065",
+    "name": "Amanita citrina"
+  },
+  {
+    "id": "esp-066",
+    "name": "Amanita gemmata"
+  },
+  {
+    "id": "esp-067",
+    "name": "Amanita strobiliformis"
+  },
+  {
+    "id": "esp-068",
+    "name": "Amanita eliae"
+  },
+  {
+    "id": "esp-069",
+    "name": "Amanita excelsa"
+  },
+  {
+    "id": "esp-070",
+    "name": "Pleurotus ostreatus"
+  },
+  {
+    "id": "esp-071",
+    "name": "Pleurotus eryngii"
+  },
+  {
+    "id": "esp-072",
+    "name": "Pleurotus cornucopiae"
+  },
+  {
+    "id": "esp-073",
+    "name": "Pleurotus pulmonarius"
+  },
+  {
+    "id": "esp-074",
+    "name": "Omphalotus olearius"
+  },
+  {
+    "id": "esp-075",
+    "name": "Lentinula edodes"
+  },
+  {
+    "id": "esp-076",
+    "name": "Hohenbuehelia petaloides"
+  },
+  {
+    "id": "esp-077",
+    "name": "Panus conchatus"
+  },
+  {
+    "id": "esp-078",
+    "name": "Morchella esculenta"
+  },
+  {
+    "id": "esp-079",
+    "name": "Morchella elata"
+  },
+  {
+    "id": "esp-080",
+    "name": "Morchella conica"
+  },
+  {
+    "id": "esp-081",
+    "name": "Morchella importuna"
+  },
+  {
+    "id": "esp-082",
+    "name": "Gyromitra esculenta"
+  },
+  {
+    "id": "esp-083",
+    "name": "Helvella lacunosa"
+  },
+  {
+    "id": "esp-084",
+    "name": "Helvella crispa"
+  },
+  {
+    "id": "esp-085",
+    "name": "Helvella acetabulum"
+  },
+  {
+    "id": "esp-086",
+    "name": "Tuber melanosporum"
+  },
+  {
+    "id": "esp-087",
+    "name": "Tuber aestivum"
+  },
+  {
+    "id": "esp-088",
+    "name": "Tuber borchii"
+  },
+  {
+    "id": "esp-089",
+    "name": "Peziza vesiculosa"
+  },
+  {
+    "id": "esp-090",
+    "name": "Tricholoma equestre"
+  },
+  {
+    "id": "esp-091",
+    "name": "Tricholoma portentosum"
+  },
+  {
+    "id": "esp-092",
+    "name": "Tricholoma terreum"
+  },
+  {
+    "id": "esp-093",
+    "name": "Tricholoma sulphureum"
+  },
+  {
+    "id": "esp-094",
+    "name": "Tricholoma saponaceum"
+  },
+  {
+    "id": "esp-095",
+    "name": "Calocybe gambosa"
+  },
+  {
+    "id": "esp-096",
+    "name": "Lyophyllum decastes"
+  },
+  {
+    "id": "esp-097",
+    "name": "Clitocybe geotropa"
+  },
+  {
+    "id": "esp-098",
+    "name": "Clitocybe nebularis"
+  },
+  {
+    "id": "esp-099",
+    "name": "Clitocybe odora"
+  },
+  {
+    "id": "esp-100",
+    "name": "Clitocybe dealbata"
+  },
+  {
+    "id": "esp-101",
+    "name": "Lepista nuda"
+  },
+  {
+    "id": "esp-102",
+    "name": "Lepista personata"
+  },
+  {
+    "id": "esp-103",
+    "name": "Flammulina velutipes"
+  },
+  {
+    "id": "esp-104",
+    "name": "Armillaria mellea"
+  },
+  {
+    "id": "esp-105",
+    "name": "Entoloma sinuatum"
+  },
+  {
+    "id": "esp-106",
+    "name": "Entoloma rhodopolium"
+  },
+  {
+    "id": "esp-107",
+    "name": "Entoloma clypeatum"
+  },
+  {
+    "id": "esp-108",
+    "name": "Clitopilus prunulus"
+  },
+  {
+    "id": "esp-109",
+    "name": "Rhodotus palmatus"
+  },
+  {
+    "id": "esp-110",
+    "name": "Entoloma lividoalbum"
+  },
+  {
+    "id": "esp-111",
+    "name": "Cortinarius orellanus"
+  },
+  {
+    "id": "esp-112",
+    "name": "Cortinarius rubellus"
+  },
+  {
+    "id": "esp-113",
+    "name": "Cortinarius violaceus"
+  },
+  {
+    "id": "esp-114",
+    "name": "Cortinarius caperatus"
+  },
+  {
+    "id": "esp-115",
+    "name": "Cortinarius splendens"
+  },
+  {
+    "id": "esp-116",
+    "name": "Cortinarius praestans"
+  },
+  {
+    "id": "esp-117",
+    "name": "Cortinarius armeniacus"
+  },
+  {
+    "id": "esp-118",
+    "name": "Inocybe rimosa"
+  },
+  {
+    "id": "esp-119",
+    "name": "Inocybe erubescens"
+  },
+  {
+    "id": "esp-120",
+    "name": "Hebeloma crustuliniforme"
+  },
+  {
+    "id": "esp-121",
+    "name": "Hebeloma sinapizans"
+  },
+  {
+    "id": "esp-122",
+    "name": "Galerina marginata"
+  },
+  {
+    "id": "esp-123",
+    "name": "Gymnopilus junonius"
+  },
+  {
+    "id": "esp-124",
+    "name": "Phlegmacium calochroum"
+  },
+  {
+    "id": "esp-125",
+    "name": "Dermocybe sanguinea"
+  },
+  {
+    "id": "esp-126",
+    "name": "Ganoderma lucidum"
+  },
+  {
+    "id": "esp-127",
+    "name": "Ganoderma applanatum"
+  },
+  {
+    "id": "esp-128",
+    "name": "Laetiporus sulphureus"
+  },
+  {
+    "id": "esp-129",
+    "name": "Fomes fomentarius"
+  },
+  {
+    "id": "esp-130",
+    "name": "Trametes versicolor"
+  },
+  {
+    "id": "esp-131",
+    "name": "Trametes gibbosa"
+  },
+  {
+    "id": "esp-132",
+    "name": "Meripilus giganteus"
+  },
+  {
+    "id": "esp-133",
+    "name": "Grifola frondosa"
+  },
+  {
+    "id": "esp-134",
+    "name": "Sparassis crispa"
+  },
+  {
+    "id": "esp-135",
+    "name": "Polyporus squamosus"
+  },
+  {
+    "id": "esp-136",
+    "name": "Pycnoporus cinnabarinus"
+  },
+  {
+    "id": "esp-137",
+    "name": "Daedalea quercina"
+  },
+  {
+    "id": "esp-138",
+    "name": "Fistulina hepatica"
+  },
+  {
+    "id": "esp-139",
+    "name": "Phlebia radiata"
+  },
+  {
+    "id": "esp-140",
+    "name": "Hygrophorus marzuolus"
+  },
+  {
+    "id": "esp-141",
+    "name": "Hygrophorus hypothejus"
+  },
+  {
+    "id": "esp-142",
+    "name": "Hygrophorus agathosmus"
+  },
+  {
+    "id": "esp-143",
+    "name": "Hygrophorus pustulatus"
+  },
+  {
+    "id": "esp-144",
+    "name": "Hygrocybe punicea"
+  },
+  {
+    "id": "esp-145",
+    "name": "Hygrocybe pratensis"
+  },
+  {
+    "id": "esp-146",
+    "name": "Hygrocybe psittacina"
+  },
+  {
+    "id": "esp-147",
+    "name": "Cuphophyllus virgineus"
+  },
+  {
+    "id": "esp-148",
+    "name": "Pholiota squarrosa"
+  },
+  {
+    "id": "esp-149",
+    "name": "Hypholoma fasciculare"
+  },
+  {
+    "id": "esp-150",
+    "name": "Hypholoma capnoides"
+  },
+  {
+    "id": "esp-151",
+    "name": "Stropharia aeruginosa"
+  },
+  {
+    "id": "esp-152",
+    "name": "Agrocybe praecox"
+  },
+  {
+    "id": "esp-153",
+    "name": "Agrocybe aegerita"
+  },
+  {
+    "id": "esp-154",
+    "name": "Kuehneromyces mutabilis"
+  },
+  {
+    "id": "esp-155",
+    "name": "Psilocybe semilanceata"
+  },
+  {
+    "id": "esp-156",
+    "name": "Cyclocybe cylindracea"
+  },
+  {
+    "id": "esp-157",
+    "name": "Stropharia coronilla"
+  },
+  {
+    "id": "esp-158",
+    "name": "Agaricus campestris"
+  },
+  {
+    "id": "esp-159",
+    "name": "Agaricus silvicola"
+  },
+  {
+    "id": "esp-160",
+    "name": "Agaricus xanthodermus"
+  },
+  {
+    "id": "esp-161",
+    "name": "Agaricus augustus"
+  },
+  {
+    "id": "esp-162",
+    "name": "Lepiota cristata"
+  },
+  {
+    "id": "esp-163",
+    "name": "Macrolepiota procera"
+  },
+  {
+    "id": "esp-164",
+    "name": "Macrolepiota rhacodes"
+  },
+  {
+    "id": "esp-165",
+    "name": "Leucoagaricus leucothites"
+  },
+  {
+    "id": "esp-166",
+    "name": "Coprinus comatus"
+  },
+  {
+    "id": "esp-167",
+    "name": "Coprinellus micaceus"
+  },
+  {
+    "id": "esp-168",
+    "name": "Coprinopsis atramentaria"
+  },
+  {
+    "id": "esp-169",
+    "name": "Psathyrella candolleana"
+  },
+  {
+    "id": "esp-170",
+    "name": "Panaeolus papilionaceus"
+  },
+  {
+    "id": "esp-171",
+    "name": "Lacrymaria lacrymabunda"
+  },
+  {
+    "id": "esp-172",
+    "name": "Hericium erinaceus"
+  },
+  {
+    "id": "esp-173",
+    "name": "Hericium coralloides"
+  },
+  {
+    "id": "esp-174",
+    "name": "Sarcodon imbricatus"
+  },
+  {
+    "id": "esp-175",
+    "name": "Sarcodon scabrosus"
+  },
+  {
+    "id": "esp-176",
+    "name": "Hydnellum peckii"
+  },
+  {
+    "id": "esp-177",
+    "name": "Phellodon niger"
+  },
+  {
+    "id": "esp-178",
+    "name": "Bankera fuligineoalba"
+  },
+  {
+    "id": "esp-179",
+    "name": "Auriscalpium vulgare"
+  },
+  {
+    "id": "esp-180",
+    "name": "Calvatia gigantea"
+  },
+  {
+    "id": "esp-181",
+    "name": "Lycoperdon perlatum"
+  },
+  {
+    "id": "esp-182",
+    "name": "Lycoperdon pyriforme"
+  },
+  {
+    "id": "esp-183",
+    "name": "Scleroderma citrinum"
+  },
+  {
+    "id": "esp-184",
+    "name": "Bovista plumbea"
+  },
+  {
+    "id": "esp-185",
+    "name": "Phallus impudicus"
+  },
+  {
+    "id": "esp-186",
+    "name": "Phallus hadriani"
+  },
+  {
+    "id": "esp-187",
+    "name": "Clathrus ruber"
+  },
+  {
+    "id": "esp-188",
+    "name": "Clathrus archeri"
+  },
+  {
+    "id": "esp-189",
+    "name": "Mutinus caninus"
+  },
+  {
+    "id": "esp-190",
+    "name": "Marasmius oreades"
+  },
+  {
+    "id": "esp-191",
+    "name": "Marasmius rotula"
+  },
+  {
+    "id": "esp-192",
+    "name": "Mycena galericulata"
+  },
+  {
+    "id": "esp-193",
+    "name": "Mycena haematopus"
+  },
+  {
+    "id": "esp-194",
+    "name": "Oudemansiella mucida"
+  },
+  {
+    "id": "esp-195",
+    "name": "Oudemansiella radicata"
+  },
+  {
+    "id": "esp-196",
+    "name": "Strobilurus esculentus"
+  },
+  {
+    "id": "esp-197",
+    "name": "Mycena chlorophos"
+  },
+  {
+    "id": "esp-198",
+    "name": "Auricularia auricula-judae"
+  },
+  {
+    "id": "esp-199",
+    "name": "Trametes hirsuta"
+  },
+  {
+    "id": "esp-200",
+    "name": "Xylaria hypoxylon"
+  },
+  {
+    "id": "esp-201",
+    "name": "Butyriboletus regius"
+  }
+]

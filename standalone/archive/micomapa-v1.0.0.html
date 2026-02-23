@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicoMapa - Demo Standalone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-display {
+            font-family: 'Newsreader', serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ==================== MOCK DATA ====================
+        const mockZonas = [
+          {
+            id: 'zona-001',
+            nombre: 'Pinar de Urbión',
+            provincia: 'Soria',
+            comarca: 'Pinares',
+            latitud: 41.9847,
+            longitud: -2.8547,
+            altitud: 1850,
+            tipo_bosque: 'pinar'
+          },
+          {
+            id: 'zona-002',
+            nombre: 'Hayedo del Ripollès',
+            provincia: 'Girona',
+            comarca: 'Ripollès',
+            latitud: 42.2547,
+            longitud: 2.1234,
+            altitud: 1200,
+            tipo_bosque: 'hayedo'
+          },
+          {
+            id: 'zona-003',
+            nombre: 'Robledal del Montseny',
+            provincia: 'Barcelona',
+            comarca: 'Osona',
+            latitud: 41.7684,
+            longitud: 2.4153,
+            altitud: 980,
+            tipo_bosque: 'robledal'
+          },
+          {
+            id: 'zona-004',
+            nombre: 'Pinar de Lleida',
+            provincia: 'Lleida',
+            comarca: 'Alt Urgell',
+            latitud: 42.3568,
+            longitud: 1.4626,
+            altitud: 1450,
+            tipo_bosque: 'pinar'
+          },
+          {
+            id: 'zona-005',
+            nombre: 'Hayedo de la Garrotxa',
+            provincia: 'Girona',
+            comarca: 'Garrotxa',
+            latitud: 42.1547,
+            longitud: 2.5234,
+            altitud: 850,
+            tipo_bosque: 'hayedo'
+          }
+        ];
+
+        const mockEspecies = [
+          {
+            id: 'esp-001',
+            nombre_cientifico: 'Boletus edulis',
+            nombres_comunes: ['Boleto', 'Hongo calabaza', 'Cep'],
+            comestibilidad: 'excelente'
+          },
+          {
+            id: 'esp-002',
+            nombre_cientifico: 'Lactarius deliciosus',
+            nombres_comunes: ['Níscalo', 'Rovellón'],
+            comestibilidad: 'excelente'
+          },
+          {
+            id: 'esp-003',
+            nombre_cientifico: 'Cantharellus cibarius',
+            nombres_comunes: ['Rebozuelo', 'Chantarela'],
+            comestibilidad: 'excelente'
+          },
+          {
+            id: 'esp-004',
+            nombre_cientifico: 'Amanita caesarea',
+            nombres_comunes: ['Oronja'],
+            comestibilidad: 'excelente'
+          },
+          {
+            id: 'esp-005',
+            nombre_cientifico: 'Amanita muscaria',
+            nombres_comunes: ['Matamoscas'],
+            comestibilidad: 'toxico'
+          }
+        ];
+
+        const mockOportunidades = [
+          {
+            zona_id: 'zona-001',
+            zona_nombre: 'Pinar de Urbión',
+            provincia: 'Soria',
+            especie_id: 'esp-001',
+            nombre_cientifico: 'Boletus edulis',
+            comestibilidad: 'excelente',
+            score_total: 92.5,
+            probabilidad: 'excelente',
+            dias_estimados_fructificacion: 5
+          },
+          {
+            zona_id: 'zona-002',
+            zona_nombre: 'Hayedo del Ripollès',
+            provincia: 'Girona',
+            especie_id: 'esp-003',
+            nombre_cientifico: 'Cantharellus cibarius',
+            comestibilidad: 'excelente',
+            score_total: 88.3,
+            probabilidad: 'excelente',
+            dias_estimados_fructificacion: 7
+          },
+          {
+            zona_id: 'zona-004',
+            zona_nombre: 'Pinar de Lleida',
+            provincia: 'Lleida',
+            especie_id: 'esp-002',
+            nombre_cientifico: 'Lactarius deliciosus',
+            comestibilidad: 'excelente',
+            score_total: 85.7,
+            probabilidad: 'muy_alta',
+            dias_estimados_fructificacion: 4
+          },
+          {
+            zona_id: 'zona-003',
+            zona_nombre: 'Robledal del Montseny',
+            provincia: 'Barcelona',
+            especie_id: 'esp-004',
+            nombre_cientifico: 'Amanita caesarea',
+            comestibilidad: 'excelente',
+            score_total: 82.1,
+            probabilidad: 'muy_alta',
+            dias_estimados_fructificacion: 8
+          },
+          {
+            zona_id: 'zona-005',
+            zona_nombre: 'Hayedo de la Garrotxa',
+            provincia: 'Girona',
+            especie_id: 'esp-001',
+            nombre_cientifico: 'Boletus edulis',
+            comestibilidad: 'excelente',
+            score_total: 79.4,
+            probabilidad: 'muy_alta',
+            dias_estimados_fructificacion: 6
+          }
+        ];
+
+        const mockClima = {
+          'zona-001': {
+            temp_media: 12.4,
+            precip_ultimos_14_dias: 52.3,
+            humedad_media: 78.0,
+            dias_desde_ultima_lluvia: 1
+          },
+          'zona-002': {
+            temp_media: 14.5,
+            precip_ultimos_14_dias: 68.7,
+            humedad_media: 82.5,
+            dias_desde_ultima_lluvia: 0
+          }
+        };
+
+        const mockScores = {
+          'zona-001': [
+            {
+              especie_nombre: 'Boletus edulis',
+              score_total: 92.5,
+              probabilidad: 'excelente',
+              factores_positivos: ['Temperatura óptima', 'Precipitación ideal', 'Humedad excelente']
+            },
+            {
+              especie_nombre: 'Lactarius deliciosus',
+              score_total: 71.3,
+              probabilidad: 'alta',
+              factores_positivos: ['Tipo de bosque ideal']
+            }
+          ]
+        };
+
+        // Simular delay de red
+        const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // ==================== ICONS (SVG) ====================
+        const MapPinIcon = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+        );
+
+        const TrendingUpIcon = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            <polyline points="17 6 23 6 23 12"></polyline>
+          </svg>
+        );
+
+        const FilterIcon = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+        );
+
+        const CloudIcon = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+          </svg>
+        );
+
+        const DropletsIcon = () => (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"></path>
+            <path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"></path>
+          </svg>
+        );
+
+        // ==================== COMPONENTES ====================
+
+        function App() {
+          const [view, setView] = useState('dashboard');
+          const [zonas, setZonas] = useState([]);
+          const [especies, setEspecies] = useState([]);
+          const [oportunidades, setOportunidades] = useState([]);
+          const [loading, setLoading] = useState(true);
+          const [selectedZona, setSelectedZona] = useState(null);
+
+          useEffect(() => {
+            fetchData();
+          }, []);
+
+          const fetchData = async () => {
+            setLoading(true);
+            await delay(500);
+            setZonas(mockZonas);
+            setEspecies(mockEspecies);
+            setOportunidades(mockOportunidades);
+            setLoading(false);
+          };
+
+          if (loading) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-[#1a3a2e] to-[#2d5a47] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-20 h-20 border-4 border-[#8b6f47]/30 border-t-[#8b6f47] rounded-full animate-spin mx-auto mb-6"></div>
+                  <p className="text-[#f4ebe1]/60 text-lg">Cargando datos micológicos...</p>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-[#1a3a2e] to-[#2d5a47] text-white">
+              <Header view={view} setView={setView} />
+              <main className="container mx-auto px-4 py-8 max-w-7xl">
+                {view === 'dashboard' && (
+                  <Dashboard
+                    oportunidades={oportunidades}
+                    zonas={zonas}
+                    especies={especies}
+                    setSelectedZona={setSelectedZona}
+                  />
+                )}
+                {view === 'zonas' && <ZonasView zonas={zonas} />}
+                {view === 'especies' && <EspeciesView especies={especies} />}
+              </main>
+              {selectedZona && <ZonaModal zona={selectedZona} onClose={() => setSelectedZona(null)} />}
+            </div>
+          );
+        }
+
+        function Header({ view, setView }) {
+          return (
+            <header className="bg-white/5 backdrop-blur-md border-b border-[#8b6f47]/20">
+              <div className="container mx-auto px-4 py-6 max-w-7xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#8b6f47] to-[#4a7c59] flex items-center justify-center text-3xl shadow-lg">
+                      🍄
+                    </div>
+                    <div>
+                      <h1 className="font-display text-3xl font-bold text-[#f4ebe1]">
+                        MicoMapa
+                      </h1>
+                      <p className="text-[#f4ebe1]/60 text-sm">Demo con datos mockeados</p>
+                    </div>
+                  </div>
+                  <nav className="hidden md:flex gap-2">
+                    {[
+                      { id: 'dashboard', label: 'Dashboard' },
+                      { id: 'zonas', label: 'Zonas' },
+                      { id: 'especies', label: 'Especies' }
+                    ].map(({ id, label }) => (
+                      <button
+                        key={id}
+                        onClick={() => setView(id)}
+                        className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
+                          view === id
+                            ? 'bg-[#8b6f47] text-white shadow-lg'
+                            : 'text-[#f4ebe1]/80 hover:bg-white/10'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </nav>
+                </div>
+              </div>
+            </header>
+          );
+        }
+
+        function Dashboard({ oportunidades, zonas, especies, setSelectedZona }) {
+          return (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <StatCard icon={<MapPinIcon />} value={zonas.length} label="Zonas Activas" />
+                <StatCard icon={<FilterIcon />} value={especies.length} label="Especies" />
+                <StatCard icon={<TrendingUpIcon />} value="4" label="Oportunidades Excelentes" />
+                <StatCard icon={<CloudIcon />} value="89%" label="Precisión IA" />
+              </div>
+
+              <section>
+                <h2 className="font-display text-3xl font-bold text-[#f4ebe1] mb-6">
+                  🌟 Mejores Oportunidades Hoy
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {oportunidades.map((op, idx) => (
+                    <OportunidadCard
+                      key={idx}
+                      oportunidad={op}
+                      onClick={() => setSelectedZona(op)}
+                    />
+                  ))}
+                </div>
+              </section>
+            </div>
+          );
+        }
+
+        function StatCard({ icon, value, label }) {
+          return (
+            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-[#8b6f47]/30">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-white/10 text-[#8b6f47]">
+                  {icon}
+                </div>
+              </div>
+              <div className="font-display text-4xl font-bold text-[#f4ebe1] mb-2">
+                {value}
+              </div>
+              <div className="text-[#f4ebe1]/80 font-medium">{label}</div>
+            </div>
+          );
+        }
+
+        function OportunidadCard({ oportunidad, onClick }) {
+          const scorePercentage = (oportunidad.score_total / 100) * 283;
+
+          return (
+            <div
+              onClick={onClick}
+              className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-[#8b6f47]/30 hover:border-[#8b6f47]/60 cursor-pointer hover:scale-105 transition-all"
+            >
+              <div className="relative w-20 h-20 mx-auto mb-4">
+                <svg className="transform -rotate-90 w-20 h-20">
+                  <circle cx="40" cy="40" r="36" stroke="rgba(244, 235, 225, 0.1)" strokeWidth="8" fill="none" />
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="36"
+                    stroke={oportunidad.score_total >= 85 ? '#059669' : '#8b6f47'}
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray="283"
+                    strokeDashoffset={283 - scorePercentage}
+                    style={{ strokeLinecap: 'round' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-display text-2xl font-bold text-[#f4ebe1]">
+                    {Math.round(oportunidad.score_total)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-center mb-4">
+                <h3 className="font-display text-xl font-bold text-[#f4ebe1] mb-2">
+                  {oportunidad.nombre_cientifico}
+                </h3>
+                <p className="text-[#8b6f47] text-sm font-medium mb-1">
+                  {oportunidad.zona_nombre}
+                </p>
+                <p className="text-[#f4ebe1]/60 text-xs">{oportunidad.provincia}</p>
+              </div>
+
+              <div className={`px-4 py-2 rounded-full text-center font-semibold text-sm ${
+                oportunidad.probabilidad === 'excelente' ? 'bg-[#059669]/20 text-[#059669]' : 'bg-[#8b6f47]/20 text-[#8b6f47]'
+              }`}>
+                {oportunidad.probabilidad.toUpperCase()}
+              </div>
+
+              {oportunidad.dias_estimados_fructificacion && (
+                <div className="mt-4 text-center text-[#f4ebe1]/70 text-sm">
+                  📅 ~{oportunidad.dias_estimados_fructificacion} días
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        function ZonasView({ zonas }) {
+          return (
+            <div className="space-y-6">
+              <h2 className="font-display text-3xl font-bold text-[#f4ebe1] mb-6">
+                📍 Todas las Zonas
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {zonas.map((zona) => (
+                  <div
+                    key={zona.id}
+                    className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-[#8b6f47]/30 hover:scale-105 transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="font-display text-xl font-bold text-[#f4ebe1] mb-1">
+                          {zona.nombre}
+                        </h3>
+                        <p className="text-[#8b6f47] text-sm">{zona.comarca}</p>
+                      </div>
+                      <span className="px-3 py-1 bg-[#4a7c59]/20 text-[#4a7c59] rounded-full text-xs font-semibold">
+                        {zona.provincia}
+                      </span>
+                    </div>
+                    <div className="space-y-2 text-sm text-[#f4ebe1]/70">
+                      <div>📍 {zona.latitud.toFixed(4)}, {zona.longitud.toFixed(4)}</div>
+                      <div>⛰️ {zona.altitud}m · {zona.tipo_bosque}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        function EspeciesView({ especies }) {
+          const getColor = (comestibilidad) => {
+            if (comestibilidad === 'excelente' || comestibilidad === 'bueno') return 'bg-[#059669]/20 text-[#059669]';
+            if (comestibilidad === 'toxico' || comestibilidad === 'mortal') return 'bg-[#dc2626]/20 text-[#dc2626]';
+            return 'bg-[#6b7280]/20 text-[#6b7280]';
+          };
+
+          return (
+            <div className="space-y-6">
+              <h2 className="font-display text-3xl font-bold text-[#f4ebe1] mb-6">
+                🍄 Catálogo de Especies
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {especies.map((especie) => (
+                  <div
+                    key={especie.id}
+                    className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-[#8b6f47]/30"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="text-5xl">🍄</div>
+                      <div className="flex-1">
+                        <h3 className="font-display text-2xl font-bold text-[#f4ebe1] mb-2">
+                          {especie.nombre_cientifico}
+                        </h3>
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {especie.nombres_comunes.map((nombre, i) => (
+                            <span key={i} className="text-[#8b6f47] text-sm">
+                              {nombre}
+                            </span>
+                          ))}
+                        </div>
+                        <div className={`inline-block px-4 py-2 rounded-full text-sm font-semibold ${getColor(especie.comestibilidad)}`}>
+                          {especie.comestibilidad.toUpperCase()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        function ZonaModal({ zona, onClose }) {
+          const [clima, setClima] = useState(null);
+          const [scores, setScores] = useState([]);
+          const [loading, setLoading] = useState(true);
+
+          useEffect(() => {
+            fetchDetails();
+          }, []);
+
+          const fetchDetails = async () => {
+            await delay(400);
+            setClima(mockClima[zona.zona_id] || mockClima['zona-001']);
+            setScores(mockScores[zona.zona_id] || mockScores['zona-001']);
+            setLoading(false);
+          };
+
+          return (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+              <div
+                className="bg-[#1a3a2e]/95 backdrop-blur-md rounded-3xl border border-[#8b6f47]/30 max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="font-display text-4xl font-bold text-[#f4ebe1] mb-2">
+                      {zona.zona_nombre || zona.nombre}
+                    </h2>
+                    <p className="text-[#8b6f47] text-lg">{zona.provincia}</p>
+                  </div>
+                  <button onClick={onClose} className="text-[#f4ebe1] text-3xl hover:text-white">×</button>
+                </div>
+
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 border-4 border-[#8b6f47]/30 border-t-[#8b6f47] rounded-full animate-spin mx-auto"></div>
+                  </div>
+                ) : (
+                  <>
+                    {clima && (
+                      <section className="mb-8">
+                        <h3 className="font-display text-2xl font-bold text-[#f4ebe1] mb-4">
+                          Condiciones Actuales
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-white/5 rounded-xl p-4">
+                            <div className="flex items-center gap-2 text-[#8b6f47] mb-2">
+                              <CloudIcon />
+                              <span className="text-sm">Temperatura</span>
+                            </div>
+                            <div className="text-2xl font-bold text-[#f4ebe1]">
+                              {clima.temp_media?.toFixed(1)}°C
+                            </div>
+                          </div>
+                          <div className="bg-white/5 rounded-xl p-4">
+                            <div className="flex items-center gap-2 text-[#4a7c59] mb-2">
+                              <DropletsIcon />
+                              <span className="text-sm">Precipitación 14d</span>
+                            </div>
+                            <div className="text-2xl font-bold text-[#f4ebe1]">
+                              {clima.precip_ultimos_14_dias?.toFixed(1)}mm
+                            </div>
+                          </div>
+                          <div className="bg-white/5 rounded-xl p-4">
+                            <div className="text-sm text-[#f4ebe1]/70 mb-2">Humedad</div>
+                            <div className="text-2xl font-bold text-[#f4ebe1]">
+                              {clima.humedad_media?.toFixed(0)}%
+                            </div>
+                          </div>
+                          <div className="bg-white/5 rounded-xl p-4">
+                            <div className="text-sm text-[#f4ebe1]/70 mb-2">Días sin lluvia</div>
+                            <div className="text-2xl font-bold text-[#f4ebe1]">
+                              {clima.dias_desde_ultima_lluvia}
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+                    )}
+
+                    <section>
+                      <h3 className="font-display text-2xl font-bold text-[#f4ebe1] mb-4">
+                        Especies Probables
+                      </h3>
+                      <div className="space-y-3">
+                        {scores.map((score, idx) => (
+                          <div key={idx} className="bg-white/5 rounded-xl p-4 flex items-center justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-[#f4ebe1] mb-1">
+                                {score.especie_nombre}
+                              </h4>
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                {score.factores_positivos?.map((factor, i) => (
+                                  <span key={i} className="text-[#059669]">✓ {factor}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-[#f4ebe1] mb-1">
+                                {Math.round(score.score_total)}
+                              </div>
+                              <div className="text-xs font-semibold text-[#059669]">
+                                {score.probabilidad}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // Render
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

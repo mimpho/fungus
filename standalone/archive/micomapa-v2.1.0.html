@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicoMapa v2.1.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      body { font-family: 'DM Sans', sans-serif; margin: 0; padding: 0; background: #0f1f18; }
+      .font-display { font-family: 'Cormorant Garamond', serif; }
+      .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+      .glass-warm { background: rgba(139,111,71,0.08); backdrop-filter: blur(12px); }
+      .grain {
+        position: relative;
+      }
+      .grain::after {
+        content: '';
+        position: absolute; inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none; border-radius: inherit;
+      }
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes slideRight { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+      @keyframes scaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+      @keyframes shimmer { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+      .anim-up { animation: fadeUp 0.5s ease-out forwards; }
+      .anim-right { animation: slideRight 0.5s ease-out forwards; }
+      .anim-scale { animation: scaleIn 0.3s ease-out forwards; }
+      .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+      .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+      /* Scrollbar */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(139,111,71,0.4); border-radius: 3px; }
+      /* Leaflet customization */
+      .leaflet-container { background: #1a3a2e !important; border-radius: 12px; }
+      .leaflet-popup-content-wrapper { background: #1e2d26; border: 1px solid rgba(139,111,71,0.3); color: #f4ebe1; border-radius: 12px; }
+      .leaflet-popup-tip { background: #1e2d26; }
+      .leaflet-control-zoom a { background: #1e2d26 !important; color: #f4ebe1 !important; border-color: rgba(139,111,71,0.3) !important; }
+      /* Anchor nav smooth */
+      html { scroll-behavior: smooth; }
+      /* Custom select */
+      select { appearance: none; -webkit-appearance: none; }
+      /* Progress bar */
+      .progress-bar { height: 6px; border-radius: 3px; overflow: hidden; background: rgba(255,255,255,0.08); }
+      .progress-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+// ==================== TRANSLATIONS ====================
+const i18n = {
+  es: {
+    dashboard: 'Dashboard', zonas: 'Zonas', especies: 'Especies', perfil: 'Perfil',
+    buscar: 'Buscar...', filtrar: 'Filtrar', ordenar: 'Ordenar', todos: 'Todos',
+    seguir: 'Seguir', siguiendo: 'Siguiendo', favorito: 'Favorito',
+    misZonas: 'Mis zonas', todasZonas: 'Todas las zonas',
+    mapa: 'Mapa', buscadorZonas: 'Busca zonas en el mapa',
+    condicionesActuales: 'Condiciones actuales', termometro: 'Condición de recolección',
+    disponiblesAhora: 'Disponibles ahora', calendarioFruct: 'Calendario de fructificación',
+    ubicacion: 'Ubicación en el mapa',
+    fichaEspecie: 'Ficha técnica', descripcion: 'Descripción', morfologia: 'Morfología',
+    habitat: 'Hábitat', fructificacion: 'Fructificación', comestibilidad: 'Comestibilidad',
+    familia: 'Familia', buscarEspecies: 'Buscar especies...', paginaAnterior: 'Anterior', paginaSiguiente: 'Siguiente',
+    soloFavoritos: 'Solo favoritos', ordenAlfa: 'Alfabético', ordenFamilia: 'Por familia', ordenComest: 'Por comestibilidad',
+    notificaciones: 'Notificaciones', datosPer: 'Datos personales', idioma: 'Idioma',
+    nombrePer: 'Nombre', emailPer: 'Email', guardar: 'Guardar cambios',
+    excelente: 'Excelente', muyBueno: 'Muy bueno', bueno: 'Bueno', regular: 'Regular',
+    ver_ficha: 'Ver ficha', ver_familia: 'Ver familia',
+    zonasSeguidas: 'Zonas seguidas', especiesFav: 'Especies favoritas',
+    alerta_zona: 'Alerta de zona', sin_notif: 'Sin notificaciones',
+    tambienConocida: 'También conocida como',
+    descFamilia: 'Descripción de la familia',
+    especiesDeFamilia: 'Especies de esta familia',
+    dondeEncontrar: 'Dónde encontrarla',
+  },
+  ca: {
+    dashboard: 'Tauler', zonas: 'Zones', especies: 'Espècies', perfil: 'Perfil',
+    buscar: 'Cerca...', filtrar: 'Filtrar', ordenar: 'Ordenar', todos: 'Tots',
+    seguir: 'Seguir', siguiendo: 'Seguint', favorito: 'Favorit',
+    misZonas: 'Les meves zones', todasZonas: 'Totes les zones',
+    mapa: 'Mapa', buscadorZonas: 'Cerca zones al mapa',
+    condicionesActuales: 'Condicions actuals', termometro: 'Condició de recol·lecció',
+    disponiblesAhora: 'Disponibles ara', calendarioFruct: 'Calendari de fructificació',
+    ubicacion: 'Ubicació al mapa',
+    fichaEspecie: 'Fitxa tècnica', descripcion: 'Descripció', morfologia: 'Morfologia',
+    habitat: 'Hàbitat', fructificacion: 'Fructificació', comestibilidad: 'Comestibilitat',
+    familia: 'Família', buscarEspecies: 'Cerca espècies...', paginaAnterior: 'Anterior', paginaSiguiente: 'Següent',
+    soloFavoritos: 'Només favorits', ordenAlfa: 'Alfabètic', ordenFamilia: 'Per família', ordenComest: 'Per comestibilitat',
+    notificaciones: 'Notificacions', datosPer: 'Dades personals', idioma: 'Idioma',
+    nombrePer: 'Nom', emailPer: 'Correu', guardar: 'Desa els canvis',
+    excelente: 'Excel·lent', muyBueno: 'Molt bo', bueno: 'Bo', regular: 'Regular',
+    ver_ficha: 'Veure fitxa', ver_familia: 'Veure família',
+    zonasSeguidas: 'Zones seguides', especiesFav: 'Espècies favorites',
+    alerta_zona: 'Alerta de zona', sin_notif: 'Sense notificacions',
+    tambienConocida: 'També coneguda com',
+    descFamilia: 'Descripció de la família',
+    especiesDeFamilia: 'Espècies d\'aquesta família',
+    dondeEncontrar: 'On trobar-la',
+  },
+  en: {
+    dashboard: 'Dashboard', zonas: 'Zones', especies: 'Species', perfil: 'Profile',
+    buscar: 'Search...', filtrar: 'Filter', ordenar: 'Sort', todos: 'All',
+    seguir: 'Follow', siguiendo: 'Following', favorito: 'Favourite',
+    misZonas: 'My zones', todasZonas: 'All zones',
+    mapa: 'Map', buscadorZonas: 'Find zones on the map',
+    condicionesActuales: 'Current conditions', termometro: 'Foraging score',
+    disponiblesAhora: 'Available now', calendarioFruct: 'Fruiting calendar',
+    ubicacion: 'Location on map',
+    fichaEspecie: 'Species card', descripcion: 'Description', morfologia: 'Morphology',
+    habitat: 'Habitat', fructificacion: 'Fruiting', comestibilidad: 'Edibility',
+    familia: 'Family', buscarEspecies: 'Search species...', paginaAnterior: 'Previous', paginaSiguiente: 'Next',
+    soloFavoritos: 'Favourites only', ordenAlfa: 'Alphabetical', ordenFamilia: 'By family', ordenComest: 'By edibility',
+    notificaciones: 'Notifications', datosPer: 'Personal data', idioma: 'Language',
+    nombrePer: 'Name', emailPer: 'Email', guardar: 'Save changes',
+    excelente: 'Excellent', muyBueno: 'Very good', bueno: 'Good', regular: 'Fair',
+    ver_ficha: 'View card', ver_familia: 'View family',
+    zonasSeguidas: 'Followed zones', especiesFav: 'Favourite species',
+    alerta_zona: 'Zone alert', sin_notif: 'No notifications',
+    tambienConocida: 'Also known as',
+    descFamilia: 'Family description',
+    especiesDeFamilia: 'Species in this family',
+    dondeEncontrar: 'Where to find it',
+  }
+};
+
+// ==================== FAMILIAS ====================
+const mockFamilias = {
+  'Boletaceae': {
+    id: 'fam-001', nombre: 'Boletaceae', descripcion: 'Gran familia de hongos con himenio tubular (poros) en lugar de láminas. Incluye algunas de las setas más apreciadas gastronómicamente. La mayoría son micorrizógenas, formando simbiosis con árboles de hoja caduca y coníferas. El género Boletus es el más conocido, con el Boletus edulis como especie bandera.',
+    caracteristicas: ['Himenio tubular (poros)', 'Pie robusto y carnoso', 'Sin anillo en la mayoría', 'Micorrizógenas'],
+    imagen_tipo: '🟤',
+  },
+  'Russulaceae': {
+    id: 'fam-002', nombre: 'Russulaceae', descripcion: 'Familia caracterizada por láminas frágiles y carne quebradiza debido a la ausencia de hifas filamentosas. Incluye los géneros Russula y Lactarius. Muchas especies son comestibles excelentes, aunque el género también contiene especies tóxicas.',
+    caracteristicas: ['Láminas frágiles', 'Carne quebradiza', 'Sin anillo ni volva', 'Algunas lactíferas'],
+    imagen_tipo: '🟠',
+  },
+  'Cantharellaceae': {
+    id: 'fam-003', nombre: 'Cantharellaceae', descripcion: 'Familia de hongos con himenio liso o con pliegues/venas en lugar de verdaderas láminas. Los cantarelos son conocidos por su aroma frutal y su excelente comestibilidad. Son micorrizógenos y nunca se han podido cultivar artificialmente.',
+    caracteristicas: ['Pliegues o venas (no láminas)', 'Aroma frutal', 'Forma de embudo', 'Imposibles de cultivar'],
+    imagen_tipo: '🟡',
+  },
+  'Amanitaceae': {
+    id: 'fam-004', nombre: 'Amanitaceae', descripcion: 'Familia que incluye algunas de las setas más venenosas del mundo junto con excelentes comestibles. Caracterizada por tener volva, anillo y láminas libres. El género Amanita es responsable del 90% de las muertes por intoxicación micológica en el mundo.',
+    caracteristicas: ['Volva basal', 'Anillo en el pie', 'Láminas libres', 'Esporada blanca'],
+    imagen_tipo: '🔴',
+  },
+  'Pleurotaceae': {
+    id: 'fam-005', nombre: 'Pleurotaceae', descripcion: 'Hongos lignícolas que crecen sobre madera muerta o debilitada. El Pleurotus ostreatus (seta de ostra) es uno de los hongos más cultivados del mundo. Son saprófitos descomponedores de madera.',
+    caracteristicas: ['Crecen en madera', 'Pie excéntrico o lateral', 'Láminas decurrentes', 'Saprófitos'],
+    imagen_tipo: '⚪',
+  },
+  'Morchellaceae': {
+    id: 'fam-006', nombre: 'Morchellaceae', descripcion: 'Ascomicetos con cuerpos fructíferos en forma de mitra alveolada. Las colmenillas y colmenillas negras son las más conocidas. Son de las primeras setas en aparecer cada año, en primavera. Todas deben cocinarse ya que contienen toxinas termolábiles.',
+    caracteristicas: ['Sombrero alveolado', 'Ascomicetos', 'Setas de primavera', 'Cocinar siempre'],
+    imagen_tipo: '🟫',
+  },
+  'Tricholomataceae': {
+    id: 'fam-007', nombre: 'Tricholomataceae', descripcion: 'Familia heterogénea de hongos con láminas adnadas o escotadas. Incluye tanto excelentes comestibles como especies tóxicas. El género Tricholoma incluye el famoso "matsutake" japonés.',
+    caracteristicas: ['Láminas adnadas o escotadas', 'Pie central', 'Gran variedad morfológica', 'Sin volva'],
+    imagen_tipo: '🟢',
+  },
+  'Cortinariaceae': {
+    id: 'fam-008', nombre: 'Cortinariaceae', descripcion: 'Gran familia de hongos con esporada oxidada (marrón-herrumbrosa). Caracterizados por la cortina, un velo parcial filamentoso que cubre el himenio en ejemplares jóvenes. Incluye el peligroso Cortinarius orellanus.',
+    caracteristicas: ['Cortina filamentosa', 'Esporada ocre-oxidada', 'Micorrizógenos', 'Algunos muy tóxicos'],
+    imagen_tipo: '🔶',
+  },
+};
+
+// ==================== MOCK DATA ====================
+const mockZonas = [
+  { id: 'zona-001', nombre: 'Pinar de Urbión', provincia: 'Soria', comarca: 'Pinares', latitud: 41.9847, longitud: -2.8547, altitud: 1850, tipo_bosque: 'pinar', descripcion: 'Extenso pinar de altura con excelentes condiciones para Boletus y Lactarius.' },
+  { id: 'zona-002', nombre: 'Hayedo del Ripollès', provincia: 'Girona', comarca: 'Ripollès', latitud: 42.2547, longitud: 2.1234, altitud: 1200, tipo_bosque: 'hayedo', descripcion: 'Hayedo denso y húmedo, ideal para Cantharellus y Boletus edulis.' },
+  { id: 'zona-003', nombre: 'Robledal del Montseny', provincia: 'Barcelona', comarca: 'Osona', latitud: 41.7684, longitud: 2.4153, altitud: 980, tipo_bosque: 'robledal', descripcion: 'Robledal mediterráneo con gran diversidad micológica otoñal.' },
+  { id: 'zona-004', nombre: 'Pinar de Lleida', provincia: 'Lleida', comarca: 'Alt Urgell', latitud: 42.3568, longitud: 1.4626, altitud: 1450, tipo_bosque: 'pinar', descripcion: 'Pinar pirenaico de altura con abundantes pinetells y céps.' },
+  { id: 'zona-005', nombre: 'Hayedo de la Garrotxa', provincia: 'Girona', comarca: 'Garrotxa', latitud: 42.1547, longitud: 2.5234, altitud: 850, tipo_bosque: 'hayedo', descripcion: 'Hayedo volcánico con suelos ricos en minerales, excelente para rebozuelos.' },
+  { id: 'zona-006', nombre: 'Encinar de Collserola', provincia: 'Barcelona', comarca: 'Barcelonès', latitud: 41.4256, longitud: 2.0842, altitud: 450, tipo_bosque: 'encinar', descripcion: 'Encinar mediterráneo periurbano, accesible todo el año.' },
+  { id: 'zona-007', nombre: 'Pinar del Port de Beseit', provincia: 'Tarragona', comarca: 'Baix Ebre', latitud: 40.8234, longitud: 0.2847, altitud: 1200, tipo_bosque: 'pinar', descripcion: 'Pinar meridional de montaña, con buenas temporadas de otoño.' },
+  { id: 'zona-008', nombre: 'Hayedo de Jito de Escarandi', provincia: 'Asturias', comarca: 'Cangas de Onís', latitud: 43.2456, longitud: -5.0234, altitud: 1100, tipo_bosque: 'hayedo', descripcion: 'Hayedo asturiano de gran belleza y riqueza micológica.' },
+];
+
+const mockEspecies = [
+  {
+    id: 'esp-001', nombre_cientifico: 'Boletus edulis',
+    nombres_comunes: ['Boleto', 'Cep', 'Sureny', 'Porcino', 'Steinpilz'],
+    familia: 'Boletaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['pinar', 'hayedo', 'robledal'],
+    meses_fructificacion: [8,9,10,11],
+    descripcion: 'El rey de las setas. Uno de los hongos más apreciados gastronómicamente en todo el mundo. Su carne firme y sabor intenso lo hacen insustituible en la cocina. Forma micorriza con pinos, abetos, hayas y robles.',
+    sombrero: { forma: 'Convexo-abombado', color: 'Marrón castano a ocre', diametro: '8-30 cm', superficie: 'Lisa, algo viscosa con humedad' },
+    pie: { forma: 'Cilíndrico o engrosado en la base', color: 'Blancuzco con reticulado', altura: '5-20 cm', diametro: '3-8 cm' },
+    carne: { color: 'Blanca, inmutable al corte', textura: 'Firme y compacta', olor: 'Agradable, fúngico', sabor: 'Suave y agradable' },
+    esporada: 'Oliva-parda',
+    altitud_min: 400, altitud_max: 2000,
+    distribucion: ['España', 'Cataluña', 'Pirineos', 'Sierra de Guadarrama', 'Soria'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Boletus_edulis_EtOH_1.jpg/320px-Boletus_edulis_EtOH_1.jpg',
+  },
+  {
+    id: 'esp-002', nombre_cientifico: 'Lactarius deliciosus',
+    nombres_comunes: ['Níscalo', 'Rovellón', 'Pinetell', 'Esclata-sang'],
+    familia: 'Russulaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['pinar'],
+    meses_fructificacion: [9,10,11,12],
+    descripcion: 'La seta más recolectada en España. Exuda un látex anaranjado característico al cortarla. Crece exclusivamente en pinares, formando micorriza con pinos. Su color zanahoria y olor a fruta la hacen inconfundible.',
+    sombrero: { forma: 'Convexo después infundibuliforme', color: 'Anaranjado con zonas concéntricas', diametro: '4-14 cm', superficie: 'Lisa, algo viscosa' },
+    pie: { forma: 'Cilíndrico con lacunas', color: 'Anaranjado con manchas', altura: '3-8 cm', diametro: '1-3 cm' },
+    carne: { color: 'Blanquecina que vira a verde', textura: 'Firme y quebradiza', olor: 'Afrutado', sabor: 'Algo picante en crudo' },
+    esporada: 'Crema-rosada',
+    altitud_min: 200, altitud_max: 1800,
+    distribucion: ['España', 'Cataluña', 'Toda la Península Ibérica'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Lactarius_deliciosus_LC0120.jpg/320px-Lactarius_deliciosus_LC0120.jpg',
+  },
+  {
+    id: 'esp-003', nombre_cientifico: 'Cantharellus cibarius',
+    nombres_comunes: ['Rebozuelo', 'Chantarela', 'Camagroc', 'Girolle'],
+    familia: 'Cantharellaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['hayedo', 'robledal'],
+    meses_fructificacion: [6,7,8,9,10],
+    descripcion: 'El rebozuelo amarillo dorado, uno de los hongos más aromáticos del bosque. Su aroma frutal a albaricoque es único. Imposible de cultivar artificialmente, se encuentra exclusivamente en bosques caducifolios.',
+    sombrero: { forma: 'Convexo luego ondulado-irregular', color: 'Amarillo yema huevo', diametro: '3-12 cm', superficie: 'Lisa, mate' },
+    pie: { forma: 'Macizo, estrechado hacia la base', color: 'Amarillo pálido', altura: '3-8 cm', diametro: '0.8-2 cm' },
+    carne: { color: 'Amarillo pálido', textura: 'Firme y elástica', olor: 'Frutal, albaricoque', sabor: 'Suave, algo picante' },
+    esporada: 'Crema-amarillenta',
+    altitud_min: 100, altitud_max: 1500,
+    distribucion: ['España', 'Cataluña', 'Europa Central'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/2006-10-25_Cantharellus_cibarius_crop.jpg/320px-2006-10-25_Cantharellus_cibarius_crop.jpg',
+  },
+  {
+    id: 'esp-004', nombre_cientifico: 'Amanita caesarea',
+    nombres_comunes: ['Oronja', 'Ou de reig', 'Seta de César', 'Ovolo'],
+    familia: 'Amanitaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['robledal', 'encinar'],
+    meses_fructificacion: [7,8,9,10],
+    descripcion: 'Considerada por muchos la seta más exquisita de Europa. Sale de un huevo blanco que la protege inicialmente. Su sombrero naranja brillante y láminas amarillas la hacen inconfundible. El César romano la consideraba "comida de dioses".',
+    sombrero: { forma: 'Esférico después convexo-extendido', color: 'Naranja brillante a rojo', diametro: '8-20 cm', superficie: 'Lisa, brillante' },
+    pie: { forma: 'Cilíndrico con volva', color: 'Amarillo con anillo estriado', altura: '8-15 cm', diametro: '2-4 cm' },
+    carne: { color: 'Blanca-amarillenta', textura: 'Firme', olor: 'Agradable', sabor: 'Exquisito, suave' },
+    esporada: 'Blanca',
+    altitud_min: 100, altitud_max: 1200,
+    distribucion: ['Mediterráneo', 'Sur de Europa', 'Cataluña', 'Levante'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Amanita_caesarea_4.jpg/320px-Amanita_caesarea_4.jpg',
+  },
+  {
+    id: 'esp-005', nombre_cientifico: 'Amanita muscaria',
+    nombres_comunes: ['Matamoscas', 'Reig bord', 'Fly agaric', 'Fliegenpilz'],
+    familia: 'Amanitaceae', comestibilidad: 'toxico',
+    tipos_bosque: ['pinar', 'hayedo'],
+    meses_fructificacion: [8,9,10,11],
+    descripcion: 'La seta más icónica del mundo, con su sombrero rojo con escamas blancas. Contiene muscimol e ibotenic acid, causantes de alucinaciones y síntomas neurológicos. NUNCA consumir. Micorrizógena con pinos y abedules.',
+    sombrero: { forma: 'Esférico después extendido', color: 'Rojo escarlata con verrugas blancas', diametro: '6-20 cm', superficie: 'Cubierta de verrugas blancas' },
+    pie: { forma: 'Cilíndrico con bulbo basal', color: 'Blanco con anillo', altura: '8-20 cm', diametro: '1.5-3 cm' },
+    carne: { color: 'Blanca, bajo cutícula amarillenta', textura: 'Firme', olor: 'Suave', sabor: 'Suave (TÓXICA)' },
+    esporada: 'Blanca',
+    altitud_min: 200, altitud_max: 2200,
+    distribucion: ['Toda Europa', 'España', 'Zonas boreales'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Amanita_muscaria_3_vliegenzwam.jpg/320px-Amanita_muscaria_3_vliegenzwam.jpg',
+  },
+  {
+    id: 'esp-006', nombre_cientifico: 'Pleurotus ostreatus',
+    nombres_comunes: ['Seta de ostra', 'Gírgola', 'Orellana', 'Oyster mushroom'],
+    familia: 'Pleurotaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['hayedo', 'robledal'],
+    meses_fructificacion: [10,11,12,1,2,3],
+    descripcion: 'Una de las setas más cultivadas del mundo. Crece en colonias sobre troncos de árboles caducifolios muertos o debilitados. Seta de invierno muy apreciada, resistente al frío. De sabor suave y textura carnosa.',
+    sombrero: { forma: 'En forma de ostra o abanico', color: 'Gris azulado a marrón', diametro: '5-20 cm', superficie: 'Lisa, húmeda' },
+    pie: { forma: 'Excéntrico o lateral, corto', color: 'Blanquecino', altura: '1-3 cm', diametro: '1-3 cm' },
+    carne: { color: 'Blanca', textura: 'Firme y carnosa', olor: 'Suave, agradable', sabor: 'Suave' },
+    esporada: 'Lila pálido',
+    altitud_min: 0, altitud_max: 1200,
+    distribucion: ['Europa', 'España', 'Asia', 'América'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Oyster_mushrooms_%28Pleurotus_ostreatus%29.jpg/320px-Oyster_mushrooms_%28Pleurotus_ostreatus%29.jpg',
+  },
+  {
+    id: 'esp-007', nombre_cientifico: 'Morchella esculenta',
+    nombres_comunes: ['Colmenilla', 'Cagarria', 'Múrgula', 'Morel'],
+    familia: 'Morchellaceae', comestibilidad: 'bueno',
+    tipos_bosque: ['robledal', 'hayedo'],
+    meses_fructificacion: [3,4,5],
+    descripcion: 'La primera seta comestible de primavera. Su aspecto único con sombrero alveolado la hace inconfundible. Siempre debe cocinarse ya que contiene hemolisinas termolábiles. Aparece en primavera, especialmente tras incendios.',
+    sombrero: { forma: 'Cónico-alveolado irregular', color: 'Ocre a marrón', diametro: '3-7 cm', superficie: 'Alveolada como un panal' },
+    pie: { forma: 'Cilíndrico, hueco', color: 'Blanquecino a crema', altura: '4-8 cm', diametro: '1.5-4 cm' },
+    carne: { color: 'Blancuzca, frágil', textura: 'Frágil y quebradiza', olor: 'Agradable, terroso', sabor: 'Suave, agradable' },
+    esporada: 'Crema-amarillenta',
+    altitud_min: 100, altitud_max: 1500,
+    distribucion: ['Europa', 'España', 'Norte de España'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Morchella_esculenta_-_Fruehjahrmorchel.jpg/320px-Morchella_esculenta_-_Fruehjahrmorchel.jpg',
+  },
+  {
+    id: 'esp-008', nombre_cientifico: 'Tricholoma terreum',
+    nombres_comunes: ['Ratón', 'Ratolí', 'Grísola', 'Grey knight'],
+    familia: 'Tricholomataceae', comestibilidad: 'bueno',
+    tipos_bosque: ['pinar'],
+    meses_fructificacion: [10,11,12],
+    descripcion: 'Seta pequeña gris muy común en pinares. Su sombrero gris con cutícula fibrilosa es característico. Crece en corros o grandes grupos bajo pinos. Comestible pero sin gran valor gastronómico. Muy apreciada en Cataluña.',
+    sombrero: { forma: 'Cónico-convexo a extendido', color: 'Gris oscuro a gris ceniza', diametro: '4-8 cm', superficie: 'Fibrilosa, seca' },
+    pie: { forma: 'Cilíndrico, sólido', color: 'Blancuzco', altura: '3-6 cm', diametro: '0.5-1.5 cm' },
+    carne: { color: 'Blanca, gris bajo cutícula', textura: 'Firme', olor: 'Harinoso', sabor: 'Suave, harinoso' },
+    esporada: 'Blanca',
+    altitud_min: 300, altitud_max: 1600,
+    distribucion: ['España', 'Europa', 'Pirineos', 'Cataluña'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Tricholoma_terreum_3.jpg/320px-Tricholoma_terreum_3.jpg',
+  },
+  {
+    id: 'esp-009', nombre_cientifico: 'Boletus pinophilus',
+    nombres_comunes: ['Boleto de pino', 'Cep de pi', 'Pine bolete'],
+    familia: 'Boletaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['pinar'],
+    meses_fructificacion: [7,8,9,10],
+    descripcion: 'Pariente del Boletus edulis, específico de pinares. Su sombrero color chocolate oscuro a castaño lo diferencia del cep común. De excelente calidad, muy apreciado. Suele aparecer antes que el B. edulis en verano.',
+    sombrero: { forma: 'Convexo-abombado', color: 'Marrón chocolate a castaño', diametro: '6-20 cm', superficie: 'Mate, algo tomentosa' },
+    pie: { forma: 'Robusto, con reticulado', color: 'Marrón pálido', altura: '5-15 cm', diametro: '3-7 cm' },
+    carne: { color: 'Blanca, inmutable', textura: 'Firme', olor: 'Agradable', sabor: 'Suave, excelente' },
+    esporada: 'Oliva parda',
+    altitud_min: 500, altitud_max: 2200,
+    distribucion: ['España', 'Europa', 'Pirineos', 'Sierra Nevada'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Boletus_pinicola_061007w.jpg/320px-Boletus_pinicola_061007w.jpg',
+  },
+  {
+    id: 'esp-010', nombre_cientifico: 'Cantharellus lutescens',
+    nombres_comunes: ['Trompeta amarilla', 'Trompeta de los Muertos (dorada)', 'Surreny groc'],
+    familia: 'Cantharellaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['pinar', 'hayedo'],
+    meses_fructificacion: [9,10,11,12],
+    descripcion: 'Seta en forma de trompeta amarilla-anaranjada. Crece en grandes grupos en suelos húmedos. Muy aromática, excelente para salsas y revueltos. Más tardía que el rebozuelo clásico, aparece en otoño avanzado.',
+    sombrero: { forma: 'Infundibuliforme (en embudo)', color: 'Amarillo anaranjado', diametro: '2-6 cm', superficie: 'Lisa, ondulada' },
+    pie: { forma: 'Hueco, cilíndrico', color: 'Naranja brillante', altura: '4-8 cm', diametro: '0.5-1 cm' },
+    carne: { color: 'Amarillenta', textura: 'Delgada y flexible', olor: 'Frutal', sabor: 'Agradable' },
+    esporada: 'Ocrácea',
+    altitud_min: 200, altitud_max: 1400,
+    distribucion: ['España', 'Europa', 'Cataluña', 'Pirineos'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Cantharellus_lutescens_Murrill.jpg/320px-Cantharellus_lutescens_Murrill.jpg',
+  },
+  {
+    id: 'esp-011', nombre_cientifico: 'Amanita phalloides',
+    nombres_comunes: ['Oronja verde', 'Cicuta verde', 'Death cap'],
+    familia: 'Amanitaceae', comestibilidad: 'mortal',
+    tipos_bosque: ['hayedo', 'robledal', 'encinar'],
+    meses_fructificacion: [7,8,9,10],
+    descripcion: 'LA SETA MÁS PELIGROSA DEL MUNDO. Responsable del 90% de las muertes por intoxicación micológica. Contiene amatoxinas que destruyen el hígado. Los síntomas aparecen 6-24 horas después de la ingesta. Sin antídoto específico. NUNCA consumir.',
+    sombrero: { forma: 'Convexo después extendido', color: 'Verde oliva a amarillo-verdoso', diametro: '5-15 cm', superficie: 'Lisa, brillante' },
+    pie: { forma: 'Con bulbo y volva en saco', color: 'Blanco verdoso', altura: '7-15 cm', diametro: '1-2 cm' },
+    carne: { color: 'Blanca, inmutable', textura: 'Firme', olor: 'Suave, agradable (¡PELIGROSO!)', sabor: 'Suave (¡MORTAL!)' },
+    esporada: 'Blanca',
+    altitud_min: 100, altitud_max: 1200,
+    distribucion: ['Europa', 'España', 'África', 'América del Norte'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Amanita_phalloides_1.JPG/320px-Amanita_phalloides_1.JPG',
+  },
+  {
+    id: 'esp-012', nombre_cientifico: 'Macrolepiota procera',
+    nombres_comunes: ['Parasol', 'Apagallums', 'Galamperna', 'Parasol mushroom'],
+    familia: 'Agaricaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['robledal', 'pinar', 'encinar'],
+    meses_fructificacion: [8,9,10,11],
+    descripcion: 'Una de las setas más grandes de Europa. Su sombrero puede alcanzar los 40 cm. Aparece en prados, bordes de bosque y jardines. El sombrero se puede rebozar como un filete. Fácilmente reconocible por su llamativo anillo doble.',
+    sombrero: { forma: 'Esférico después extendido-umbonado', color: 'Marrón con escamas más oscuras', diametro: '15-40 cm', superficie: 'Escamosa sobre fondo crema' },
+    pie: { forma: 'Largo y esbelto con bulbo', color: 'Marrón jaspeado', altura: '15-30 cm', diametro: '1-2 cm' },
+    carne: { color: 'Blanca, algo rosada al corte', textura: 'Blanda y esponjosa', olor: 'Agradable, nuez', sabor: 'Suave, excelente' },
+    esporada: 'Blanca',
+    altitud_min: 0, altitud_max: 1500,
+    distribucion: ['Europa', 'España', 'América', 'Australia'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Macrolepiota_procera.jpg/320px-Macrolepiota_procera.jpg',
+  },
+  {
+    id: 'esp-013', nombre_cientifico: 'Hydnum repandum',
+    nombres_comunes: ['Pie de carnero', 'Llengua de gat', 'Hedgehog mushroom'],
+    familia: 'Hydnaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['hayedo', 'robledal'],
+    meses_fructificacion: [9,10,11,12],
+    descripcion: 'Seta fácil de identificar por sus aguijones o dentículos bajo el sombrero en lugar de láminas. Comestible sin riesgo de confusión peligrosa. Sabor algo amargo que desaparece al cocinar. Muy recomendable para principiantes.',
+    sombrero: { forma: 'Irregular, ondulado', color: 'Crema-anaranjado pálido', diametro: '5-15 cm', superficie: 'Mate, irregular' },
+    pie: { forma: 'Irregular, macizo', color: 'Concolor al sombrero', altura: '3-8 cm', diametro: '1-3 cm' },
+    carne: { color: 'Blanca-crema', textura: 'Firme y frágil', olor: 'Agradable', sabor: 'Algo amargo, mejora cocinado' },
+    esporada: 'Blanca',
+    altitud_min: 200, altitud_max: 1500,
+    distribucion: ['Europa', 'España', 'Pirineos', 'Norte peninsular'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Hydnum_repandum_3.jpg/320px-Hydnum_repandum_3.jpg',
+  },
+  {
+    id: 'esp-014', nombre_cientifico: 'Craterellus cornucopioides',
+    nombres_comunes: ['Trompeta de los muertos', 'Trompeta negra', 'Corn d\'abundància'],
+    familia: 'Cantharellaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['hayedo', 'robledal'],
+    meses_fructificacion: [9,10,11],
+    descripcion: 'Pese a su nombre inquietante, es una excelente seta comestible de uso culinario muy valorado. Su color negro la hace difícil de ver en el bosque. Aroma intenso y sabor profundo, especialmente seca. Crece en grupos bajo hayas.',
+    sombrero: { forma: 'Tubular en forma de trompeta', color: 'Negro a gris oscuro', diametro: '3-8 cm', superficie: 'Fibrosa, escamosa' },
+    pie: { forma: 'Continuación del sombrero, hueco', color: 'Gris oscuro', altura: '5-12 cm', diametro: '0.5-2 cm' },
+    carne: { color: 'Gris-negro', textura: 'Flexible y delgada', olor: 'Intenso, afrutado', sabor: 'Excelente, intenso' },
+    esporada: 'Blanca',
+    altitud_min: 300, altitud_max: 1500,
+    distribucion: ['Europa', 'España', 'Norte peninsular', 'Pirineos'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Craterellus_cornucopioides_2007_G1.jpg/320px-Craterellus_cornucopioides_2007_G1.jpg',
+  },
+  {
+    id: 'esp-015', nombre_cientifico: 'Boletus reticulatus',
+    nombres_comunes: ['Boleto de verano', 'Cep d\'estiu', 'Summer cep'],
+    familia: 'Boletaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['robledal', 'encinar'],
+    meses_fructificacion: [6,7,8,9],
+    descripcion: 'El boleto de verano, muy similar al B. edulis pero con sombrero más seco y mate. Primera especie del género en aparecer cada año. Excelente comestible, muy apreciado en verano cuando escasean las setas.',
+    sombrero: { forma: 'Convexo', color: 'Marrón ocre a ocre pajizo', diametro: '6-20 cm', superficie: 'Mate, algo agrietada en seco' },
+    pie: { forma: 'Robusto con reticulado fino', color: 'Ocre-parduzco', altura: '5-15 cm', diametro: '3-6 cm' },
+    carne: { color: 'Blanca, inmutable', textura: 'Firme', olor: 'Agradable', sabor: 'Suave, excelente' },
+    esporada: 'Oliva parda',
+    altitud_min: 100, altitud_max: 1400,
+    distribucion: ['Europa', 'España', 'Zona mediterránea'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Boletus_reticulatus_%28Summer_cep%29.jpg/320px-Boletus_reticulatus_%28Summer_cep%29.jpg',
+  },
+  {
+    id: 'esp-016', nombre_cientifico: 'Cortinarius orellanus',
+    nombres_comunes: ['Cortinario orellano', 'Seta del diablo', 'Fool\'s webcap'],
+    familia: 'Cortinariaceae', comestibilidad: 'mortal',
+    tipos_bosque: ['robledal', 'hayedo'],
+    meses_fructificacion: [8,9,10],
+    descripcion: 'SETA MORTAL. Contiene orellanina, una toxina nefrotóxica que destruye los riñones. Los síntomas aparecen 2-3 SEMANAS después de la ingesta (muy peligroso). Sin antídoto. Puede confundirse con rebozuelos. NUNCA consumir.',
+    sombrero: { forma: 'Convexo-campanulado', color: 'Naranja-marrón oxidado', diametro: '4-9 cm', superficie: 'Seca, fibrilosa' },
+    pie: { forma: 'Cilíndrico', color: 'Amarillo naranja', altura: '4-8 cm', diametro: '1-2 cm' },
+    carne: { color: 'Amarillo-naranja', textura: 'Firme', olor: 'Ligero a rábano', sabor: 'Suave (¡MORTAL!)' },
+    esporada: 'Oxidada',
+    altitud_min: 100, altitud_max: 1200,
+    distribucion: ['Europa', 'España', 'Norte de España'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Cortinarius_orellanus_1.jpg/320px-Cortinarius_orellanus_1.jpg',
+  },
+  {
+    id: 'esp-017', nombre_cientifico: 'Russula virescens',
+    nombres_comunes: ['Paloma verde', 'Rússula verda', 'Greencracked brittlegill'],
+    familia: 'Russulaceae', comestibilidad: 'excelente',
+    tipos_bosque: ['robledal', 'hayedo'],
+    meses_fructificacion: [6,7,8,9],
+    descripcion: 'Una de las mejores rússulas comestibles. Su sombrero verde agrietado la hace muy reconocible. Sin látex (a diferencia del Lactarius). Excelente en crudo en ensaladas o cocinada. Una de las pocas rússulas claramente comestibles para principiantes.',
+    sombrero: { forma: 'Convexo después deprimido en el centro', color: 'Verde con zonas más oscuras, agrietado', diametro: '6-15 cm', superficie: 'Con agrietado característico' },
+    pie: { forma: 'Cilíndrico, robusto', color: 'Blanco', altura: '4-10 cm', diametro: '2-4 cm' },
+    carne: { color: 'Blanca, inmutable', textura: 'Firme y quebradiza', olor: 'Suave', sabor: 'Suave, agradable' },
+    esporada: 'Blanca',
+    altitud_min: 200, altitud_max: 1200,
+    distribucion: ['Europa', 'España', 'Zona atlántica y mediterránea'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Russula_virescens_4.jpg/320px-Russula_virescens_4.jpg',
+  },
+  {
+    id: 'esp-018', nombre_cientifico: 'Laccaria laccata',
+    nombres_comunes: ['Lacaria', 'Lacaria lacada', 'Deceiver'],
+    familia: 'Tricholomataceae', comestibilidad: 'bueno',
+    tipos_bosque: ['hayedo', 'robledal', 'pinar'],
+    meses_fructificacion: [6,7,8,9,10,11],
+    descripcion: 'Seta pequeña muy común y de larga temporada. Su variabilidad morfológica hace que sea apodada "the deceiver" en inglés. Comestible pero de poco valor gastronómico. Útil para reconocer el hábitat de otras setas mejores.',
+    sombrero: { forma: 'Convexo-irregular', color: 'Rosado-lacado a anaranjado, decolora en seco', diametro: '2-6 cm', superficie: 'Variable, algo fibrosa' },
+    pie: { forma: 'Fibroso-estriado, algo tortuoso', color: 'Concolor al sombrero', altura: '3-8 cm', diametro: '0.4-0.8 cm' },
+    carne: { color: 'Rosado pálido', textura: 'Flexible', olor: 'Suave', sabor: 'Suave' },
+    esporada: 'Blanca',
+    altitud_min: 0, altitud_max: 1800,
+    distribucion: ['Todo el mundo', 'España', 'Europa'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Laccaria_laccata_57903.jpg/320px-Laccaria_laccata_57903.jpg',
+  },
+  {
+    id: 'esp-019', nombre_cientifico: 'Suillus luteus',
+    nombres_comunes: ['Baboso', 'Babosa de pino', 'Slippery Jack'],
+    familia: 'Boletaceae', comestibilidad: 'bueno',
+    tipos_bosque: ['pinar'],
+    meses_fructificacion: [9,10,11,12],
+    descripcion: 'Boleto resbaladizo y mucilaginoso con anillo membranoso. Exclusivo de pinares. Hay que pelar la cutícula viscosa antes de cocinar. Comestible mediocre pero abundante. Puede causar problemas digestivos si se consume en exceso.',
+    sombrero: { forma: 'Convexo', color: 'Marrón chocolate viscoso', diametro: '5-12 cm', superficie: 'Muy viscosa en tiempo húmedo' },
+    pie: { forma: 'Con anillo membranoso violáceo', color: 'Amarillo con punteado marrón', altura: '5-10 cm', diametro: '1-2 cm' },
+    carne: { color: 'Amarillo pálido', textura: 'Blanda', olor: 'Agradable', sabor: 'Suave, algo ácido' },
+    esporada: 'Ocre-parda',
+    altitud_min: 200, altitud_max: 1800,
+    distribucion: ['Europa', 'España', 'Cataluña', 'Pirineos'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Suillus_luteus_2.jpg/320px-Suillus_luteus_2.jpg',
+  },
+  {
+    id: 'esp-020', nombre_cientifico: 'Armillaria mellea',
+    nombres_comunes: ['Seta de miel', 'Seta de roure', 'Honey fungus'],
+    familia: 'Physalacriaceae', comestibilidad: 'bueno',
+    tipos_bosque: ['robledal', 'hayedo', 'encinar'],
+    meses_fructificacion: [9,10,11],
+    descripcion: 'Parásito forestal que crece en grandes racimos sobre madera muerta o debilitada. Comestible sólo los sombreros bien cocinados; los pies son demasiado fibrosos. Puede ser muy agresivo con los árboles huéspedes. Uno de los organismos vivos más grandes del mundo.',
+    sombrero: { forma: 'Convexo a extendido con umbón', color: 'Miel-anaranjado con escamitas oscuras', diametro: '4-12 cm', superficie: 'Con escamas fibrilosas' },
+    pie: { forma: 'Cilíndrico con anillo blanco', color: 'Marrón amarillento', altura: '8-15 cm', diametro: '0.8-1.5 cm' },
+    carne: { color: 'Blanca a crema', textura: 'Firme en el sombrero', olor: 'Agradable', sabor: 'Algo amargo' },
+    esporada: 'Blanca',
+    altitud_min: 0, altitud_max: 1500,
+    distribucion: ['Mundial', 'España', 'Europa', 'América del Norte'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Armillaria_mellea_3_Luc_Viatour.jpg/320px-Armillaria_mellea_3_Luc_Viatour.jpg',
+  },
+  {
+    id: 'esp-021', nombre_cientifico: 'Calocybe gambosa',
+    nombres_comunes: ['Seta de San Jorge', 'Moixernó', 'Perretxiko', 'St. George\'s mushroom'],
+    familia: 'Tricholomataceae', comestibilidad: 'excelente',
+    tipos_bosque: ['robledal', 'encinar'],
+    meses_fructificacion: [3,4,5],
+    descripcion: 'La seta de primavera por excelencia. Aparece en torno al día de San Jorge (23 de abril). Blanca y carnosa, con olor harinoso inconfundible. Muy apreciada en el País Vasco (perretxiko). Cuidado con la confusión con Clitocybe blancas.',
+    sombrero: { forma: 'Convexo a extendido, irregular', color: 'Blanco crema a blanco sucio', diametro: '6-15 cm', superficie: 'Lisa, mate' },
+    pie: { forma: 'Robusto, macizo', color: 'Blanco', altura: '3-8 cm', diametro: '2-5 cm' },
+    carne: { color: 'Blanca, inmutable', textura: 'Firme y compacta', olor: 'Intensamente harinoso', sabor: 'Harinoso, excelente' },
+    esporada: 'Blanca',
+    altitud_min: 100, altitud_max: 1000,
+    distribucion: ['Europa', 'España', 'País Vasco', 'Navarra', 'Cataluña'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Calocybe_gambosa_Micheli_ex_Fr.jpg/320px-Calocybe_gambosa_Micheli_ex_Fr.jpg',
+  },
+  {
+    id: 'esp-022', nombre_cientifico: 'Ganoderma lucidum',
+    nombres_comunes: ['Oreja de árbol', 'Reishi', 'Língzhi', 'Lacquered bracket'],
+    familia: 'Ganodermataceae', comestibilidad: 'no_comestible',
+    tipos_bosque: ['robledal', 'encinar'],
+    meses_fructificacion: [6,7,8,9,10],
+    descripcion: 'Hongo medicinal muy valorado en la medicina tradicional china (Reishi). Su cutícula lacada brillante es característica. No se consume como alimento pero se usa en infusiones y extractos. Crece sobre troncos de árboles caducifolios.',
+    sombrero: { forma: 'En repisa o abanico, excéntrico', color: 'Rojo-marrón brillante lacado', diametro: '10-30 cm', superficie: 'Lacada, brillante' },
+    pie: { forma: 'Lateral, largo, lacado', color: 'Rojo-marrón', altura: '5-20 cm', diametro: '1-3 cm' },
+    carne: { color: 'Marrón corcho', textura: 'Dura, leñosa', olor: 'Suave', sabor: 'Amargo (no comestible)' },
+    esporada: 'Parda',
+    altitud_min: 0, altitud_max: 1000,
+    distribucion: ['Asia', 'Europa', 'España', 'América'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Ganoderma_lucidum.jpg/320px-Ganoderma_lucidum.jpg',
+  },
+  {
+    id: 'esp-023', nombre_cientifico: 'Hygrophorus russula',
+    nombres_comunes: ['Higrófor ruso', 'Higròfor gros', 'Pinky-grey waxcap'],
+    familia: 'Hygrophoraceae', comestibilidad: 'bueno',
+    tipos_bosque: ['robledal', 'encinar'],
+    meses_fructificacion: [9,10,11],
+    descripcion: 'Gran higrófor de color rosado con manchas más oscuras. Se confunde a veces con rússulas. Comestible de buena calidad, especialmente apreciado en zonas mediterráneas. Crece bajo encinas y robles.',
+    sombrero: { forma: 'Convexo a extendido', color: 'Rosa-vináceo con manchas', diametro: '6-16 cm', superficie: 'Viscosa húmeda, lisa' },
+    pie: { forma: 'Robusto, macizo', color: 'Blanco con puntos róseos', altura: '4-8 cm', diametro: '2-4 cm' },
+    carne: { color: 'Blanca', textura: 'Firme', olor: 'Suave', sabor: 'Agradable' },
+    esporada: 'Blanca',
+    altitud_min: 200, altitud_max: 1200,
+    distribucion: ['Mediterráneo', 'España', 'Sur de Europa'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Hygrophorus_russula.jpg/320px-Hygrophorus_russula.jpg',
+  },
+  {
+    id: 'esp-024', nombre_cientifico: 'Fistulina hepatica',
+    nombres_comunes: ['Lengua de buey', 'Figatell de roure', 'Beefsteak fungus'],
+    familia: 'Fistulinaceae', comestibilidad: 'bueno',
+    tipos_bosque: ['robledal', 'encinar'],
+    meses_fructificacion: [8,9,10],
+    descripcion: 'Hongo lignicola en forma de lengua o hígado rojo sangre. Se puede comer en crudo en ensaladas (sabor ácido) o cocinado. Crece sobre troncos de robles y castaños. Su aspecto carnoso y color rojizo son únicos.',
+    sombrero: { forma: 'En repisa, lengua o hígado', color: 'Rojo sangre a granate', diametro: '15-40 cm', superficie: 'Carnosa, húmeda' },
+    pie: { forma: 'Lateral, muy corto o ausente', color: 'Rojo más oscuro', altura: '2-6 cm', diametro: '3-6 cm' },
+    carne: { color: 'Rojo veteado como carne', textura: 'Carnosa y jugosa', olor: 'Afrutado, ácido', sabor: 'Ácido, agradable' },
+    esporada: 'Rosada',
+    altitud_min: 100, altitud_max: 1000,
+    distribucion: ['Europa', 'España', 'Norte peninsular'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Fistulina_hepatica2.jpg/320px-Fistulina_hepatica2.jpg',
+  },
+  {
+    id: 'esp-025', nombre_cientifico: 'Clitocybe nebularis',
+    nombres_comunes: ['Clitocybe nebulosa', 'Pardillo nublado', 'Cama de llop', 'Clouded funnel'],
+    familia: 'Tricholomataceae', comestibilidad: 'toxico',
+    tipos_bosque: ['hayedo', 'robledal', 'pinar'],
+    meses_fructificacion: [9,10,11,12],
+    descripcion: 'Seta grande y gris que crece en grandes corros. Aunque históricamente considerada comestible, actualmente se clasifica como tóxica (causa gastroenteritis y puede tener efecto acumulativo). Muy común en otoño. NO consumir.',
+    sombrero: { forma: 'Convexo después extendido-deprimido', color: 'Gris ceniza a beige', diametro: '8-20 cm', superficie: 'Lisa, pruinosa' },
+    pie: { forma: 'Robusto, con base engrosada', color: 'Blanquecino-grisáceo', altura: '6-10 cm', diametro: '2-4 cm' },
+    carne: { color: 'Blanca', textura: 'Firme y compacta', olor: 'Intenso, peculiar', sabor: 'Suave (TÓXICA)' },
+    esporada: 'Crema-blanca',
+    altitud_min: 100, altitud_max: 1500,
+    distribucion: ['Europa', 'España', 'Zona templada'],
+    foto_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Clitocybe_nebularis_Herbst-Trichterling.jpg/320px-Clitocybe_nebularis_Herbst-Trichterling.jpg',
+  },
+];
+
+const mockOportunidades = [
+  { zona_id: 'zona-001', zona_nombre: 'Pinar de Urbión', provincia: 'Soria', especie_id: 'esp-001', nombre_cientifico: 'Boletus edulis', score_total: 92.5, probabilidad: 'excelente', dias_estimados_fructificacion: 5 },
+  { zona_id: 'zona-002', zona_nombre: 'Hayedo del Ripollès', provincia: 'Girona', especie_id: 'esp-003', nombre_cientifico: 'Cantharellus cibarius', score_total: 88.3, probabilidad: 'excelente', dias_estimados_fructificacion: 7 },
+  { zona_id: 'zona-004', zona_nombre: 'Pinar de Lleida', provincia: 'Lleida', especie_id: 'esp-002', nombre_cientifico: 'Lactarius deliciosus', score_total: 85.7, probabilidad: 'muy_alta', dias_estimados_fructificacion: 4 },
+  { zona_id: 'zona-003', zona_nombre: 'Robledal del Montseny', provincia: 'Barcelona', especie_id: 'esp-004', nombre_cientifico: 'Amanita caesarea', score_total: 82.1, probabilidad: 'muy_alta', dias_estimados_fructificacion: 8 },
+];
+
+// ==================== ICONS ====================
+const IC = {
+  map: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>,
+  pin: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+  mushroom: <span>🍄</span>,
+  star: (filled) => <svg className="w-5 h-5" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>,
+  heart: (filled) => <svg className="w-5 h-5" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
+  bell: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>,
+  search: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
+  user: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+  grid: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+  chart: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>,
+  close: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
+  chevron: (dir) => <svg className={`w-4 h-4 ${dir==='left'?'rotate-180':''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>,
+  filter: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>,
+  warning: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+  cloud: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>,
+  drop: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3.586l5.657 5.657a8 8 0 11-11.314 0L12 3.586z" /></svg>,
+};
+
+// ==================== HELPERS ====================
+function getComestColor(com) {
+  const m = {
+    excelente: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-400', label: 'Excelente' },
+    bueno: { bg: 'bg-teal-500/15', text: 'text-teal-400', border: 'border-teal-500/30', dot: 'bg-teal-400', label: 'Comestible' },
+    no_comestible: { bg: 'bg-slate-500/15', text: 'text-slate-400', border: 'border-slate-500/30', dot: 'bg-slate-400', label: 'No comestible' },
+    toxico: { bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/30', dot: 'bg-orange-400', label: 'Tóxica' },
+    mortal: { bg: 'bg-red-600/15', text: 'text-red-400', border: 'border-red-500/30', dot: 'bg-red-500', label: '⚠ MORTAL' },
+  };
+  return m[com] || m.no_comestible;
+}
+
+function getScoreColor(s) {
+  if (s >= 85) return { bar: 'bg-emerald-400', text: 'text-emerald-400', label: 'Excelente' };
+  if (s >= 70) return { bar: 'bg-[#8b6f47]', text: 'text-[#c4a06b]', label: 'Muy bueno' };
+  if (s >= 55) return { bar: 'bg-amber-500', text: 'text-amber-400', label: 'Bueno' };
+  return { bar: 'bg-red-500', text: 'text-red-400', label: 'Regular' };
+}
+
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function fakeCond() {
+  const score = Math.floor(60 + Math.random() * 35);
+  return {
+    temperatura: (10 + Math.random() * 8).toFixed(1),
+    temp_suelo: (9 + Math.random() * 7).toFixed(1),
+    precipitacion_14d: (25 + Math.random() * 60).toFixed(1),
+    humedad: (65 + Math.random() * 25).toFixed(0),
+    viento: (5 + Math.random() * 20).toFixed(0),
+    dias_sin_lluvia: Math.floor(Math.random() * 6),
+    score_general: score,
+  };
+}
+
+// ==================== LEAFLET MAP COMPONENT ====================
+function LeafletMap({ zonas, onZonaClick, height = '400px', selectedZona = null, singleZona = null }) {
+  const mapRef = useRef(null);
+  const leafletRef = useRef(null);
+  const markersRef = useRef([]);
+
+  useEffect(() => {
+    if (!mapRef.current || leafletRef.current) return;
+    const center = singleZona ? [singleZona.latitud, singleZona.longitud] : [41.8, 1.5];
+    const zoom = singleZona ? 11 : 7;
+    const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: true }).setView(center, zoom);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap contributors © CARTO', subdomains: 'abcd', maxZoom: 19
+    }).addTo(map);
+    leafletRef.current = map;
+
+    const mushIcon = (color = '#8b6f47', active = false) => L.divIcon({
+      className: '',
+      html: `<div style="width:${active?38:28}px;height:${active?38:28}px;background:${color};border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${active?16:12}px;box-shadow:0 0 ${active?20:10}px ${color}80;transition:all 0.2s;">🍄</div>`,
+      iconSize: [active?38:28, active?38:28], iconAnchor: [active?19:14, active?19:14], popupAnchor: [0, -20],
+    });
+
+    const toRender = singleZona ? [singleZona] : (zonas || []);
+    toRender.forEach(z => {
+      const isActive = selectedZona && selectedZona.id === z.id;
+      const colors = { pinar: '#4a7c59', hayedo: '#8b6f47', robledal: '#a0522d', encinar: '#6b8e23' };
+      const color = colors[z.tipo_bosque] || '#8b6f47';
+      const marker = L.marker([z.latitud, z.longitud], { icon: mushIcon(color, isActive) })
+        .bindPopup(`<div style="font-family:DM Sans,sans-serif;color:#f4ebe1;min-width:160px"><strong style="font-size:14px">${z.nombre}</strong><br><span style="color:#8b6f47;font-size:12px">${z.provincia} · ${z.tipo_bosque}</span><br><span style="color:#aaa;font-size:11px">⛰️ ${z.altitud}m</span></div>`)
+        .addTo(map);
+      if (onZonaClick) marker.on('click', () => onZonaClick(z));
+      markersRef.current.push(marker);
+    });
+
+    return () => { map.remove(); leafletRef.current = null; markersRef.current = []; };
+  }, []);
+
+  return <div ref={mapRef} style={{ height, width: '100%', borderRadius: '12px', zIndex: 1 }} />;
+}
+
+// ==================== APP ====================
+function App() {
+  const [view, setView] = useState('dashboard');
+  const [lang, setLang] = useState('es');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedZona, setSelectedZona] = useState(null);
+  const [selectedEspecie, setSelectedEspecie] = useState(null);
+  const [selectedFamilia, setSelectedFamilia] = useState(null);
+  const [zonasSeguidas, setZonasSeguidas] = useState([]);
+  const [especiesFav, setEspeciesFav] = useState([]);
+  const [perfil, setPerfil] = useState({ nombre: 'Micólogo', email: 'user@micomapa.app' });
+
+  const t = i18n[lang];
+
+  useEffect(() => {
+    const s = localStorage.getItem('micomapa_v3');
+    if (s) {
+      const d = JSON.parse(s);
+      setZonasSeguidas(d.zonas || [mockZonas[0], mockZonas[1]]);
+      setEspeciesFav(d.favoritos || []);
+      if (d.perfil) setPerfil(d.perfil);
+      if (d.lang) setLang(d.lang);
+    } else {
+      setZonasSeguidas([mockZonas[0], mockZonas[1]]);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('micomapa_v3', JSON.stringify({ zonas: zonasSeguidas, favoritos: especiesFav, perfil, lang }));
+  }, [zonasSeguidas, especiesFav, perfil, lang]);
+
+  const toggleSeguir = useCallback((zona) => {
+    setZonasSeguidas(prev => prev.some(z => z.id === zona.id) ? prev.filter(z => z.id !== zona.id) : [...prev, zona]);
+  }, []);
+
+  const toggleFav = useCallback((especie) => {
+    setEspeciesFav(prev => prev.some(e => e.id === especie.id) ? prev.filter(e => e.id !== especie.id) : [...prev, especie]);
+  }, []);
+
+  const navItems = [
+    { id: 'dashboard', label: t.dashboard, icon: IC.chart },
+    { id: 'zonas', label: t.zonas, icon: IC.pin, badge: zonasSeguidas.length },
+    { id: 'especies', label: t.especies, icon: IC.mushroom },
+    { id: 'perfil', label: t.perfil, icon: IC.user },
+  ];
+
+  return (
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f1f18 0%, #1a2e22 50%, #0f1f18 100%)' }}>
+      {/* HEADER */}
+      <header className="glass border-b border-white/[0.06] sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 anim-right">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl" style={{ background: 'linear-gradient(135deg, #4a7c59, #8b6f47)' }}>🍄</div>
+            <div>
+              <h1 className="font-display text-xl font-semibold text-[#f4ebe1] leading-none">MicoMapa</h1>
+              <span className="text-[10px] text-[#8b6f47] tracking-widest uppercase">v2.1.0</span>
+            </div>
+          </div>
+          <nav className="hidden md:flex items-center gap-1">
+            {navItems.map(({ id, label, icon, badge }) => (
+              <button key={id} onClick={() => setView(id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative ${view === id ? 'bg-[#8b6f47]/25 text-[#c4a06b] shadow-inner' : 'text-[#f4ebe1]/60 hover:text-[#f4ebe1] hover:bg-white/[0.05]'}`}>
+                {icon} {label}
+                {badge > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white rounded-full text-[10px] flex items-center justify-center font-bold">{badge}</span>}
+              </button>
+            ))}
+          </nav>
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 rounded-lg hover:bg-white/10 text-[#f4ebe1]/70 transition-colors">
+            {mobileMenuOpen ? IC.close : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>}
+          </button>
+        </div>
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-white/[0.06] px-4 py-3 flex flex-col gap-1 anim-up">
+            {navItems.map(({ id, label, icon, badge }) => (
+              <button key={id} onClick={() => { setView(id); setMobileMenuOpen(false); }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${view === id ? 'bg-[#8b6f47]/25 text-[#c4a06b]' : 'text-[#f4ebe1]/70 hover:bg-white/[0.05]'}`}>
+                {icon} {label}
+                {badge > 0 && <span className="ml-auto px-2 py-0.5 bg-emerald-500 text-white rounded-full text-xs font-bold">{badge}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </header>
+
+      {/* MAIN */}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {view === 'dashboard' && <Dashboard t={t} setView={setView} setSelectedZona={setSelectedZona} zonasSeguidas={zonasSeguidas} />}
+        {view === 'zonas' && <Zonas t={t} zonasSeguidas={zonasSeguidas} toggleSeguir={toggleSeguir} setSelectedZona={setSelectedZona} />}
+        {view === 'especies' && <Especies t={t} especiesFav={especiesFav} toggleFav={toggleFav} setSelectedEspecie={setSelectedEspecie} setSelectedFamilia={setSelectedFamilia} />}
+        {view === 'perfil' && <Perfil t={t} lang={lang} setLang={setLang} perfil={perfil} setPerfil={setPerfil} zonasSeguidas={zonasSeguidas} especiesFav={especiesFav} />}
+      </main>
+
+      {/* MODALS */}
+      {selectedZona && (
+        <ZonaModal t={t} zona={selectedZona} onClose={() => setSelectedZona(null)}
+          isSeguida={zonasSeguidas.some(z => z.id === selectedZona.id)}
+          onToggleSeguir={() => toggleSeguir(selectedZona)} />
+      )}
+      {selectedEspecie && (
+        <EspecieModal t={t} especie={selectedEspecie} onClose={() => setSelectedEspecie(null)}
+          isFav={especiesFav.some(e => e.id === selectedEspecie.id)}
+          onToggleFav={() => toggleFav(selectedEspecie)}
+          onVerFamilia={(f) => { setSelectedFamilia(f); setSelectedEspecie(null); }} />
+      )}
+      {selectedFamilia && (
+        <FamiliaModal t={t} familia={selectedFamilia} onClose={() => setSelectedFamilia(null)}
+          onVerEspecie={(e) => { setSelectedEspecie(e); setSelectedFamilia(null); }} />
+      )}
+    </div>
+  );
+}
+
+// ==================== DASHBOARD ====================
+function Dashboard({ t, setView, setSelectedZona, zonasSeguidas }) {
+  return (
+    <div className="space-y-10 anim-up">
+      <div>
+        <h2 className="font-display text-4xl font-semibold text-[#f4ebe1] mb-1">Bienvenido</h2>
+        <p className="text-[#8b6f47] text-sm">Condiciones micológicas de hoy · {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { icon: '📍', label: t.zonas, value: mockZonas.length, sub: 'zonas activas', accent: '#4a7c59' },
+          { icon: '🍄', label: t.especies, value: mockEspecies.length, sub: 'en catálogo', accent: '#8b6f47' },
+          { icon: '⭐', label: 'Oportunidades', value: mockOportunidades.length, sub: 'esta semana', accent: '#059669' },
+          { icon: '🎯', label: 'Precisión IA', value: '94%', sub: 'tasa de acierto', accent: '#d97706' },
+        ].map((s, i) => (
+          <div key={i} className="glass rounded-2xl p-5 border border-white/[0.06] hover-lift" style={{ animationDelay: `${i*0.08}s` }}>
+            <div className="text-3xl mb-3">{s.icon}</div>
+            <div className="font-display text-3xl font-semibold text-[#f4ebe1]">{s.value}</div>
+            <div className="text-[#f4ebe1]/50 text-xs mt-1">{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <section>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-display text-2xl font-semibold text-[#f4ebe1]">🌟 Mejores Oportunidades</h3>
+          <button onClick={() => setView('zonas')} className="text-[#8b6f47] hover:text-[#c4a06b] text-sm transition-colors">Ver zonas →</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {mockOportunidades.map((op, i) => {
+            const c = 2 * Math.PI * 40;
+            const o = c - (op.score_total / 100) * c;
+            return (
+              <div key={i} onClick={() => setSelectedZona(mockZonas.find(z => z.id === op.zona_id))}
+                className="glass rounded-2xl p-6 border border-white/[0.06] hover:border-[#8b6f47]/40 cursor-pointer hover-lift anim-up text-center"
+                style={{ animationDelay: `${i * 0.1}s` }}>
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  <svg className="-rotate-90 w-24 h-24">
+                    <circle cx="48" cy="48" r="40" stroke="rgba(139,111,71,0.15)" strokeWidth="6" fill="none" />
+                    <circle cx="48" cy="48" r="40" stroke="#8b6f47" strokeWidth="6" fill="none"
+                      strokeDasharray={c} strokeDashoffset={o} strokeLinecap="round" />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center font-display text-2xl font-bold text-[#f4ebe1]">{Math.round(op.score_total)}</span>
+                </div>
+                <div className="font-display text-base font-semibold text-[#f4ebe1] italic mb-1">{op.nombre_cientifico}</div>
+                <div className="text-[#8b6f47] text-xs mb-3">{op.zona_nombre}</div>
+                <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${op.probabilidad === 'excelente' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[#8b6f47]/15 text-[#c4a06b]'}`}>
+                  {op.probabilidad.replace('_', ' ')}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {zonasSeguidas.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-display text-2xl font-semibold text-[#f4ebe1]">⭐ {t.zonasSeguidas}</h3>
+            <button onClick={() => setView('zonas')} className="text-[#8b6f47] hover:text-[#c4a06b] text-sm transition-colors">Ver todas →</button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {zonasSeguidas.slice(0, 4).map((z) => {
+              const cond = fakeCond();
+              const sc = getScoreColor(cond.score_general);
+              return (
+                <div key={z.id} className="glass rounded-xl p-4 border border-white/[0.06] flex items-center gap-4 hover-lift">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-[#f4ebe1] text-sm truncate">{z.nombre}</div>
+                    <div className="text-[#8b6f47] text-xs">{z.provincia} · {z.tipo_bosque}</div>
+                    <div className="mt-2 progress-bar"><div className={`progress-fill ${sc.bar}`} style={{ width: `${cond.score_general}%` }} /></div>
+                  </div>
+                  <div className={`text-right ${sc.text} text-sm font-semibold`}>{cond.score_general}<span className="text-xs font-normal opacity-60">/100</span></div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+// ==================== ZONAS ====================
+function Zonas({ t, zonasSeguidas, toggleSeguir, setSelectedZona }) {
+  const [tab, setTab] = useState('mapa');
+  const esSeguida = (id) => zonasSeguidas.some(z => z.id === id);
+
+  return (
+    <div className="space-y-6 anim-up">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-4xl font-semibold text-[#f4ebe1]">{t.zonas}</h2>
+          <p className="text-[#8b6f47] text-sm mt-1">{zonasSeguidas.length} {t.zonasSeguidas.toLowerCase()}</p>
+        </div>
+        <div className="flex bg-white/[0.04] rounded-xl p-1 gap-1 border border-white/[0.06]">
+          {[{ id: 'mapa', label: t.mapa }, { id: 'mis', label: t.misZonas }, { id: 'todas', label: t.todasZonas }].map(tb => (
+            <button key={tb.id} onClick={() => setTab(tb.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === tb.id ? 'bg-[#8b6f47] text-white shadow-sm' : 'text-[#f4ebe1]/60 hover:text-[#f4ebe1]'}`}>
+              {tb.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === 'mapa' && (
+        <div className="space-y-4">
+          <div className="relative">
+            <div className="absolute top-3 left-3 z-10 bg-[#0f1f18]/90 border border-white/10 rounded-xl px-4 py-2.5 flex items-center gap-2 shadow-lg">
+              {IC.search}
+              <span className="text-[#f4ebe1]/60 text-sm">{t.buscadorZonas}</span>
+            </div>
+            <LeafletMap zonas={mockZonas} onZonaClick={setSelectedZona} height="520px" />
+          </div>
+          <div className="flex gap-3 flex-wrap text-xs">
+            {[['pinar','#4a7c59'],['hayedo','#8b6f47'],['robledal','#a0522d'],['encinar','#6b8e23']].map(([t2,c]) => (
+              <span key={t2} className="flex items-center gap-1.5 text-[#f4ebe1]/60">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />
+                {t2.charAt(0).toUpperCase()+t2.slice(1)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'mis' && (
+        <div>
+          {zonasSeguidas.length === 0 ? (
+            <div className="glass rounded-2xl p-12 border border-white/[0.06] text-center">
+              <div className="text-5xl mb-4">📍</div>
+              <h3 className="font-display text-xl text-[#f4ebe1] mb-2">Sin zonas seguidas</h3>
+              <p className="text-[#f4ebe1]/50 text-sm">Añade zonas desde el mapa o el listado.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {zonasSeguidas.map(z => <ZonaCard key={z.id} zona={z} seguida isSeguida onToggle={() => toggleSeguir(z)} onClick={() => setSelectedZona(z)} />)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'todas' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {mockZonas.map(z => <ZonaCard key={z.id} zona={z} isSeguida={esSeguida(z.id)} onToggle={() => toggleSeguir(z)} onClick={() => setSelectedZona(z)} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ZonaCard({ zona, isSeguida, onToggle, onClick }) {
+  const cond = useMemo(() => fakeCond(), [zona.id]);
+  const sc = getScoreColor(cond.score_general);
+  const bosqueEmoji = { pinar: '🌲', hayedo: '🌳', robledal: '🌿', encinar: '🌿' };
+
+  return (
+    <div className="glass rounded-2xl border border-white/[0.06] hover:border-[#8b6f47]/30 transition-all hover-lift overflow-hidden">
+      <div className="p-5">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 min-w-0 cursor-pointer" onClick={onClick}>
+            <h3 className="font-display text-lg font-semibold text-[#f4ebe1] truncate">{zona.nombre}</h3>
+            <p className="text-[#8b6f47] text-xs mt-0.5">{zona.comarca} · {zona.provincia}</p>
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); onToggle(); }}
+            className={`ml-3 p-2 rounded-xl transition-all ${isSeguida ? 'text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20' : 'text-[#f4ebe1]/30 hover:text-yellow-400 hover:bg-yellow-400/10'}`}>
+            {IC.star(isSeguida)}
+          </button>
+        </div>
+        <div onClick={onClick} className="cursor-pointer">
+          <div className="flex items-center gap-3 text-xs text-[#f4ebe1]/50 mb-4">
+            <span>{bosqueEmoji[zona.tipo_bosque] || '🌳'} {zona.tipo_bosque}</span>
+            <span>⛰️ {zona.altitud}m</span>
+          </div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[#f4ebe1]/50 text-xs">Condición actual</span>
+            <span className={`text-xs font-semibold ${sc.text}`}>{sc.label}</span>
+          </div>
+          <div className="progress-bar">
+            <div className={`progress-fill ${sc.bar}`} style={{ width: `${cond.score_general}%` }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== ZONA MODAL ====================
+function ZonaModal({ t, zona, onClose, isSeguida, onToggleSeguir }) {
+  const especiesZona = mockEspecies.filter(e => e.tipos_bosque?.includes(zona.tipo_bosque));
+  const condiciones = useMemo(() => fakeCond(), [zona.id]);
+  const mesActual = new Date().getMonth() + 1;
+  const sc = getScoreColor(condiciones.score_general);
+
+  const disponibles = useMemo(() =>
+    especiesZona.filter(e => e.meses_fructificacion?.includes(mesActual))
+      .map(e => ({ ...e, score: Math.floor(60 + Math.random() * 35), dias: Math.floor(3 + Math.random() * 8) }))
+      .sort((a, b) => b.score - a.score),
+    [zona.id]
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="min-h-screen flex items-start justify-center p-4 py-8">
+        <div className="glass rounded-3xl border border-white/[0.08] max-w-4xl w-full anim-scale" onClick={e => e.stopPropagation()}>
+          {/* Header del modal */}
+          <div className="p-6 border-b border-white/[0.06]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-display text-3xl font-semibold text-[#f4ebe1]">{zona.nombre}</h2>
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  <span className="px-2.5 py-1 rounded-lg bg-[#4a7c59]/20 text-[#4a7c59] text-xs font-medium">{zona.provincia}</span>
+                  <span className="text-[#f4ebe1]/50 text-xs">🌲 {zona.tipo_bosque} · ⛰️ {zona.altitud}m</span>
+                  {zona.descripcion && <p className="text-[#f4ebe1]/50 text-xs w-full mt-1">{zona.descripcion}</p>}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={onToggleSeguir}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isSeguida ? 'bg-yellow-400/15 text-yellow-400 border border-yellow-400/30' : 'glass border border-white/10 text-[#f4ebe1]/60 hover:text-yellow-400'}`}>
+                  {IC.star(isSeguida)} {isSeguida ? t.siguiendo : t.seguir}
+                </button>
+                <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-[#f4ebe1]/60 hover:text-[#f4ebe1] transition-colors">{IC.close}</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Contenido en modo ancla — todo en una sola vista con scroll */}
+          <div className="p-6 space-y-8 max-h-[75vh] overflow-y-auto">
+            {/* Termómetro compact */}
+            <section id="condicion">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.termometro}</h3>
+              <div className="flex items-center gap-4 bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
+                <div className="flex-1">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className={`text-sm font-semibold ${sc.text}`}>{sc.label}</span>
+                    <span className="font-display text-xl font-bold text-[#f4ebe1]">{condiciones.score_general}<span className="text-xs text-[#f4ebe1]/40 font-sans">/100</span></span>
+                  </div>
+                  <div className="progress-bar h-[8px]"><div className={`progress-fill ${sc.bar}`} style={{ width: `${condiciones.score_general}%`, height: '8px' }} /></div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-3">
+                {[
+                  { l: 'Temperatura', v: `${condiciones.temperatura}°C` },
+                  { l: 'T. Suelo', v: `${condiciones.temp_suelo}°C` },
+                  { l: 'Precipit. 14d', v: `${condiciones.precipitacion_14d}mm` },
+                  { l: 'Humedad', v: `${condiciones.humedad}%` },
+                  { l: 'Viento', v: `${condiciones.viento}km/h` },
+                  { l: 'Sin lluvia', v: `${condiciones.dias_sin_lluvia}d` },
+                ].map((c, i) => (
+                  <div key={i} className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.04] text-center">
+                    <div className="text-[#f4ebe1]/40 text-[10px] mb-1">{c.l}</div>
+                    <div className="text-[#f4ebe1] text-sm font-semibold">{c.v}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Disponibles ahora */}
+            <section id="disponibles">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.disponiblesAhora}</h3>
+              {disponibles.length === 0 ? (
+                <div className="text-center py-8 text-[#f4ebe1]/40 text-sm">No hay especies disponibles este mes.</div>
+              ) : (
+                <div className="space-y-2">
+                  {disponibles.map(e => {
+                    const cc = getComestColor(e.comestibilidad);
+                    const ss = getScoreColor(e.score);
+                    return (
+                      <div key={e.id} className="flex items-center gap-3 bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
+                        <span className="text-xl">🍄</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-display text-sm italic text-[#f4ebe1] truncate">{e.nombre_cientifico}</div>
+                          <div className={`text-xs ${cc.text}`}>{cc.label}</div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className={`font-semibold text-sm ${ss.text}`}>{e.score}</div>
+                          <div className="text-[#f4ebe1]/40 text-[10px]">~{e.dias} días</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            {/* Calendario */}
+            <section id="calendario">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.calendarioFruct}</h3>
+              <div className="space-y-3">
+                {especiesZona.map(e => {
+                  const cc = getComestColor(e.comestibilidad);
+                  return (
+                    <div key={e.id} className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.04]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cc.dot}`} />
+                        <span className="font-display text-sm italic text-[#f4ebe1]">{e.nombre_cientifico}</span>
+                        <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full border ${cc.bg} ${cc.text} ${cc.border}`}>{cc.label}</span>
+                      </div>
+                      <div className="grid grid-cols-12 gap-1">
+                        {MESES.map((m, i) => (
+                          <div key={i} className={`text-center py-1.5 rounded text-[9px] font-medium ${e.meses_fructificacion?.includes(i+1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-[#f4ebe1]/20'}`}>{m}</div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Mapa de ubicación */}
+            <section id="ubicacion">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.ubicacion}</h3>
+              <LeafletMap singleZona={zona} height="280px" />
+              <div className="flex items-center gap-2 mt-2 text-[#f4ebe1]/40 text-xs">
+                {IC.pin} {zona.latitud.toFixed(4)}, {zona.longitud.toFixed(4)} · {zona.altitud}m s.n.m.
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== ESPECIES ====================
+const PER_PAGE = 8;
+function Especies({ t, especiesFav, toggleFav, setSelectedEspecie, setSelectedFamilia }) {
+  const [busqueda, setBusqueda] = useState('');
+  const [orden, setOrden] = useState('alfa');
+  const [soloFav, setSoloFav] = useState(false);
+  const [filtroFam, setFiltroFam] = useState('');
+  const [page, setPage] = useState(1);
+
+  const familias = useMemo(() => [...new Set(mockEspecies.map(e => e.familia))].sort(), []);
+  const isFav = useCallback((e) => especiesFav.some(f => f.id === e.id), [especiesFav]);
+
+  const filtradas = useMemo(() => {
+    let r = [...mockEspecies];
+    if (soloFav) r = r.filter(e => especiesFav.some(f => f.id === e.id));
+    if (filtroFam) r = r.filter(e => e.familia === filtroFam);
+    if (busqueda) {
+      const b = busqueda.toLowerCase();
+      r = r.filter(e => e.nombre_cientifico.toLowerCase().includes(b) || e.nombres_comunes.some(n => n.toLowerCase().includes(b)));
+    }
+    if (orden === 'alfa') r.sort((a, b) => a.nombre_cientifico.localeCompare(b.nombre_cientifico));
+    else if (orden === 'familia') r.sort((a, b) => a.familia.localeCompare(b.familia));
+    else if (orden === 'comest') {
+      const p = { excelente: 0, bueno: 1, no_comestible: 2, toxico: 3, mortal: 4 };
+      r.sort((a, b) => (p[a.comestibilidad] ?? 5) - (p[b.comestibilidad] ?? 5));
+    }
+    return r;
+  }, [busqueda, orden, soloFav, filtroFam, especiesFav]);
+
+  const totalPages = Math.ceil(filtradas.length / PER_PAGE);
+  const pagina = filtradas.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [busqueda, orden, soloFav, filtroFam]);
+
+  return (
+    <div className="space-y-6 anim-up">
+      <div>
+        <h2 className="font-display text-4xl font-semibold text-[#f4ebe1]">{t.especies}</h2>
+        <p className="text-[#8b6f47] text-sm mt-1">{filtradas.length} especies encontradas</p>
+      </div>
+
+      {/* Controles */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex items-center gap-2 glass rounded-xl px-3 py-2.5 border border-white/[0.06] flex-1 min-w-48">
+          {IC.search}
+          <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder={t.buscarEspecies}
+            className="bg-transparent text-[#f4ebe1] text-sm outline-none placeholder-[#f4ebe1]/30 w-full" />
+        </div>
+
+        <div className="relative">
+          <select value={filtroFam} onChange={e => setFiltroFam(e.target.value)}
+            className="glass border border-white/[0.06] rounded-xl px-3 py-2.5 pr-8 text-sm text-[#f4ebe1]/70 outline-none cursor-pointer bg-transparent">
+            <option value="">Familia: todas</option>
+            {familias.map(f => <option key={f} value={f} style={{ background: '#1a2e22' }}>{f}</option>)}
+          </select>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#f4ebe1]/40 pointer-events-none text-xs">▾</span>
+        </div>
+
+        <div className="relative">
+          <select value={orden} onChange={e => setOrden(e.target.value)}
+            className="glass border border-white/[0.06] rounded-xl px-3 py-2.5 pr-8 text-sm text-[#f4ebe1]/70 outline-none cursor-pointer bg-transparent">
+            <option value="alfa" style={{ background: '#1a2e22' }}>{t.ordenAlfa}</option>
+            <option value="familia" style={{ background: '#1a2e22' }}>{t.ordenFamilia}</option>
+            <option value="comest" style={{ background: '#1a2e22' }}>{t.ordenComest}</option>
+          </select>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[#f4ebe1]/40 pointer-events-none text-xs">▾</span>
+        </div>
+
+        <button onClick={() => setSoloFav(!soloFav)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${soloFav ? 'bg-red-500/15 text-red-400 border-red-500/30' : 'glass border-white/[0.06] text-[#f4ebe1]/60 hover:text-[#f4ebe1]'}`}>
+          {IC.heart(soloFav)} {t.soloFavoritos}
+        </button>
+      </div>
+
+      {/* Grid */}
+      {pagina.length === 0 ? (
+        <div className="text-center py-16 text-[#f4ebe1]/40">
+          <div className="text-4xl mb-3">🔍</div>
+          <p>Sin resultados para tu búsqueda.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {pagina.map((e, i) => {
+            const cc = getComestColor(e.comestibilidad);
+            const fav = isFav(e);
+            return (
+              <div key={e.id} className="glass rounded-2xl border border-white/[0.06] hover:border-[#8b6f47]/30 transition-all hover-lift anim-up overflow-hidden" style={{ animationDelay: `${i * 0.04}s` }}>
+                {/* foto */}
+                <div className="relative h-36 overflow-hidden">
+                  <img src={e.foto_url} alt={e.nombre_cientifico} className="w-full h-full object-cover opacity-80"
+                    onError={ev => { ev.target.style.display = 'none'; ev.target.parentNode.style.background = 'rgba(139,111,71,0.08)'; }} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f1f18] to-transparent" />
+                  <button onClick={ev => { ev.stopPropagation(); toggleFav(e); }}
+                    className={`absolute top-2 right-2 p-1.5 rounded-lg transition-all ${fav ? 'bg-red-500/20 text-red-400' : 'bg-black/40 text-white/50 hover:text-red-400'}`}>
+                    {IC.heart(fav)}
+                  </button>
+                  <div className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-medium border ${cc.bg} ${cc.text} ${cc.border}`}>{cc.label}</div>
+                </div>
+                <div className="p-4 cursor-pointer" onClick={() => setSelectedEspecie(e)}>
+                  <h3 className="font-display text-base italic font-semibold text-[#f4ebe1] mb-0.5 leading-snug">{e.nombre_cientifico}</h3>
+                  <p className="text-[#8b6f47] text-xs mb-2">{e.familia}</p>
+                  <p className="text-[#f4ebe1]/40 text-xs truncate">{e.nombres_comunes.join(' · ')}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm glass border border-white/[0.06] text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            {IC.chevron('left')} {t.paginaAnterior}
+          </button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button key={i} onClick={() => setPage(i + 1)}
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${page === i + 1 ? 'bg-[#8b6f47] text-white' : 'text-[#f4ebe1]/40 hover:text-[#f4ebe1] hover:bg-white/[0.05]'}`}>
+                {i + 1}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm glass border border-white/[0.06] text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            {t.paginaSiguiente} {IC.chevron('right')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== ESPECIE MODAL ====================
+function EspecieModal({ t, especie, onClose, isFav, onToggleFav, onVerFamilia }) {
+  const cc = getComestColor(especie.comestibilidad);
+  const familia = mockFamilias[especie.familia];
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="min-h-screen flex items-start justify-center p-4 py-8">
+        <div className="glass rounded-3xl border border-white/[0.08] max-w-4xl w-full anim-scale" onClick={e => e.stopPropagation()}>
+          {/* Hero foto */}
+          <div className="relative h-56 overflow-hidden rounded-t-3xl">
+            <img src={especie.foto_url} alt={especie.nombre_cientifico} className="w-full h-full object-cover opacity-70"
+              onError={ev => { ev.target.style.display = 'none'; ev.target.parentNode.style.background = 'linear-gradient(135deg,#1a3a2e,#2d4a3e)'; }} />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0f1f18] via-[#0f1f18]/40 to-transparent" />
+            <div className="absolute bottom-5 left-6 right-6">
+              <h2 className="font-display text-4xl font-semibold italic text-[#f4ebe1] drop-shadow-lg">{especie.nombre_cientifico}</h2>
+              <p className="text-[#8b6f47] text-sm mt-1">{especie.familia} · {especie.nombres_comunes[0]}</p>
+            </div>
+            <div className="absolute top-4 right-4 flex gap-2">
+              <button onClick={onToggleFav} className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400' : 'bg-black/40 text-white/50 hover:text-red-400'}`}>{IC.heart(isFav)}</button>
+              <button onClick={onClose} className="p-2 rounded-xl bg-black/40 text-white/50 hover:text-white transition-all">{IC.close}</button>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-8 max-h-[65vh] overflow-y-auto">
+            {/* Comestibilidad + familia */}
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${cc.bg} ${cc.text} ${cc.border} font-semibold text-sm`}>
+                <span className={`w-2 h-2 rounded-full ${cc.dot}`} /> {cc.label}
+              </div>
+              {familia && (
+                <button onClick={() => onVerFamilia(familia)}
+                  className="glass border border-white/[0.06] px-4 py-2 rounded-xl text-sm text-[#8b6f47] hover:text-[#c4a06b] transition-colors">
+                  🔬 {t.ver_familia}: {especie.familia}
+                </button>
+              )}
+            </div>
+
+            {especie.comestibilidad === 'mortal' && (
+              <div className="flex items-start gap-3 p-4 rounded-xl border-2 border-red-500/40 bg-red-500/10">
+                {IC.warning}
+                <div>
+                  <div className="font-bold text-red-400 mb-1">ESPECIE MORTAL — PELIGRO EXTREMO</div>
+                  <p className="text-red-300/80 text-sm">Esta especie puede causar la muerte. NUNCA la consumas. En caso de ingestión, contacta inmediatamente con Urgencias (112) o el Centro Toxicológico (91 562 04 20).</p>
+                </div>
+              </div>
+            )}
+
+            {/* Nombres comunes */}
+            {especie.nombres_comunes?.length > 0 && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.tambienConocida}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {especie.nombres_comunes.map((n, i) => (
+                    <span key={i} className="px-3 py-1 rounded-full bg-[#8b6f47]/15 text-[#c4a06b] text-sm">{n}</span>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Descripción */}
+            {especie.descripcion && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.descripcion}</h3>
+                <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">{especie.descripcion}</p>
+              </section>
+            )}
+
+            {/* Morfología técnica */}
+            {(especie.sombrero || especie.pie || especie.carne) && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-4">{t.morfologia}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {especie.sombrero && (
+                    <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.04]">
+                      <div className="text-center text-4xl mb-3" title="Sombrero">
+                        {/* SVG ilustración sombrero */}
+                        <svg width="60" height="40" viewBox="0 0 60 40" className="mx-auto">
+                          <ellipse cx="30" cy="35" rx="28" ry="5" fill="rgba(139,111,71,0.3)" />
+                          <path d="M5,32 Q15,10 30,8 Q45,10 55,32" fill="rgba(139,111,71,0.6)" stroke="rgba(196,160,107,0.5)" strokeWidth="1" />
+                          <ellipse cx="30" cy="32" rx="27" ry="4" fill="rgba(139,111,71,0.4)" />
+                        </svg>
+                      </div>
+                      <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-2 text-center">Sombrero</h4>
+                      <div className="space-y-1.5 text-xs text-[#f4ebe1]/60">
+                        <div><span className="text-[#f4ebe1]/40">Forma:</span> {especie.sombrero.forma}</div>
+                        <div><span className="text-[#f4ebe1]/40">Color:</span> {especie.sombrero.color}</div>
+                        <div><span className="text-[#f4ebe1]/40">Diámetro:</span> {especie.sombrero.diametro}</div>
+                        <div><span className="text-[#f4ebe1]/40">Superficie:</span> {especie.sombrero.superficie}</div>
+                      </div>
+                    </div>
+                  )}
+                  {especie.pie && (
+                    <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.04]">
+                      <div className="text-center mb-3">
+                        <svg width="30" height="60" viewBox="0 0 30 60" className="mx-auto">
+                          <rect x="10" y="5" width="10" height="45" rx="4" fill="rgba(139,111,71,0.5)" stroke="rgba(196,160,107,0.4)" strokeWidth="1"/>
+                          <ellipse cx="15" cy="52" rx="14" ry="5" fill="rgba(139,111,71,0.25)" />
+                        </svg>
+                      </div>
+                      <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-2 text-center">Pie</h4>
+                      <div className="space-y-1.5 text-xs text-[#f4ebe1]/60">
+                        <div><span className="text-[#f4ebe1]/40">Forma:</span> {especie.pie.forma}</div>
+                        <div><span className="text-[#f4ebe1]/40">Color:</span> {especie.pie.color}</div>
+                        <div><span className="text-[#f4ebe1]/40">Altura:</span> {especie.pie.altura}</div>
+                        <div><span className="text-[#f4ebe1]/40">Diámetro:</span> {especie.pie.diametro}</div>
+                      </div>
+                    </div>
+                  )}
+                  {especie.carne && (
+                    <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.04]">
+                      <div className="text-center mb-3">
+                        <svg width="50" height="50" viewBox="0 0 50 50" className="mx-auto">
+                          <circle cx="25" cy="25" r="22" fill="none" stroke="rgba(139,111,71,0.5)" strokeWidth="1.5" strokeDasharray="4 2"/>
+                          <circle cx="25" cy="25" r="16" fill="rgba(244,235,225,0.08)" />
+                          <path d="M10,25 Q25,10 40,25 Q25,40 10,25" fill="rgba(139,111,71,0.2)" />
+                        </svg>
+                      </div>
+                      <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-2 text-center">Carne</h4>
+                      <div className="space-y-1.5 text-xs text-[#f4ebe1]/60">
+                        <div><span className="text-[#f4ebe1]/40">Color:</span> {especie.carne.color}</div>
+                        <div><span className="text-[#f4ebe1]/40">Textura:</span> {especie.carne.textura}</div>
+                        <div><span className="text-[#f4ebe1]/40">Olor:</span> {especie.carne.olor}</div>
+                        <div><span className="text-[#f4ebe1]/40">Sabor:</span> {especie.carne.sabor}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {especie.esporada && (
+                  <div className="mt-3 flex items-center gap-2 text-xs text-[#f4ebe1]/50 bg-white/[0.03] rounded-lg px-4 py-2">
+                    <span className="text-[#f4ebe1]/30">Esporada:</span> {especie.esporada}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Hábitat + altitud */}
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.habitat}</h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {especie.tipos_bosque?.map((b, i) => (
+                  <span key={i} className="px-3 py-1 rounded-full bg-[#4a7c59]/15 text-[#4a7c59] text-sm border border-[#4a7c59]/20">🌲 {b}</span>
+                ))}
+              </div>
+              {(especie.altitud_min != null) && (
+                <div className="text-xs text-[#f4ebe1]/50">⛰️ Altitud: {especie.altitud_min}–{especie.altitud_max}m s.n.m.</div>
+              )}
+            </section>
+
+            {/* Fructificación */}
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.fructificacion}</h3>
+              <div className="grid grid-cols-12 gap-1.5">
+                {MESES.map((m, i) => (
+                  <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${especie.meses_fructificacion?.includes(i+1) ? 'bg-emerald-500/25 text-emerald-400 border border-emerald-500/30' : 'bg-white/[0.03] text-[#f4ebe1]/20'}`}>{m}</div>
+                ))}
+              </div>
+            </section>
+
+            {/* Mapa distribución */}
+            {especie.distribucion && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.dondeEncontrar}</h3>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {especie.distribucion.map((d, i) => (
+                    <span key={i} className="px-3 py-1 rounded-full bg-white/[0.04] text-[#f4ebe1]/60 text-xs border border-white/[0.06]">📍 {d}</span>
+                  ))}
+                </div>
+                <LeafletMap
+                  zonas={mockZonas.filter(z => especie.tipos_bosque?.includes(z.tipo_bosque))}
+                  height="200px" />
+              </section>
+            )}
+          </div>
+
+          <div className="px-6 py-4 border-t border-white/[0.06] text-center text-[#f4ebe1]/30 text-xs">
+            ⚠️ Ficha orientativa. Consulta siempre a un micólogo experto antes de consumir cualquier seta silvestre.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== FAMILIA MODAL ====================
+function FamiliaModal({ t, familia, onClose, onVerEspecie }) {
+  const especiesFamilia = mockEspecies.filter(e => e.familia === familia.nombre);
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="min-h-screen flex items-start justify-center p-4 py-8">
+        <div className="glass rounded-3xl border border-white/[0.08] max-w-2xl w-full anim-scale" onClick={e => e.stopPropagation()}>
+          <div className="p-6 border-b border-white/[0.06] flex items-center justify-between">
+            <div>
+              <p className="text-[#8b6f47] text-xs uppercase tracking-widest mb-1">Familia micológica</p>
+              <h2 className="font-display text-3xl italic text-[#f4ebe1]">{familia.nombre}</h2>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-[#f4ebe1]/60 transition-colors">{IC.close}</button>
+          </div>
+
+          <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.descFamilia}</h3>
+              <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">{familia.descripcion}</p>
+            </section>
+
+            {familia.caracteristicas && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">Características</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {familia.caracteristicas.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.04]">
+                      <span className="text-emerald-500/60 text-xs">✓</span>
+                      <span className="text-[#f4ebe1]/70 text-xs">{c}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8b6f47] mb-3">{t.especiesDeFamilia} ({especiesFamilia.length})</h3>
+              <div className="space-y-2">
+                {especiesFamilia.map(e => {
+                  const cc = getComestColor(e.comestibilidad);
+                  return (
+                    <div key={e.id} onClick={() => onVerEspecie(e)}
+                      className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] rounded-xl p-3 border border-white/[0.04] cursor-pointer transition-all hover-lift">
+                      <img src={e.foto_url} alt="" className="w-10 h-10 rounded-lg object-cover opacity-80" onError={ev => { ev.target.style.display='none'; }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-display italic text-[#f4ebe1] text-sm truncate">{e.nombre_cientifico}</div>
+                        <div className="text-[#f4ebe1]/40 text-xs truncate">{e.nombres_comunes.join(', ')}</div>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${cc.bg} ${cc.text} ${cc.border}`}>{cc.label}</span>
+                    </div>
+                  );
+                })}
+                {especiesFamilia.length === 0 && (
+                  <p className="text-[#f4ebe1]/40 text-sm text-center py-4">No hay especies en el catálogo para esta familia.</p>
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== PERFIL ====================
+function Perfil({ t, lang, setLang, perfil, setPerfil, zonasSeguidas, especiesFav }) {
+  const [form, setForm] = useState(perfil);
+  const [saved, setSaved] = useState(false);
+
+  const notificaciones = zonasSeguidas.map(z => ({
+    id: z.id, zona: z.nombre,
+    msg: `Condiciones ${getScoreColor(Math.floor(60+Math.random()*35)).label.toLowerCase()} en ${z.nombre}`,
+    hora: `Hace ${Math.floor(1+Math.random()*5)}h`
+  }));
+
+  const guardar = () => {
+    setPerfil(form);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  return (
+    <div className="space-y-8 anim-up max-w-2xl mx-auto">
+      <div>
+        <h2 className="font-display text-4xl font-semibold text-[#f4ebe1]">{t.perfil}</h2>
+        <p className="text-[#8b6f47] text-sm mt-1">{zonasSeguidas.length} {t.zonasSeguidas.toLowerCase()} · {especiesFav.length} {t.especiesFav.toLowerCase()}</p>
+      </div>
+
+      {/* Notificaciones */}
+      <section className="glass rounded-2xl border border-white/[0.06] overflow-hidden">
+        <div className="p-5 border-b border-white/[0.06] flex items-center gap-2">
+          {IC.bell} <h3 className="font-medium text-[#f4ebe1]">{t.notificaciones}</h3>
+          {notificaciones.length > 0 && <span className="ml-auto text-xs px-2 py-0.5 bg-emerald-500 text-white rounded-full">{notificaciones.length}</span>}
+        </div>
+        <div className="divide-y divide-white/[0.04]">
+          {notificaciones.length === 0 ? (
+            <p className="p-5 text-[#f4ebe1]/40 text-sm">{t.sin_notif}</p>
+          ) : notificaciones.map(n => (
+            <div key={n.id} className="p-4 flex items-start gap-3">
+              <span className="text-[#8b6f47] mt-0.5">{IC.pin}</span>
+              <div>
+                <p className="text-[#f4ebe1] text-sm">{n.msg}</p>
+                <p className="text-[#f4ebe1]/40 text-xs mt-0.5">{n.hora}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Datos personales */}
+      <section className="glass rounded-2xl border border-white/[0.06] p-5">
+        <h3 className="font-medium text-[#f4ebe1] mb-5">{t.datosPer}</h3>
+        <div className="space-y-4">
+          {[
+            { label: t.nombrePer, key: 'nombre', type: 'text' },
+            { label: t.emailPer, key: 'email', type: 'email' },
+          ].map(({ label, key, type }) => (
+            <div key={key}>
+              <label className="text-[#8b6f47] text-xs uppercase tracking-wide block mb-1.5">{label}</label>
+              <input type={type} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-[#f4ebe1] text-sm outline-none focus:border-[#8b6f47]/50 transition-colors placeholder-[#f4ebe1]/20" />
+            </div>
+          ))}
+          <button onClick={guardar}
+            className={`w-full py-3 rounded-xl text-sm font-medium transition-all ${saved ? 'bg-emerald-600 text-white' : 'bg-[#8b6f47] hover:bg-[#a0834d] text-white'}`}>
+            {saved ? '✓ Guardado' : t.guardar}
+          </button>
+        </div>
+      </section>
+
+      {/* Idioma */}
+      <section className="glass rounded-2xl border border-white/[0.06] p-5">
+        <h3 className="font-medium text-[#f4ebe1] mb-4">{t.idioma}</h3>
+        <div className="grid grid-cols-3 gap-3">
+          {[['es', '🇪🇸 Castellano'], ['ca', '🏴 Català'], ['en', '🇬🇧 English']].map(([code, label]) => (
+            <button key={code} onClick={() => setLang(code)}
+              className={`py-3 rounded-xl text-sm font-medium transition-all border ${lang === code ? 'bg-[#8b6f47]/25 text-[#c4a06b] border-[#8b6f47]/40' : 'glass border-white/[0.06] text-[#f4ebe1]/60 hover:text-[#f4ebe1]'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Resumen */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="glass rounded-2xl border border-white/[0.06] p-5 text-center">
+          <div className="font-display text-4xl font-bold text-yellow-400">{zonasSeguidas.length}</div>
+          <div className="text-[#f4ebe1]/50 text-sm mt-1">{t.zonasSeguidas}</div>
+        </div>
+        <div className="glass rounded-2xl border border-white/[0.06] p-5 text-center">
+          <div className="font-display text-4xl font-bold text-red-400">{especiesFav.length}</div>
+          <div className="text-[#f4ebe1]/50 text-sm mt-1">{t.especiesFav}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== RENDER ====================
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

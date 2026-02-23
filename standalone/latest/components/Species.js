@@ -1,0 +1,205 @@
+// ==================== ESPECIES ====================
+const PER_PAGE = 24;
+
+const SHOW_FILTERS = [
+  { id: 'todas',      label: 'Todas',       emoji: '🍄' },
+  { id: 'favoritas',  label: 'Favoritas',   emoji: '❤️' },
+  { id: 'excelente',  label: 'Excelentes',  emoji: '⭐' },
+  { id: 'comestible', label: 'Comestibles', emoji: '✅' },
+  { id: 'toxico',     label: 'Tóxicas',     emoji: '⚠️' },
+  { id: 'mortal',     label: 'Mortales',    emoji: '☠️' },
+];
+
+function Species({ t, favoriteSpecies, toggleFavorite, setSelectedSpecies, setSelectedFamily }) {
+  const [searchQuery, setBusqueda] = useState('');
+  const [orden, setOrden] = useState('alfa');
+  const [showFilter, setShowFilter] = useState('todas');
+  const [familyFilter, setFiltroFam] = useState('');
+  const [page, setPage] = useState(1);
+  const [pillOpen, setPillOpen] = useState(false);
+
+  const uniqueFamilies = useMemo(() => [...new Set(mockSpecies.map(e => e.family))].sort(), []);
+  const isFav = useCallback((e) => favoriteSpecies.some(f => f.id === e.id), [favoriteSpecies]);
+
+  const filteredSpecies = useMemo(() => {
+    let r = [...mockSpecies];
+    if (showFilter === 'favoritas')  r = r.filter(e => favoriteSpecies.some(f => f.id === e.id));
+    else if (showFilter === 'excelente')  r = r.filter(e => e.edibility === 'excelente');
+    else if (showFilter === 'comestible') r = r.filter(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility));
+    else if (showFilter === 'toxico')     r = r.filter(e => e.edibility === 'toxico');
+    else if (showFilter === 'mortal')     r = r.filter(e => e.edibility === 'mortal');
+    if (familyFilter) r = r.filter(e => e.family === familyFilter);
+    if (searchQuery) {
+      const b = searchQuery.toLowerCase();
+      r = r.filter(e => e.scientificName.toLowerCase().includes(b) || e.commonNames.some(n => n.toLowerCase().includes(b)));
+    }
+    if (orden === 'alfa') r.sort((a, b) => a.scientificName.localeCompare(b.scientificName));
+    else if (orden === 'family') r.sort((a, b) => a.family.localeCompare(b.family));
+    else if (orden === 'comest') {
+      const p = { excelente: 0, bueno: 1, comestible: 2, precaucion: 3, no_comestible: 4, toxico: 5, mortal: 6 };
+      r.sort((a, b) => (p[a.edibility] ?? 7) - (p[b.edibility] ?? 7));
+    }
+    return r;
+  }, [searchQuery, orden, showFilter, familyFilter, favoriteSpecies]);
+
+  const totalPages = Math.ceil(filteredSpecies.length / PER_PAGE);
+  const pageItems = filteredSpecies.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [searchQuery, orden, showFilter, familyFilter]);
+
+  const activeFilters = (showFilter !== 'todas' ? 1 : 0) + (familyFilter ? 1 : 0) + (orden !== 'alfa' ? 1 : 0);
+
+  return (
+    <div className="space-y-6 anim-up pb-6">
+      {/* Título + split bar (search | filtro) */}
+      <div className="flex flex-col md:grid md:grid-cols-[auto_1fr] md:items-center gap-4">
+        <div>
+          <h2 className="font-display text-4xl font-semibold text-[#f4ebe1]">{t.especies}</h2>
+          <p className="text-[#d9cda1] text-sm mt-1">{filteredSpecies.length} especies encontradas</p>
+        </div>
+
+        <div className="flex justify-center">
+          <SearchFilterBar
+            variant="split"
+            value={searchQuery}
+            onChange={e => setBusqueda(e.target.value)}
+            onClear={() => setBusqueda('')}
+            placeholder={t.buscarEspecies}
+            onFilterClick={() => setPillOpen(p => !p)}
+            activeFilters={activeFilters}
+            className="w-full md:max-w-[60%] sm:min-w-[350px]"
+          />
+        </div>
+      </div>
+
+      {/* Panel filtros — inline desktop / bottom-sheet mobile */}
+      <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)}>
+        {/* Mostrar */}
+        <div className="mb-5">
+          <p className="text-[#d9cda1] text-xs uppercase tracking-wider mb-3">Mostrar</p>
+          <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
+            {SHOW_FILTERS.map(f => (
+              <button key={f.id} onClick={() => setShowFilter(f.id)}
+                className={`py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col sm:flex-row items-center gap-1 sm:px-3.5 ${showFilter === f.id ? 'bg-[#887b4b] text-white' : 'glass text-[#f4ebe1]/60 hover:text-[#f4ebe1]'}`}>
+                <span className="text-base sm:text-sm">{f.emoji}</span>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Familia */}
+        <div className="mb-5">
+          <p className="text-[#d9cda1] text-xs uppercase tracking-wider mb-3">Familia</p>
+          <div className="relative sm:inline-block sm:min-w-[220px]">
+            <select value={familyFilter} onChange={e => setFiltroFam(e.target.value)}
+              className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-[#f4ebe1] outline-none cursor-pointer appearance-none"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <option value="" style={{ background: '#30372a' }}>Todas las familias</option>
+              {uniqueFamilies.map(f => (
+                <option key={f} value={f} style={{ background: '#30372a' }}>{f}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#f4ebe1]/50">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </div>
+          </div>
+        </div>
+        {/* Ordenar */}
+        <div className="mb-5">
+          <p className="text-[#d9cda1] text-xs uppercase tracking-wider mb-3">Ordenar por</p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            {[
+              { id: 'alfa',   label: '🔤 Nombre (A–Z)' },
+              { id: 'family', label: '🍄 Familia' },
+              { id: 'comest', label: '⭐ Comestibilidad' },
+            ].map(op => (
+              <button key={op.id} onClick={() => setOrden(op.id)}
+                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm text-left transition-all ${orden === op.id ? 'bg-[#887b4b]/20 text-[#c4a06b]' : 'glass text-[#f4ebe1]/70 hover:text-[#f4ebe1]'}`}>
+                <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${orden === op.id ? 'bg-[#887b4b]' : 'bg-white/20'}`}>
+                  {orden === op.id && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+                </span>
+                {op.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="sm:flex sm:justify-end">
+          <button onClick={() => setPillOpen(false)}
+            className="w-full sm:w-auto sm:px-6 py-3 bg-[#887b4b] text-white rounded-xl font-medium hover:bg-[#a0855a] transition-colors">
+            Ver {filteredSpecies.length} especie{filteredSpecies.length !== 1 ? 's' : ''}
+          </button>
+        </div>
+      </FilterPanel>
+
+      {/* Chips filtros activos */}
+      {(showFilter !== 'todas' || familyFilter) && (
+        <div className="flex flex-wrap gap-2">
+          {showFilter !== 'todas' && (() => { const f = SHOW_FILTERS.find(f => f.id === showFilter); return (
+            <ActiveFilterChip emoji={f?.emoji} label={f?.label} onRemove={() => setShowFilter('todas')} />
+          ); })()}
+          {familyFilter && (
+            <ActiveFilterChip emoji="🔬" label={familyFilter} onRemove={() => setFiltroFam('')} />
+          )}
+        </div>
+      )}
+
+      {/* Grid */}
+      {pageItems.length === 0 ? (
+        <div className="text-center py-16 text-[#f4ebe1]/70">
+          <div className="text-4xl mb-3">🔍</div>
+          <p>Sin resultados para tu búsqueda.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {pageItems.map((e, i) => {
+            const fav = isFav(e);
+            return (
+              <div key={e.id} onClick={() => setSelectedSpecies(e)}
+                className="glass rounded-2xl transition-all hover-lift anim-up overflow-hidden cursor-pointer" style={{ animationDelay: `${i * 0.04}s` }}>
+                <div className="relative h-[16rem] overflow-hidden">
+                  <SpeciesImg localSrc={e.photo?.url} scientificName={e.scientificName} className="w-full h-full" objectFit="cover" />
+                  <button onClick={ev => { ev.stopPropagation(); toggleFavorite(e); }}
+                    className={`absolute top-2 right-2 p-1.5 rounded-lg transition-all ${fav ? 'text-red-400' : 'text-white/50 hover:text-red-400'}`}>
+                    {IC.heart(fav)}
+                  </button>
+                  <div className="absolute bottom-2 left-2">
+                    <EdibilityTag edibility={e.edibility} variant="onImage" />
+                  </div>
+                </div>
+                <div className="p-4 pt-2">
+                  <h3 className="font-display text-xl font-semibold text-[#f4ebe1] mb-1">{e.scientificName}</h3>
+                  <p className="text-[#d9cda1] text-xs mb-2">{e.family}</p>
+                  <p className="text-[#f4ebe1]/70 text-xs truncate">{e.commonNames.join(' · ')}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm glass text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            {IC.chevron('left')} {t.paginaAnterior}
+          </button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button key={i} onClick={() => setPage(i + 1)}
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${page === i + 1 ? 'bg-[#887b4b] text-white' : 'text-[#f4ebe1]/40 hover:text-[#f4ebe1] hover:bg-white/[0.05]'}`}>
+                {i + 1}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm glass text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            {t.paginaSiguiente} {IC.chevron('right')}
+          </button>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
