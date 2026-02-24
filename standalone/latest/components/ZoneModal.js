@@ -1,9 +1,18 @@
 // ==================== ZONA MODAL ====================
+const CAL_FILTERS = [
+  { id: 'todas',      label: 'Todas',       emoji: '🍄' },
+  { id: 'excelente',  label: 'Excelentes',  emoji: '⭐' },
+  { id: 'comestible', label: 'Comestibles', emoji: '✅' },
+  { id: 'toxico',     label: 'Tóxicas',     emoji: '⚠️' },
+  { id: 'mortal',     label: 'Mortales',    emoji: '☠️' },
+];
+
 function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies }) {
   const zoneSpecies = mockSpecies.filter(e => e.forestTypes?.includes(zone.forestType));
   const conditions = useMemo(() => fakeConditions(), [zone.id]);
   const currentMonth = new Date().getMonth() + 1;
   const sc = getScoreColor(conditions.overallScore);
+  const [calFilter, setCalFilter] = useState('todas');
 
   const available = useMemo(() =>
     zoneSpecies.filter(e => e.fruitingMonths?.includes(currentMonth))
@@ -152,25 +161,58 @@ function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies
           {/* Calendario */}
           <section id="calendario">
             <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.calendarioFruct}</h3>
-            <div className="space-y-3">
-              {zoneSpecies.map(e => {
+            {/* Filtros de edibilidad */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {CAL_FILTERS.map(f => {
+                const active = calFilter === f.id;
                 return (
-                  <div key={e.id} onClick={() => onViewSpecies && onViewSpecies(e)}
-                    className="bg-white/[0.03] rounded-xl p-4 hover:bg-white/[0.05] transition-all cursor-pointer group">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-display text-lg text-[#f4ebe1] group-hover:text-[#c4a06b] transition-colors">{e.scientificName}</span>
-                      <EdibilityTag edibility={e.edibility} variant="glass" className="ml-auto" />
-                      <svg className="w-3 h-3 text-[#f4ebe1]/20 group-hover:text-[#d9cda1] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
-                    </div>
-                    <div className="grid grid-cols-12 gap-1">
-                      {MONTHS.map((m, i) => (
-                        <div key={i} className={`text-center py-1.5 rounded text-[9px] font-medium ${e.fruitingMonths?.includes(i+1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-[#f4ebe1]/20'}`}>{m}</div>
-                      ))}
-                    </div>
-                  </div>
+                  <button key={f.id} onClick={() => setCalFilter(f.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${active ? 'bg-[#4a7c59]/40 text-[#8fcc9a] border border-[#4a7c59]/60' : 'bg-white/[0.04] text-[#f4ebe1]/50 border border-white/[0.06] hover:bg-white/[0.08] hover:text-[#f4ebe1]/80'}`}>
+                    <span>{f.emoji}</span>{f.label}
+                  </button>
                 );
               })}
+              <span className="ml-auto self-center text-[#f4ebe1]/30 text-[11px]">
+                {(() => {
+                  let sp = zoneSpecies;
+                  if (calFilter === 'excelente') sp = sp.filter(e => e.edibility === 'excelente');
+                  else if (calFilter === 'comestible') sp = sp.filter(e => ['bueno','comestible','precaucion'].includes(e.edibility));
+                  else if (calFilter === 'toxico') sp = sp.filter(e => e.edibility === 'toxico');
+                  else if (calFilter === 'mortal') sp = sp.filter(e => e.edibility === 'mortal');
+                  return `${sp.length} especie${sp.length !== 1 ? 's' : ''}`;
+                })()}
+              </span>
             </div>
+            {(() => {
+              const filtered = calFilter === 'todas' ? zoneSpecies
+                : calFilter === 'excelente' ? zoneSpecies.filter(e => e.edibility === 'excelente')
+                : calFilter === 'comestible' ? zoneSpecies.filter(e => ['bueno','comestible','precaucion'].includes(e.edibility))
+                : calFilter === 'toxico' ? zoneSpecies.filter(e => e.edibility === 'toxico')
+                : calFilter === 'mortal' ? zoneSpecies.filter(e => e.edibility === 'mortal')
+                : zoneSpecies;
+              if (filtered.length === 0) return (
+                <div className="text-center py-8 text-[#f4ebe1]/40 text-sm">No hay especies de este tipo en esta zona.</div>
+              );
+              return (
+                <div className="space-y-3">
+                  {filtered.map(e => (
+                    <div key={e.id} onClick={() => onViewSpecies && onViewSpecies(e)}
+                      className="bg-white/[0.03] rounded-xl p-4 hover:bg-white/[0.05] transition-all cursor-pointer group">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-display text-lg text-[#f4ebe1] group-hover:text-[#c4a06b] transition-colors">{e.scientificName}</span>
+                        <EdibilityTag edibility={e.edibility} variant="glass" className="ml-auto" />
+                        <svg className="w-3 h-3 text-[#f4ebe1]/20 group-hover:text-[#d9cda1] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                      </div>
+                      <div className="grid grid-cols-12 gap-1">
+                        {MONTHS.map((m, i) => (
+                          <div key={i} className={`text-center py-1.5 rounded text-[9px] font-medium ${e.fruitingMonths?.includes(i+1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-[#f4ebe1]/20'}`}>{m}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </section>
 
           {/* Mapa de ubicación */}

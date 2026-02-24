@@ -112,43 +112,56 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
           </section>
 
           {/* Galería de fotos */}
-          {(
-            <section>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">
-                📷 Galería {species.photos && species.photos.length > 0 ? `(${species.photos.length + 1} fotos)` : '(1 foto)'}
-              </h3>
-              <div className={`grid gap-2 ${!species.photos || species.photos.length === 0 ? 'grid-cols-1' : species.photos.length === 1 ? 'grid-cols-2' : species.photos.length === 2 ? 'grid-cols-4 grid-rows-2 w-full aspect-[2/1] overflow-hidden' : 'grid-cols-4'}`}>
-                {/* Foto principal siempre desde Wikipedia */}
-                <div className={`gallery-thumb group relative overflow-hidden rounded-lg${species.photos?.length === 2 ? ' col-span-3 row-span-2' : ''}`} style={{ aspectRatio: '4/3' }}>
-                  <SpeciesImg localSrc={species.photo?.largeUrl || species.photo?.url} scientificName={species.scientificName} className="w-full h-full" objectFit="cover" />
-                  <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
-                    {species.scientificName}
-                  </div>
-                </div>
-                {/* Fotos adicionales si las hay */}
-                {species.photos && species.photos.map((foto, i) => (
-                  <div key={i} className={`gallery-thumb group relative${species.photos.length === 2 ? ' col-span-1 row-span-1' : '' }`}
-                    onClick={() => onOpenLightbox(species.photos, i)}>
-                    <img src={foto.url} alt={foto.caption}
-                      onError={ev => { ev.target.parentNode.style.background = 'rgba(139,111,71,0.1)'; ev.target.style.display = 'none'; }} />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center rounded-lg">
+          {(() => {
+            const mainPhoto = species.photo ? { url: species.photo.largeUrl || species.photo.url, caption: species.scientificName } : null;
+            const extraPhotos = species.photos || [];
+            const allPhotos = [...(mainPhoto ? [mainPhoto] : []), ...extraPhotos];
+            if (allPhotos.length === 0) return null;
+            return (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">
+                  📷 Galería ({allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'})
+                </h3>
+                <div className={`grid gap-2 ${extraPhotos.length === 0 ? 'grid-cols-1' : extraPhotos.length === 1 ? 'grid-cols-2' : extraPhotos.length === 2 ? 'grid-cols-4 grid-rows-2 w-full aspect-[2/1] overflow-hidden' : 'grid-cols-4'}`}>
+                  {/* Foto principal */}
+                  <div className={`gallery-thumb group relative overflow-hidden rounded-lg cursor-pointer${extraPhotos.length === 2 ? ' col-span-3 row-span-2' : ''}`}
+                    style={{ aspectRatio: '4/3' }}
+                    onClick={() => onOpenLightbox && onOpenLightbox(allPhotos, 0)}>
+                    <SpeciesImg localSrc={species.photo?.largeUrl || species.photo?.url} scientificName={species.scientificName} className="w-full h-full" objectFit="cover" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center rounded-lg">
                       <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                       </svg>
                     </div>
-                    {foto.caption && (
-                      <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
-                        {foto.caption}
-                      </div>
-                    )}
+                    <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
+                      {species.scientificName}
+                    </div>
                   </div>
-                ))}
-              </div>
-              <p className="text-[#f4ebe1]/30 text-[10px] mt-2 text-center">Haz clic en cualquier imagen para verla a pantalla completa · ← → para navegar</p>
-            </section>
-          )}
+                  {/* Fotos adicionales */}
+                  {extraPhotos.map((foto, i) => (
+                    <div key={i} className={`gallery-thumb group relative cursor-pointer${extraPhotos.length === 2 ? ' col-span-1 row-span-1' : ''}`}
+                      onClick={() => onOpenLightbox && onOpenLightbox(allPhotos, i + 1)}>
+                      <img src={foto.url} alt={foto.caption}
+                        onError={ev => { ev.target.parentNode.style.background = 'rgba(139,111,71,0.1)'; ev.target.style.display = 'none'; }} />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center rounded-lg">
+                        <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                      </div>
+                      {foto.caption && (
+                        <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
+                          {foto.caption}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[#f4ebe1]/30 text-[10px] mt-2 text-center">Haz clic en cualquier imagen para verla a pantalla completa · ← → para navegar</p>
+              </section>
+            );
+          })()}
 
           {/* Condiciones de fructificación */}
           <section>

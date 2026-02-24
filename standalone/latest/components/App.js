@@ -108,7 +108,7 @@ function App() {
           onViewSpecies={(e) => { setSelectedSpecies(e); setSelectedFamily(null); }} />
       )}
       {lightbox && (
-        <Lightbox fotos={lightbox.photos} initialIndex={lightbox.index} onClose={() => setLightbox(null)} />
+        <Lightbox fotos={lightbox.fotos} initialIndex={lightbox.index} onClose={() => setLightbox(null)} />
       )}
     </div>
   );
