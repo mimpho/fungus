@@ -253,7 +253,7 @@ function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) {
   const forestTypeImage = `/assets/images/forest-type/${zone.forestType}.webp`;
 
   return (
-    <div className="glass rounded-2xl transition-all hover-lift overflow-hidden">
+    <div className="glass rounded-2xl hover-lift overflow-hidden relative">
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0 cursor-pointer" onClick={onClick}>
@@ -285,8 +285,8 @@ function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) {
             <span className="contents"><img src={`/assets/images/icons/humidity.png`} alt="humidity" height="16" width="16" /> {cond.humidity}%</span>
           </div>
         </div>
-        <img class="absolute bottom-0 right-1 opacity-25" 
-          src={forestTypeImage} 
+        <img className="absolute bottom-0 right-1 opacity-25 pointer-events-none"
+          src={forestTypeImage}
           alt={zone.forestType} height="125" width="125" />
       </div>
     </div>

@@ -4,6 +4,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
   const [mapMode, setMapMode] = useState('heatmap');
   const [scrolled, setScrolled] = useState(false);
   const modalRef = useRef(null);
+  const heroRef = useRef(null);
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -18,7 +19,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-start justify-center modal-outer"
       style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)', overflowY: 'auto' }} onClick={onClose}>
-      <div ref={modalRef} onScroll={() => setScrolled((modalRef.current?.scrollTop ?? 0) > 180)}
+      <div ref={modalRef} onScroll={() => setScrolled((modalRef.current?.scrollTop ?? 0) > (heroRef.current?.offsetHeight ?? 224) * 0.85)}
         className="sm:my-8 rounded-2xl max-w-4xl w-full anim-scale modal-inner" style={{ background: MODAL.bg }} onClick={e => e.stopPropagation()}>
         {/* Mini-barra sticky — aparece al hacer scroll */}
         <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
@@ -33,8 +34,8 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
           </div>
         </div>
         {/* Hero foto */}
-        <div className="relative h-56 overflow-hidden sm:rounded-t-2xl modal-header">
-          <SpeciesImg localSrc={species.photo?.url} scientificName={species.scientificName} className="w-full h-full opacity-70" objectFit="cover" />
+        <div ref={heroRef} className="relative overflow-hidden sm:rounded-t-2xl modal-header" style={{ minHeight: '224px', height: '30vh' }}>
+          <SpeciesImg localSrc={species.photo?.url} scientificName={species.scientificName} className="w-full h-full opacity-70" objectFit="cover" objectPosition="top" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#30372a] via-[#30372a]/40 to-transparent" />
           <div className="absolute bottom-5 left-6 right-6">
             <h2 className="font-display text-4xl font-semibold text-[#f4ebe1] drop-shadow-lg">{species.scientificName}</h2>
@@ -46,7 +47,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
           </div>
         </div>
 
-        <div className="p-6 space-y-8 modal-scroll">
+        <div className="p-6 space-y-8 modal-scroll" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
           {/* Comestibilidad + family */}
           <div className="flex flex-wrap gap-3 items-center">
             <EdibilityTag edibility={species.edibility} variant="glass" showDot={true} className="px-4 py-2 rounded-xl text-sm font-semibold" />
@@ -122,9 +123,9 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">
                   📷 Galería ({allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'})
                 </h3>
-                <div className={`grid gap-2 ${extraPhotos.length === 0 ? 'grid-cols-1' : extraPhotos.length === 1 ? 'grid-cols-2' : extraPhotos.length === 2 ? 'grid-cols-4 grid-rows-2 w-full aspect-[2/1] overflow-hidden' : 'grid-cols-4'}`}>
+                <div className={`grid gap-2 ${extraPhotos.length === 0 ? 'grid-cols-1' : extraPhotos.length === 1 ? 'grid-cols-2' : extraPhotos.length === 2 ? 'grid-cols-2 sm:grid-cols-4 sm:grid-rows-2 w-full sm:aspect-[2/1] sm:overflow-hidden' : 'grid-cols-4'}`}>
                   {/* Foto principal */}
-                  <div className={`gallery-thumb group relative overflow-hidden rounded-lg cursor-pointer${extraPhotos.length === 2 ? ' col-span-3 row-span-2' : ''}`}
+                  <div className={`gallery-thumb group relative overflow-hidden rounded-lg cursor-pointer${extraPhotos.length === 2 ? ' col-span-2 sm:col-span-3 sm:row-span-2' : ''}`}
                     style={{ aspectRatio: '4/3' }}
                     onClick={() => onOpenLightbox && onOpenLightbox(allPhotos, 0)}>
                     <SpeciesImg localSrc={species.photo?.largeUrl || species.photo?.url} scientificName={species.scientificName} className="w-full h-full" objectFit="cover" />

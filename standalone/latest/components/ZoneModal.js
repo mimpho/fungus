@@ -26,6 +26,7 @@ function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies
   const forestColors = { pinar: '#2a4a1e', hayedo: '#3a2a0a', robledal: '#2a180a', encinar: '#1a3a10' };
   const [scrolled, setScrolled] = useState(false);
   const modalRef = useRef(null);
+  const heroRef = useRef(null);
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -34,7 +35,7 @@ function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-start justify-center modal-outer"
       style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)', overflowY: 'auto' }} onClick={onClose}>
-      <div ref={modalRef} onScroll={() => setScrolled((modalRef.current?.scrollTop ?? 0) > 160)}
+      <div ref={modalRef} onScroll={() => setScrolled((modalRef.current?.scrollTop ?? 0) > (heroRef.current?.offsetHeight ?? 176) * 0.85)}
         className="sm:my-8 rounded-2xl max-w-4xl w-full anim-scale modal-inner" style={{ background: MODAL.bg }} onClick={e => e.stopPropagation()}>
 
         {/* Mini-barra sticky — aparece al hacer scroll */}
@@ -53,10 +54,10 @@ function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies
         {/* Hero con foto */}
         <div className="modal-header sm:rounded-t-2xl overflow-hidden" style={{ background: MODAL.bg }}>
           {/* Imagen hero */}
-          <div className="relative h-44 overflow-hidden">
+          <div ref={heroRef} className="relative overflow-hidden" style={{ minHeight: '176px', height: '30vh' }}>
             {heroSpecies ? (
               <img src={heroSpecies.photo?.url} alt={zone.name}
-                className="w-full h-full object-cover opacity-50" />
+                className="w-full h-full object-cover opacity-50" style={{ objectPosition: 'top' }} />
             ) : (
               <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${forestColors[zone.forestType] || '#1a3a2e'}, #30372a)` }} />
             )}
@@ -86,7 +87,7 @@ function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies
         </div>
 
         {/* Contenido scrollable */}
-        <div className="p-6 space-y-8 modal-scroll">
+        <div className="p-6 space-y-8 modal-scroll" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
           {/* Descripción de la zone */}
           {zone.description && (
             <p className="text-[#f4ebe1]/60 text-sm leading-relaxed border-l-2 border-[#d9cda1]/40 pl-4">{zone.description}</p>

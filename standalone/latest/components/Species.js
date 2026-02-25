@@ -151,53 +151,59 @@ function Species({ t, favoriteSpecies, toggleFavorite, setSelectedSpecies, setSe
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {pageItems.map((e, i) => {
-            const fav = isFav(e);
-            return (
-              <div key={e.id} onClick={() => setSelectedSpecies(e)}
-                className="glass rounded-2xl transition-all hover-lift anim-up overflow-hidden cursor-pointer" style={{ animationDelay: `${i * 0.04}s` }}>
-                <div className="relative h-[16rem] overflow-hidden">
-                  <SpeciesImg localSrc={e.photo?.url} scientificName={e.scientificName} className="w-full h-full" objectFit="cover" />
-                  <button onClick={ev => { ev.stopPropagation(); toggleFavorite(e); }}
-                    className={`absolute top-2 right-2 p-1.5 rounded-lg transition-all ${fav ? 'text-red-400' : 'text-white/50 hover:text-red-400'}`}>
-                    {IC.heart(fav)}
-                  </button>
-                  <div className="absolute bottom-2 left-2">
-                    <EdibilityTag edibility={e.edibility} variant="onImage" />
-                  </div>
-                </div>
-                <div className="p-4 pt-2">
-                  <h3 className="font-display text-xl font-semibold text-[#f4ebe1] mb-1">{e.scientificName}</h3>
-                  <p className="text-[#d9cda1] text-xs mb-2">{e.family}</p>
-                  <p className="text-[#f4ebe1]/70 text-xs truncate">{e.commonNames.join(' · ')}</p>
-                </div>
-              </div>
-            );
-          })}
+          {pageItems.map((e, i) => (
+            <SpeciesCard
+              key={e.id}
+              species={e}
+              onOpen={setSelectedSpecies}
+              isFav={isFav(e)}
+              onToggleFav={toggleFavorite}
+              animDelay={i * 0.04}
+            />
+          ))}
         </div>
       )}
 
       {/* Paginación */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm glass text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-            {IC.chevron('left')} {t.paginaAnterior}
-          </button>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i} onClick={() => setPage(i + 1)}
-                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${page === i + 1 ? 'bg-[#887b4b] text-white' : 'text-[#f4ebe1]/40 hover:text-[#f4ebe1] hover:bg-white/[0.05]'}`}>
-                {i + 1}
-              </button>
-            ))}
+      {totalPages > 1 && (() => {
+        // Genera array de ítems: número de página o '…'
+        const items = [];
+        if (totalPages <= 7) {
+          for (let i = 1; i <= totalPages; i++) items.push(i);
+        } else {
+          const delta = 1; // páginas a cada lado de la actual
+          const left = Math.max(2, page - delta);
+          const right = Math.min(totalPages - 1, page + delta);
+          items.push(1);
+          if (left > 2) items.push('…l');
+          for (let i = left; i <= right; i++) items.push(i);
+          if (right < totalPages - 1) items.push('…r');
+          items.push(totalPages);
+        }
+        return (
+          <div className="flex items-center justify-center gap-1.5 pt-4 flex-wrap">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm glass text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-25 disabled:cursor-not-allowed transition-all shrink-0">
+              {IC.chevron('left')}
+            </button>
+            {items.map((item, i) =>
+              typeof item === 'number' ? (
+                <button key={item} onClick={() => setPage(item)}
+                  className={`w-8 h-8 rounded-lg text-sm font-medium transition-all shrink-0 ${item === page ? 'bg-[#887b4b] text-white' : 'text-[#f4ebe1]/40 hover:text-[#f4ebe1] hover:bg-white/[0.05]'}`}>
+                  {item}
+                </button>
+              ) : (
+                <span key={item} className="w-6 text-center text-[#f4ebe1]/25 text-sm select-none">…</span>
+              )
+            )}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm glass text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-25 disabled:cursor-not-allowed transition-all shrink-0">
+              {IC.chevron('right')}
+            </button>
+            <span className="text-[#f4ebe1]/30 text-xs ml-1 shrink-0">{page}/{totalPages}</span>
           </div>
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm glass text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-            {t.paginaSiguiente} {IC.chevron('right')}
-          </button>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );

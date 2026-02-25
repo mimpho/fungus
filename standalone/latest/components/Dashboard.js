@@ -1,5 +1,5 @@
 // ==================== DASHBOARD ====================
-function Dashboard({ t, setView, setSelectedZone, setSelectedSpecies, followedZones, favoriteSpecies }) {
+function Dashboard({ t, setView, setSelectedZone, setSelectedSpecies, followedZones, toggleFollow, favoriteSpecies }) {
   const [mapMode, setMapMode] = useState('markers'); // 'markers' o 'heatmap'
   const currentMonth = new Date().getMonth() + 1; // 1-12
   const todayDate = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -146,34 +146,16 @@ function Dashboard({ t, setView, setSelectedZone, setSelectedSpecies, followedZo
             <button onClick={() => setView('zonas')} className="text-[#d9cda1] hover:text-[#c4a06b] text-xs transition-colors">Ver todas →</button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {topZones.map((z, i) => {
-              const cond = conditionsMap[z.id];
-              const sc = getScoreColor(cond.overallScore);
-              const forestTypeIcon = `/assets/images/icons/forest-type-${z.forestType}.png`;
-              const elevationIcon = `/assets/images/icons/mountain.png`;
-              return (
-                <div key={z.id} onClick={() => setSelectedZone(z)}
-                  className="glass rounded-2xl p-5 cursor-pointer hover-lift anim-up"
-                  style={{ animationDelay: `${i*0.08}s` }}>
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-2xl"><img src={forestTypeIcon} alt={z.forestType} height="32" width="32" /></span>
-                    <div className={`text-right ${sc.text}`}>
-                      <span className="font-display text-2xl font-bold">{cond.overallScore}</span>
-                      <span className="text-xs opacity-60">/100</span>
-                    </div>
-                  </div>
-                  <h4 className="font-medium text-[#f4ebe1] text-sm leading-snug mb-1">{z.name}</h4>
-                  <p className="text-[#d9cda1] text-xs mb-3">{z.province} · {z.elevation}m</p>
-                  <div className="progress-bar">
-                    <div className={`progress-fill ${sc.bar}`} style={{ width: `${cond.overallScore}%` }} />
-                  </div>
-                  <div className="flex items-center justify-between mt-2 text-xs text-[#f4ebe1]/70">
-                    <span className="contents"><img src={`/assets/images/icons/accumulated-precipitation.png`} alt="accumulated-precipitation" height="16" width="16" /> {cond.rainfall14d}mm / 14d</span>
-                    <span className="contents"><img src={`/assets/images/icons/temperature.png`} alt="temperature" height="16" width="16" /> {cond.temperature}°C</span>
-                  </div>
-                </div>
-              );
-            })}
+            {topZones.map(z => (
+              <ZoneCard
+                key={z.id}
+                zone={z}
+                isFollowed={followedZones.some(fz => fz.id === z.id)}
+                onToggle={() => toggleFollow(z)}
+                onClick={() => setSelectedZone(z)}
+                condOverride={conditionsMap[z.id]}
+              />
+            ))}
           </div>
         </div>
 
@@ -259,24 +241,15 @@ function Dashboard({ t, setView, setSelectedZone, setSelectedSpecies, followedZo
               <button onClick={() => setView('especies')} className="text-[#d9cda1] hover:text-[#c4a06b] text-xs transition-colors">Ver catálogo →</button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {inSeasonSpecies.map((e, i) => {
-                return (
-                  <div key={e.id} onClick={() => setSelectedSpecies(e)}
-                    className="glass rounded-2xl transition-all hover-lift anim-up overflow-hidden cursor-pointer"
-                    style={{ animationDelay: `${i*0.06}s` }}>
-                    <div className="relative h-28 overflow-hidden">
-                      <SpeciesImg localSrc={e.photo?.url} scientificName={e.scientificName} className="w-full h-full opacity-70" objectFit="cover" />
-                      <div className="absolute bottom-2 left-2">
-                        <EdibilityTag edibility={e.edibility} variant="onImage" />
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <h4 className="font-display text-sm font-semibold text-[#f4ebe1] leading-snug truncate">{e.scientificName}</h4>
-                      <p className="text-[#d9cda1] text-[10px] mt-0.5 truncate">{e.commonNames[0]}</p>
-                    </div>
-                  </div>
-                );
-              })}
+              {inSeasonSpecies.map((e, i) => (
+                <SpeciesCard
+                  key={e.id}
+                  species={e}
+                  onOpen={setSelectedSpecies}
+                  size="compact"
+                  animDelay={i * 0.06}
+                />
+              ))}
             </div>
           </div>
         )}

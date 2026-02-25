@@ -50,7 +50,7 @@ function App() {
       {/* HEADER */}
       <header className="glass sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 anim-right">
+          <div className="flex items-center gap-3 anim-right cursor-pointer" onClick={() => setView('dashboard')}>
             <img src="assets/images/logoFungus.png" alt="Fungus" className="h-16 w-auto object-contain" />
           </div>
           <nav className="hidden md:flex items-center gap-1">
@@ -81,7 +81,7 @@ function App() {
 
       {/* MAIN */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {view === 'dashboard' && <Dashboard t={t} setView={setView} setSelectedZone={setSelectedZone} setSelectedSpecies={setSelectedSpecies} followedZones={followedZones} favoriteSpecies={favoriteSpecies} />}
+        {view === 'dashboard' && <Dashboard t={t} setView={setView} setSelectedZone={setSelectedZone} setSelectedSpecies={setSelectedSpecies} followedZones={followedZones} toggleFollow={toggleFollow} favoriteSpecies={favoriteSpecies} />}
         {view === 'zonas' && <Zones t={t} followedZones={followedZones} toggleFollow={toggleFollow} setSelectedZone={setSelectedZone} />}
         {view === 'especies' && <Species t={t} favoriteSpecies={favoriteSpecies} toggleFavorite={toggleFavorite} setSelectedSpecies={setSelectedSpecies} setSelectedFamily={setSelectedFamily} />}
         {view === 'profile' && <Profile t={t} lang={lang} setLang={setLang} profile={profile} setProfile={setProfile} followedZones={followedZones} favoriteSpecies={favoriteSpecies} />}
