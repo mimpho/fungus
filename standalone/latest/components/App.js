@@ -42,6 +42,7 @@ function App() {
     { id: 'dashboard', label: t.dashboard, icon: IC.chart },
     { id: 'zonas', label: t.zonas, icon: IC.pin, badge: followedZones.length },
     { id: 'especies', label: t.especies, icon: IC.mushroom },
+    { id: 'micologia', label: t.micologia, icon: IC.book },
     { id: 'profile', label: t.profile, icon: IC.user },
   ];
 

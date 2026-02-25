@@ -1,6 +1,6 @@
 const i18n = {
   es: {
-    dashboard: 'Inicio', zonas: 'Zonas', especies: 'Especies', profile: 'Perfil',
+    dashboard: 'Inicio', zonas: 'Zonas', especies: 'Catálogo', micologia: 'Micología', profile: 'Perfil',
     buscar: 'Buscar...', filtrar: 'Filtrar', ordenar: 'Ordenar', todos: 'Todos',
     seguir: 'Seguir', siguiendo: 'Siguiendo', favorito: 'Favorito',
     misZonas: 'Mis zonas', todasZonas: 'Todas las zonas',
