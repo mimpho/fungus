@@ -268,7 +268,7 @@ function TermometroRecoleccion({ score }) {
       <div className="relative h-12 bg-white/10 rounded-full overflow-hidden mb-4">
         <div 
           className={`h-full ${estado.color} transition-all duration-1000`}
-          style={{ width: `${score}%` }}
+          style="width: {{ score }}%"
         >
           <div className="flex items-center justify-end h-full pr-4">
             <span className="text-white font-bold text-xl">{score}</span>
