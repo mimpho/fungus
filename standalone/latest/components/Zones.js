@@ -300,7 +300,7 @@ function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) {
           <div className="progress-bar">
             <div className={`progress-fill ${sc.bar}`} style={{ width: `${cond.overallScore}%` }} />
           </div>
-          <div className="flex gap-1.5 mt-1.5 text-[#f4ebe1]/35 text-[10px]">
+          <div className="flex gap-1.5 mt-1.5 text-[#f4ebe1]/35 text-xs">
             <span className="contents"><img src={`/assets/images/icons/temperature.png`} alt="temperature" height="16" width="16" /> {cond.temperature}°C</span>
             <span>·</span>
             <span className="contents"><img src={`/assets/images/icons/accumulated-precipitation.png`} alt="accumulated-precipitation" height="16" width="16" /> {cond.rainfall14d}mm</span>

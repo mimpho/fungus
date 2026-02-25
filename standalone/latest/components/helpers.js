@@ -124,7 +124,7 @@ const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov
 
 // ==================== SPECIES IMAGE: local → Wikipedia fallback ====================
 // Props:
-//   localSrc      → ruta local (assets/images/esp-XXX-main.jpg). Si existe, se usa directamente.
+//   localSrc      → ruta local (assets/images/content/species/esp-XXX-main.jpg). Si existe, se usa directamente.
 //   scientificName → nombre científico usado para buscar en Wikipedia si local falla.
 //   className, style, objectFit, objectPosition → CSS habitual.
 function SpeciesImg({ localSrc, scientificName, className, style, objectFit, objectPosition }) {

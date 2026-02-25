@@ -148,7 +148,7 @@ Advertencia: #d97706 (amber)
   family: 'Boletaceae',
   edibility: 'excelente',     // excelente | bueno | comestible | precaucion | toxico | mortal
   // === Solo en standalone ===
-  photoUrl: 'assets/images/esp-001-main.jpg',
+  photoUrl: 'assets/images/content/species/esp-001-main.jpg',
   photos: [{ url, caption }],
   fullDescription: '...',
   morfologia: { cap, hymenium, stem, flesh, sporePrint },
@@ -319,7 +319,7 @@ const [profile, setProfile] = useState({ name: 'Mycologist', email: '...' });
 5. **Para desarrollar**: requiere servidor HTTP — `cd standalone/latest && python3 -m http.server 8080` → `http://localhost:8080/index.html` (Babel no carga `src=` externos con `file://`)
 6. El scoring es 100% mock — `fakeCond()` siempre devuelve 60-95
 7. Usar `useMemo(() => fakeCond(), [zona.id])` para condiciones estables (evita flicker)
-8. Las fotos de especies están en `assets/images/esp-XXX-main.jpg` y `esp-XXX-foto1.jpg` (scaffolding, serán reemplazadas por imágenes de calidad)
+8. Las fotos de especies están en `assets/images/content/species/esp-XXX-main.jpg` y `esp-XXX-foto1.jpg` (scaffolding, serán reemplazadas por imágenes de calidad)
 9. Modal stack manual: `selectedZona` → `selectedEspecie` → `selectedFamilia` → `lightbox`
 10. Siempre mostrar disclaimer de seguridad en especies tóxicas/mortales
 

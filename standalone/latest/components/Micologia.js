@@ -352,9 +352,9 @@ function MicorrizasArticle({ onBack }) {
     <p className="text-[#f4ebe1]/75 leading-relaxed mb-3 text-sm">{children}</p>
   );
 
-  const Callout = ({ emoji, children, color = '#4a7c59' }) => (
-    <div className="rounded-xl p-4 mb-6" style={{ background: color + '15', border: `1px solid ${color}30` }}>
-      <p className="text-sm leading-relaxed" style={{ color: color }}>
+  const Callout = ({ emoji, children, color = 'emerald' }) => (
+    <div className={`rounded-xl p-4 mb-6 bg-${color}-500/10`}>
+      <p className="text-sm leading-relaxed text-[#f4ebe1]">
         <span className="mr-2 text-base">{emoji}</span>{children}
       </p>
     </div>
@@ -376,7 +376,7 @@ function MicorrizasArticle({ onBack }) {
   return (
     <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
       {/* Fixed header */}
-      <div className="glass sticky top-0 z-10 px-4 py-3 flex items-center gap-3" style={{ flexShrink: 0 }}>
+      <div className="sticky top-0 z-10 py-3 flex items-center gap-3" style={{ flexShrink: 0 }}>
         <button onClick={onBack}
           className="flex items-center gap-2 text-sm text-[#f4ebe1]/60 hover:text-[#f4ebe1] transition-colors">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,14 +398,16 @@ function MicorrizasArticle({ onBack }) {
       {/* Scrollable content */}
       <div ref={contentRef} className="flex-1 overflow-y-auto">
         {/* Hero */}
-        <div className="relative px-0" style={{ background: 'linear-gradient(135deg, #0e2a14 0%, #1a2e10 50%, #1e2408 100%)', minHeight: '200px' }}>
-          <div className="max-w-2xl mx-auto px-6 py-12 text-center">
-            <div className="text-5xl mb-4">🌳</div>
-            <p className="text-xs font-semibold text-[#4a7c59] uppercase tracking-widest mb-3">Ecología · Simbiosis · Biología</p>
+        <div className="glass flex flex-col md:flex-row rounded-2xl overflow-hidden hover-lift cursor-pointer mb-8 transition-all duration-200">
+          <div class="md:w-1/2">
+            <img src="/assets/images/content/articles/micorrizas.webp" class="w-full h-full object-cover" alt="micorrizas" height="416" width="624" />
+          </div>
+          <div className="md:w-1/2 p-6 sm:p-8 text-center flex flex-col items-center justify-center">
+            <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-3">Ecología · Simbiosis · Biología</p>
             <h1 className="font-display text-2xl sm:text-3xl text-[#f4ebe1] mb-3 leading-tight">
               Micorrizas: la alianza secreta<br />entre hongos y árboles
             </h1>
-            <p className="text-[#f4ebe1]/55 text-sm leading-relaxed max-w-lg mx-auto">
+            <p className="text-amber-100/80 text-sm leading-relaxed max-w-lg mx-auto">
               Cómo los hongos micorrícicos sostienen los bosques y qué significa para el recolector
             </p>
             <div className="flex items-center justify-center gap-4 mt-5 text-xs text-[#f4ebe1]/35">
@@ -417,8 +419,8 @@ function MicorrizasArticle({ onBack }) {
         </div>
 
         {/* Article body */}
-        <div className="max-w-2xl mx-auto px-6 py-8">
-          <Callout emoji="🔬" color="#4a7c59">
+        <div className="max-w-3xl mx-auto px-6 py-8">
+          <Callout emoji="🔬" color="emerald">
             El 90% de todas las plantas terrestres forman micorrizas. Los bosques que conocemos
             —con sus pinos centenarios, sus robles majestuosos, sus hayas plateadas— solo son
             posibles gracias a esta alianza subterránea entre raíces y hongos.
@@ -547,7 +549,7 @@ function MicorrizasArticle({ onBack }) {
                   text: 'Cortar la seta por la base preserva el micelio mejor que arrancarla. Los hilos que quedan bajo tierra no son desecho: son parte viva del hongo.',
                 },
               ].map((item, i) => (
-                <div key={i} className="flex gap-3 p-4 rounded-xl" style={{ background: '#ffffff05', border: '1px solid #ffffff08' }}>
+                <div key={i} className="flex gap-3 p-4 glass rounded-xl">
                   <span className="text-xl flex-shrink-0 mt-0.5">{item.icon}</span>
                   <div>
                     <p className="text-sm font-semibold text-[#d9cda1] mb-1">{item.title}</p>
@@ -559,7 +561,7 @@ function MicorrizasArticle({ onBack }) {
           </Section>
 
           <Section title="Para ir más lejos">
-            <Callout emoji="💡" color="#c4a06b">
+            <Callout emoji="💡" color="yellow">
               Las micorrizas son solo una pieza del llamado "Wood Wide Web", la red de comunicación
               química que conecta árboles de un mismo bosque a través del micelio compartido.
               Árboles madre, alertas ante patógenos, transferencia de nutrientes a plántulas en sombra...
@@ -659,8 +661,7 @@ function ArticleCard({ article, onSelect }) {
         <div className="flex items-center justify-between mt-3">
           <div className="flex gap-1.5 flex-wrap">
             {article.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background: '#4a7c5918', color: '#84cc16', border: '1px solid #4a7c5930' }}>
+              <span key={tag} className="text-xs text-emerald-400 bg-emerald-400/5 px-2 py-0.5 rounded-full">
                 {tag}
               </span>
             ))}
@@ -699,33 +700,26 @@ function Micologia({ t }) {
       {mockArticles.filter(a => a.featured).map(article => (
         <div key={article.id}
              onClick={() => setSelectedSlug(article.slug)}
-             className="glass-warm rounded-2xl overflow-hidden hover-lift cursor-pointer mb-8 transition-all duration-200"
-             style={{ border: '1px solid #4a7c5940' }}>
-          <div className="p-6 sm:p-8"
-               style={{ background: 'linear-gradient(135deg, #162a10 0%, #1e3214 50%, #22300e 100%)' }}>
-            <div className="flex items-start justify-between mb-4">
-              <span className="text-5xl sm:text-6xl">{article.emoji}</span>
-              <span className="text-xs px-3 py-1.5 rounded-full font-semibold"
-                    style={{ background: '#4a7c5930', color: '#84cc16', border: '1px solid #4a7c5960' }}>
-                ✨ Artículo destacado
-              </span>
-            </div>
-            <h2 className="font-display text-xl sm:text-2xl text-[#f4ebe1] mb-2 leading-snug">
+             className="glass flex flex-col md:flex-row rounded-2xl overflow-hidden hover-lift cursor-pointer mb-8 transition-all duration-200">
+          <div class="md:w-1/2">
+            <img src={article.heroImage} class="w-full h-full object-cover" alt="micorrizas" height="416" width="624" />
+          </div>
+          <div className="md:w-1/2 p-6 sm:p-8">
+            <h2 className="font-display text-xl sm:text-3xl text-[#f4ebe1] mb-3 leading-snug">
               {article.title}
             </h2>
-            <p className="text-sm text-[#d9cda1]/60 leading-relaxed mb-4 max-w-xl">
+            <p className="text-sm text-amber-100/80 leading-relaxed mb-4 max-w-xl">
               {article.summary}
             </p>
             <div className="flex items-center gap-4">
               <div className="flex gap-2">
                 {article.tags.map(tag => (
-                  <span key={tag} className="text-xs px-2 py-0.5 rounded-full"
-                        style={{ background: '#4a7c5920', color: '#84cc16', border: '1px solid #4a7c5935' }}>
+                  <span key={tag} className="text-emerald-400 bg-emerald-400/5 text-xs px-2 py-0.5 rounded-full">
                     {tag}
                   </span>
                 ))}
               </div>
-              <span className="text-xs text-[#f4ebe1]/30">{article.readingTime} min de lectura</span>
+              <span className="hidden md:block text-xs text-[#f4ebe1]/30">{article.readingTime} min de lectura</span>
             </div>
           </div>
         </div>
