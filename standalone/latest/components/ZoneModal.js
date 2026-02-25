@@ -54,14 +54,14 @@ function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies
         {/* Hero con foto */}
         <div className="modal-header sm:rounded-t-2xl overflow-hidden" style={{ background: MODAL.bg }}>
           {/* Imagen hero */}
-          <div ref={heroRef} className="relative overflow-hidden" style={{ minHeight: '176px', height: '30vh' }}>
+          <div ref={heroRef} className="relative overflow-hidden" style={{ minHeight: '176px', height: '50vh' }}>
             {heroSpecies ? (
               <img src={heroSpecies.photo?.url} alt={zone.name}
-                className="w-full h-full object-cover opacity-50" style={{ objectPosition: 'top' }} />
+                className="w-full h-full object-cover opacity-70" style={{ objectPosition: 'top' }} />
             ) : (
               <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${forestColors[zone.forestType] || '#1a3a2e'}, #30372a)` }} />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#30372a] via-[#30372a]/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#30372a] via-[#30372a]/40 to-transparent" />
             {/* Nombre sobre la foto */}
             <div className="absolute bottom-4 left-6 right-14">
               <h2 className="font-display text-3xl font-semibold text-[#f4ebe1] drop-shadow-lg">{zone.name}</h2>

@@ -34,7 +34,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
           </div>
         </div>
         {/* Hero foto */}
-        <div ref={heroRef} className="relative overflow-hidden sm:rounded-t-2xl modal-header" style={{ minHeight: '224px', height: '30vh' }}>
+        <div ref={heroRef} className="relative overflow-hidden sm:rounded-t-2xl modal-header" style={{ minHeight: '224px', height: '50vh' }}>
           <SpeciesImg localSrc={species.photo?.url} scientificName={species.scientificName} className="w-full h-full opacity-70" objectFit="cover" objectPosition="top" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#30372a] via-[#30372a]/40 to-transparent" />
           <div className="absolute bottom-5 left-6 right-6">
