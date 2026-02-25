@@ -81,7 +81,7 @@ export default function MicoMapaApp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2b3529] via-[#3d4536] to-[#43421c]">
+    <div className="min-h-screen">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Newsreader:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
         

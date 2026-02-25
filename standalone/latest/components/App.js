@@ -49,7 +49,7 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #2b3529 0%, #3d4536 50%, #43421c 100%)' }}>
+    <div className="min-h-screen">
       {/* HEADER */}
       <header className="glass sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
