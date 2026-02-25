@@ -30,6 +30,8 @@ function App() {
     localStorage.setItem('fungus_v3', JSON.stringify({ zonas: followedZones, favoritos: favoriteSpecies, profile, lang }));
   }, [followedZones, favoriteSpecies, profile, lang]);
 
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [view]);
+
   const toggleFollow = useCallback((zone) => {
     setFollowedZones(prev => prev.some(z => z.id === zone.id) ? prev.filter(z => z.id !== zone.id) : [...prev, zone]);
   }, []);
@@ -85,6 +87,7 @@ function App() {
         {view === 'dashboard' && <Dashboard t={t} setView={setView} setSelectedZone={setSelectedZone} setSelectedSpecies={setSelectedSpecies} followedZones={followedZones} toggleFollow={toggleFollow} favoriteSpecies={favoriteSpecies} />}
         {view === 'zonas' && <Zones t={t} followedZones={followedZones} toggleFollow={toggleFollow} setSelectedZone={setSelectedZone} />}
         {view === 'especies' && <Species t={t} favoriteSpecies={favoriteSpecies} toggleFavorite={toggleFavorite} setSelectedSpecies={setSelectedSpecies} setSelectedFamily={setSelectedFamily} />}
+        {view === 'micologia' && <Micologia t={t} />}
         {view === 'profile' && <Profile t={t} lang={lang} setLang={setLang} profile={profile} setProfile={setProfile} followedZones={followedZones} favoriteSpecies={favoriteSpecies} />}
       </main>
 

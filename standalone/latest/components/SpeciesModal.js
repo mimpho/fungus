@@ -69,7 +69,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
             </div>
           )}
 
-          {/* Nombres comunes */}
+          {/* Nombres comunes + Taxonomía */}
           {species.commonNames?.length > 0 && (
             <section>
               <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.tambienConocida}</h3>
@@ -78,6 +78,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
                   <span key={i} className="px-3 py-1 rounded-full bg-[#887b4b]/15 text-[#c4a06b] text-sm">{n}</span>
                 ))}
               </div>
+              <TaxonomyBlock species={species} />
             </section>
           )}
 

@@ -28,3 +28,28 @@ const mockZones = [
   { id: 'zone-027', name: 'Robledal de Batuecas', province: 'Salamanca', region: 'Sierra de Francia', lat: 40.4847, lng: -6.0234, elevation: 850, forestType: 'robledal', description: 'Robledal salmantino en valle protegido con microclima favorable.' },
   { id: 'zone-028', name: 'Pinar de Prades', province: 'Tarragona', region: 'Baix Camp', lat: 41.3234, lng: 0.9847, elevation: 950, forestType: 'pinar', description: 'Pinar catalán de baja altitud, accesible y productivo.' },
 ];
+
+// Inyectar comunidad autónoma por provincia
+const PROVINCE_TO_CCAA = {
+  'Álava': 'País Vasco', 'Guipúzcoa': 'País Vasco', 'Vizcaya': 'País Vasco',
+  'Huesca': 'Aragón', 'Teruel': 'Aragón', 'Zaragoza': 'Aragón',
+  'Asturias': 'Asturias',
+  'Cantabria': 'Cantabria',
+  'Ávila': 'Castilla y León', 'Burgos': 'Castilla y León', 'León': 'Castilla y León',
+  'Palencia': 'Castilla y León', 'Salamanca': 'Castilla y León', 'Segovia': 'Castilla y León',
+  'Soria': 'Castilla y León', 'Valladolid': 'Castilla y León', 'Zamora': 'Castilla y León',
+  'Albacete': 'Castilla-La Mancha', 'Ciudad Real': 'Castilla-La Mancha',
+  'Cuenca': 'Castilla-La Mancha', 'Guadalajara': 'Castilla-La Mancha', 'Toledo': 'Castilla-La Mancha',
+  'Barcelona': 'Cataluña', 'Girona': 'Cataluña', 'Lleida': 'Cataluña', 'Tarragona': 'Cataluña',
+  'Badajoz': 'Extremadura', 'Cáceres': 'Extremadura',
+  'A Coruña': 'Galicia', 'Lugo': 'Galicia', 'Ourense': 'Galicia', 'Pontevedra': 'Galicia',
+  'La Rioja': 'La Rioja',
+  'Madrid': 'Comunidad de Madrid',
+  'Murcia': 'Región de Murcia',
+  'Navarra': 'Navarra',
+  'Alicante': 'Comunitat Valenciana', 'Castellón': 'Comunitat Valenciana', 'Valencia': 'Comunitat Valenciana',
+  'Almería': 'Andalucía', 'Cádiz': 'Andalucía', 'Córdoba': 'Andalucía',
+  'Granada': 'Andalucía', 'Huelva': 'Andalucía', 'Jaén': 'Andalucía',
+  'Málaga': 'Andalucía', 'Sevilla': 'Andalucía',
+};
+mockZones.forEach(z => { z.comunidadAutonoma = PROVINCE_TO_CCAA[z.province] || z.province; });

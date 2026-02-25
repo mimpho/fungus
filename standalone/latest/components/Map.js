@@ -49,6 +49,57 @@ function MapFullscreenModal({ zonas, singleZone, onZoneClick, title, onClose, mo
   );
 }
 
+// ==================== FAKE METEO HEATMAP GRID ====================
+// Genera una cuadrícula de puntos sobre la Península con un score de oportunidad
+// micológica basado en ruido sinusoidal multicapa (coherencia espacial).
+// Sesgos geográficos: latitud alta → más húmedo, interiores montañosos → mejor.
+function fakeMeteoIntensity(lat, lng) {
+  // Capa base: ondas grandes (~200km) para patrones de frente meteorológico
+  const macro = (
+    Math.sin(lat * 2.3 + lng * 1.7 + 1.2) * 0.35 +
+    Math.sin(lat * 1.8 - lng * 2.9 + 0.7) * 0.30
+  );
+  // Capa media: detalle regional (~80km)
+  const meso = (
+    Math.sin(lat * 5.1 + lng * 4.3 + 2.1) * 0.20 +
+    Math.sin(lat * 6.7 - lng * 3.8 - 1.4) * 0.15
+  );
+  // Sesgo geográfico: norte y montaña interior puntúan más
+  const latBias = (lat - 38) / 10 * 0.25;          // norte España ~+0.15
+  const mountainBias =
+    Math.exp(-((lat - 42.5) ** 2 + (lng + 1.5) ** 2) / 8)  * 0.2   // Pirineos
+  + Math.exp(-((lat - 43.2) ** 2 + (lng + 5.8) ** 2) / 6)  * 0.18  // Cantábrico
+  + Math.exp(-((lat - 40.3) ** 2 + (lng + 4.0) ** 2) / 7)  * 0.15  // Gredos/Guadarrama
+  + Math.exp(-((lat - 41.9) ** 2 + (lng + 2.9) ** 2) / 5)  * 0.15  // Ibérica/Urbión
+  + Math.exp(-((lat - 37.9) ** 2 + (lng + 2.9) ** 2) / 6)  * 0.12; // Cazorla
+
+  const raw = macro + meso + latBias + mountainBias;
+  // Normalizar aprox. al rango [0,1]
+  return Math.max(0, Math.min(1, (raw + 0.6) / 1.2));
+}
+
+const HEAT_STEP = 0.12; // ~13km entre puntos
+
+function generateMeteoHeatGrid() {
+  const points = [];
+  const LAT_MIN = 35.8, LAT_MAX = 44.2;
+  const LNG_MIN = -9.5, LNG_MAX = 4.5;
+  for (let lat = LAT_MIN; lat <= LAT_MAX; lat += HEAT_STEP) {
+    for (let lng = LNG_MIN; lng <= LNG_MAX; lng += HEAT_STEP) {
+      const intensity = fakeMeteoIntensity(lat, lng);
+      if (intensity > 0.05) points.push([lat, lng, intensity]);
+    }
+  }
+  return points;
+}
+
+// Radio en píxeles que mantiene solapamiento continuo a cualquier zoom
+function heatRadiusForZoom(zoom) {
+  const pixPerDegree = (256 * Math.pow(2, zoom)) / 360;
+  const r = Math.ceil(pixPerDegree * HEAT_STEP * 0.65);
+  return Math.max(8, Math.min(60, r));
+}
+
 // ==================== LEAFLET MAP INNER (sin botón expand) ====================
 function LeafletMapInner({ zonas, onZoneClick, height = '400px', selectedZone = null, singleZone = null, fullscreen = false, mode = 'markers' }) {
   const mapRef = useRef(null);
@@ -73,27 +124,34 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', selectedZone = 
     }).addTo(map);
     leafletRef.current = map;
 
-    if (mode === 'heatmap' && zonas && zonas.length > 0) {
-      // Modo mapa de calor
-      const heatData = zonas.map(z => {
-        const cond = fakeConditions();
-        const intensity = cond.overallScore / 100; // Normalizar 0-1
-        return [z.lat, z.lng, intensity];
-      });
-      
+    if (mode === 'heatmap') {
+      // Mapa de calor independiente de zonas: cuadrícula meteorológica sobre la Península
+      const heatData = generateMeteoHeatGrid();
+      const initRadius = heatRadiusForZoom(zoom);
+
       const heatLayer = L.heatLayer(heatData, {
-        radius: 35,
-        blur: 25,
+        radius: initRadius,
+        blur: Math.ceil(initRadius * 0.75),
         maxZoom: 17,
+        max: 0.7,
+        minOpacity: 0.45,
         gradient: {
-          0.4: '#ef4444',    // rojo (malo)
-          0.55: '#f97316',   // naranja
-          0.7: '#eab308',    // amarillo
-          0.85: '#84cc16',   // lima
-          1.0: '#22c55e'     // verde (excelente)
+          0.0: '#ef4444',
+          0.35: '#f97316',
+          0.6: '#eab308',
+          0.8: '#84cc16',
+          1.0: '#22c55e'
         }
       }).addTo(map);
       heatLayerRef.current = heatLayer;
+
+      // Adaptar radio al zoom para que los puntos siempre se solapen
+      const onZoom = () => {
+        const r = heatRadiusForZoom(map.getZoom());
+        heatLayer.setOptions({ radius: r, blur: Math.ceil(r * 0.75) });
+        heatLayer.redraw();
+      };
+      map.on('zoomend', onZoom);
     } else {
       // Modo marcadores (predeterminado)
       const mushIcon = (color = '#d9cda1', active = false) => L.divIcon({

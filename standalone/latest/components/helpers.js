@@ -332,6 +332,32 @@ const CONFUSION_GENERICA = [
     diff: 'Dentro del mismo género pueden existir especies tóxicas morfológicamente muy similares. Verificar siempre esporada, olor, reacciones químicas y hábitat antes de consumir.' },
 ];
 
+// ==================== TAXONOMY BLOCK ====================
+function TaxonomyBlock({ species }) {
+  const [open, setOpen] = useState(false);
+  const syns = species.synonyms || [];
+  if (syns.length === 0) return null;
+  return (
+    <div className="mt-3">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-xs text-[#d9cda1]/60 hover:text-[#c4a06b] transition-colors">
+        <svg className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        🔬 {open ? 'Ocultar taxonomía' : `Ver taxonomía (${syns.length} sinónimo${syns.length > 1 ? 's' : ''})`}
+      </button>
+      {open && (
+        <div className="mt-2 pl-1 border-l-2 border-[#887b4b]/20 space-y-1">
+          {syns.map((s, i) => (
+            <p key={i} className="text-xs text-[#f4ebe1]/45 italic">{s}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ConfusionesBlock({ species, onViewSpecies }) {
   const todas = CONFUSIONES_POR_FAMILIA[species.family] || CONFUSION_GENERICA;
   // Filtrar auto-referencias: la especie no aparece confundida consigo misma

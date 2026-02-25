@@ -113,23 +113,47 @@ function ActiveFilterChip({ label, emoji, color = 'amber', onRemove }) {
 // ==================== SEARCH FILTER BAR ====================
 // variant="full"  → solo búsqueda, pill completo (ej. mapa)
 // variant="split" → búsqueda + botón Filtrar integrado con corte de 2px (ej. listados)
-// Props: value, onChange, onClear, placeholder, onFilterClick, activeFilters, variant, className
+// Focus: al enfocar el input, el botón Filtrar se oculta con animación y la lupa
+// aparece a la derecha como botón de submit. Al perder el foco, vuelve al estado normal.
 function SearchFilterBar({ value, onChange, onClear, placeholder, onFilterClick, activeFilters = 0, variant = 'full', className = '' }) {
   const H = '52px';
   const R = '26px';
+  const [focused, setFocused] = useState(false);
+  const inputRef = useRef(null);
+
+  // preventDefault en mousedown evita que el input pierda el foco al hacer clic en submit;
+  // luego el onClick llama blur() manualmente para cerrar el teclado móvil y restaurar el estado.
+  const handleSubmitMouseDown = (e) => e.preventDefault();
+  const handleSubmitClick     = () => inputRef.current?.blur();
+
+  const submitBtn = (
+    <button
+      type="button"
+      onMouseDown={handleSubmitMouseDown}
+      onClick={handleSubmitClick}
+      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#f4ebe1]/75 hover:text-[#f4ebe1] transition-colors">
+      {IC.search}
+    </button>
+  );
 
   if (variant === 'full') {
     return (
       <div className={`relative ${className}`}>
-        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[#f4ebe1]/75 pointer-events-none">{IC.search}</span>
+        {!focused && (
+          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[#f4ebe1]/75 pointer-events-none">{IC.search}</span>
+        )}
         <input
+          ref={inputRef}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className="w-full pl-12 pr-10 glass text-[#f4ebe1] text-sm outline-none placeholder-[#f4ebe1]/30"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className={`w-full glass text-[#f4ebe1] text-sm outline-none placeholder-[#f4ebe1]/30 transition-all duration-200 ${focused ? 'pl-5 pr-12' : 'pl-12 pr-10'}`}
           style={{ height: H, borderRadius: R }}
         />
-        {value && (
+        {focused && submitBtn}
+        {!focused && value && (
           <button onClick={onClear}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-[#f4ebe1]/40 hover:text-[#f4ebe1]/70 transition-colors text-lg leading-none">×</button>
         )}
@@ -139,33 +163,43 @@ function SearchFilterBar({ value, onChange, onClear, placeholder, onFilterClick,
 
   // variant === 'split'
   return (
-    <div className={`flex gap-0.5 ${className}`}>
-      {/* Mitad izquierda — búsqueda */}
+    <div className={`flex ${className}`} style={{ gap: focused ? 0 : '2px' }}>
+      {/* Input */}
       <div className="relative flex-1">
-        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[#f4ebe1]/75 pointer-events-none">{IC.search}</span>
+        {!focused && (
+          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[#f4ebe1]/75 pointer-events-none">{IC.search}</span>
+        )}
         <input
+          ref={inputRef}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className="w-full pl-12 pr-10 glass text-[#f4ebe1] text-sm outline-none placeholder-[#f4ebe1]/30"
-          style={{ height: H, borderRadius: `${R} 0 0 ${R}` }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className={`w-full glass text-[#f4ebe1] text-sm outline-none placeholder-[#f4ebe1]/30 transition-all duration-200 ${focused ? 'pl-5 pr-12' : 'pl-12 pr-10'}`}
+          style={{ height: H, borderRadius: focused ? R : `${R} 0 0 ${R}` }}
         />
-        {value && (
+        {focused && submitBtn}
+        {!focused && value && (
           <button onClick={onClear}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-[#f4ebe1]/40 hover:text-[#f4ebe1]/70 transition-colors text-lg leading-none">×</button>
         )}
       </div>
-      {/* Mitad derecha — filtro */}
-      <button
-        onClick={onFilterClick}
-        className="px-5 glass text-[#f4ebe1]/85 hover:text-[#c4a06b] transition-all flex items-center gap-2 text-sm font-medium shrink-0 whitespace-nowrap"
-        style={{ height: H, borderRadius: `0 ${R} ${R} 0` }}>
-        {IC.filter}
-        <span>Filtrar</span>
-        {activeFilters > 0 && (
-          <span className="px-1.5 py-0.5 bg-[#887b4b] text-white rounded-full text-[10px] font-bold leading-none">{activeFilters}</span>
-        )}
-      </button>
+      {/* Botón Filtrar — se colapsa con animación al enfocar el input */}
+      <div
+        className="overflow-hidden shrink-0"
+        style={{ maxWidth: focused ? 0 : '160px', opacity: focused ? 0 : 1, transition: 'max-width 0.2s ease, opacity 0.15s ease' }}>
+        <button
+          onClick={onFilterClick}
+          className="px-5 glass text-[#f4ebe1]/85 hover:text-[#c4a06b] transition-colors flex items-center gap-2 text-sm font-medium whitespace-nowrap"
+          style={{ height: H, borderRadius: `0 ${R} ${R} 0` }}>
+          {IC.filter}
+          <span>Filtrar</span>
+          {activeFilters > 0 && (
+            <span className="px-1.5 py-0.5 bg-[#887b4b] text-white rounded-full text-[10px] font-bold leading-none">{activeFilters}</span>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

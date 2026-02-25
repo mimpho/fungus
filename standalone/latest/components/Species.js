@@ -31,7 +31,11 @@ function Species({ t, favoriteSpecies, toggleFavorite, setSelectedSpecies, setSe
     if (familyFilter) r = r.filter(e => e.family === familyFilter);
     if (searchQuery) {
       const b = searchQuery.toLowerCase();
-      r = r.filter(e => e.scientificName.toLowerCase().includes(b) || e.commonNames.some(n => n.toLowerCase().includes(b)));
+      r = r.filter(e =>
+        e.scientificName.toLowerCase().includes(b) ||
+        e.commonNames.some(n => n.toLowerCase().includes(b)) ||
+        (e.synonyms || []).some(s => s.toLowerCase().includes(b))
+      );
     }
     if (orden === 'alfa') r.sort((a, b) => a.scientificName.localeCompare(b.scientificName));
     else if (orden === 'family') r.sort((a, b) => a.family.localeCompare(b.family));

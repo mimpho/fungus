@@ -6,6 +6,7 @@ function Zones({ t, followedZones, toggleFollow, setSelectedZone }) {
   const [onlyFollowed, setSoloSeguidas] = useState(false);
   const [onlyRained, setOnlyRained] = useState(false);
   const [forestFilter, setFiltroBosque] = useState('');
+  const [ccaaFilter, setCcaaFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [pillOpen, setPillOpen] = useState(false);
   const isFollowed = (id) => followedZones.some(z => z.id === id);
@@ -17,6 +18,7 @@ function Zones({ t, followedZones, toggleFollow, setSelectedZone }) {
   }, []);
 
   const forestTypes = useMemo(() => [...new Set(mockZones.map(z => z.forestType))].sort(), []);
+  const comunidades = useMemo(() => [...new Set(mockZones.map(z => z.comunidadAutonoma).filter(Boolean))].sort(), []);
 
   // Umbral de lluvia: >= 30mm en 14 días se considera "ha llovido"
   const RAIN_THRESHOLD = 30;
@@ -25,6 +27,7 @@ function Zones({ t, followedZones, toggleFollow, setSelectedZone }) {
     let r = onlyFollowed ? mockZones.filter(z => isFollowed(z.id)) : [...mockZones];
     if (onlyRained) r = r.filter(z => parseFloat(conditionsMap[z.id]?.rainfall14d ?? 0) >= RAIN_THRESHOLD);
     if (forestFilter) r = r.filter(z => z.forestType === forestFilter);
+    if (ccaaFilter) r = r.filter(z => z.comunidadAutonoma === ccaaFilter);
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       r = r.filter(z => z.name.toLowerCase().includes(q) || z.province.toLowerCase().includes(q) || z.region.toLowerCase().includes(q));
@@ -33,9 +36,9 @@ function Zones({ t, followedZones, toggleFollow, setSelectedZone }) {
     else if (zoneSort === 'alfa') r.sort((a, b) => a.name.localeCompare(b.name));
     else if (zoneSort === 'elevation') r.sort((a, b) => b.elevation - a.elevation);
     return r;
-  }, [onlyFollowed, onlyRained, zoneSort, forestFilter, searchQuery, followedZones]);
+  }, [onlyFollowed, onlyRained, zoneSort, forestFilter, ccaaFilter, searchQuery, followedZones]);
 
-  const activeFilters = (onlyFollowed ? 1 : 0) + (onlyRained ? 1 : 0) + (forestFilter ? 1 : 0) + (zoneSort !== 'score' ? 1 : 0);
+  const activeFilters = (onlyFollowed ? 1 : 0) + (onlyRained ? 1 : 0) + (forestFilter ? 1 : 0) + (ccaaFilter ? 1 : 0) + (zoneSort !== 'score' ? 1 : 0);
 
   return (
     <div className="space-y-6 anim-up pb-6">
@@ -110,6 +113,23 @@ function Zones({ t, followedZones, toggleFollow, setSelectedZone }) {
                 className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyRained ? 'bg-sky-400/20 text-sky-400' : 'glass text-[#f4ebe1]/60'}`}>
                 🌧️ Ha llovido
               </button>
+            </div>
+          </div>
+
+          {/* Filtro comunidad autónoma */}
+          <div className="mb-5">
+            <p className="text-[#d9cda1] text-xs uppercase tracking-wider mb-3">Comunidad autónoma</p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setCcaaFilter('')}
+                className={`px-4 py-2 rounded-xl text-sm transition-all ${!ccaaFilter ? 'bg-[#887b4b] text-white' : 'glass text-[#f4ebe1]/60'}`}>
+                Todas
+              </button>
+              {comunidades.map(ca => (
+                <button key={ca} onClick={() => setCcaaFilter(ca)}
+                  className={`px-4 py-2 rounded-xl text-sm transition-all ${ccaaFilter === ca ? 'bg-[#4a7c59]/30 text-emerald-400' : 'glass text-[#f4ebe1]/60'}`}>
+                  {ca}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -208,7 +228,7 @@ function Zones({ t, followedZones, toggleFollow, setSelectedZone }) {
       {tab === 'listado' && (
         <div className="space-y-4">
           {/* Chips de filtros activos */}
-          {(onlyFollowed || onlyRained || forestFilter) && (
+          {(onlyFollowed || onlyRained || forestFilter || ccaaFilter) && (
             <div className="flex flex-wrap gap-2">
               {onlyFollowed && (
                 <ActiveFilterChip emoji="⭐" label="Solo seguidas" color="yellow" onRemove={() => setSoloSeguidas(false)} />
@@ -218,6 +238,9 @@ function Zones({ t, followedZones, toggleFollow, setSelectedZone }) {
               )}
               {forestFilter && (
                 <ActiveFilterChip emoji="🌲" label={forestFilter} color="emerald" onRemove={() => setFiltroBosque('')} />
+              )}
+              {ccaaFilter && (
+                <ActiveFilterChip emoji="📍" label={ccaaFilter} color="amber" onRemove={() => setCcaaFilter('')} />
               )}
             </div>
           )}
@@ -257,7 +280,7 @@ function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) {
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0 cursor-pointer" onClick={onClick}>
-            <h3 className="font-display text-lg font-semibold text-[#f4ebe1] truncate">{zone.name}</h3>
+            <h3 className="font-display text-xl font-semibold text-[#f4ebe1] truncate">{zone.name}</h3>
             <p className="text-[#d9cda1] text-xs mt-0.5">{zone.region} · {zone.province}</p>
           </div>
           <button onClick={(e) => { e.stopPropagation(); onToggle(); }}
