@@ -3,6 +3,7 @@ import { useApp } from '../../contexts/AppContext'
 import { mockSpecies } from '../../data/species'
 import { IC, EdibilityTag, getScoreColor, fakeConditions } from '../../lib/helpers'
 import { MODAL, MONTHS } from '../../lib/constants'
+import { LeafletMap } from '../map/LeafletMap'
 
 const CAL_FILTERS = [
   { id: 'todas',      label: 'Todas',       emoji: '🍄' },
@@ -218,15 +219,12 @@ export function ZoneModal({ zone, onClose }) {
             )}
           </section>
 
-          {/* Ubicación — placeholder Fase 5 */}
+          {/* Ubicación */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.ubicacion}</h3>
-            <div className="glass rounded-2xl p-8 text-center space-y-2">
-              <div className="text-4xl">🗺️</div>
-              <p className="text-[#f4ebe1]/60 text-sm">Mapa interactivo — Fase 5</p>
-              <p className="text-[#f4ebe1]/30 text-xs">
-                {zone.lat?.toFixed(4)}, {zone.lng?.toFixed(4)} · {zone.elevation}m s.n.m.
-              </p>
+            <LeafletMap singleZone={zone} height="280px" title={zone.name} />
+            <div className="flex items-center gap-2 mt-2 text-[#f4ebe1]/40 text-xs">
+              {IC.pin} {zone.lat?.toFixed(4)}, {zone.lng?.toFixed(4)} · {zone.elevation}m s.n.m.
             </div>
           </section>
         </div>

@@ -4,6 +4,7 @@ import { mockFamilies } from '../../data/families'
 import { mockZones } from '../../data/zones'
 import { IC, EdibilityTag, SpeciesImg, getScoreColor, TaxonomyBlock, ConfusionesBlock } from '../../lib/helpers'
 import { MODAL, MONTHS } from '../../lib/constants'
+import { LeafletMap } from '../map/LeafletMap'
 
 export function SpeciesModal({ species, onClose }) {
   const { t, favoriteSpecies, toggleFavorite, setSelectedFamily, setSelectedSpecies, setLightbox } = useApp()
@@ -355,16 +356,16 @@ export function SpeciesModal({ species, onClose }) {
             <ConfusionesBlock species={species} onViewSpecies={setSelectedSpecies} />
           </section>
 
-          {/* Dónde encontrarla — placeholder Fase 5 */}
+          {/* Dónde encontrarla */}
           {compatZones.length > 0 && (
             <section>
               <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-1">{t.dondeEncontrar}</h3>
-              <p className="text-[#f4ebe1]/35 text-xs mb-3">{compatZones.length} zonas compatibles · Pulsa una zona para ver su ficha</p>
-              <div className="glass rounded-2xl p-8 text-center space-y-2">
-                <div className="text-4xl">🗺️</div>
-                <p className="text-[#f4ebe1]/60 text-sm">Mapa de distribución — Fase 5</p>
-                <p className="text-[#f4ebe1]/30 text-xs">{compatZones.length} zonas: {compatZones.slice(0, 3).map(z => z.name).join(', ')}{compatZones.length > 3 ? '…' : ''}</p>
-              </div>
+              <p className="text-[#f4ebe1]/35 text-xs mb-3">{compatZones.length} zonas compatibles · Pulsa un marcador para ver su ficha</p>
+              <LeafletMap
+                zonas={compatZones}
+                onZoneClick={setSelectedZone}
+                height="300px"
+                title={`Disponibilidad de ${species.scientificName}`} />
             </section>
           )}
         </div>

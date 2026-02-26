@@ -1,58 +1,81 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
-
-const navItems = [
-  { to: '/',          label: 'Inicio',    emoji: '🏠', end: true },
-  { to: '/zonas',     label: 'Zonas',     emoji: '🗺️' },
-  { to: '/especies',  label: 'Especies',  emoji: '🍄' },
-  { to: '/micologia', label: 'Micología', emoji: '📖' },
-  { to: '/perfil',    label: 'Perfil',    emoji: '👤' },
-]
+import { IC } from '../lib/helpers'
 
 export default function Layout() {
-  useApp() // asegura que el contexto esté disponible en el árbol
+  const { followedZones } = useApp()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const navItems = [
+    { to: '/',          label: 'Inicio',    icon: IC.chart,    end: true },
+    { to: '/zonas',     label: 'Zonas',     icon: IC.pin,      badge: followedZones.length },
+    { to: '/especies',  label: 'Especies',  icon: IC.mushroom },
+    { to: '/micologia', label: 'Micología', icon: IC.book },
+    { to: '/perfil',    label: 'Perfil',    icon: IC.user },
+  ]
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
+    <div className="min-h-screen">
       <header className="glass sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <NavLink to="/">
+          {/* Logo */}
+          <NavLink to="/" onClick={() => setMobileMenuOpen(false)}>
             <img src="/assets/images/logoFungus.png" alt="Fungus" className="h-16 w-auto object-contain" />
           </NavLink>
+
+          {/* Nav desktop */}
           <nav className="hidden md:flex items-center gap-1">
-            {navItems.map(({ to, label, end }) => (
+            {navItems.map(({ to, label, icon, end, badge }) => (
               <NavLink key={to} to={to} end={end}
                 className={({ isActive }) =>
-                  `px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  `relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive ? 'bg-[#d9cea1]/10 text-[#d9cea1]' : 'text-[#f4ebe1] hover:bg-white/[0.05]'
                   }`
                 }>
-                {label}
+                {icon} {label}
+                {badge > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white rounded-full text-[10px] flex items-center justify-center font-bold">{badge}</span>
+                )}
               </NavLink>
             ))}
           </nav>
+
+          {/* Botón hamburguesa — solo mobile */}
+          <button
+            onClick={() => setMobileMenuOpen(o => !o)}
+            className="md:hidden p-2 rounded-lg hover:bg-white/10 text-[#f4ebe1]/70 transition-colors">
+            {mobileMenuOpen
+              ? IC.close
+              : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            }
+          </button>
         </div>
+
+        {/* Menú desplegable mobile */}
+        {mobileMenuOpen && (
+          <div className="md:hidden px-4 py-3 flex flex-col gap-1 anim-up border-t border-white/[0.06]">
+            {navItems.map(({ to, label, icon, end, badge }) => (
+              <NavLink key={to} to={to} end={end}
+                onClick={() => setMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    isActive ? 'bg-[#d9cea1]/10 text-[#d9cea1]' : 'text-[#f4ebe1] hover:bg-white/[0.05]'
+                  }`
+                }>
+                {icon} {label}
+                {badge > 0 && (
+                  <span className="ml-auto px-2 py-0.5 bg-emerald-500 text-white rounded-full text-xs font-bold">{badge}</span>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        )}
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <Outlet />
       </main>
-
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-white/[0.06]">
-        <div className="flex items-stretch">
-          {navItems.map(({ to, label, emoji, end }) => (
-            <NavLink key={to} to={to} end={end}
-              className={({ isActive }) =>
-                `flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[10px] font-medium transition-all ${
-                  isActive ? 'text-[#c4a06b]' : 'text-[#f4ebe1]/40'
-                }`
-              }>
-              <span className="text-xl leading-none">{emoji}</span>
-              {label}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
     </div>
   )
 }

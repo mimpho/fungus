@@ -8,4 +8,16 @@ export default defineConfig({
       '@': '/src',
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'leaflet-vendor': ['leaflet', 'leaflet.heat'],
+          'data-species': ['./src/data/species.js'],
+          'data-zones': ['./src/data/zones.js'],
+        },
+      },
+    },
+  },
 })

@@ -7,6 +7,7 @@ import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
 import { Tabs } from '../components/ui/Tabs'
+import { LeafletMap } from '../components/map/LeafletMap'
 
 const RAIN_THRESHOLD = 30
 
@@ -163,15 +164,12 @@ export default function Zones() {
 
       {/* Tab: Mapa */}
       {tab === 'mapa' && (
-        <div className="glass rounded-2xl p-8 text-center space-y-3">
-          <div className="text-5xl">🗺️</div>
-          <p className="text-[#f4ebe1] font-display text-xl">Mapa interactivo</p>
-          <p className="text-[#f4ebe1]/40 text-sm">Leaflet map — Fase 5</p>
-          <button onClick={() => setTab('listado')}
-            className="mt-2 px-6 py-2.5 bg-[#4a7c59]/20 text-emerald-400 rounded-xl text-sm hover:bg-[#4a7c59]/30 transition-colors">
-            Ver listado de zonas →
-          </button>
-        </div>
+        <LeafletMap
+          zonas={filteredZones}
+          onZoneClick={setSelectedZone}
+          height="calc(100vh - 220px)"
+          title="Mapa de zonas"
+          mode="markers" />
       )}
 
       {/* Tab: Listado */}
