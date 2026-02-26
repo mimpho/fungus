@@ -7,7 +7,7 @@ import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
 
 export function SpeciesModal({ species, onClose }) {
-  const { t, favoriteSpecies, toggleFavorite, setSelectedFamily, setSelectedSpecies, setLightbox } = useApp()
+  const { t, favoriteSpecies, toggleFavorite, setSelectedFamily, setSelectedSpecies, setSelectedZone, setLightbox } = useApp()
   const isFav = favoriteSpecies.some(f => f.id === species.id)
   const family = mockFamilies[species.family]
   const [scrolled, setScrolled] = useState(false)
