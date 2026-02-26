@@ -42,8 +42,8 @@ function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies
         <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
-            <p className="font-display text-lg font-semibold text-[#f4ebe1] truncate">{zone.name}</p>
-            <p className="text-[#d9cda1]/60 text-[11px] truncate">{zone.province} · {zone.forestType}</p>
+            <p className="font-display text-xl font-semibold text-[#f4ebe1] truncate">{zone.name}</p>
+            <p className="text-[#d9cda1]/60 text-xs truncate">{zone.province} · {zone.forestType}</p>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button onClick={onToggleFollow} className={`p-2 rounded-xl transition-all ${isFollowed ? 'bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30' : 'text-white/50 hover:text-yellow-400 hover:bg-white/10'}`}>{IC.star(isFollowed)}</button>
@@ -95,7 +95,7 @@ function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies
           {/* Termómetro compact */}
           <section id="condicion">
             <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-1">{t.termometro}</h3>
-            <p className="text-[#f4ebe1]/35 text-[11px] mb-3">Temperatura · Precipitación 14 días · Humedad del suelo</p>
+            <p className="text-[#f4ebe1]/35 text-xs mb-3">Temperatura · Precipitación 14 días · Humedad del suelo</p>
             <div className="flex items-center gap-4 bg-white/[0.03] rounded-xl p-4">
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">

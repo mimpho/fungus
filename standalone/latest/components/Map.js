@@ -50,35 +50,61 @@ function MapFullscreenModal({ zonas, singleZone, onZoneClick, title, onClose, mo
 }
 
 // ==================== FAKE METEO HEATMAP GRID ====================
-// Genera una cuadrícula de puntos sobre la Península con un score de oportunidad
-// micológica basado en ruido sinusoidal multicapa (coherencia espacial).
-// Sesgos geográficos: latitud alta → más húmedo, interiores montañosos → mejor.
+// Genera una cuadrícula de puntos sobre la Península con coherencia espacial.
+// Diseño realista: la mayor parte de España (interior/sureste árido) queda
+// genuinamente baja; solo cinturones montañosos y franja norte puntúan alto.
 function fakeMeteoIntensity(lat, lng) {
-  // Capa base: ondas grandes (~200km) para patrones de frente meteorológico
-  const macro = (
-    Math.sin(lat * 2.3 + lng * 1.7 + 1.2) * 0.35 +
-    Math.sin(lat * 1.8 - lng * 2.9 + 0.7) * 0.30
-  );
-  // Capa media: detalle regional (~80km)
-  const meso = (
-    Math.sin(lat * 5.1 + lng * 4.3 + 2.1) * 0.20 +
-    Math.sin(lat * 6.7 - lng * 3.8 - 1.4) * 0.15
-  );
-  // Sesgo geográfico: norte y montaña interior puntúan más
-  const latBias = (lat - 38) / 10 * 0.25;          // norte España ~+0.15
-  const mountainBias =
-    Math.exp(-((lat - 42.5) ** 2 + (lng + 1.5) ** 2) / 8)  * 0.2   // Pirineos
-  + Math.exp(-((lat - 43.2) ** 2 + (lng + 5.8) ** 2) / 6)  * 0.18  // Cantábrico
-  + Math.exp(-((lat - 40.3) ** 2 + (lng + 4.0) ** 2) / 7)  * 0.15  // Gredos/Guadarrama
-  + Math.exp(-((lat - 41.9) ** 2 + (lng + 2.9) ** 2) / 5)  * 0.15  // Ibérica/Urbión
-  + Math.exp(-((lat - 37.9) ** 2 + (lng + 2.9) ** 2) / 6)  * 0.12; // Cazorla
+  // Helper gaussiana
+  const G = (clat, clng, sig, amp) =>
+    Math.exp(-((lat - clat) ** 2 + (lng - clng) ** 2) / sig) * amp;
 
-  const raw = macro + meso + latBias + mountainBias;
-  // Normalizar aprox. al rango [0,1]
-  return Math.max(0, Math.min(1, (raw + 0.6) / 1.2));
+  // --- Ondas de frente: variación suave (~300-500 km) ---
+  // Amplitudes reducidas → no bajan de "bueno", solo distinguen bueno/muy bueno
+  const front =
+    Math.sin(lat * 0.85 + lng * 0.60 + 1.8) * 0.22 +
+    Math.sin(lat * 0.65 - lng * 1.00 + 3.5) * 0.16;
+
+  // --- Variación regional (~50-80 km) ---
+  const regional =
+    Math.sin(lat * 5.0 + lng * 4.6 + 0.9) * 0.10 +
+    Math.sin(lat * 7.1 - lng * 3.0 - 2.1) * 0.07;
+
+  // --- Parcheo local (~15-25 km): rompe la matriz regular ---
+  const local =
+    Math.sin(lat * 14.8 + lng * 12.1 + 4.3) * 0.06 +
+    Math.sin(lat * 19.3 - lng * 9.0  + 1.7) * 0.04 +
+    Math.sin(lat * 23.7 + lng * 17.4 - 3.1) * 0.02;
+
+  // --- Hotspots de montaña: empujan a "muy bueno" / "excelente" ---
+  const mountains =
+    G(42.6, -1.4, 1.4, 0.55) +  // Pirineos centrales
+    G(43.1, -5.7, 1.2, 0.52) +  // Cantábrico / Asturias
+    G(43.3, -2.3, 1.5, 0.44) +  // País Vasco / Navarra
+    G(42.8,  3.0, 1.8, 0.28) +  // Pirineos orientales
+    G(40.2, -4.0, 1.4, 0.34) +  // Gredos / Guadarrama
+    G(41.9, -2.8, 1.3, 0.38) +  // Ibérica / Urbión
+    G(37.9, -2.9, 1.2, 0.28) +  // Cazorla
+    G(38.1, -5.2, 2.0, 0.20) +  // Sierra Morena / Extremadura
+    G(41.7,  0.8, 1.8, 0.22);   // Pre-Pirineos catalanes
+
+  // --- Sesgo latitudinal suave: norte algo mejor ---
+  const latBias = Math.max(0, (lat - 37.0) / 8.0) * 0.22;
+
+  // --- Base alta: datos fake → todo parte de "bueno" como mínimo ---
+  // raw oscila aprox. entre 0.20 y 1.20
+  const raw = 0.28 + front + regional + local + mountains + latBias;
+
+  // Normalizar a [0, 1] estirando el rango visible
+  let v = (raw - 0.20) / 1.00;
+  v = Math.max(0, Math.min(1, v));
+
+  // Curva suave que empuja ligeramente los extremos: más "muy bueno" y "excelente"
+  v = 1 - (1 - v) * (1 - v);
+
+  return Math.max(0, Math.min(1, v));
 }
 
-const HEAT_STEP = 0.12; // ~13km entre puntos
+const HEAT_STEP = 0.12; // ~13 km entre puntos
 
 function generateMeteoHeatGrid() {
   const points = [];
@@ -87,7 +113,8 @@ function generateMeteoHeatGrid() {
   for (let lat = LAT_MIN; lat <= LAT_MAX; lat += HEAT_STEP) {
     for (let lng = LNG_MIN; lng <= LNG_MAX; lng += HEAT_STEP) {
       const intensity = fakeMeteoIntensity(lat, lng);
-      if (intensity > 0.05) points.push([lat, lng, intensity]);
+      // Solo "bueno" hacia arriba — sin puntos en zona roja/naranja
+      if (intensity > 0.28) points.push([lat, lng, intensity]);
     }
   }
   return points;
@@ -131,16 +158,15 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', selectedZone = 
 
       const heatLayer = L.heatLayer(heatData, {
         radius: initRadius,
-        blur: Math.ceil(initRadius * 0.75),
+        blur: Math.ceil(initRadius * 0.80),
         maxZoom: 17,
-        max: 0.7,
-        minOpacity: 0.45,
+        max: 0.80,
+        minOpacity: 0.30, // mínimo visible siempre en zona "bueno"
         gradient: {
-          0.0: '#ef4444',
-          0.35: '#f97316',
-          0.6: '#eab308',
-          0.8: '#84cc16',
-          1.0: '#22c55e'
+          0.0:  '#d97706', // ámbar       – bueno
+          0.42: '#7a9e3a', // verde oliva – muy bueno
+          0.72: '#4a7c59', // verde bosque– muy bueno alto
+          1.0:  '#2d6640'  // verde oscuro– excelente
         }
       }).addTo(map);
       heatLayerRef.current = heatLayer;
@@ -220,11 +246,10 @@ function LeafletMap({ zonas, onZoneClick, height = '400px', selectedZone = null,
           </div>
         )}
         
-        <button className="map-expand-btn" onClick={() => setFullscreen(true)}>
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button className="map-expand-btn" onClick={() => setFullscreen(true)} title="Pantalla completa">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
           </svg>
-          Pantalla completa
         </button>
       </div>
       {fullscreen && (

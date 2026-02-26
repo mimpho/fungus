@@ -338,19 +338,19 @@ function TaxonomyBlock({ species }) {
   const syns = species.synonyms || [];
   if (syns.length === 0) return null;
   return (
-    <div className="mt-3">
+    <div className="mt-5">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 text-xs text-[#d9cda1]/60 hover:text-[#c4a06b] transition-colors">
+        className="flex items-center gap-1.5 text-sm text-[#d9cda1]/60 hover:text-[#c4a06b] transition-colors">
         <svg className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
         🔬 {open ? 'Ocultar taxonomía' : `Ver taxonomía (${syns.length} sinónimo${syns.length > 1 ? 's' : ''})`}
       </button>
       {open && (
-        <div className="mt-2 pl-1 border-l-2 border-[#887b4b]/20 space-y-1">
+        <div className="mt-2 ml-1 pl-3 border-l-2 border-[#887b4b]/20 space-y-1">
           {syns.map((s, i) => (
-            <p key={i} className="text-xs text-[#f4ebe1]/45 italic">{s}</p>
+            <p key={i} className="text-sm text-[#f4ebe1]/45 italic">{s}</p>
           ))}
         </div>
       )}
@@ -384,13 +384,13 @@ function ConfusionesBlock({ species, onViewSpecies }) {
                   )}
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-[#f4ebe1]/50">{c.risk}</span>
                 </div>
-                <p className="text-[#f4ebe1]/60 text-xs leading-relaxed">{c.diff}</p>
+                <p className="text-[#f4ebe1]/60 text-sm leading-relaxed">{c.diff}</p>
               </div>
             </div>
           </div>
         );
       })}
-      <p className="text-[#f4ebe1]/30 text-[10px] text-center pt-1">
+      <p className="text-[#f4ebe1]/30 text-xs text-center pt-1">
         ⚠️ Datos orientativos. Consulta siempre con un micólogo experto antes de consumir cualquier seta silvestre.
       </p>
     </div>

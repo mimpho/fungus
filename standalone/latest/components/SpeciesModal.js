@@ -25,8 +25,8 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
         <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
-            <p className="font-display text-lg font-semibold text-[#f4ebe1] truncate">{species.scientificName}</p>
-            <p className="text-[#d9cda1]/60 text-[11px] truncate">{species.commonNames?.[0]}</p>
+            <p className="font-display text-xl font-semibold text-[#f4ebe1] truncate">{species.scientificName}</p>
+            <p className="text-[#d9cda1]/60 text-xs truncate">{species.commonNames?.[0]}</p>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button onClick={onToggleFav} className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-white/50 hover:text-red-400 hover:bg-white/10'}`}>{IC.heart(isFav)}</button>
@@ -35,9 +35,9 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
         </div>
         {/* Hero foto */}
         <div ref={heroRef} className="relative overflow-hidden sm:rounded-t-2xl modal-header" style={{ minHeight: '224px', height: '50vh' }}>
-          <SpeciesImg localSrc={species.photo?.url} scientificName={species.scientificName} className="w-full h-full opacity-70" objectFit="cover" objectPosition="top" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#30372a] via-[#30372a]/40 to-transparent" />
-          <div className="absolute bottom-5 left-6 right-6">
+          <SpeciesImg localSrc={species.photo?.url} scientificName={species.scientificName} className="w-full h-full" objectFit="cover" objectPosition="top" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#30372a] via-[#30372a]/0 to-transparent" />
+          <div className="absolute bottom-0 left-6 right-6">
             <h2 className="font-display text-4xl font-semibold text-[#f4ebe1] drop-shadow-lg">{species.scientificName}</h2>
             <p className="text-[#d9cda1] text-sm mt-1">{species.family} · {species.commonNames[0]}</p>
           </div>
@@ -72,7 +72,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
           {/* Nombres comunes + Taxonomía */}
           {species.commonNames?.length > 0 && (
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.tambienConocida}</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.tambienConocida}</h3>
               <div className="flex flex-wrap gap-2">
                 {species.commonNames.map((n, i) => (
                   <span key={i} className="px-3 py-1 rounded-full bg-[#887b4b]/15 text-[#c4a06b] text-sm">{n}</span>
@@ -85,14 +85,15 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
           {/* Descripción */}
           {species.description && (
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.description}</h3>
-              <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">{species.description}</p>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.description}</h3>
+              <p className="text-[#f4ebe1]/70 text-sm
+               leading-relaxed">{species.description}</p>
             </section>
           )}
 
           {/* Hábitat + altitud */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.habitat}</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.habitat}</h3>
             <div className="flex flex-wrap gap-2 mb-3">
               {species.forestTypes?.map((b, i) => (
                 <span key={i} className="px-3 py-1 rounded-full bg-[#4a7c59]/15 text-[#4a7c59] text-sm">🌲 {b}</span>
@@ -105,7 +106,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
 
           {/* Fructificación */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.fructificacion}</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.fructificacion}</h3>
             <div className="grid grid-cols-12 gap-1.5">
               {MONTHS.map((m, i) => (
                 <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${species.fruitingMonths?.includes(i+1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-[#f4ebe1]/20'}`}>{m}</div>
@@ -121,7 +122,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
             if (allPhotos.length === 0) return null;
             return (
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">
+                <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">
                   📷 Galería ({allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'})
                 </h3>
                 <div className={`grid gap-2 ${extraPhotos.length === 0 ? 'grid-cols-1' : extraPhotos.length === 1 ? 'grid-cols-2' : extraPhotos.length === 2 ? 'grid-cols-2 sm:grid-cols-4 sm:grid-rows-2 w-full sm:aspect-[2/1] sm:overflow-hidden' : 'grid-cols-4'}`}>
@@ -167,7 +168,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
 
           {/* Condiciones de fructificación */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-4">Condiciones de fructificación</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-4">Condiciones de fructificación</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Temperatura */}
               <div className="bg-white/[0.03] rounded-xl p-4 flex items-start gap-3">
@@ -176,7 +177,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
                 </div>
                 <div>
                   <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-1">Temperatura</h4>
-                  <p className="text-[#f4ebe1]/70 text-xs leading-relaxed">
+                  <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">
                     {species.family === 'Amanitaceae' && species.edibility === 'excelente'
                       ? 'Noches frescas (8–14°C) con días cálidos. Requiere oscilación térmica diaria mínima de 15°C para estimular la fructificación.'
                       : species.family === 'Morchellaceae'
@@ -195,7 +196,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
                 </div>
                 <div>
                   <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-1">Precipitación</h4>
-                  <p className="text-[#f4ebe1]/70 text-xs leading-relaxed">
+                  <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">
                     {species.family === 'Cantharellaceae'
                       ? 'Mínimo 30–50mm en los 14 días previos. Prefiere periodos húmedos prolongados con buena infiltración.'
                       : species.family === 'Morchellaceae'
@@ -210,7 +211,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
                 <div className="text-2xl shrink-0">🌱</div>
                 <div>
                   <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-1">Suelo</h4>
-                  <p className="text-[#f4ebe1]/70 text-xs leading-relaxed">
+                  <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">
                     {species.family === 'Boletaceae'
                       ? 'Suelos ácidos a neutros, bien drenados. Prefiere substrato orgánico rico con pH 5–6.5. Micorriza con coníferas y caducifolios.'
                       : species.family === 'Russulaceae'
@@ -229,7 +230,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
                 </div>
                 <div>
                   <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-1">Requisitos especiales</h4>
-                  <p className="text-[#f4ebe1]/70 text-xs leading-relaxed">
+                  <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">
                     {species.scientificName === 'Amanita caesarea'
                       ? 'Requiere choque térmico pronunciado. Sensible a heladas. Aparece tras tormentas de verano en zonas templadas mediterráneas.'
                       : species.scientificName === 'Morchella esculenta'
@@ -256,7 +257,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
                   <div className="progress-bar mb-1">
                     <div className="progress-fill bg-[#887b4b]" style={{ width: `${m.value}%` }} />
                   </div>
-                  <div className="text-[#f4ebe1]/40 text-[10px]">{m.label}</div>
+                  <div className="text-[#f4ebe1]/40 text-xs">{m.label}</div>
                 </div>
               ))}
             </div>
@@ -265,7 +266,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
           {/* Morfología técnica */}
           {(species.cap || species.stem || species.flesh) && (
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-4">{t.morfologia}</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-4">{t.morfologia}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {species.cap && (
                   <div className="bg-white/[0.03] rounded-xl p-4">
@@ -332,7 +333,7 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
 
           {/* Posibles Confusiones — generadas por familia */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">⚠️ Posibles confusiones</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">⚠️ Posibles confusiones</h3>
             <ConfusionesBlock species={species} onViewSpecies={onViewSpecies} />
           </section>
 
@@ -340,8 +341,8 @@ function SpeciesModal({ t, species, onClose, isFav, onToggleFav, onViewFamily, o
           {/* Mapa de disponibilidad por zona */}
           {compatZones.length > 0 && (
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-1">{t.dondeEncontrar}</h3>
-              <p className="text-[#f4ebe1]/35 text-[11px] mb-3">{compatZones.length} zonas compatibles · Pulsa una zona para ver su ficha</p>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-1">{t.dondeEncontrar}</h3>
+              <p className="text-[#f4ebe1]/35 text-xs mb-3">{compatZones.length} zonas compatibles · Pulsa una zona para ver su ficha</p>
               <LeafletMap
                 zonas={compatZones}
                 onZoneClick={onViewZone}

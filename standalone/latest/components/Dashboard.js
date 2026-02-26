@@ -206,20 +206,16 @@ function Dashboard({ t, setView, setSelectedZone, setSelectedSpecies, followedZo
           {mapMode === 'heatmap' && (
             <div className="mt-3 flex items-center justify-center gap-4 text-xs text-[#f4ebe1]/60">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ background: '#ef4444' }} />
-                <span>Regular (&lt;55)</span>
+                <div className="w-4 h-4 rounded" style={{ background: '#d97706' }} />
+                <span>Bueno</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ background: '#f97316' }} />
-                <span>Bueno (55-70)</span>
+                <div className="w-4 h-4 rounded" style={{ background: '#7a9e3a' }} />
+                <span>Muy bueno</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ background: '#eab308' }} />
-                <span>Muy bueno (70-85)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ background: '#22c55e' }} />
-                <span>Excelente (&gt;85)</span>
+                <div className="w-4 h-4 rounded" style={{ background: '#2d6640' }} />
+                <span>Excelente</span>
               </div>
             </div>
           )}
