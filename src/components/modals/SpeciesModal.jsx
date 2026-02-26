@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { mockFamilies } from '../../data/families'
 import { mockZones } from '../../data/zones'
+import { mockSpecies } from '../../data/species'
 import { IC, EdibilityTag, SpeciesImg, getScoreColor, TaxonomyBlock, ConfusionesBlock } from '../../lib/helpers'
 import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
@@ -26,6 +27,11 @@ export function SpeciesModal({ species, onClose }) {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [])
+
+  useEffect(() => {
+    if (modalRef.current) modalRef.current.scrollTop = 0
+    setScrolled(false)
+  }, [species.id])
 
   const handleOpenLightbox = (photos, index) => {
     setLightbox({ photos, index })
@@ -153,7 +159,7 @@ export function SpeciesModal({ species, onClose }) {
                 </h3>
                 <div className={`grid gap-2 ${extraPhotos.length === 0 ? 'grid-cols-1' : extraPhotos.length === 1 ? 'grid-cols-2' : extraPhotos.length === 2 ? 'grid-cols-2 sm:grid-cols-4 sm:grid-rows-2 w-full sm:aspect-[2/1] sm:overflow-hidden' : 'grid-cols-4'}`}>
                   <div className={`gallery-thumb group relative overflow-hidden rounded-lg cursor-pointer${extraPhotos.length === 2 ? ' col-span-2 sm:col-span-3 sm:row-span-2' : ''}`}
-                    style={{ aspectRatio: '4/3' }}
+                    style={extraPhotos.length === 2 ? { minHeight: 0 } : { aspectRatio: '4/3' }}
                     onClick={() => handleOpenLightbox(allPhotos, 0)}>
                     <SpeciesImg localSrc={species.photo?.largeUrl || species.photo?.url} scientificName={species.scientificName} className="w-full h-full" objectFit="cover" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center rounded-lg">
@@ -168,7 +174,7 @@ export function SpeciesModal({ species, onClose }) {
                   </div>
                   {extraPhotos.map((foto, i) => (
                     <div key={i} className={`gallery-thumb group relative cursor-pointer overflow-hidden rounded-lg${extraPhotos.length === 2 ? ' col-span-1 row-span-1' : ''}`}
-                      style={{ aspectRatio: '4/3' }}
+                      style={extraPhotos.length === 2 ? { minHeight: 0 } : { aspectRatio: '4/3' }}
                       onClick={() => handleOpenLightbox(allPhotos, i + 1)}>
                       <img src={foto.url} alt={foto.caption} className="w-full h-full object-cover"
                         onError={ev => { ev.target.parentNode.style.background = 'rgba(139,111,71,0.1)'; ev.target.style.display = 'none' }} />
@@ -353,7 +359,7 @@ export function SpeciesModal({ species, onClose }) {
           {/* Posibles Confusiones */}
           <section>
             <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">⚠️ Posibles confusiones</h3>
-            <ConfusionesBlock species={species} onViewSpecies={setSelectedSpecies} />
+            <ConfusionesBlock species={species} onViewSpecies={setSelectedSpecies} allSpecies={mockSpecies} />
           </section>
 
           {/* Dónde encontrarla */}
@@ -370,9 +376,7 @@ export function SpeciesModal({ species, onClose }) {
           )}
         </div>
 
-        <div className="px-6 py-4 text-center text-[#f4ebe1]/30 text-xs">
-          ⚠️ Ficha orientativa. Consulta siempre a un micólogo experto antes de consumir cualquier seta silvestre.
-        </div>
+        <div className="h-6" />
       </div>
     </div>
   )

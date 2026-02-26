@@ -271,53 +271,140 @@ export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full'
 // =====================================================
 export const CONFUSIONES_POR_FAMILIA = {
   Boletaceae: [
-    { name: 'Boletus edulis', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'El cep noble: poros blancos→amarillo-verdosos, no azulea al corte, olor agradable fúngico.' },
-    { name: 'Rubroboletus satanas', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Poros rojo intenso, pie reticulado con tonos rojos, azulea fuertemente al corte. Tóxico incluso cocinado.' },
-    { name: 'Suillellus luridus', risk: 'tóxico en crudo', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Poros anaranjados-rojizos, azulea muy rápido. Comestible solo con cocción prolongada.' },
-    { name: 'Neoboletus erythropus', risk: 'tóxico en crudo', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Poros rojo sangre desde joven, azulea instantáneamente. Tóxico crudo.' },
+    { name: 'Boletus edulis', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'El cep noble: poros blancos→amarillo-verdosos, no azulea al corte, olor agradable fúngico. Confundible con boletos de poros rojos o que azulean fuertemente.' },
+    { name: 'Boletus reticulatus', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Muy similar a B. edulis. Sombrero ocre-amarillento, pie reticulado casi hasta la base. Estival, típico de robledales y bosques caducifolios. Igual de excelente que el cep.' },
+    { name: 'Rubroboletus satanas', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Poros rojo intenso, pie reticulado con tonos rojos, azulea fuertemente al corte. Olor a carroña en maduros. Bosques calcáreos. Tóxico incluso cocinado.' },
+    { name: 'Suillellus luridus', risk: 'tóxico en crudo', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Poros anaranjados-rojizos, retículo rojo en el pie, azulea muy rápido al corte. Comestible solo con cocción prolongada; tóxico en crudo.' },
+    { name: 'Neoboletus erythropus', risk: 'tóxico en crudo', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Poros rojo sangre desde joven, azulea instantáneamente al corte. Sin retículo en el pie. Tóxico crudo; comestible con cocción prolongada.' },
   ],
   Amanitaceae: [
-    { name: 'Amanita caesarea', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'Láminas y pie amarillos, volva blanca sacciforme. Excelente comestible.' },
-    { name: 'Amanita phalloides', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Sombrero verdoso, volva blanca sacciforme. Responsable del 90% de muertes micológicas. NUNCA consumir.' },
-    { name: 'Amanita verna', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Completamente blanca, volva sacciforme. Contiene las mismas amatoxinas. Igualmente mortal.' },
-    { name: 'Amanita muscaria', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero rojo con verrugas blancas. Contiene muscimol. No confundir con A. caesarea.' },
-    { name: 'Amanita pantherina', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero marrón con verrugas blancas, más tóxica que A. muscaria.' },
+    { name: 'Amanita caesarea', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Sombrero rojo-anaranjado brillante, láminas y pie amarillos, volva blanca sacciforme. Excelente comestible. En estado de huevo puede confundirse con A. phalloides joven; distinguir siempre por el color amarillo de las láminas.' },
+    { name: 'Amanita rubescens', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'La carne enrojece al corte o en zonas comidas por insectos (carácter diagnóstico). Comestible solo cocinada; cruda es tóxica. Confundible con A. pantherina que no enrojece.' },
+    { name: 'Amanita phalloides', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Sombrero verdoso-amarillento, volva blanca sacciforme, anillo blanco persistente. Responsable del 90% de muertes por intoxicación micológica. NUNCA consumir Amanitas sin certeza absoluta.' },
+    { name: 'Amanita verna', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Completamente blanca, volva sacciforme, anillo membranoso. Confundible con champiñones blancos. Contiene las mismas amatoxinas que A. phalloides; igualmente mortal.' },
+    { name: 'Amanita virosa', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Blanca, pie escamoso-floculoso, sombrero cónico-umbonado. Propia de abetales y hayedos de montaña. Letal; no confundir con A. ovoidea ni A. caesarea joven.' },
+    { name: 'Amanita muscaria', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Sombrero rojo con verrugas blancas, anillo y volva fragmentada blancos. Contiene muscimol. No confundir con A. caesarea (láminas amarillas vs. blancas en muscaria).' },
+    { name: 'Amanita pantherina', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Sombrero marrón con verrugas blancas, anillo frágil, volva con reborde. Más tóxica que A. muscaria. Distinguible de A. rubescens porque la carne no enrojece.' },
   ],
   Cantharellaceae: [
-    { name: 'Cantharellus cibarius', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'Pliegues (no láminas) amarillo yema, olor afrutado. Puede confundirse con el falso rebozuelo.' },
-    { name: 'Omphalotus olearius', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Láminas verdaderas, anaranjado intenso, crece en base de árboles. Puede ser bioluminiscente.' },
-    { name: 'Hygrophoropsis aurantiaca', risk: 'sospechoso', icon: 'ℹ️', borderColor: 'border-blue-500/30', nameColor: 'text-blue-400', diff: 'Falso rebozuelo: láminas densas y ramificadas, color más intenso. Comestibilidad dudosa.' },
+    { name: 'Cantharellus cibarius', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Rebozuelo clásico: pliegues (no láminas) amarillo yema decurrentes, pie macizo, olor afrutado. Puede confundirse con el falso rebozuelo o con Omphalotus olearius.' },
+    { name: 'Cantharellus pallens', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Muy similar a C. cibarius pero de tonos más pálidos (amarillo-crema a blancuzco). Mismo valor culinario. Frecuente en hayedos y robledales del norte.' },
+    { name: 'Omphalotus olearius', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Láminas verdaderas (no pliegues), anaranjado intenso, crece en macollo en base de árboles. Puede ser bioluminiscente. Causa intoxicación gastrointestinal grave.' },
+    { name: 'Hygrophoropsis aurantiaca', risk: 'sospechoso', icon: 'ℹ️', borderColor: 'border-blue-500/30', nameColor: 'text-blue-400',
+      diff: 'Falso rebozuelo: láminas verdaderas muy densas y ramificadas, color anaranjado más intenso, carne blanda. Comestibilidad dudosa; mejor evitar.' },
   ],
   Russulaceae: [
-    { name: 'Lactarius deliciosus', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'Látex anaranjado no picante. Confundible con L. torminosus (látex blanco muy picante).' },
-    { name: 'Russula emetica', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero rojo brillante, carne muy picante. Las Russulas comestibles tienen sabor suave.' },
-    { name: 'Lactarius torminosus', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Látex blanco muy picante, margen peloso enrollado. Causa intoxicación gastrointestinal severa.' },
+    { name: 'Lactarius deliciosus', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Látex anaranjado no picante, sombrero con zonas concéntricas anaranjadas. Excelente comestible. Confundible con L. torminosus (látex blanco muy picante) u otras especies de látex amargo.' },
+    { name: 'Russula cyanoxantha', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Sombrero violáceo-verde-grisáceo variable, láminas blandas y flexibles (untuosas al tacto), sabor suave. Una de las russulas más fáciles de identificar y de las mejores.' },
+    { name: 'Russula virescens', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Sombrero verde-grisáceo con cutícula agrietada en escuámulas, sabor suave. Excelente. Clave: cutícula agrietada y láminas blancas la diferencian de russulas verdes tóxicas.' },
+    { name: 'Russula emetica', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Sombrero rojo brillante, carne muy picante al paladar. Las Russulas comestibles tienen sabor suave. Probar siempre tocando la lengua con un fragmento de carne cruda.' },
+    { name: 'Lactarius torminosus', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Látex blanco y muy picante, margen fuertemente enrollado con pelillos. Causa intoxicación gastrointestinal severa. Diferenciable de L. deliciosus por el color del látex (blanco vs. anaranjado).' },
   ],
   Morchellaceae: [
-    { name: 'Morchella esculenta', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'Sombrero alveolado, interior hueco, pie blanco. Siempre cocinar.' },
-    { name: 'Gyromitra esculenta', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Sombrero cerebriforme (no alveolado). Contiene giromitrinas hepatotóxicas. Mortal incluso cocinado.' },
-    { name: 'Helvella lacunosa', risk: 'precaución', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero lobulado gris-negro. Siempre cocinar; cruda puede provocar hemólisis.' },
+    { name: 'Morchella esculenta', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Colmenilla clásica: sombrero claramente alveolado, interior completamente hueco, pie blanco. Excelente comestible pero siempre cocinar. Las crestas más pálidas que las fosas la distinguen.' },
+    { name: 'Gyromitra esculenta', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Sombrero cerebriforme (no alveolado), marrón rojizo, contiene giromitrinas hepatotóxicas. Mortal incluso tras cocción. La confusión con Morchella es frecuente entre principiantes.' },
+    { name: 'Helvella lacunosa', risk: 'precaución', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Sombrero lobulado gris-negro (no alveolado). Contiene compuestos similares a Gyromitra. Siempre cocinar; cruda puede provocar hemólisis.' },
+    { name: 'Verpa bohemica', risk: 'precaución', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Sombrero acampanado unido al pie solo en el ápice (en Morchella fusionado en toda su longitud). Tóxica en grandes cantidades o cocinada inadecuadamente.' },
   ],
   Cortinariaceae: [
-    { name: 'Cortinarius orellanus', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Sombrero ocre-anaranjado, orellanina nefrotóxica con síntomas a 2–3 semanas. Nunca consumir Cortinarius sin certeza.' },
-    { name: 'Cortinarius rubellus', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Sombrero cónico canela-rojizo. Contiene orellanina. Abetales y hayedos húmedos.' },
+    { name: 'Cortinarius caperatus', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'La única Cortinarius comestible habitual. Sombrero ocráceo-crema arrugado, láminas violáceas en joven, anillo membranoso persistente. Solo recoger con identificación segura.' },
+    { name: 'Cortinarius violaceus', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'Todo violáceo oscuro, superficie del sombrero fibrillosa, esporada herrumbrosa. Comestible de calidad mediocre. Confundible con Cortinarius tóxicos; verificar siempre la esporada.' },
+    { name: 'Cortinarius orellanus', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Sombrero ocre-anaranjado, láminas herrumbrosas, cortina aracnoide en jóvenes. Contiene orellanina, nefrotóxico con síntomas retardados 2–3 semanas. Nunca consumir Cortinarius sin certeza absoluta.' },
+    { name: 'Cortinarius rubellus', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Sombrero cónico-umbonado canela-rojizo, cortina aracnoide. Contiene orellanina. Propia de abetales y hayedos húmedos.' },
   ],
   Tricholomataceae: [
-    { name: 'Clitocybe dealbata', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Blanca-grisácea en prados. Contiene muscarina. Causa el síndrome muscarínico.' },
-    { name: 'Clitocybe nebularis', risk: 'precaución', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero gris con bloom harinoso, olor fuerte. Tóxica para muchas personas.' },
+    { name: 'Tricholoma portentosum', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'Sombrero gris plomizo con umbo oscuro, láminas blancas-amarillentas, olor harinoso suave. Buen comestible otoñal e invernal. Confundible con Tricholoma tóxicas grises.' },
+    { name: 'Tricholoma equestre', risk: 'precaución', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Sombrero amarillo-verdoso, láminas amarillas, olor harinoso. Históricamente consumido; asociado a rabdomiólisis en consumo repetido. Actualmente desaconsejado.' },
+    { name: 'Clitocybe nebularis', risk: 'precaución', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Sombrero gris-blanquecino con bloom harinoso, láminas decurrentes, olor fuerte harinoso. Tóxica para muchas personas por intolerancia individual.' },
+    { name: 'Clitocybe dealbata', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Blanca-grisácea, pequeña, en praderas y bordes de bosque. Contiene muscarina en altas concentraciones. Causa el síndrome muscarínico.' },
   ],
   Pleurotaceae: [
-    { name: 'Omphalotus olearius', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Anaranjado vivo, láminas verdaderas, crece en base de árboles. La confusión con Pleurotus es documentada.' },
+    { name: 'Pleurotus ostreatus', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Gírgola clásica: sombrero en forma de ostra gris-marrón, láminas blancas decurrentes, en madera caducifolia. Excelente comestible y cultivado. La más importante del género.' },
+    { name: 'Omphalotus olearius', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Anaranjado vivo, láminas verdaderas (no decurrentes suaves), crece en base de árboles o raíces. La confusión con Pleurotus es rara pero documentada en ejemplares decolorados.' },
+    { name: 'Crepidotus sp.', risk: 'no comestible', icon: 'ℹ️', borderColor: 'border-blue-500/30', nameColor: 'text-blue-400',
+      diff: 'Pequeño, sin pie, esporada marrón (vs. blanca-liláceas en Pleurotus). Sin valor culinario pero inofensivo.' },
+  ],
+  Strophariaceae: [
+    { name: 'Kuehneromyces mutabilis', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'Sombrero bicolor (centro ocre, margen más oscuro al mojarse), escamas en el pie bajo el anillo. Comestible apreciado. La confusión crítica es con Galerina marginata, que crece en el mismo sustrato.' },
+    { name: 'Armillaria mellea', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'Sombrero ocre-mieloso con escámulas oscuras, anillo persistente, en macollo en madera. Comestible cocinado. Confundible con Galerina marginata (mortal) o Hypholoma fasciculare (tóxico).' },
+    { name: 'Galerina marginata', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Marrón-ocrácea, crece en madera. Contiene amatoxinas idénticas a Amanita phalloides. Confundible con Kuehneromyces o pequeñas Armillaria. Nunca recoger setas pequeñas en madera sin certeza.' },
+    { name: 'Hypholoma fasciculare', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Amarillo-verdoso intenso en láminas y sombrero, sabor muy amargo, en densas matas en madera. Causa intoxicaciones gastrointestinales graves.' },
+  ],
+  Marasmiaceae: [
+    { name: 'Marasmius oreades', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'Senderuela: pie cartilaginoso flexible que no se rompe, sin olor a almendras amargas. Comestible muy apreciada. La confusión crítica es con Clitocybe dealbata (tóxica) en los mismos prados.' },
+    { name: 'Clitocybe dealbata', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Blanca-rosada, en los mismos prados que la senderuela. Contiene muscarina. Láminas decurrentes y pie no cartilaginoso la diferencian de Marasmius. Causa el síndrome muscarínico.' },
+  ],
+  Hymenogastraceae: [
+    { name: 'Psilocybe semilanceata', risk: 'psicoactivo', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Pequeña, con umbo pronunciado, en prados con estiércol. Contiene psilocibina. Confundible con Galerina marginata (mortal) en hábitats similares.' },
+    { name: 'Galerina marginata', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Morfológicamente muy similar, crece en madera. Contiene amatoxinas. La confusión con Psilocybe o Conocybe es una de las principales causas de intoxicación mortal.' },
   ],
   Agaricaceae: [
-    { name: 'Agaricus xanthodermus', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Amarillea vivamente en la base del pie al corte, olor a fenol. Carácter diferencial clave.' },
-    { name: 'Amanita phalloides', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Joven en "huevo": puede confundirse con champiñones jóvenes. Siempre cortar por la mitad.' },
+    { name: 'Agaricus campestris', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Champiñón silvestre: láminas rosadas en joven→chocolate, olor agradable, amarilleo leve y rosado al corte. Distinguible de A. xanthodermus por el olor (no a fenol) y el amarilleo moderado.' },
+    { name: 'Macrolepiota procera', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400',
+      diff: 'Parasol: sombrero grande con escuámulas pardas, pie largo con anillo doble deslizante, sin volva. Excelente. No confundir con Lepiota cristata (tóxica, más pequeña) ni con Amanita en huevo.' },
+    { name: 'Agaricus xanthodermus', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Amarillea vivamente en la base del pie al corte, olor desagradable a fenol. El amarilleo intenso en la base es el carácter diferencial clave respecto a champiñones comestibles.' },
+    { name: 'Amanita phalloides', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Joven en "huevo": puede confundirse con champiñones jóvenes. Cortar siempre por la mitad: la Amanita muestra la silueta del sombrero envuelta en volva.' },
+    { name: 'Lepiota cristata', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Lepiotácea pequeña (4–8 cm), escuámulas concéntricas rojo-pardas, olor desagradable a caucho. Tóxica; confundible con champiñones jóvenes o pequeñas Macrolepiota.' },
+  ],
+  Physalacriaceae: [
+    { name: 'Armillaria mellea', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'Seta de miel: sombrero ocre con escámulas oscuras, anillo membranoso, esporada blanca. Comestible cocinada (cruda tóxica). Clave: anillo bien definido y esporada blanca.' },
+    { name: 'Galerina marginata', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'Crece también en madera en grupos. Armillaria tiene anillo bien definido y esporada blanca; Galerina tiene esporada marrón-oxidada y anillo fino. Confusión potencialmente mortal.' },
+    { name: 'Hypholoma fasciculare', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400',
+      diff: 'Amarillo-verdoso en láminas y sombrero, sabor muy amargo, en la misma madera. Sin anillo. Tóxico aunque raramente mortal.' },
   ],
 }
 
 export const CONFUSION_GENERICA = [
   { name: 'Especies del mismo género', risk: 'variable', icon: 'ℹ️', borderColor: 'border-blue-500/30', nameColor: 'text-blue-400',
-    diff: 'Dentro del mismo género pueden existir especies tóxicas morfológicamente similares. Verificar siempre esporada, olor y hábitat.' },
+    diff: 'Dentro del mismo género pueden existir especies tóxicas morfológicamente muy similares. Verificar siempre esporada, olor, reacciones químicas y hábitat antes de consumir.' },
 ]
 
 // =====================================================
@@ -355,26 +442,25 @@ export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
     <div className="space-y-3">
       {confusiones.map((c, i) => {
         const inApp = allSpecies.find(s => s.scientificName === c.name)
+        const Wrapper = inApp && onViewSpecies ? 'button' : 'div'
         return (
-          <div key={i} className={`bg-white/[0.03] rounded-xl p-4 border ${c.borderColor}`}>
+          <Wrapper key={i}
+            onClick={inApp && onViewSpecies ? () => onViewSpecies(inApp) : undefined}
+            className={`w-full text-left bg-white/[0.03] rounded-xl p-4 border ${c.borderColor} ${inApp && onViewSpecies ? 'cursor-pointer hover:bg-white/[0.07] hover-lift transition-all' : ''}`}>
             <div className="flex items-start gap-3">
               <span className="text-2xl shrink-0">{c.icon}</span>
               <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  {inApp && onViewSpecies ? (
-                    <button onClick={() => onViewSpecies(inApp)}
-                      className={`font-medium text-sm ${c.nameColor} underline underline-offset-2 decoration-dotted hover:decoration-solid transition-all text-left`}>
-                      {c.name}
-                    </button>
-                  ) : (
-                    <span className={`font-medium text-sm ${c.nameColor}`}>{c.name}</span>
-                  )}
+                  <span className={`font-medium text-sm ${c.nameColor}${inApp && onViewSpecies ? ' underline underline-offset-2 decoration-dotted' : ''}`}>{c.name}</span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-[#f4ebe1]/50">{c.risk}</span>
+                  {inApp && onViewSpecies && (
+                    <span className="text-[10px] text-[#f4ebe1]/30 ml-auto">Ver ficha →</span>
+                  )}
                 </div>
                 <p className="text-[#f4ebe1]/60 text-sm leading-relaxed">{c.diff}</p>
               </div>
             </div>
-          </div>
+          </Wrapper>
         )
       })}
       <p className="text-[#f4ebe1]/30 text-xs text-center pt-1">

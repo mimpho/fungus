@@ -5,29 +5,43 @@
 /* ── Google Fonts already loaded via index.html ── */
 
 /* ── Base ──────────────────────────────────────── */
+html { font-size: 18px; scroll-behavior: smooth; }
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
   font-family: 'DM Sans', sans-serif;
-  background: linear-gradient(135deg, #0f1f18 0%, #1a2e22 100%);
+  background: #30372a;
   min-height: 100vh;
   color: #f4ebe1;
 }
 
+body::after {
+  content: '';
+  display: block;
+  position: fixed;
+  z-index: -1;
+  top: 0; left: 0;
+  height: 100vh; width: 100vw;
+  background: linear-gradient(135deg, rgb(43, 53, 41) 0%, rgb(61, 69, 54) 50%, rgb(67, 66, 28) 100%);
+}
+
+/* ── Scrollbar ──────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(139, 111, 71, 0.4); border-radius: 3px; }
+
 /* ── Glass morphism ─────────────────────────────── */
 .glass {
   background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .glass-warm {
-  background: rgba(196, 160, 107, 0.06);
+  background: rgba(139, 111, 71, 0.08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(196, 160, 107, 0.12);
 }
 
 /* ── Grain texture ──────────────────────────────── */
@@ -66,6 +80,19 @@ body {
 .anim-up    { animation: animUp    0.3s ease both; }
 .anim-right { animation: animRight 0.3s ease both; }
 .anim-scale { animation: animScale 0.25s ease both; }
+
+/* ── Progress bar ───────────────────────────────── */
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
 
 /* ── Modal ──────────────────────────────────────── */
 .modal-outer { padding: 0; }

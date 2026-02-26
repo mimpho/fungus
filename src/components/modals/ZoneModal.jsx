@@ -91,7 +91,14 @@ export function ZoneModal({ zone, onClose }) {
               <h2 className="font-display text-3xl font-semibold text-[#f4ebe1] drop-shadow-lg">{zone.name}</h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-lg bg-[#4a7c59]/30 text-[#8fcc9a] text-xs font-medium">{zone.province}</span>
-                <span className="text-[#f4ebe1]/60 text-xs">{zone.forestType} · {zone.elevation}m</span>
+                <span className="flex items-center gap-1 text-[#f4ebe1]/60 text-xs">
+                  <img src={`/assets/images/icons/forest-type-${zone.forestType}.png`} alt={zone.forestType} height="14" width="14" />
+                  {zone.forestType}
+                </span>
+                <span className="flex items-center gap-1 text-[#f4ebe1]/60 text-xs">
+                  <img src="/assets/images/icons/mountain.png" alt="elevation" height="14" width="14" />
+                  {zone.elevation}m
+                </span>
               </div>
             </div>
             <div className="absolute top-4 right-4 flex gap-2">
@@ -223,8 +230,16 @@ export function ZoneModal({ zone, onClose }) {
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.ubicacion}</h3>
             <LeafletMap singleZone={zone} height="280px" title={zone.name} />
-            <div className="flex items-center gap-2 mt-2 text-[#f4ebe1]/40 text-xs">
-              {IC.pin} {zone.lat?.toFixed(4)}, {zone.lng?.toFixed(4)} · {zone.elevation}m s.n.m.
+            <div className="flex items-center gap-2 mt-2 text-[#f4ebe1]/40 text-xs flex-wrap">
+              <span className="flex items-center gap-1">{IC.pin} {zone.lat?.toFixed(4)}, {zone.lng?.toFixed(4)}</span>
+              <span className="flex items-center gap-1">
+                <img src="/assets/images/icons/mountain.png" alt="elevation" height="14" width="14" />
+                {zone.elevation}m s.n.m.
+              </span>
+              <span className="flex items-center gap-1">
+                <img src={`/assets/images/icons/forest-type-${zone.forestType}.png`} alt={zone.forestType} height="14" width="14" />
+                {zone.forestType}
+              </span>
             </div>
           </section>
         </div>

@@ -4,15 +4,15 @@ import { useApp } from '../contexts/AppContext'
 import { IC } from '../lib/helpers'
 
 export default function Layout() {
-  const { followedZones } = useApp()
+  const { followedZones, t } = useApp()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = [
-    { to: '/',          label: 'Inicio',    icon: IC.chart,    end: true },
-    { to: '/zonas',     label: 'Zonas',     icon: IC.pin,      badge: followedZones.length },
-    { to: '/especies',  label: 'Especies',  icon: IC.mushroom },
-    { to: '/micologia', label: 'Micología', icon: IC.book },
-    { to: '/perfil',    label: 'Perfil',    icon: IC.user },
+    { to: '/',          label: t.dashboard,  icon: IC.chart,    end: true },
+    { to: '/zonas',     label: t.zonas,      icon: IC.pin,      badge: followedZones.length },
+    { to: '/especies',  label: t.especies,   icon: IC.mushroom },
+    { to: '/micologia', label: t.micologia,  icon: IC.book },
+    { to: '/perfil',    label: t.profile,    icon: IC.user },
   ]
 
   return (

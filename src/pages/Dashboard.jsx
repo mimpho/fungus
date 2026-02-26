@@ -1,16 +1,19 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { mockZones } from '../data/zones'
 import { mockSpecies } from '../data/species'
 import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor, fakeConditions } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
+import { LeafletMap } from '../components/map/LeafletMap'
 
 export default function Dashboard() {
   const { t, followedZones, toggleFollow, favoriteSpecies, setSelectedZone, setSelectedSpecies } = useApp()
   const navigate = useNavigate()
   const currentMonth = new Date().getMonth() + 1
   const todayDate = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+
+  const [mapMode, setMapMode] = useState('markers')
 
   const conditionsMap = useMemo(() => {
     const m = {}
@@ -167,6 +170,37 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        {/* Mapa */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[#d9cda1] text-sm font-medium uppercase tracking-wider">🗺️ Dónde recolectar ahora</p>
+          </div>
+          <div className="rounded-2xl overflow-hidden">
+            <LeafletMap
+              zonas={mockZones}
+              onZoneClick={setSelectedZone}
+              height="420px"
+              mode={mapMode}
+              onModeChange={setMapMode}
+              title="Zonas micológicas" />
+          </div>
+          {mapMode === 'heatmap' && (
+            <div className="mt-3 flex items-center justify-center gap-6 text-xs text-[#f4ebe1]/60">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm" style={{ background: '#d97706' }} />
+                <span>Bueno</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm" style={{ background: '#7a9e3a' }} />
+                <span>Muy bueno</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm" style={{ background: '#2d6640' }} />
+                <span>Excelente</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ─── ESPECIES ─── */}
