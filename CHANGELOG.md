@@ -7,6 +7,36 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [3.0.0-fase1] - 2026-02-26 — Migración a Vite + React Router (Fase 1: Fundación)
+
+### Contexto
+Inicio de la migración de la arquitectura standalone (Babel en browser) a una app React moderna con bundler y routing real. El standalone permanece en `standalone/` como archivo funcional.
+
+### Añadido
+- **Vite 6** como bundler — reemplaza el CRA de `frontend/` (eliminado) y el transpilado Babel en browser
+- **React Router v6** — routing basado en URL, reemplaza el `view` state manual
+- **Tailwind CSS 3** instalado vía npm (postcss) — reemplaza el CDN
+- **React Leaflet 4** instalado vía npm — reemplaza el CDN de Leaflet
+- Estructura de directorios `src/` (pages/, components/, lib/, data/, articles/)
+- Shell de rutas con 5 páginas placeholder: `/`, `/zonas`, `/especies`, `/micologia`, `/perfil`
+- Rutas anidadas para deep linking: `/zonas/:id`, `/especies/:id`, `/micologia/:slug`
+- `ScrollToTop` automático en cada cambio de ruta
+- `vercel.json` con rewrites SPA para que React Router funcione en producción
+- `public/assets/` con todos los recursos de imágenes (2.200+ ficheros)
+- Design system en `tailwind.config.js` (colores, tipografías)
+- `styles.css` con clases `.glass`, `.hover-lift`, `.anim-*`, `.modal-*` portadas del standalone
+
+### Eliminado
+- `frontend/` (CRA experimental, nunca en producción)
+
+### Pendiente (próximas fases)
+- Fase 2: Migración de datos y helpers (data/*.js → módulos ES, lib/helpers.jsx)
+- Fase 3: Páginas (Dashboard, Profile, Species, Zones)
+- Fase 4: Modales + deep links (/zonas/:id, /especies/:id)
+- Fase 5: Micología, ArticleModal, Leaflet map
+
+---
+
 ## [2.8.0] - 2026-02-18
 
 ### Añadido — Expansión masiva de datos

@@ -18,3 +18,7 @@
 venv/
 node_modules/
 .sass-cache/
+
+# Vite build output
+dist/
+.vite/
