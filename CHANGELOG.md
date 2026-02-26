@@ -7,6 +7,28 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [3.0.0-fase2] - 2026-02-26 — Migración a Vite + React Router (Fase 2: Datos y Helpers)
+
+### Contexto
+Segunda fase de la migración: los datos y las utilidades compartidas ya son módulos ES importables, desacoplados del scope global del standalone.
+
+### Añadido
+- `src/lib/constants.js` — fuente única de verdad para design tokens: `COLORS`, `MODAL`, `FOREST_COLORS`, `MONTHS`
+- `src/lib/helpers.jsx` — helpers portados del standalone como named exports: `IC` (iconos SVG), `getEdibilityColor`, `EdibilityTag`, `SpeciesImg` (con fallback Wikipedia), `SpeciesCard`, `getScoreColor`, `fakeConditions`
+- `src/data/zones.js` — 28 zonas como `export const mockZones`
+- `src/data/species.js` — 27 especies (5218 líneas) como `export const mockSpecies`
+- `src/data/families.js` — 8 familias como `export const mockFamilies`
+- `src/data/i18n.js` — traducciones es/ca/en como `export const i18n`
+- `src/data/articles.js` — artículos de micología como `export const mockArticles`
+- `src/data/opportunities.js` — oportunidades mock como `export const mockOpportunities`
+
+### Pendiente (próximas fases)
+- Fase 3: Páginas con contenido real (Dashboard, Profile, Species, Zones)
+- Fase 4: Modales + deep links (`/zonas/:id`, `/especies/:id`)
+- Fase 5: Micología, ArticleModal, mapa Leaflet
+
+---
+
 ## [3.0.0-fase1] - 2026-02-26 — Migración a Vite + React Router (Fase 1: Fundación)
 
 ### Contexto
