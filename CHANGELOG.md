@@ -7,6 +7,30 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [3.0.0-fase3] - 2026-02-26 — Migración a Vite + React Router (Fase 3: Páginas y Estado Global)
+
+### Contexto
+Tercera fase: las cuatro páginas principales tienen contenido real y el estado global está centralizado en React Context. La app Vite ya es navegable con datos reales.
+
+### Añadido
+- `src/contexts/AppContext.jsx` — estado global con React Context: `followedZones`, `favoriteSpecies`, `lang`, `profile`, modal stack (`selectedZone`, `selectedSpecies`, `selectedFamily`, `lightbox`). Persiste en `localStorage` con clave `fungus_v3` (compatible con el standalone)
+- `src/components/ui/FilterPanel.jsx` — panel de filtros responsive: inline colapsable en desktop, bottom-sheet con drag-to-close en mobile
+- `src/components/ui/SearchFilterBar.jsx` — barra de búsqueda con botón Filtrar integrado (variants: `full` / `split`)
+- `src/components/ui/Tabs.jsx` — tabs reutilizables (variants: `default` / `compact`, sizes: `sm/md/lg`)
+- `src/components/ui/ActiveFilterChip.jsx` — chip de filtro activo con botón de eliminar
+- `src/components/ui/ZoneCard.jsx` — card de zona con condiciones mock, barra de score, icono de bosque
+- `src/pages/Dashboard.jsx` — portado completo: stat cards, top zonas, zonas seguidas, especies en temporada, favoritas
+- `src/pages/Species.jsx` — portado completo: búsqueda, filtros (edibilidad, familia, orden), grid paginado (24/pág), paginación con elipsis
+- `src/pages/Zones.jsx` — portado completo: tabs mapa/listado, filtros (seguidas, lluvia, bosque, CCAA, orden), cards con condiciones
+- `src/pages/Profile.jsx` — portado completo: notificaciones, datos personales, selector de idioma, stats
+- `src/components/Layout.jsx` — añadida navegación mobile bottom bar con emojis + active state
+
+### Pendiente (próximas fases)
+- Fase 4: Modales + deep links (`/zonas/:id`, `/especies/:id`)
+- Fase 5: Mapa Leaflet interactivo, Micología + ArticleModal
+
+---
+
 ## [3.0.0-fase2] - 2026-02-26 — Migración a Vite + React Router (Fase 2: Datos y Helpers)
 
 ### Contexto
