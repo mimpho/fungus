@@ -7,6 +7,7 @@ import Species    from './pages/Species'
 import Micologia  from './pages/Micologia'
 import Profile    from './pages/Profile'
 import Layout     from './components/Layout'
+import { ModalRenderer } from './components/modals/ModalRenderer'
 
 // Scroll to top on every route change
 function ScrollToTop() {
@@ -19,6 +20,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <ModalRenderer />
       <Routes>
         <Route element={<Layout />}>
           <Route index                  element={<Dashboard />} />

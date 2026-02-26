@@ -265,3 +265,121 @@ export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full'
     </div>
   );
 }
+
+// =====================================================
+// CONFUSIONES_POR_FAMILIA — datos de especies confundibles
+// =====================================================
+export const CONFUSIONES_POR_FAMILIA = {
+  Boletaceae: [
+    { name: 'Boletus edulis', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'El cep noble: poros blancos→amarillo-verdosos, no azulea al corte, olor agradable fúngico.' },
+    { name: 'Rubroboletus satanas', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Poros rojo intenso, pie reticulado con tonos rojos, azulea fuertemente al corte. Tóxico incluso cocinado.' },
+    { name: 'Suillellus luridus', risk: 'tóxico en crudo', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Poros anaranjados-rojizos, azulea muy rápido. Comestible solo con cocción prolongada.' },
+    { name: 'Neoboletus erythropus', risk: 'tóxico en crudo', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Poros rojo sangre desde joven, azulea instantáneamente. Tóxico crudo.' },
+  ],
+  Amanitaceae: [
+    { name: 'Amanita caesarea', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'Láminas y pie amarillos, volva blanca sacciforme. Excelente comestible.' },
+    { name: 'Amanita phalloides', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Sombrero verdoso, volva blanca sacciforme. Responsable del 90% de muertes micológicas. NUNCA consumir.' },
+    { name: 'Amanita verna', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Completamente blanca, volva sacciforme. Contiene las mismas amatoxinas. Igualmente mortal.' },
+    { name: 'Amanita muscaria', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero rojo con verrugas blancas. Contiene muscimol. No confundir con A. caesarea.' },
+    { name: 'Amanita pantherina', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero marrón con verrugas blancas, más tóxica que A. muscaria.' },
+  ],
+  Cantharellaceae: [
+    { name: 'Cantharellus cibarius', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'Pliegues (no láminas) amarillo yema, olor afrutado. Puede confundirse con el falso rebozuelo.' },
+    { name: 'Omphalotus olearius', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Láminas verdaderas, anaranjado intenso, crece en base de árboles. Puede ser bioluminiscente.' },
+    { name: 'Hygrophoropsis aurantiaca', risk: 'sospechoso', icon: 'ℹ️', borderColor: 'border-blue-500/30', nameColor: 'text-blue-400', diff: 'Falso rebozuelo: láminas densas y ramificadas, color más intenso. Comestibilidad dudosa.' },
+  ],
+  Russulaceae: [
+    { name: 'Lactarius deliciosus', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'Látex anaranjado no picante. Confundible con L. torminosus (látex blanco muy picante).' },
+    { name: 'Russula emetica', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero rojo brillante, carne muy picante. Las Russulas comestibles tienen sabor suave.' },
+    { name: 'Lactarius torminosus', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Látex blanco muy picante, margen peloso enrollado. Causa intoxicación gastrointestinal severa.' },
+  ],
+  Morchellaceae: [
+    { name: 'Morchella esculenta', risk: 'excelente', icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400', diff: 'Sombrero alveolado, interior hueco, pie blanco. Siempre cocinar.' },
+    { name: 'Gyromitra esculenta', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Sombrero cerebriforme (no alveolado). Contiene giromitrinas hepatotóxicas. Mortal incluso cocinado.' },
+    { name: 'Helvella lacunosa', risk: 'precaución', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero lobulado gris-negro. Siempre cocinar; cruda puede provocar hemólisis.' },
+  ],
+  Cortinariaceae: [
+    { name: 'Cortinarius orellanus', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Sombrero ocre-anaranjado, orellanina nefrotóxica con síntomas a 2–3 semanas. Nunca consumir Cortinarius sin certeza.' },
+    { name: 'Cortinarius rubellus', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Sombrero cónico canela-rojizo. Contiene orellanina. Abetales y hayedos húmedos.' },
+  ],
+  Tricholomataceae: [
+    { name: 'Clitocybe dealbata', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Blanca-grisácea en prados. Contiene muscarina. Causa el síndrome muscarínico.' },
+    { name: 'Clitocybe nebularis', risk: 'precaución', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Sombrero gris con bloom harinoso, olor fuerte. Tóxica para muchas personas.' },
+  ],
+  Pleurotaceae: [
+    { name: 'Omphalotus olearius', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Anaranjado vivo, láminas verdaderas, crece en base de árboles. La confusión con Pleurotus es documentada.' },
+  ],
+  Agaricaceae: [
+    { name: 'Agaricus xanthodermus', risk: 'tóxico', icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400', diff: 'Amarillea vivamente en la base del pie al corte, olor a fenol. Carácter diferencial clave.' },
+    { name: 'Amanita phalloides', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400', diff: 'Joven en "huevo": puede confundirse con champiñones jóvenes. Siempre cortar por la mitad.' },
+  ],
+}
+
+export const CONFUSION_GENERICA = [
+  { name: 'Especies del mismo género', risk: 'variable', icon: 'ℹ️', borderColor: 'border-blue-500/30', nameColor: 'text-blue-400',
+    diff: 'Dentro del mismo género pueden existir especies tóxicas morfológicamente similares. Verificar siempre esporada, olor y hábitat.' },
+]
+
+// =====================================================
+// TaxonomyBlock — acordeón de sinónimos
+// =====================================================
+export function TaxonomyBlock({ species }) {
+  const [open, setOpen] = useState(false)
+  const syns = species.synonyms || []
+  if (syns.length === 0) return null
+  return (
+    <div className="mt-5">
+      <button onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-sm text-[#d9cda1]/60 hover:text-[#c4a06b] transition-colors">
+        <svg className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        🔬 {open ? 'Ocultar taxonomía' : `Ver taxonomía (${syns.length} sinónimo${syns.length > 1 ? 's' : ''})`}
+      </button>
+      {open && (
+        <div className="mt-2 ml-1 pl-3 border-l-2 border-[#887b4b]/20 space-y-1">
+          {syns.map((s, i) => <p key={i} className="text-sm text-[#f4ebe1]/45 italic">{s}</p>)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =====================================================
+// ConfusionesBlock — lista de especies confundibles
+// =====================================================
+export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
+  const todas = CONFUSIONES_POR_FAMILIA[species.family] || CONFUSION_GENERICA
+  const confusiones = todas.filter(c => c.name !== species.scientificName)
+  return (
+    <div className="space-y-3">
+      {confusiones.map((c, i) => {
+        const inApp = allSpecies.find(s => s.scientificName === c.name)
+        return (
+          <div key={i} className={`bg-white/[0.03] rounded-xl p-4 border ${c.borderColor}`}>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl shrink-0">{c.icon}</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  {inApp && onViewSpecies ? (
+                    <button onClick={() => onViewSpecies(inApp)}
+                      className={`font-medium text-sm ${c.nameColor} underline underline-offset-2 decoration-dotted hover:decoration-solid transition-all text-left`}>
+                      {c.name}
+                    </button>
+                  ) : (
+                    <span className={`font-medium text-sm ${c.nameColor}`}>{c.name}</span>
+                  )}
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-[#f4ebe1]/50">{c.risk}</span>
+                </div>
+                <p className="text-[#f4ebe1]/60 text-sm leading-relaxed">{c.diff}</p>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+      <p className="text-[#f4ebe1]/30 text-xs text-center pt-1">
+        ⚠️ Datos orientativos. Consulta siempre con un micólogo experto antes de consumir cualquier seta silvestre.
+      </p>
+    </div>
+  )
+}
