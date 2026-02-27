@@ -105,6 +105,15 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
 
+  // Actualizar heatmap cuando llegan los datos reales (conditionsMap se rellena async)
+  useEffect(() => {
+    if (mode !== 'heatmap' || !heatLayerRef.current || !leafletRef.current) return
+    const newPoints = buildHeatPoints(zonas, conditionsMap)
+    heatLayerRef.current.setLatLngs(newPoints)
+    heatLayerRef.current.redraw()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conditionsMap, mode])
+
   const h = fullscreen ? '100%' : height
   return (
     <div ref={mapRef}
