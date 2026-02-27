@@ -7,7 +7,7 @@ export function Tabs({ options, selected, onChange, size = 'md', variant = 'defa
     : 'flex bg-white/[0.04] rounded-xl p-1 gap-1'
   const btnBase     = 'rounded-lg font-medium transition-all'
   const btnActive   = variant === 'compact' ? 'bg-[#887b4b]/90 text-white shadow-md' : 'bg-[#887b4b] text-white shadow-sm'
-  const btnInactive = variant === 'compact' ? 'bg-white/[0.08] text-[#f4ebe1]/60 hover:text-[#f4ebe1] hover:bg-white/[0.12]' : 'text-[#f4ebe1]/60 hover:text-[#f4ebe1]'
+  const btnInactive = variant === 'compact' ? 'text-[#f4ebe1]/55 hover:text-[#f4ebe1] hover:bg-white/[0.08]' : 'text-[#f4ebe1]/60 hover:text-[#f4ebe1]'
 
   return (
     <div className={containerClasses}>

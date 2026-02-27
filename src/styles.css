@@ -146,3 +146,26 @@ body::after {
 /* ── Leaflet overrides ──────────────────────────── */
 .leaflet-container { background: #0f1f18 !important; }
 .leaflet-tile-pane { filter: brightness(0.85) saturate(0.8); }
+
+/* ── Leaflet popup: fungus theme ────────────────── */
+.fungus-popup .leaflet-popup-content-wrapper {
+  background: rgb(48, 55, 42);
+  border: 1px solid rgba(244, 235, 225, 0.10);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  padding: 0;
+  color: #f4ebe1;
+}
+.fungus-popup .leaflet-popup-tip {
+  background: rgb(48, 55, 42);
+}
+.fungus-popup .leaflet-popup-content {
+  margin: 13px 15px;
+}
+.fungus-popup .leaflet-popup-close-button {
+  display: none;
+}
+.fungus-popup .popup-zone-btn:hover {
+  background: rgba(139, 111, 71, 0.35) !important;
+  border-color: rgba(196, 160, 107, 0.5) !important;
+}

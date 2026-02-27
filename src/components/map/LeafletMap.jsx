@@ -109,10 +109,42 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
     const toRender = singleZone ? [singleZone] : (zonas || [])
     toRender.forEach(z => {
       const color  = FOREST_COLORS[z.forestType] || '#d9cda1'
+      const popupHtml = `
+        <div style="font-family:'DM Sans',sans-serif;color:#f4ebe1;min-width:175px;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:3px;">${z.name}</div>
+          <div style="color:#d9cda1;font-size:11px;margin-bottom:2px;text-transform:capitalize">${z.province} · ${z.forestType}</div>
+          <div style="color:#887b4b;font-size:11px;margin-bottom:10px;">⛰️ ${z.elevation}m alt.</div>
+          <button class="popup-zone-btn" style="font-size:11px;color:#c4a06b;cursor:pointer;background:rgba(139,111,71,0.18);border:1px solid rgba(139,111,71,0.28);padding:5px 10px;border-radius:8px;font-family:inherit;width:100%;text-align:center;transition:background 0.15s,border-color 0.15s;">Ver zona →</button>
+        </div>`
       const marker = L.marker([z.lat, z.lng], { icon: mushIcon(color, !!singleZone) })
-        .bindPopup(`<div style="font-family:DM Sans,sans-serif;color:#f4ebe1;min-width:160px"><strong style="font-size:14px">${z.name}</strong><br><span style="color:#d9cda1;font-size:12px">${z.province} · ${z.forestType}</span><br><span style="color:#aaa;font-size:11px">⛰️ ${z.elevation}m</span></div>`)
+        .bindPopup(popupHtml, { className: 'fungus-popup', closeButton: false, offset: [0, -6] })
       marker.addTo(group)
-      if (onZoneClick) marker.on('click', () => onZoneClick(z))
+
+      // Desktop: hover abre popup; click abre zona directo
+      marker.on('mouseover', () => marker.openPopup())
+      marker.on('mouseout', e => {
+        const dest    = e.originalEvent?.relatedTarget
+        const popupEl = marker.getPopup()?.getElement()
+        if (popupEl && dest && popupEl.contains(dest)) return  // mouse va al popup
+        marker.closePopup()
+      })
+      marker.on('click', () => {
+        if (window.matchMedia('(hover: hover)').matches) {
+          // puntero real (no táctil): abre zona directo
+          marker.closePopup()
+          if (onZoneClick) onZoneClick(z)
+        }
+        // táctil: Leaflet abre el popup por defecto
+      })
+
+      // Touch: botón "Ver zona" dentro del popup abre la zona
+      marker.on('popupopen', e => {
+        e.popup.getElement()?.querySelector('.popup-zone-btn')
+          ?.addEventListener('click', () => {
+            marker.closePopup()
+            if (onZoneClick) onZoneClick(z)
+          })
+      })
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zonas, mode])
