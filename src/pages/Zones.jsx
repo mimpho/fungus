@@ -40,8 +40,9 @@ export default function Zones() {
 
     const BOTTOM_MARGIN = 16
     const compute = () => {
+      const layoutHeaderH = document.querySelector('header')?.offsetHeight ?? LAYOUT_HEADER
       const aboveH  = aboveMapRef.current?.offsetHeight ?? 0
-      const available = window.innerHeight - LAYOUT_HEADER - MAIN_PADDING_T - aboveH - GAP - BOTTOM_MARGIN
+      const available = window.innerHeight - layoutHeaderH - MAIN_PADDING_T - aboveH - GAP - BOTTOM_MARGIN
       setMapHeight(`${Math.max(available, 280)}px`)
     }
 
@@ -168,6 +169,17 @@ export default function Zones() {
         </div>
       </FilterPanel>
 
+      {/* Chips filtros activos — visibles en mapa y listado */}
+      {(onlyFollowed || onlyRained || forestFilter || ccaaFilter || searchQuery) && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {onlyFollowed && <ActiveFilterChip emoji="⭐" label="Solo seguidas" color="yellow" onRemove={() => setOnlyFollowed(false)} />}
+          {onlyRained   && <ActiveFilterChip emoji="🌧️" label={`Lluvia ≥ ${RAIN_THRESHOLD}mm / 14d`} color="blue" onRemove={() => setOnlyRained(false)} />}
+          {forestFilter && <ActiveFilterChip emoji="🌲" label={forestFilter} color="emerald" onRemove={() => setForestFilter('')} />}
+          {ccaaFilter   && <ActiveFilterChip emoji="📍" label={ccaaFilter} color="amber" onRemove={() => setCcaaFilter('')} />}
+          {searchQuery  && <ActiveFilterChip emoji="🔍" label={`"${searchQuery}"`} color="amber" onRemove={() => setSearchQuery('')} />}
+        </div>
+      )}
+
       </div>{/* /aboveMapRef */}
 
       {/* Tab: Mapa */}
@@ -185,16 +197,6 @@ export default function Zones() {
       {/* Tab: Listado */}
       {tab === 'listado' && (
         <div className="space-y-4">
-          {/* Chips filtros activos */}
-          {(onlyFollowed || onlyRained || forestFilter || ccaaFilter) && (
-            <div className="flex flex-wrap gap-2">
-              {onlyFollowed && <ActiveFilterChip emoji="⭐" label="Solo seguidas" color="yellow" onRemove={() => setOnlyFollowed(false)} />}
-              {onlyRained   && <ActiveFilterChip emoji="🌧️" label={`Lluvia ≥ ${RAIN_THRESHOLD}mm / 14d`} color="blue" onRemove={() => setOnlyRained(false)} />}
-              {forestFilter && <ActiveFilterChip emoji="🌲" label={forestFilter} color="emerald" onRemove={() => setForestFilter('')} />}
-              {ccaaFilter   && <ActiveFilterChip emoji="📍" label={ccaaFilter} color="amber" onRemove={() => setCcaaFilter('')} />}
-            </div>
-          )}
-
           {filteredZones.length === 0 ? (
             <div className="glass rounded-2xl p-12 text-center">
               <div className="text-5xl mb-4">⭐</div>
