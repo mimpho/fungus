@@ -169,3 +169,7 @@ body::after {
   background: rgba(139, 111, 71, 0.35) !important;
   border-color: rgba(196, 160, 107, 0.5) !important;
 }
+/* Solo visible en táctil — en desktop se abre la zona al clicar la chincheta */
+@media (hover: hover) {
+  .fungus-popup .popup-zone-btn { display: none; }
+}

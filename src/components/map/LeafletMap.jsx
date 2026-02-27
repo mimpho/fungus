@@ -122,31 +122,33 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
         .bindPopup(popupHtml, { className: 'fungus-popup', closeButton: false, offset: [0, -6] })
       marker.addTo(group)
 
-      // Desktop: hover abre popup; click abre zona directo
-      marker.on('mouseover', () => marker.openPopup())
-      marker.on('mouseout', e => {
-        const dest    = e.originalEvent?.relatedTarget
-        const popupEl = marker.getPopup()?.getElement()
-        if (popupEl && dest && popupEl.contains(dest)) return  // mouse va al popup
-        marker.closePopup()
-      })
-      marker.on('click', () => {
-        if (window.matchMedia('(hover: hover)').matches) {
-          // puntero real (no táctil): abre zona directo
+      const isHover = window.matchMedia('(hover: hover)').matches
+
+      if (isHover) {
+        // Desktop: hover abre popup, mouseout lo cierra (salvo que el cursor vaya al popup)
+        marker.on('mouseover', () => marker.openPopup())
+        marker.on('mouseout', e => {
+          const dest    = e.originalEvent?.relatedTarget
+          const popupEl = marker.getPopup()?.getElement()
+          if (popupEl && dest && popupEl.contains(dest)) return
+          marker.closePopup()
+        })
+        // Click en desktop: cierra popup y abre ficha directamente
+        marker.on('click', () => {
           marker.closePopup()
           if (onZoneClick) onZoneClick(z)
-        }
-        // táctil: Leaflet abre el popup por defecto
-      })
-
-      // Touch: botón "Ver zona" dentro del popup abre la zona
-      marker.on('popupopen', e => {
-        e.popup.getElement()?.querySelector('.popup-zone-btn')
-          ?.addEventListener('click', () => {
-            marker.closePopup()
-            if (onZoneClick) onZoneClick(z)
-          })
-      })
+        })
+      } else {
+        // Touch: el primer tap abre el popup (comportamiento por defecto de Leaflet).
+        // El botón "Ver zona →" dentro del popup abre la ficha.
+        marker.on('popupopen', e => {
+          e.popup.getElement()?.querySelector('.popup-zone-btn')
+            ?.addEventListener('click', () => {
+              marker.closePopup()
+              if (onZoneClick) onZoneClick(z)
+            })
+        })
+      }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zonas, mode])
