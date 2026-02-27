@@ -3,7 +3,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import L from 'leaflet'
-import 'leaflet.heat'
+// leaflet.heat es CommonJS y busca `L` como global — hay que exponerlo antes de importarlo
+window.L = L
+let _heatLoaded = false
+async function ensureHeat() {
+  if (!_heatLoaded) { await import('leaflet.heat'); _heatLoaded = true }
+}
 import { IC } from '../../lib/helpers'
 import { Tabs } from '../ui/Tabs'
 
@@ -60,59 +65,65 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
 
   useEffect(() => {
     if (!mapRef.current || leafletRef.current) return
+    let destroyed = false
 
-    const center = singleZone ? [singleZone.lat, singleZone.lng] : [41.8, 1.5]
-    const zoom   = singleZone ? 11 : 6
+    ;(async () => {
+      if (mode === 'heatmap') await ensureHeat()
+      if (destroyed || !mapRef.current) return
 
-    const map = L.map(mapRef.current, { zoomControl: false, scrollWheelZoom: true })
-      .setView(center, zoom)
-    L.control.zoom({ position: 'bottomleft' }).addTo(map)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap contributors © CARTO',
-      subdomains: 'abcd', maxZoom: 19,
-    }).addTo(map)
-    leafletRef.current = map
+      const center = singleZone ? [singleZone.lat, singleZone.lng] : [41.8, 1.5]
+      const zoom   = singleZone ? 11 : 6
 
-    if (mode === 'heatmap') {
-      const heatData   = generateMeteoHeatGrid()
-      const initRadius = heatRadiusForZoom(zoom)
-      const heatLayer  = L.heatLayer(heatData, {
-        radius: initRadius,
-        blur: Math.ceil(initRadius * 0.80),
-        maxZoom: 17, max: 0.80, minOpacity: 0.30,
-        gradient: { 0.0: '#d97706', 0.42: '#7a9e3a', 0.72: '#4a7c59', 1.0: '#2d6640' },
+      const map = L.map(mapRef.current, { zoomControl: false, scrollWheelZoom: true })
+        .setView(center, zoom)
+      L.control.zoom({ position: 'bottomleft' }).addTo(map)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors © CARTO',
+        subdomains: 'abcd', maxZoom: 19,
       }).addTo(map)
-      const onZoom = () => {
-        const r = heatRadiusForZoom(map.getZoom())
-        heatLayer.setOptions({ radius: r, blur: Math.ceil(r * 0.75) })
-        heatLayer.redraw()
+      leafletRef.current = map
+
+      if (mode === 'heatmap') {
+        const heatData   = generateMeteoHeatGrid()
+        const initRadius = heatRadiusForZoom(zoom)
+        const heatLayer  = L.heatLayer(heatData, {
+          radius: initRadius,
+          blur: Math.ceil(initRadius * 0.80),
+          maxZoom: 17, max: 0.80, minOpacity: 0.30,
+          gradient: { 0.0: '#d97706', 0.42: '#7a9e3a', 0.72: '#4a7c59', 1.0: '#2d6640' },
+        }).addTo(map)
+        const onZoom = () => {
+          const r = heatRadiusForZoom(map.getZoom())
+          heatLayer.setOptions({ radius: r, blur: Math.ceil(r * 0.75) })
+          heatLayer.redraw()
+        }
+        map.on('zoomend', onZoom)
+      } else {
+        const forestColors = { pinar: '#4a7c59', hayedo: '#d9cda1', robledal: '#a0522d', encinar: '#6b8e23' }
+        const mushIcon = (color = '#d9cda1', active = false) => L.divIcon({
+          className: '',
+          html: `<div style="width:${active ? 38 : 28}px;height:${active ? 38 : 28}px;background:${color};border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${active ? 16 : 12}px;box-shadow:0 0 ${active ? 20 : 10}px ${color}80;transition:all 0.2s;">🍄</div>`,
+          iconSize: [active ? 38 : 28, active ? 38 : 28],
+          iconAnchor: [active ? 19 : 14, active ? 19 : 14],
+          popupAnchor: [0, -20],
+        })
+
+        const toRender = singleZone ? [singleZone] : (zonas || [])
+        toRender.forEach(z => {
+          const color  = forestColors[z.forestType] || '#d9cda1'
+          const marker = L.marker([z.lat, z.lng], { icon: mushIcon(color, !!singleZone) })
+            .bindPopup(`<div style="font-family:DM Sans,sans-serif;color:#f4ebe1;min-width:160px"><strong style="font-size:14px">${z.name}</strong><br><span style="color:#d9cda1;font-size:12px">${z.province} · ${z.forestType}</span><br><span style="color:#aaa;font-size:11px">⛰️ ${z.elevation}m</span></div>`)
+            .addTo(map)
+          if (onZoneClick) marker.on('click', () => onZoneClick(z))
+        })
       }
-      map.on('zoomend', onZoom)
-    } else {
-      const forestColors = { pinar: '#4a7c59', hayedo: '#d9cda1', robledal: '#a0522d', encinar: '#6b8e23' }
-      const mushIcon = (color = '#d9cda1', active = false) => L.divIcon({
-        className: '',
-        html: `<div style="width:${active ? 38 : 28}px;height:${active ? 38 : 28}px;background:${color};border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${active ? 16 : 12}px;box-shadow:0 0 ${active ? 20 : 10}px ${color}80;transition:all 0.2s;">🍄</div>`,
-        iconSize: [active ? 38 : 28, active ? 38 : 28],
-        iconAnchor: [active ? 19 : 14, active ? 19 : 14],
-        popupAnchor: [0, -20],
-      })
 
-      const toRender = singleZone ? [singleZone] : (zonas || [])
-      toRender.forEach(z => {
-        const color  = forestColors[z.forestType] || '#d9cda1'
-        const marker = L.marker([z.lat, z.lng], { icon: mushIcon(color, !!singleZone) })
-          .bindPopup(`<div style="font-family:DM Sans,sans-serif;color:#f4ebe1;min-width:160px"><strong style="font-size:14px">${z.name}</strong><br><span style="color:#d9cda1;font-size:12px">${z.province} · ${z.forestType}</span><br><span style="color:#aaa;font-size:11px">⛰️ ${z.elevation}m</span></div>`)
-          .addTo(map)
-        if (onZoneClick) marker.on('click', () => onZoneClick(z))
-      })
-    }
-
-    if (fullscreen) setTimeout(() => map.invalidateSize(), 100)
+      if (fullscreen) setTimeout(() => map.invalidateSize(), 100)
+    })()
 
     return () => {
-      map.remove()
-      leafletRef.current = null
+      destroyed = true
+      if (leafletRef.current) { leafletRef.current.remove(); leafletRef.current = null }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])

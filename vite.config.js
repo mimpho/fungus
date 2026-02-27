@@ -13,7 +13,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'leaflet-vendor': ['leaflet', 'leaflet.heat'],
+          'leaflet-vendor': ['leaflet'],
           'data-species': ['./src/data/species.js'],
           'data-zones': ['./src/data/zones.js'],
         },
