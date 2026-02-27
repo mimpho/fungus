@@ -43,11 +43,13 @@ const mushIcon = (color = '#d9cda1', active = false) => L.divIcon({
 })
 
 // ─── LeafletMapInner ──────────────────────────────────────────────────────────
-function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = null, fullscreen = false, mode = 'markers', conditionsMap = {} }) {
+function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = null, fullscreen = false, mode = 'markers', conditionsMap = {}, ccaaFilter = '' }) {
   const mapRef          = useRef(null)
   const leafletRef      = useRef(null)
   const heatLayerRef    = useRef(null)
   const markersGroupRef = useRef(null)
+  const zonasRef        = useRef(zonas)
+  useEffect(() => { zonasRef.current = zonas }, [zonas])
 
   // ── Init: crea el mapa y estructuras base. Se rehace solo si cambia el modo ──
   useEffect(() => {
@@ -149,6 +151,22 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zonas, mode])
 
+  // ── Zoom CCAA: fitBounds cuando cambia el filtro de comunidad autónoma ────────
+  useEffect(() => {
+    if (!leafletRef.current || singleZone) return
+    const zs = zonasRef.current
+    if (ccaaFilter && zs?.length > 0) {
+      leafletRef.current.fitBounds(zs.map(z => [z.lat, z.lng]), { padding: [50, 50], maxZoom: 10, animate: true })
+    } else if (!ccaaFilter) {
+      leafletRef.current.fitBounds(zs?.length > 0
+        ? zs.map(z => [z.lat, z.lng])
+        : [[36, -9], [43.8, 3.3]],  // fallback: España
+        { padding: [30, 30], maxZoom: 7, animate: true }
+      )
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ccaaFilter])
+
   // ── Heatmap: se actualiza cuando zonas o conditionsMap cambian ────────────────
   useEffect(() => {
     if (mode !== 'heatmap' || !heatLayerRef.current || !leafletRef.current) return
@@ -218,7 +236,7 @@ export function LeafletMap({
   zonas, onZoneClick, height = '400px',
   singleZone = null, title,
   mode = 'markers', onModeChange = null,
-  conditionsMap = {},
+  conditionsMap = {}, ccaaFilter = '',
 }) {
   const [fullscreen, setFullscreen] = useState(false)
 
@@ -227,7 +245,7 @@ export function LeafletMap({
       <div className="relative">
         <LeafletMapInner
           zonas={zonas} onZoneClick={onZoneClick} height={height}
-          singleZone={singleZone} mode={mode} conditionsMap={conditionsMap} />
+          singleZone={singleZone} mode={mode} conditionsMap={conditionsMap} ccaaFilter={ccaaFilter} />
 
         {/* Selector modo (si se proporciona) */}
         {onModeChange && (

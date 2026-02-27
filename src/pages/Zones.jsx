@@ -191,7 +191,8 @@ export default function Zones() {
           title="Mapa de zonas"
           mode={mapMode}
           onModeChange={setMapMode}
-          conditionsMap={conditionsMap} />
+          conditionsMap={conditionsMap}
+          ccaaFilter={ccaaFilter} />
       )}
 
       {/* Tab: Listado */}
