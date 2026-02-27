@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { mockZones } from '../data/zones'
 import { ZoneCard } from '../components/ui/ZoneCard'
@@ -21,6 +21,8 @@ export default function Zones() {
   const [searchQuery, setSearchQuery] = useState('')
   const [pillOpen, setPillOpen]     = useState(false)
   const [mapMode, setMapMode]       = useState('markers')
+  const [mapHeight, setMapHeight]   = useState('500px')
+  const aboveMapRef = useRef(null)
 
   const isFollowed = id => followedZones.some(z => z.id === id)
 
@@ -28,6 +30,26 @@ export default function Zones() {
 
   const forestTypes = useMemo(() => [...new Set(mockZones.map(z => z.forestType))].sort(), [])
   const comunidades = useMemo(() => [...new Set(mockZones.map(z => z.comunidadAutonoma).filter(Boolean))].sort(), [])
+
+  // Calcula la altura disponible para el mapa (viewport − cabecera layout − contenido superior)
+  useEffect(() => {
+    if (tab !== 'mapa') return
+    const LAYOUT_HEADER  = 88  // header sticky: logo h-16 (64px) + py-3 (24px)
+    const MAIN_PADDING_T = 32  // <main py-8> padding superior
+    const GAP            = 20  // space-y-5 entre cabecera de zona y mapa
+
+    const compute = () => {
+      const aboveH  = aboveMapRef.current?.offsetHeight ?? 0
+      const available = window.innerHeight - LAYOUT_HEADER - MAIN_PADDING_T - aboveH - GAP
+      setMapHeight(`${Math.max(available, 280)}px`)
+    }
+
+    compute()
+    const ro = new ResizeObserver(compute)
+    if (aboveMapRef.current) ro.observe(aboveMapRef.current)
+    window.addEventListener('resize', compute)
+    return () => { ro.disconnect(); window.removeEventListener('resize', compute) }
+  }, [tab, pillOpen])
 
   const filteredZones = useMemo(() => {
     let r = onlyFollowed ? mockZones.filter(z => isFollowed(z.id)) : [...mockZones]
@@ -46,6 +68,8 @@ export default function Zones() {
 
   return (
     <div className="space-y-6 anim-up pb-6">
+      {/* Bloque medido para calcular altura del mapa */}
+      <div ref={aboveMapRef}>
       {/* Header */}
       <div className="flex flex-col md:grid md:grid-cols-[auto_1fr_auto] md:items-center gap-4">
         <div className="flex items-center justify-between md:block">
@@ -143,12 +167,14 @@ export default function Zones() {
         </div>
       </FilterPanel>
 
+      </div>{/* /aboveMapRef */}
+
       {/* Tab: Mapa */}
       {tab === 'mapa' && (
         <LeafletMap
           zonas={filteredZones}
           onZoneClick={setSelectedZone}
-          height="calc(100vh - 220px)"
+          height={mapHeight}
           title="Mapa de zonas"
           mode={mapMode}
           onModeChange={setMapMode}
