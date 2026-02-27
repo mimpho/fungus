@@ -33,12 +33,23 @@ function heatRadiusForZoom(zoom) {
   return base
 }
 
+const FOREST_COLORS = { pinar: '#4a7c59', hayedo: '#d9cda1', robledal: '#a0522d', encinar: '#6b8e23' }
+const mushIcon = (color = '#d9cda1', active = false) => L.divIcon({
+  className: '',
+  html: `<div style="width:${active ? 38 : 28}px;height:${active ? 38 : 28}px;background:${color};border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${active ? 16 : 12}px;box-shadow:0 0 ${active ? 20 : 10}px ${color}80;transition:all 0.2s;">🍄</div>`,
+  iconSize: [active ? 38 : 28, active ? 38 : 28],
+  iconAnchor: [active ? 19 : 14, active ? 19 : 14],
+  popupAnchor: [0, -20],
+})
+
 // ─── LeafletMapInner ──────────────────────────────────────────────────────────
 function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = null, fullscreen = false, mode = 'markers', conditionsMap = {} }) {
-  const mapRef      = useRef(null)
-  const leafletRef  = useRef(null)
-  const heatLayerRef = useRef(null)
+  const mapRef          = useRef(null)
+  const leafletRef      = useRef(null)
+  const heatLayerRef    = useRef(null)
+  const markersGroupRef = useRef(null)
 
+  // ── Init: crea el mapa y estructuras base. Se rehace solo si cambia el modo ──
   useEffect(() => {
     if (!mapRef.current || leafletRef.current) return
     let destroyed = false
@@ -60,39 +71,22 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
       leafletRef.current = map
 
       if (mode === 'heatmap') {
-        const heatData   = buildHeatPoints(zonas, conditionsMap)
         const initRadius = heatRadiusForZoom(zoom)
-        const heatLayer  = L.heatLayer(heatData, {
+        const heatLayer  = L.heatLayer([], {
           radius: initRadius,
           blur: Math.ceil(initRadius * 0.70),
           maxZoom: 17, max: 0.85, minOpacity: 0.25,
           gradient: { 0.0: '#7f1d1d', 0.25: '#d97706', 0.50: '#a3a020', 0.75: '#4a7c59', 1.0: '#2d6640' },
         }).addTo(map)
         heatLayerRef.current = heatLayer
-        const onZoom = () => {
+        map.on('zoomend', () => {
           const r = heatRadiusForZoom(map.getZoom())
           heatLayer.setOptions({ radius: r, blur: Math.ceil(r * 0.70) })
           heatLayer.redraw()
-        }
-        map.on('zoomend', onZoom)
+        })
       } else {
-        const forestColors = { pinar: '#4a7c59', hayedo: '#d9cda1', robledal: '#a0522d', encinar: '#6b8e23' }
-        const mushIcon = (color = '#d9cda1', active = false) => L.divIcon({
-          className: '',
-          html: `<div style="width:${active ? 38 : 28}px;height:${active ? 38 : 28}px;background:${color};border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${active ? 16 : 12}px;box-shadow:0 0 ${active ? 20 : 10}px ${color}80;transition:all 0.2s;">🍄</div>`,
-          iconSize: [active ? 38 : 28, active ? 38 : 28],
-          iconAnchor: [active ? 19 : 14, active ? 19 : 14],
-          popupAnchor: [0, -20],
-        })
-
-        const toRender = singleZone ? [singleZone] : (zonas || [])
-        toRender.forEach(z => {
-          const color  = forestColors[z.forestType] || '#d9cda1'
-          const marker = L.marker([z.lat, z.lng], { icon: mushIcon(color, !!singleZone) })
-            .bindPopup(`<div style="font-family:DM Sans,sans-serif;color:#f4ebe1;min-width:160px"><strong style="font-size:14px">${z.name}</strong><br><span style="color:#d9cda1;font-size:12px">${z.province} · ${z.forestType}</span><br><span style="color:#aaa;font-size:11px">⛰️ ${z.elevation}m</span></div>`)
-            .addTo(map)
-          if (onZoneClick) marker.on('click', () => onZoneClick(z))
-        })
+        // markers mode: LayerGroup vacío; los markers los añade el effect de zonas
+        markersGroupRef.current = L.layerGroup().addTo(map)
       }
 
       if (fullscreen) setTimeout(() => map.invalidateSize(), 100)
@@ -100,19 +94,36 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
 
     return () => {
       destroyed = true
+      markersGroupRef.current = null
+      heatLayerRef.current = null
       if (leafletRef.current) { leafletRef.current.remove(); leafletRef.current = null }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
 
-  // Actualizar heatmap cuando llegan los datos reales (conditionsMap se rellena async)
+  // ── Markers: se actualiza cada vez que zonas cambia (filtros, modo) ───────────
+  useEffect(() => {
+    if (mode !== 'markers' || !markersGroupRef.current) return
+    const group = markersGroupRef.current
+    group.clearLayers()
+    const toRender = singleZone ? [singleZone] : (zonas || [])
+    toRender.forEach(z => {
+      const color  = FOREST_COLORS[z.forestType] || '#d9cda1'
+      const marker = L.marker([z.lat, z.lng], { icon: mushIcon(color, !!singleZone) })
+        .bindPopup(`<div style="font-family:DM Sans,sans-serif;color:#f4ebe1;min-width:160px"><strong style="font-size:14px">${z.name}</strong><br><span style="color:#d9cda1;font-size:12px">${z.province} · ${z.forestType}</span><br><span style="color:#aaa;font-size:11px">⛰️ ${z.elevation}m</span></div>`)
+      marker.addTo(group)
+      if (onZoneClick) marker.on('click', () => onZoneClick(z))
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zonas, mode])
+
+  // ── Heatmap: se actualiza cuando zonas o conditionsMap cambian ────────────────
   useEffect(() => {
     if (mode !== 'heatmap' || !heatLayerRef.current || !leafletRef.current) return
-    const newPoints = buildHeatPoints(zonas, conditionsMap)
-    heatLayerRef.current.setLatLngs(newPoints)
+    heatLayerRef.current.setLatLngs(buildHeatPoints(zonas, conditionsMap))
     heatLayerRef.current.redraw()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conditionsMap, mode])
+  }, [zonas, conditionsMap, mode])
 
   const h = fullscreen ? '100%' : height
   return (
