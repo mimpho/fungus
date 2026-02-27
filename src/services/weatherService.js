@@ -154,18 +154,31 @@ function saveCache(data) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// IN-FLIGHT CACHE (evita dobles fetches en React StrictMode)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Promesa compartida para fetchAllZoneConditions — si ya hay una en curso la reutiliza
+let _allZonesPromise = null
+
+// Caché individual por zone id para fetchZoneConditions
+const _singlePromises = new Map()
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PUBLIC API
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Carga condiciones meteorológicas para un array de zonas.
- * Usa caché localStorage (TTL 3h). Fetch en paralelo.
+ * Usa caché localStorage (TTL 3h) + caché en memoria de promesas en vuelo.
  *
  * @param {Array<{id, lat, lng}>} zones
  * @param {{ onProgress?: (done, total) => void }} opts
  * @returns {Promise<Record<string, object>>}  objeto { zoneId: conditions }
  */
 export async function fetchAllZoneConditions(zones, opts = {}) {
+  // Si ya hay un fetch en curso o la caché está fresca, reutilizar
+  if (_allZonesPromise) return _allZonesPromise
+
   const cache = loadCache()
   const result = { ...cache }
   const missing = zones.filter(z => !result[z.id])
@@ -175,39 +188,49 @@ export async function fetchAllZoneConditions(zones, opts = {}) {
   const { onProgress } = opts
   let done = 0
 
-  // Fetch en paralelo con un límite de concurrencia para no sobrecargar
-  const CONCURRENCY = 6
-  for (let i = 0; i < missing.length; i += CONCURRENCY) {
-    const batch = missing.slice(i, i + CONCURRENCY)
-    const results = await Promise.allSettled(
-      batch.map(z => fetchConditionsForLocation(z.lat, z.lng))
-    )
-    results.forEach((r, idx) => {
-      if (r.status === 'fulfilled') {
-        result[batch[idx].id] = r.value
-      }
-      // Si falla: se queda sin entrada → el hook usa fallback
-    })
-    done += batch.length
-    onProgress?.(done, missing.length)
-  }
+  // Wrappear en promesa guardada para que llamadas concurrentes la compartan
+  _allZonesPromise = (async () => {
+    const CONCURRENCY = 6
+    for (let i = 0; i < missing.length; i += CONCURRENCY) {
+      const batch = missing.slice(i, i + CONCURRENCY)
+      const results = await Promise.allSettled(
+        batch.map(z => fetchConditionsForLocation(z.lat, z.lng))
+      )
+      results.forEach((r, idx) => {
+        if (r.status === 'fulfilled') {
+          result[batch[idx].id] = r.value
+        }
+      })
+      done += batch.length
+      onProgress?.(done, missing.length)
+    }
+    saveCache(result)
+    _allZonesPromise = null // limpiar tras resolver
+    return result
+  })()
 
-  saveCache(result)
-  return result
+  return _allZonesPromise
 }
 
 /**
  * Carga condiciones para una sola zona (útil en ZoneModal).
- * También usa caché.
+ * Usa caché localStorage + promesa en vuelo por zone.id.
  */
 export async function fetchZoneConditions(zone) {
   const cache = loadCache()
   if (cache[zone.id]) return cache[zone.id]
 
-  const cond = await fetchConditionsForLocation(zone.lat, zone.lng)
-  const updated = { ...cache, [zone.id]: cond }
-  saveCache(updated)
-  return cond
+  // Reutilizar promesa en vuelo para esta zona
+  if (_singlePromises.has(zone.id)) return _singlePromises.get(zone.id)
+
+  const p = fetchConditionsForLocation(zone.lat, zone.lng).then(cond => {
+    const updated = { ...loadCache(), [zone.id]: cond }
+    saveCache(updated)
+    _singlePromises.delete(zone.id)
+    return cond
+  })
+  _singlePromises.set(zone.id, p)
+  return p
 }
 
 /**
@@ -215,4 +238,6 @@ export async function fetchZoneConditions(zone) {
  */
 export function clearWeatherCache() {
   try { localStorage.removeItem(CACHE_KEY) } catch { /* */ }
+  _allZonesPromise = null
+  _singlePromises.clear()
 }

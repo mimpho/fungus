@@ -6,7 +6,7 @@
 //   - Estado de carga + errores individuales por zona
 //   - Fallback a fakeConditions si la API falla
 // =====================================================
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { fetchAllZoneConditions, fetchZoneConditions } from '../services/weatherService'
 import { fakeConditions } from '../lib/helpers'
 
@@ -14,28 +14,14 @@ import { fakeConditions } from '../lib/helpers'
 // useAllZoneConditions — para Zones y Dashboard (todas las zonas)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Carga condiciones meteorológicas para un array de zonas.
- *
- * @param {Array} zones  — array de objetos zona con { id, lat, lng }
- * @returns {{
- *   conditionsMap: Record<string, object>,
- *   loading: boolean,
- *   progress: { done: number, total: number },
- *   error: string | null,
- * }}
- */
 export function useAllZoneConditions(zones) {
   const [conditionsMap, setConditionsMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [error, setError] = useState(null)
-  const fetchedRef = useRef(false)
 
   useEffect(() => {
     if (!zones?.length) { setLoading(false); return }
-    if (fetchedRef.current) return
-    fetchedRef.current = true
 
     let cancelled = false
     setLoading(true)
@@ -48,7 +34,6 @@ export function useAllZoneConditions(zones) {
     })
       .then(map => {
         if (cancelled) return
-        // Rellenar zonas sin datos con fakeConditions como fallback
         const complete = {}
         zones.forEach(z => {
           complete[z.id] = map[z.id] ?? fakeConditions()
@@ -60,7 +45,6 @@ export function useAllZoneConditions(zones) {
         if (cancelled) return
         console.warn('[useAllZoneConditions] fetch failed, usando mock:', err)
         setError('No se pudieron cargar los datos meteorológicos en tiempo real.')
-        // Fallback completo a mock
         const fallback = {}
         zones.forEach(z => { fallback[z.id] = fakeConditions() })
         setConditionsMap(fallback)
@@ -69,7 +53,7 @@ export function useAllZoneConditions(zones) {
 
     return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Solo una vez al montar
+  }, []) // Solo una vez al montar — la caché en localStorage evita dobles fetches
 
   return { conditionsMap, loading, progress, error }
 }
@@ -78,17 +62,6 @@ export function useAllZoneConditions(zones) {
 // useZoneConditions — para ZoneModal (una sola zona)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Carga condiciones meteorológicas para una zona individual.
- * Ideal para ZoneModal donde se abre de una en una.
- *
- * @param {object} zone  — objeto zona con { id, lat, lng }
- * @returns {{
- *   conditions: object,
- *   loading: boolean,
- *   error: string | null,
- * }}
- */
 export function useZoneConditions(zone) {
   const [conditions, setConditions] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -114,7 +87,7 @@ export function useZoneConditions(zone) {
       })
 
     return () => { cancelled = true }
-  }, [zone?.id]) // Re-fetch si cambia la zona
+  }, [zone?.id])
 
   return { conditions, loading, error }
 }
