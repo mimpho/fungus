@@ -72,7 +72,7 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
 
       if (mode === 'heatmap') {
         const initRadius = heatRadiusForZoom(zoom)
-        const heatLayer  = L.heatLayer([], {
+        const heatLayer  = L.heatLayer(buildHeatPoints(zonas, conditionsMap), {
           radius: initRadius,
           blur: Math.ceil(initRadius * 0.70),
           maxZoom: 17, max: 0.85, minOpacity: 0.25,
