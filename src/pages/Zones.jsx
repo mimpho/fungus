@@ -21,6 +21,7 @@ export default function Zones() {
   const [ccaaFilter, setCcaaFilter] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [pillOpen, setPillOpen]     = useState(false)
+  const [mapMode, setMapMode]       = useState('markers')
 
   const isFollowed = id => followedZones.some(z => z.id === id)
 
@@ -172,7 +173,9 @@ export default function Zones() {
           onZoneClick={setSelectedZone}
           height="calc(100vh - 220px)"
           title="Mapa de zonas"
-          mode="markers" />
+          mode={mapMode}
+          onModeChange={setMapMode}
+          conditionsMap={conditionsMap} />
       )}
 
       {/* Tab: Listado */}

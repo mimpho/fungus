@@ -12,56 +12,32 @@ async function ensureHeat() {
 import { IC } from '../../lib/helpers'
 import { Tabs } from '../ui/Tabs'
 
-// ─── Heatmap meteórico sintético ─────────────────────────────────────────────
-function fakeMeteoIntensity(lat, lng) {
-  const G = (clat, clng, sig, amp) =>
-    Math.exp(-((lat - clat) ** 2 + (lng - clng) ** 2) / sig) * amp
-  const front =
-    Math.sin(lat * 0.85 + lng * 0.60 + 1.8) * 0.22 +
-    Math.sin(lat * 0.65 - lng * 1.00 + 3.5) * 0.16
-  const regional =
-    Math.sin(lat * 5.0 + lng * 4.6 + 0.9) * 0.10 +
-    Math.sin(lat * 7.1 - lng * 3.0 - 2.1) * 0.07
-  const local =
-    Math.sin(lat * 14.8 + lng * 12.1 + 4.3) * 0.06 +
-    Math.sin(lat * 19.3 - lng * 9.0  + 1.7) * 0.04 +
-    Math.sin(lat * 23.7 + lng * 17.4 - 3.1) * 0.02
-  const mountains =
-    G(42.6, -1.4, 1.4, 0.55) + G(43.1, -5.7, 1.2, 0.52) +
-    G(43.3, -2.3, 1.5, 0.44) + G(42.8,  3.0, 1.8, 0.28) +
-    G(40.2, -4.0, 1.4, 0.34) + G(41.9, -2.8, 1.3, 0.38) +
-    G(37.9, -2.9, 1.2, 0.28) + G(38.1, -5.2, 2.0, 0.20) +
-    G(41.7,  0.8, 1.8, 0.22)
-  const latBias = Math.max(0, (lat - 37.0) / 8.0) * 0.22
-  const raw = 0.28 + front + regional + local + mountains + latBias
-  let v = (raw - 0.20) / 1.00
-  v = Math.max(0, Math.min(1, v))
-  v = 1 - (1 - v) * (1 - v)
-  return Math.max(0, Math.min(1, v))
-}
+// ─── Heatmap basado en scores reales de zonas ────────────────────────────────
 
-const HEAT_STEP = 0.12
-function generateMeteoHeatGrid() {
-  const points = []
-  for (let lat = 35.8; lat <= 44.2; lat += HEAT_STEP) {
-    for (let lng = -9.5; lng <= 4.5; lng += HEAT_STEP) {
-      const intensity = fakeMeteoIntensity(lat, lng)
-      if (intensity > 0.28) points.push([lat, lng, intensity])
-    }
-  }
-  return points
+/**
+ * Genera puntos de heatmap a partir de zonas con scores reales.
+ * Cada zona aporta su overallScore (0-100) normalizado a 0-1.
+ * Con radio grande (zoom 6 → ~55px) los blobs se solapan creando
+ * un gradiente continuo sobre España.
+ */
+function buildHeatPoints(zonas, conditionsMap) {
+  return (zonas || []).map(z => {
+    const score = conditionsMap?.[z.id]?.overallScore ?? 0
+    return [z.lat, z.lng, score / 100]
+  })
 }
 
 function heatRadiusForZoom(zoom) {
-  const pixPerDegree = (256 * Math.pow(2, zoom)) / 360
-  const r = Math.ceil(pixPerDegree * HEAT_STEP * 0.65)
-  return Math.max(8, Math.min(60, r))
+  // Radio más generoso para que 28 zonas cubran visualmente toda España
+  const base = zoom <= 6 ? 55 : zoom <= 8 ? 40 : zoom <= 10 ? 28 : 18
+  return base
 }
 
 // ─── LeafletMapInner ──────────────────────────────────────────────────────────
-function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = null, fullscreen = false, mode = 'markers' }) {
-  const mapRef     = useRef(null)
-  const leafletRef = useRef(null)
+function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = null, fullscreen = false, mode = 'markers', conditionsMap = {} }) {
+  const mapRef      = useRef(null)
+  const leafletRef  = useRef(null)
+  const heatLayerRef = useRef(null)
 
   useEffect(() => {
     if (!mapRef.current || leafletRef.current) return
@@ -84,17 +60,18 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
       leafletRef.current = map
 
       if (mode === 'heatmap') {
-        const heatData   = generateMeteoHeatGrid()
+        const heatData   = buildHeatPoints(zonas, conditionsMap)
         const initRadius = heatRadiusForZoom(zoom)
         const heatLayer  = L.heatLayer(heatData, {
           radius: initRadius,
-          blur: Math.ceil(initRadius * 0.80),
-          maxZoom: 17, max: 0.80, minOpacity: 0.30,
-          gradient: { 0.0: '#d97706', 0.42: '#7a9e3a', 0.72: '#4a7c59', 1.0: '#2d6640' },
+          blur: Math.ceil(initRadius * 0.70),
+          maxZoom: 17, max: 0.85, minOpacity: 0.25,
+          gradient: { 0.0: '#7f1d1d', 0.25: '#d97706', 0.50: '#a3a020', 0.75: '#4a7c59', 1.0: '#2d6640' },
         }).addTo(map)
+        heatLayerRef.current = heatLayer
         const onZoom = () => {
           const r = heatRadiusForZoom(map.getZoom())
-          heatLayer.setOptions({ radius: r, blur: Math.ceil(r * 0.75) })
+          heatLayer.setOptions({ radius: r, blur: Math.ceil(r * 0.70) })
           heatLayer.redraw()
         }
         map.on('zoomend', onZoom)
@@ -136,7 +113,7 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
 }
 
 // ─── MapFullscreenModal ───────────────────────────────────────────────────────
-function MapFullscreenModal({ zonas, singleZone, onZoneClick, title, onClose, mode = 'markers', onModeChange = null }) {
+function MapFullscreenModal({ zonas, singleZone, onZoneClick, title, onClose, mode = 'markers', onModeChange = null, conditionsMap = {} }) {
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
@@ -177,7 +154,7 @@ function MapFullscreenModal({ zonas, singleZone, onZoneClick, title, onClose, mo
       <div className="flex-1 relative">
         <LeafletMapInner
           zonas={zonas} singleZone={singleZone} onZoneClick={onZoneClick}
-          height="100%" fullscreen mode={mode} />
+          height="100%" fullscreen mode={mode} conditionsMap={conditionsMap} />
       </div>
     </div>,
     document.body
@@ -189,6 +166,7 @@ export function LeafletMap({
   zonas, onZoneClick, height = '400px',
   singleZone = null, title,
   mode = 'markers', onModeChange = null,
+  conditionsMap = {},
 }) {
   const [fullscreen, setFullscreen] = useState(false)
 
@@ -197,7 +175,7 @@ export function LeafletMap({
       <div className="relative">
         <LeafletMapInner
           zonas={zonas} onZoneClick={onZoneClick} height={height}
-          singleZone={singleZone} mode={mode} />
+          singleZone={singleZone} mode={mode} conditionsMap={conditionsMap} />
 
         {/* Selector modo (si se proporciona) */}
         {onModeChange && (
@@ -229,7 +207,8 @@ export function LeafletMap({
           title={title || (singleZone ? singleZone.name : 'Mapa de zonas')}
           onClose={() => setFullscreen(false)}
           mode={mode}
-          onModeChange={onModeChange} />
+          onModeChange={onModeChange}
+          conditionsMap={conditionsMap} />
       )}
     </>
   )

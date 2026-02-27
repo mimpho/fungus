@@ -8,7 +8,7 @@
 
 const BASE_URL = 'https://api.open-meteo.com/v1/forecast'
 const CACHE_KEY = 'fungus_weather_cache'
-const CACHE_VERSION = 2  // Incrementar cuando cambie el algoritmo de scoring
+const CACHE_VERSION = 3  // Incrementar cuando cambie el algoritmo de scoring
 const CACHE_TTL = 3 * 60 * 60 * 1000 // 3 horas
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -130,10 +130,12 @@ function calculateOverallScore(temp, rainfall14d, humidity, dryDays) {
  * Devuelve un objeto con el mismo schema que fakeConditions() de helpers.jsx
  */
 async function fetchConditionsForLocation(lat, lng) {
+  // Nota: soil_temperature_0cm NO es válido en `current` — solo en `hourly`
   const params = new URLSearchParams({
     latitude: lat.toFixed(4),
     longitude: lng.toFixed(4),
-    current: 'temperature_2m,relative_humidity_2m,wind_speed_10m,soil_temperature_0cm',
+    current: 'temperature_2m,relative_humidity_2m,wind_speed_10m',
+    hourly: 'soil_temperature_0cm',
     daily: 'precipitation_sum',
     past_days: 14,
     forecast_days: 1,
@@ -147,9 +149,10 @@ async function fetchConditionsForLocation(lat, lng) {
   const temp     = data.current?.temperature_2m ?? 12
   const humidity = data.current?.relative_humidity_2m ?? 75
   const wind     = data.current?.wind_speed_10m ?? 10
-  const soilRaw  = data.current?.soil_temperature_0cm
 
-  // Suelo: usar dato directo si disponible, si no estimar
+  // Temperatura del suelo: tomar el valor horario más cercano a la hora actual
+  const soilArr  = data.hourly?.soil_temperature_0cm ?? []
+  const soilRaw  = soilArr.length > 0 ? soilArr[Math.min(soilArr.length - 1, new Date().getHours())] : null
   const soilTemp = soilRaw != null
     ? parseFloat(soilRaw.toFixed(1))
     : parseFloat(Math.max(0, temp - 2.5).toFixed(1))
