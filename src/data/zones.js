@@ -27,6 +27,35 @@ export const mockZones = [
   { id: 'zone-026', name: 'Hayedo de Otzarreta', province: 'Vizcaya', region: 'Gorbea', lat: 42.9956, lng: -2.7456, elevation: 750, forestType: 'hayedo', description: 'Hayedo mágico vasco, muy húmedo y productivo.' },
   { id: 'zone-027', name: 'Robledal de Batuecas', province: 'Salamanca', region: 'Sierra de Francia', lat: 40.4847, lng: -6.0234, elevation: 850, forestType: 'robledal', description: 'Robledal salmantino en valle protegido con microclima favorable.' },
   { id: 'zone-028', name: 'Pinar de Prades', province: 'Tarragona', region: 'Baix Camp', lat: 41.3234, lng: 0.9847, elevation: 950, forestType: 'pinar', description: 'Pinar catalán de baja altitud, accesible y productivo.' },
+
+  // ── Cataluña — ampliación ───────────────────────────────────────────────────
+  // Girona
+  { id: 'zone-029', name: 'Hayedo de Camprodon',         province: 'Girona',    region: 'Ripollès',       lat: 42.3172, lng: 2.3618,  elevation: 1050, forestType: 'hayedo',   description: 'Valle del Ter con hayedos centenarios, conocido por sus rebozuelos y boletos en temporada húmeda.' },
+  { id: 'zone-030', name: 'Pinar de Setcases',           province: 'Girona',    region: 'Ripollès',       lat: 42.3884, lng: 2.2703,  elevation: 1650, forestType: 'pinar',    description: 'Pinar de alta montaña en el Pirineo ripollès, referencia para rovellons (Lactarius deliciosus) y céps.' },
+  { id: 'zone-031', name: 'Encinar de les Gavarres',     province: 'Girona',    region: 'Baix Empordà',   lat: 41.9238, lng: 2.9443,  elevation: 380,  forestType: 'encinar',  description: 'Macizo de encinar mediterráneo con suelos frescos, productivo en Boletus aereus y trompetas de la muerte.' },
+  { id: 'zone-032', name: 'Hayedo de Beget',             province: 'Girona',    region: 'Garrotxa',       lat: 42.2943, lng: 2.5384,  elevation: 950,  forestType: 'hayedo',   description: 'Hayedo en un valle encantador de l\'Alta Garrotxa, microclima húmedo ideal para rebozuelos y Russula.' },
+  { id: 'zone-033', name: 'Pinar de la Cerdanya',        province: 'Girona',    region: 'Cerdanya',       lat: 42.4301, lng: 1.9271,  elevation: 1750, forestType: 'pinar',    description: 'Pinares pirenaicos de alta altitud en el entorno de Puigcerdà, zona de referencia para Boletus edulis y pinetells.' },
+
+  // Barcelona
+  { id: 'zone-034', name: 'Hayedo del Berguedà',         province: 'Barcelona', region: 'Berguedà',       lat: 42.0978, lng: 1.8753,  elevation: 1250, forestType: 'hayedo',   description: 'Hayedos de la comarca del Berguedà con excelente producción de rovellons y boletos en otoño.' },
+  { id: 'zone-035', name: 'Pinar del Cadí',              province: 'Barcelona', region: 'Berguedà',       lat: 42.2484, lng: 1.7524,  elevation: 1700, forestType: 'pinar',    description: 'Pinar de altura bajo la sierra del Cadí, referencia micológica pirenaica con abundante Lactarius y Boletus.' },
+  { id: 'zone-036', name: 'Robledal del Montnegre',      province: 'Barcelona', region: 'Maresme',        lat: 41.7534, lng: 2.6013,  elevation: 780,  forestType: 'robledal', description: 'Robledal húmedo del macizo del Montnegre, con gran diversidad de species otoñales y buena humedad ambiental.' },
+  { id: 'zone-037', name: 'Robledal de Sant Llorenç del Munt', province: 'Barcelona', region: 'Bages',   lat: 41.6672, lng: 1.9421,  elevation: 850,  forestType: 'robledal', description: 'Robledal mediterráneo en el macizo de Sant Llorenç del Munt, accesible desde la comarca del Bages.' },
+  { id: 'zone-038', name: 'Hayedo de les Guilleries',    province: 'Barcelona', region: 'Osona',          lat: 41.8961, lng: 2.5382,  elevation: 950,  forestType: 'hayedo',   description: 'Hayedos húmedos del macizo de les Guilleries, excelente para rebozuelos y boletos en la vertiente osonenca.' },
+
+  // Lleida
+  { id: 'zone-039', name: 'Pinar de la Vall d\'Àneu',   province: 'Lleida',    region: 'Pallars Sobirà', lat: 42.6712, lng: 1.1384,  elevation: 1600, forestType: 'pinar',    description: 'Extensos pinares del Pallars Sobirà en el corazón del Pirineo catalán, zona virgen con gran riqueza.' },
+  { id: 'zone-040', name: 'Pinar del Port del Comte',    province: 'Lleida',    region: 'Solsonès',       lat: 42.0671, lng: 1.6312,  elevation: 1750, forestType: 'pinar',    description: 'Zona micológica de referencia en el Solsonès, famosa por sus rovellons de altísima calidad.' },
+  { id: 'zone-041', name: 'Hayedo de Tavascan',          province: 'Lleida',    region: 'Pallars Sobirà', lat: 42.6392, lng: 1.2891,  elevation: 1350, forestType: 'hayedo',   description: 'Hayedos de la Vall de Cardós, zona remota con gran riqueza micológica y especies poco frecuentes.' },
+  { id: 'zone-042', name: 'Robledal del Solsonès',       province: 'Lleida',    region: 'Solsonès',       lat: 42.0193, lng: 1.5291,  elevation: 880,  forestType: 'robledal', description: 'Robledal de la comarca del Solsonès con buenas producciones otoñales en años lluviosos.' },
+  { id: 'zone-043', name: 'Pinar del Montsec',           province: 'Lleida',    region: 'Noguera',        lat: 41.9792, lng: 0.8893,  elevation: 800,  forestType: 'pinar',    description: 'Pinares calcáreos del Montsec con Lactarius y Tricholoma, y buenas species primaverales en años favorables.' },
+
+  // Tarragona
+  { id: 'zone-044', name: 'Robledal del Montsant',       province: 'Tarragona', region: 'Priorat',        lat: 41.2903, lng: 0.7831,  elevation: 920,  forestType: 'robledal', description: 'Robledal en la emblemática Serra del Montsant del Priorat, zona virgen y muy productiva en otoño.' },
+  { id: 'zone-045', name: 'Pinar de la Serra de Llaberia', province: 'Tarragona', region: 'Baix Camp',   lat: 41.0682, lng: 0.7934,  elevation: 850,  forestType: 'pinar',    description: 'Pinar meridional con diversidad de species mediterráneas, incluidos Tricholoma terreum y Lactarius.' },
+  { id: 'zone-046', name: 'Encinar de la Conca de Barberà', province: 'Tarragona', region: 'Conca de Barberà', lat: 41.4523, lng: 1.0934, elevation: 600, forestType: 'encinar', description: 'Encinar entre viñedos y bosques mediterráneos, productivo en Boletus aereus y Amanita caesarea en buena temporada.' },
+  { id: 'zone-047', name: 'Pinar de Tivissa',            province: 'Tarragona', region: 'Ribera d\'Ebre', lat: 41.0312, lng: 0.7284,  elevation: 700,  forestType: 'pinar',    description: 'Pinar sobre calizas en la Ribera d\'Ebre, con buena producción de níscalos y setas de cardo en años lluviosos.' },
+  { id: 'zone-048', name: 'Pinar del Montsià',           province: 'Tarragona', region: 'Montsià',        lat: 40.6381, lng: 0.5184,  elevation: 700,  forestType: 'pinar',    description: 'Pinares de los Ports del Montsià, prolongación de los Ports de Beseit, excelentes en temporadas lluviosas.' },
 ];
 
 // Inyectar comunidad autónoma por provincia
