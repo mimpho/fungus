@@ -50,16 +50,16 @@ export function FilterPanel({ isOpen, onClose, children }) {
           <div className={`fixed inset-0 z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)' }}
             onClick={onClose} />
-          <div ref={drawerRef} className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl" style={drawerStyle}>
-            <div className="pt-4 pb-2 flex flex-col items-center touch-none cursor-grab select-none"
+          <div ref={drawerRef} className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl flex flex-col" style={{ ...drawerStyle, maxHeight: 'calc(100dvh - 50px)' }}>
+            <div className="pt-4 pb-2 flex flex-col items-center touch-none cursor-grab select-none shrink-0"
               onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
-            <div className="flex items-center justify-between px-5 pb-3">
+            <div className="flex items-center justify-between px-5 pb-3 shrink-0">
               <h4 className="font-display text-xl font-semibold text-[#f4ebe1]">Filtrar y ordenar</h4>
               <button onClick={onClose} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all">{IC.close}</button>
             </div>
-            <div className="px-5 pb-8 overflow-y-auto" style={{ maxHeight: '65dvh' }}>
+            <div className="px-5 pb-8 overflow-y-auto">
               {children}
             </div>
           </div>

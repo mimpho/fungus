@@ -38,9 +38,10 @@ export default function Zones() {
     const MAIN_PADDING_T = 32  // <main py-8> padding superior
     const GAP            = 20  // space-y-5 entre cabecera de zona y mapa
 
+    const BOTTOM_MARGIN = 16
     const compute = () => {
       const aboveH  = aboveMapRef.current?.offsetHeight ?? 0
-      const available = window.innerHeight - LAYOUT_HEADER - MAIN_PADDING_T - aboveH - GAP
+      const available = window.innerHeight - LAYOUT_HEADER - MAIN_PADDING_T - aboveH - GAP - BOTTOM_MARGIN
       setMapHeight(`${Math.max(available, 280)}px`)
     }
 
@@ -92,7 +93,7 @@ export default function Zones() {
           <SearchFilterBar
             variant="split"
             value={searchQuery}
-            onChange={e => { setSearchQuery(e.target.value); if (e.target.value) setTab('listado') }}
+            onChange={e => setSearchQuery(e.target.value)}
             onClear={() => setSearchQuery('')}
             placeholder={t.buscar}
             onFilterClick={() => setPillOpen(p => !p)}
