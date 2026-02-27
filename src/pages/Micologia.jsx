@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { mockArticles } from '../data/articles'
 import { ArticleModal } from '../components/modals/ArticleModal'
-import { IC } from '../lib/helpers'
-
 // Importar artículos para que se registren en ARTICLE_REGISTRY
 import '../articles/Micorrizas'
 
@@ -69,13 +67,8 @@ export default function Micologia() {
       <div className="max-w-5xl mx-auto anim-up">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            {IC.book}
-            <h2 className="font-display text-2xl text-[#f4ebe1]">Micología</h2>
-          </div>
-          <p className="text-sm text-[#f4ebe1]/45 max-w-xl">
-            Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.
-          </p>
+          <h2 className="font-display text-4xl font-semibold text-[#f4ebe1] mb-1">Micología</h2>
+          <p className="text-[#d9cda1] text-sm">Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.</p>
         </div>
 
         {/* Artículo destacado */}

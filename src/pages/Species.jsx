@@ -59,6 +59,7 @@ export default function Species() {
   const activeFilters = (showFilter !== 'todas' ? 1 : 0) + (familyFilter ? 1 : 0) + (orden !== 'alfa' ? 1 : 0)
 
   useEffect(() => { setPage(1) }, [searchQuery, orden, showFilter, familyFilter])
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [page])
 
   // Paginación con elipsis
   function pageItems2() {

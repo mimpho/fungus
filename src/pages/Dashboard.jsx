@@ -6,6 +6,7 @@ import { mockSpecies } from '../data/species'
 import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor, fakeConditions } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { LeafletMap } from '../components/map/LeafletMap'
+import { mockArticles } from '../data/articles'
 
 export default function Dashboard() {
   const { t, followedZones, toggleFollow, favoriteSpecies, setSelectedZone, setSelectedSpecies } = useApp()
@@ -252,6 +253,45 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ─── MICOLOGÍA ─── */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-1 h-8 rounded-full bg-[#4a6a8a]" />
+          <h3 className="font-display text-2xl font-semibold text-[#f4ebe1]">Micología</h3>
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[#d9cda1] text-sm font-medium uppercase tracking-wider">📖 Artículos recientes</p>
+            <button onClick={() => navigate('/micologia')} className="text-[#d9cda1] hover:text-[#c4a06b] text-xs transition-colors">Ver todos →</button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {mockArticles.slice(0, 3).map(article => (
+              <div key={article.id}
+                onClick={() => navigate('/micologia')}
+                className={`glass rounded-2xl p-5 transition-all duration-200 ${article.status === 'published' ? 'hover-lift cursor-pointer' : 'opacity-50 cursor-default'}`}>
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-3xl">{article.emoji || '🍄'}</span>
+                  {article.status === 'published'
+                    ? <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-[#4a7c59]/25 text-emerald-400">Nuevo</span>
+                    : <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-[#f4ebe1]/40">Próximamente</span>
+                  }
+                </div>
+                <h4 className="font-display text-base text-[#f4ebe1] leading-snug mb-1">{article.title}</h4>
+                <p className="text-xs text-[#d9cda1]/50 leading-relaxed line-clamp-2">{article.summary}</p>
+                <div className="flex items-center gap-2 mt-3">
+                  {article.tags.slice(0, 2).map(tag => (
+                    <span key={tag} className="text-[10px] text-emerald-400 bg-emerald-400/5 px-2 py-0.5 rounded-full">{tag}</span>
+                  ))}
+                  {article.readingTime && (
+                    <span className="text-[10px] text-[#f4ebe1]/25 ml-auto">{article.readingTime} min</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
