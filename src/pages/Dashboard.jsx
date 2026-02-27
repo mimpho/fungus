@@ -46,7 +46,7 @@ export default function Dashboard() {
             <div>
               <div className="text-xs text-[#d9cda1] uppercase tracking-wider mb-1">Condiciones Generales</div>
               <div className="font-display text-4xl font-bold text-emerald-400">
-                {Math.round(topZones.reduce((acc, z) => acc + conditionsMap[z.id].overallScore, 0) / 3)}
+                {weatherLoading ? '–' : Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.overallScore ?? 0), 0) / Math.max(topZones.length, 1))}
               </div>
               <div className="text-[#f4ebe1]/70 text-xs mt-1">Promedio zonas top</div>
             </div>
@@ -54,9 +54,9 @@ export default function Dashboard() {
           </div>
           <div className="space-y-2 text-xs">
             {[
-              ['Temperatura media', `${Math.round(topZones.reduce((acc, z) => acc + conditionsMap[z.id].temperature, 0) / 3)}°C`],
-              ['Humedad media',     `${Math.round(topZones.reduce((acc, z) => acc + conditionsMap[z.id].humidity, 0) / 3)}%`],
-              ['Lluvia últimos 14d',`${Math.round(topZones.reduce((acc, z) => acc + conditionsMap[z.id].rainfall14d, 0) / 3)}mm`],
+              ['Temperatura media', weatherLoading ? '–' : `${Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.temperature ?? 0), 0) / Math.max(topZones.length, 1))}°C`],
+              ['Humedad media',     weatherLoading ? '–' : `${Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.humidity ?? 0), 0) / Math.max(topZones.length, 1))}%`],
+              ['Lluvia últimos 14d',weatherLoading ? '–' : `${Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.rainfall14d ?? 0), 0) / Math.max(topZones.length, 1))}mm`],
             ].map(([label, val]) => (
               <div key={label} className="flex justify-between items-center">
                 <span className="text-[#f4ebe1]/60">{label}</span>
