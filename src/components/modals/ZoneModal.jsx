@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { mockSpecies } from '../../data/species'
-import { IC, EdibilityTag, getScoreColor, fakeConditions } from '../../lib/helpers'
+import { IC, EdibilityTag, getScoreColor } from '../../lib/helpers'
 import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
+import { useZoneConditions } from '../../hooks/useWeatherConditions'
 
 const CAL_FILTERS = [
   { id: 'todas',      label: 'Todas',       emoji: '🍄' },
@@ -17,8 +18,9 @@ export function ZoneModal({ zone, onClose }) {
   const { t, followedZones, toggleFollow, setSelectedSpecies } = useApp()
   const isFollowed = followedZones.some(z => z.id === zone.id)
   const zoneSpecies = mockSpecies.filter(e => e.forestTypes?.includes(zone.forestType))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const conditions = useMemo(() => fakeConditions(), [zone.id])
+  const { conditions: weatherConditions, loading: weatherLoading } = useZoneConditions(zone)
+  // Mientras carga, usar valores neutros para no romper el UI
+  const conditions = weatherConditions ?? { overallScore: 0, temperature: '–', soilTemp: '–', rainfall14d: '–', humidity: '–', wind: '–', dryDays: '–' }
   const currentMonth = new Date().getMonth() + 1
   const sc = getScoreColor(conditions.overallScore)
   const [calFilter, setCalFilter] = useState('todas')
@@ -122,7 +124,13 @@ export function ZoneModal({ zone, onClose }) {
 
           {/* Termómetro */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1] mb-1">{t.termometro}</h3>
+            <div className="flex items-baseline justify-between mb-1">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#d9cda1]">{t.termometro}</h3>
+              {weatherLoading
+                ? <span className="text-[#887b4b] text-[10px]">cargando datos reales…</span>
+                : <span className="text-[#f4ebe1]/25 text-[10px]">Open-Meteo · actualizado ahora</span>
+              }
+            </div>
             <p className="text-[#f4ebe1]/35 text-xs mb-3">Temperatura · Precipitación 14 días · Humedad del suelo</p>
             <div className="flex items-center gap-4 bg-white/[0.03] rounded-xl p-4">
               <div className="flex-1">

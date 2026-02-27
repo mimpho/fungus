@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { mockZones } from '../data/zones'
 import { mockSpecies } from '../data/species'
-import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor, fakeConditions } from '../lib/helpers'
+import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { LeafletMap } from '../components/map/LeafletMap'
 import { mockArticles } from '../data/articles'
+import { useAllZoneConditions } from '../hooks/useWeatherConditions'
 
 export default function Dashboard() {
   const { t, followedZones, toggleFollow, favoriteSpecies, setSelectedZone, setSelectedSpecies } = useApp()
@@ -16,11 +17,7 @@ export default function Dashboard() {
 
   const [mapMode, setMapMode] = useState('markers')
 
-  const conditionsMap = useMemo(() => {
-    const m = {}
-    mockZones.forEach(z => { m[z.id] = fakeConditions() })
-    return m
-  }, [])
+  const { conditionsMap, loading: weatherLoading } = useAllZoneConditions(mockZones)
 
   const topZones = useMemo(() =>
     [...mockZones].sort((a, b) => (conditionsMap[b.id]?.overallScore ?? 0) - (conditionsMap[a.id]?.overallScore ?? 0)).slice(0, 3),
@@ -35,7 +32,10 @@ export default function Dashboard() {
       {/* Header */}
       <div>
         <h2 className="font-display text-4xl font-semibold text-[#f4ebe1] mb-1">Bienvenido</h2>
-        <p className="text-[#d9cda1] text-sm">Condiciones micológicas de hoy · {todayDate}</p>
+        <p className="text-[#d9cda1] text-sm">
+          Condiciones micológicas de hoy · {todayDate}
+          {weatherLoading && <span className="ml-2 text-[#887b4b] text-xs">· actualizando datos reales…</span>}
+        </p>
       </div>
 
       {/* Stat cards */}
@@ -149,7 +149,7 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {followedZones.slice(0, 4).map(z => {
-                const cond = conditionsMap[z.id] || fakeConditions()
+                const cond = conditionsMap[z.id] ?? { overallScore: 0, temperature: '–', humidity: '–', rainfall14d: '–' }
                 const sc   = getScoreColor(cond.overallScore)
                 return (
                   <div key={z.id} onClick={() => setSelectedZone(z)}

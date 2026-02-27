@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { mockZones } from '../data/zones'
-import { fakeConditions } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
+import { useAllZoneConditions } from '../hooks/useWeatherConditions'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
@@ -24,11 +24,7 @@ export default function Zones() {
 
   const isFollowed = id => followedZones.some(z => z.id === id)
 
-  const conditionsMap = useMemo(() => {
-    const m = {}
-    mockZones.forEach(z => { m[z.id] = fakeConditions() })
-    return m
-  }, [])
+  const { conditionsMap, loading: weatherLoading, progress: weatherProgress } = useAllZoneConditions(mockZones)
 
   const forestTypes = useMemo(() => [...new Set(mockZones.map(z => z.forestType))].sort(), [])
   const comunidades = useMemo(() => [...new Set(mockZones.map(z => z.comunidadAutonoma).filter(Boolean))].sort(), [])
@@ -57,7 +53,14 @@ export default function Zones() {
         <div className="flex items-center justify-between md:block">
           <div>
             <h2 className="font-display text-4xl font-semibold text-[#f4ebe1]">{t.zonas}</h2>
-            <p className="text-[#d9cda1] text-sm mt-1">{followedZones.length} {t.followedZones.toLowerCase()}</p>
+            <p className="text-[#d9cda1] text-sm mt-1">
+              {followedZones.length} {t.followedZones.toLowerCase()}
+              {weatherLoading && (
+                <span className="ml-2 text-[#887b4b] text-xs">
+                  · cargando datos meteorológicos {weatherProgress.done}/{weatherProgress.total}…
+                </span>
+              )}
+            </p>
           </div>
           <div className="md:hidden shrink-0 ml-4">
             <Tabs options={[{ id: 'mapa', label: t.mapa }, { id: 'listado', label: 'Listado' }]} selected={tab} onChange={setTab} size="md" />
