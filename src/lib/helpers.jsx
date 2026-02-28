@@ -13,7 +13,7 @@ export { MODAL, COLORS };
 // =====================================================
 export const IC = {
   map: (
-    <svg className="w-5 h-5" fill="none" stroke="#f4ebe1" viewBox="0 0 24 24">
+    <svg className="w-5 h-5" fill="none" stroke="var(--color-cream)" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
         d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
     </svg>
@@ -143,7 +143,7 @@ export function getEdibilityColor(com) {
 // =====================================================
 export function getScoreColor(s) {
   if (s >= 85) return { bar: 'bg-emerald-400', text: 'text-emerald-400', label: 'Excelente' };
-  if (s >= 70) return { bar: 'bg-[#887b4b]',   text: 'text-[#c4a06b]',   label: 'Muy bueno' };
+  if (s >= 70) return { bar: 'bg-bar',   text: 'text-coffee-light',   label: 'Muy bueno' };
   if (s >= 55) return { bar: 'bg-amber-500',   text: 'text-amber-400',   label: 'Bueno' };
   return             { bar: 'bg-red-500',       text: 'text-red-400',     label: 'Regular' };
 }
@@ -265,14 +265,14 @@ export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full'
       </div>
       {isCompact ? (
         <div className="p-3">
-          <h4 className="font-display text-sm font-semibold text-[#f4ebe1] leading-snug truncate">{species.scientificName}</h4>
-          <p className="text-[#d9cda1] text-[10px] mt-0.5 truncate">{species.commonNames[0]}</p>
+          <h4 className="font-display text-sm font-semibold text-cream leading-snug truncate">{species.scientificName}</h4>
+          <p className="text-muted text-[10px] mt-0.5 truncate">{species.commonNames[0]}</p>
         </div>
       ) : (
         <div className="p-4 pt-2">
-          <h3 className="font-display text-xl font-semibold text-[#f4ebe1] mb-1">{species.scientificName}</h3>
-          <p className="text-[#d9cda1] text-xs mb-2">{species.family}</p>
-          <p className="text-[#f4ebe1]/70 text-xs truncate">{species.commonNames.join(' · ')}</p>
+          <h3 className="font-display text-xl font-semibold text-cream mb-1">{species.scientificName}</h3>
+          <p className="text-muted text-xs mb-2">{species.family}</p>
+          <p className="text-cream/70 text-xs truncate">{species.commonNames.join(' · ')}</p>
         </div>
       )}
     </div>
@@ -430,15 +430,15 @@ export function TaxonomyBlock({ species }) {
   return (
     <div className="mt-5">
       <button onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 text-sm text-[#d9cda1]/60 hover:text-[#c4a06b] transition-colors">
+        className="flex items-center gap-1.5 text-sm text-muted/60 hover:text-coffee-light transition-colors">
         <svg className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
         🔬 {open ? 'Ocultar taxonomía' : `Ver taxonomía (${syns.length} sinónimo${syns.length > 1 ? 's' : ''})`}
       </button>
       {open && (
-        <div className="mt-2 ml-1 pl-3 border-l-2 border-[#887b4b]/20 space-y-1">
-          {syns.map((s, i) => <p key={i} className="text-sm text-[#f4ebe1]/45 italic">{s}</p>)}
+        <div className="mt-2 ml-1 pl-3 border-l-2 border-bar/20 space-y-1">
+          {syns.map((s, i) => <p key={i} className="text-sm text-cream/45 italic">{s}</p>)}
         </div>
       )}
     </div>
@@ -465,18 +465,18 @@ export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <span className={`font-medium text-sm ${c.nameColor}${inApp && onViewSpecies ? ' underline underline-offset-2 decoration-dotted' : ''}`}>{c.name}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-[#f4ebe1]/50">{c.risk}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-cream/50">{c.risk}</span>
                   {inApp && onViewSpecies && (
-                    <span className="text-[10px] text-[#f4ebe1]/30 ml-auto">Ver ficha →</span>
+                    <span className="text-[10px] text-cream/30 ml-auto">Ver ficha →</span>
                   )}
                 </div>
-                <p className="text-[#f4ebe1]/60 text-sm leading-relaxed">{c.diff}</p>
+                <p className="text-cream/60 text-sm leading-relaxed">{c.diff}</p>
               </div>
             </div>
           </Wrapper>
         )
       })}
-      <p className="text-[#f4ebe1]/30 text-xs text-center pt-1">
+      <p className="text-cream/30 text-xs text-center pt-1">
         ⚠️ Datos orientativos. Consulta siempre con un micólogo experto antes de consumir cualquier seta silvestre.
       </p>
     </div>

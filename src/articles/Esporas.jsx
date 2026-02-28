@@ -27,7 +27,7 @@ function EsporasContent() {
         <ArticleP>
           A diferencia de las semillas de las plantas, la espora es típicamente unicelular y haploide. Es una cápsula de vida mínima, despojada de casi toda reserva, confiando su éxito puramente en el número y la resistencia.
         </ArticleP>
-        <ArticleCallout emoji="🔬" color="#4a7c59">
+        <ArticleCallout emoji="🔬" color="var(--color-green-f)">
           <strong>Nota científica — El origen en los Basidios:</strong> En los hongos superiores, las esporas se forman en los <em>basidios</em>. Mediante meiosis, un solo hongo puede liberar cifras astronómicas; un ejemplar de <em>Calvatia gigantea</em> puede albergar hasta <strong>7 billones de esporas</strong> en su interior.
         </ArticleCallout>
 
@@ -41,8 +41,8 @@ function EsporasContent() {
           {/* Gradiente + caption overlay */}
           <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72), transparent)' }} />
-          <figcaption className="absolute bottom-3 left-4 right-4 text-[#f4ebe1]/85 text-xs leading-snug">
-            <strong className="text-[#d9cda1]">Fig. 1:</strong> Micrografía de la superficie de una lámina mostrando los basidios en maduración.
+          <figcaption className="absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
+            <strong className="text-muted">Fig. 1:</strong> Micrografía de la superficie de una lámina mostrando los basidios en maduración.
           </figcaption>
           <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
@@ -71,8 +71,8 @@ function EsporasContent() {
               {/* Gradiente + caption overlay */}
               <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
                 style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72), transparent)' }} />
-              <figcaption className="absolute bottom-3 left-3 right-3 text-[#f4ebe1]/85 text-xs leading-snug">
-                <strong className="text-[#d9cda1]">{label}:</strong> {sub}
+              <figcaption className="absolute bottom-3 left-3 right-3 text-cream/85 text-xs leading-snug">
+                <strong className="text-muted">{label}:</strong> {sub}
               </figcaption>
               <div className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
@@ -88,9 +88,9 @@ function EsporasContent() {
             { term: 'Anemocoria (Viento)',  desc: 'El método más extendido: corrientes térmicas ascendentes elevan esporas muy livianas hasta la troposfera, donde pueden viajar miles de kilómetros.' },
             { term: 'Zoocoria (Animales)',  desc: 'Trufas y afines usan aromas intensos para atraer mamíferos que las consumen y dispersan sus esporas intactas con las heces.' },
           ].map(({ term, desc }) => (
-            <li key={term} className="flex gap-2 text-[#f4ebe1]/75" style={{ fontSize: '15px' }}>
-              <span className="text-[#8b7a5a] mt-0.5 shrink-0">›</span>
-              <span><strong className="text-[#d9cda1]">{term}:</strong> {desc}</span>
+            <li key={term} className="flex gap-2 text-cream/75" style={{ fontSize: '15px' }}>
+              <span className="text-coffee mt-0.5 shrink-0">›</span>
+              <span><strong className="text-muted">{term}:</strong> {desc}</span>
             </li>
           ))}
         </ul>
@@ -111,8 +111,8 @@ function EsporasContent() {
           </div>
           <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72), transparent)' }} />
-          <figcaption className="absolute bottom-3 left-4 right-4 text-[#f4ebe1]/85 text-xs leading-snug">
-            <strong className="text-[#d9cda1]">Fig. 4:</strong> Somatogamia — fusión de dos tubos germinales compatibles formando un nuevo micelio dicariótico.
+          <figcaption className="absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
+            <strong className="text-muted">Fig. 4:</strong> Somatogamia — fusión de dos tubos germinales compatibles formando un nuevo micelio dicariótico.
           </figcaption>
           <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
@@ -133,8 +133,8 @@ function EsporasContent() {
 
       {/* Referencias */}
       <div className="pt-2 border-t border-white/[0.06]">
-        <p className="text-[#f4ebe1]/30 text-xs leading-relaxed">
-          <strong className="text-[#f4ebe1]/45">Referencias:</strong><br />
+        <p className="text-cream/30 text-xs leading-relaxed">
+          <strong className="text-cream/45">Referencias:</strong><br />
           · Moore, D., et al. (2020). <em>21st Century Guidebook to Fungi</em>.<br />
           · Pringle, A., et al. (2005). "The captured launch of a ballistospore". <em>Mycologia</em>.<br />
           · Money, N. P. (2016). <em>The Amoeba in the Room</em>. Oxford University Press.

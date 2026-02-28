@@ -21,8 +21,8 @@ function Fig({ fotos, idx, height = 290, openLightbox }) {
       </div>
       <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }} />
-      <figcaption className="absolute bottom-3 left-4 right-4 text-[#f4ebe1]/85 text-xs leading-snug">
-        <strong className="text-[#d9cda1]">Fig. {idx + 1}:</strong>{' '}
+      <figcaption className="absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
+        <strong className="text-muted">Fig. {idx + 1}:</strong>{' '}
         {fotos[idx].caption.replace(/^Fig\. \d+ — /, '')}
       </figcaption>
       <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -60,9 +60,9 @@ function VenenosContent() {
             { term: 'Orellanina',   desc: 'Toxina nefrotóxica de Cortinarius orellanus. Único veneno fúngico con latencia de 2–3 semanas, lo que dificulta su diagnóstico.' },
             { term: 'Giromitrina',  desc: 'Presente en Gyromitra esculenta. Se hidroliza en monometilhidrazina (MMH), un potente hepatotóxico y hemolítico. Parcialmente volátil al cocinar.' },
           ].map(({ term, desc }) => (
-            <li key={term} className="flex gap-2 text-[#f4ebe1]/75" style={{ fontSize: '15px' }}>
-              <span className="text-[#8b7a5a] mt-0.5 shrink-0">›</span>
-              <span><strong className="text-[#d9cda1]">{term}:</strong> {desc}</span>
+            <li key={term} className="flex gap-2 text-cream/75" style={{ fontSize: '15px' }}>
+              <span className="text-coffee mt-0.5 shrink-0">›</span>
+              <span><strong className="text-muted">{term}:</strong> {desc}</span>
             </li>
           ))}
         </ul>
@@ -85,7 +85,7 @@ function VenenosContent() {
 
         <Fig fotos={FOTOS} idx={1} height={270} openLightbox={openLightbox} />
 
-        <ArticleCallout emoji="🏥" color="#8b6f47">
+        <ArticleCallout emoji="🏥" color="var(--color-coffee)">
           <strong>Tratamiento:</strong> No existe antídoto específico. El protocolo incluye silibinina intravenosa (extracto de cardo mariano), N-acetilcisteína y, en casos graves, trasplante hepático. La supervivencia depende casi exclusivamente de la rapidez del diagnóstico.
         </ArticleCallout>
       </ArticleSection>
@@ -102,9 +102,9 @@ function VenenosContent() {
             { term: 'Síndrome giromítrico (6–12 h)',     desc: 'Gyromitra esculenta («falsa colmenilla»). Hepatotóxico y hemolítico. Parte de la toxina puede eliminarse al hervir con ventilación, pero el riesgo nunca es cero.' },
             { term: 'Síndrome panterínico (30 min–3 h)', desc: 'Amanita muscaria y A. pantherina contienen muscimol e ibotenic acid, agentes psicoactivos que causan delirio, alucinaciones y convulsiones en dosis altas.' },
           ].map(({ term, desc }) => (
-            <li key={term} className="flex gap-2 text-[#f4ebe1]/75" style={{ fontSize: '15px' }}>
-              <span className="text-[#8b7a5a] mt-0.5 shrink-0">›</span>
-              <span><strong className="text-[#d9cda1]">{term}:</strong> {desc}</span>
+            <li key={term} className="flex gap-2 text-cream/75" style={{ fontSize: '15px' }}>
+              <span className="text-coffee mt-0.5 shrink-0">›</span>
+              <span><strong className="text-muted">{term}:</strong> {desc}</span>
             </li>
           ))}
         </ul>
@@ -125,13 +125,13 @@ function VenenosContent() {
             { term: 'Gyromitra por Morchella',           desc: 'La falsa colmenilla tiene el sombrero cerebriforme e irregular; la colmenilla real muestra alvéolos regulares y el sombrero está unido al pie desde la base.' },
             { term: 'Cortinarius por Boletus / Russula', desc: 'Los Cortinarius tóxicos suelen tener restos de cortina aracnoide en el pie y láminas de color óxido al madurar. Nunca comer Cortinarius de identificación dudosa.' },
           ].map(({ term, desc }) => (
-            <li key={term} className="flex gap-2 text-[#f4ebe1]/75" style={{ fontSize: '15px' }}>
-              <span className="text-[#8b7a5a] mt-0.5 shrink-0">›</span>
-              <span><strong className="text-[#d9cda1]">{term}:</strong> {desc}</span>
+            <li key={term} className="flex gap-2 text-cream/75" style={{ fontSize: '15px' }}>
+              <span className="text-coffee mt-0.5 shrink-0">›</span>
+              <span><strong className="text-muted">{term}:</strong> {desc}</span>
             </li>
           ))}
         </ul>
-        <ArticleCallout emoji="🍄" color="#4a7c59">
+        <ArticleCallout emoji="🍄" color="var(--color-green-f)">
           <strong>Protocolo ante sospecha de intoxicación:</strong> llamar al 112 o al Servicio de Información Toxicológica (91 562 04 20 en España) inmediatamente, conservar restos de la seta —o una fotografía detallada— y no esperar a que aparezcan síntomas graves.
         </ArticleCallout>
       </ArticleSection>
@@ -145,8 +145,8 @@ function VenenosContent() {
 
       {/* Referencias */}
       <div className="pt-2 border-t border-white/[0.06]">
-        <p className="text-[#f4ebe1]/30 text-xs leading-relaxed">
-          <strong className="text-[#f4ebe1]/45">Referencias:</strong><br />
+        <p className="text-cream/30 text-xs leading-relaxed">
+          <strong className="text-cream/45">Referencias:</strong><br />
           · Bresinsky, A. &amp; Besl, H. (1990). <em>A Colour Atlas of Poisonous Fungi</em>. Wolfe Publishing.<br />
           · Enjalbert, F., et al. (2002). «Treatment of amatoxin poisoning». <em>J. Toxicology: Clinical Toxicology</em>.<br />
           · Servicio de Información Toxicológica de España — <em>sit.toxicologia.org</em>

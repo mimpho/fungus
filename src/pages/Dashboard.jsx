@@ -31,10 +31,10 @@ export default function Dashboard() {
     <div className="space-y-10 anim-up pb-20">
       {/* Header */}
       <div>
-        <h2 className="font-display text-4xl font-semibold text-[#f4ebe1] mb-1">Bienvenido</h2>
-        <p className="text-[#d9cda1] text-sm">
+        <h2 className="font-display text-4xl font-semibold text-cream mb-1">Bienvenido</h2>
+        <p className="text-muted text-sm">
           Condiciones micológicas de hoy · {todayDate}
-          {weatherLoading && <span className="ml-2 text-[#887b4b] text-xs">· actualizando datos reales…</span>}
+          {weatherLoading && <span className="ml-2 text-bar text-xs">· actualizando datos reales…</span>}
         </p>
       </div>
 
@@ -44,11 +44,11 @@ export default function Dashboard() {
         <div className="glass rounded-2xl p-6 hover-lift anim-up">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <div className="text-xs text-[#d9cda1] uppercase tracking-wider mb-1">Condiciones Generales</div>
+              <div className="text-xs text-muted uppercase tracking-wider mb-1">Condiciones Generales</div>
               <div className="font-display text-4xl font-bold text-emerald-400">
                 {weatherLoading ? '–' : Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.overallScore ?? 0), 0) / Math.max(topZones.length, 1))}
               </div>
-              <div className="text-[#f4ebe1]/70 text-xs mt-1">Promedio zonas top</div>
+              <div className="text-cream/70 text-xs mt-1">Promedio zonas top</div>
             </div>
             <img src="/assets/images/icons/temperature.png" alt="temperature" className="w-10 h-10 opacity-70" />
           </div>
@@ -59,8 +59,8 @@ export default function Dashboard() {
               ['Lluvia últimos 14d',weatherLoading ? '–' : `${Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.rainfall14d ?? 0), 0) / Math.max(topZones.length, 1))}mm`],
             ].map(([label, val]) => (
               <div key={label} className="flex justify-between items-center">
-                <span className="text-[#f4ebe1]/60">{label}</span>
-                <span className="text-[#f4ebe1] font-medium">{val}</span>
+                <span className="text-cream/60">{label}</span>
+                <span className="text-cream font-medium">{val}</span>
               </div>
             ))}
           </div>
@@ -73,14 +73,14 @@ export default function Dashboard() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="text-xs text-emerald-400 uppercase tracking-wider mb-1">🌟 Mejor Zona Hoy</div>
-              <div className="font-display text-lg font-semibold text-[#f4ebe1] truncate">{topZones[0]?.name}</div>
-              <div className="text-[#d9cda1] text-xs mt-0.5">{topZones[0]?.province} · {topZones[0]?.elevation}m</div>
+              <div className="font-display text-lg font-semibold text-cream truncate">{topZones[0]?.name}</div>
+              <div className="text-muted text-xs mt-0.5">{topZones[0]?.province} · {topZones[0]?.elevation}m</div>
             </div>
             <div className="font-display text-3xl font-bold text-emerald-400">{conditionsMap[topZones[0]?.id]?.overallScore}</div>
           </div>
           <div className="bg-emerald-500/10 rounded-lg p-3">
             <div className="text-xs text-emerald-300 mb-1">¿Por qué es la mejor?</div>
-            <div className="text-[#f4ebe1]/80 text-xs leading-relaxed">
+            <div className="text-cream/80 text-xs leading-relaxed">
               {conditionsMap[topZones[0]?.id]?.rainfall14d > 30 ? `Lluvia abundante (${conditionsMap[topZones[0]?.id]?.rainfall14d}mm), ` : 'Lluvia moderada, '}
               temperatura óptima ({conditionsMap[topZones[0]?.id]?.temperature}°C), humedad alta ({conditionsMap[topZones[0]?.id]?.humidity}%).
             </div>
@@ -91,9 +91,9 @@ export default function Dashboard() {
         <div className="glass rounded-2xl p-6 hover-lift anim-up" style={{ animationDelay: '0.16s' }}>
           <div className="flex items-start justify-between mb-4">
             <div>
-              <div className="text-xs text-[#d9cda1] uppercase tracking-wider mb-1">Especies Activas</div>
-              <div className="font-display text-4xl font-bold text-[#f4ebe1]">{inSeasonSpecies.length}</div>
-              <div className="text-[#f4ebe1]/70 text-xs mt-1">Fructificando este mes</div>
+              <div className="text-xs text-muted uppercase tracking-wider mb-1">Especies Activas</div>
+              <div className="font-display text-4xl font-bold text-cream">{inSeasonSpecies.length}</div>
+              <div className="text-cream/70 text-xs mt-1">Fructificando este mes</div>
             </div>
             <img src="/assets/images/icons/mushroom.png" alt="season" className="w-10 h-10 opacity-70" />
           </div>
@@ -103,12 +103,12 @@ export default function Dashboard() {
                 className="flex items-center gap-2 bg-white/[0.03] rounded-lg p-2 cursor-pointer hover:bg-white/[0.06] transition-colors"
                 onClick={() => setSelectedSpecies(e)}>
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${getEdibilityColor(e.edibility).dot}`} />
-                <div className="font-display text-xs text-[#f4ebe1] truncate">{e.scientificName}</div>
+                <div className="font-display text-xs text-cream truncate">{e.scientificName}</div>
               </div>
             ))}
             {inSeasonSpecies.length > 3 && (
               <button onClick={() => navigate('/especies')}
-                className="w-full text-center text-xs text-[#d9cda1] hover:text-[#c4a06b] transition-colors pt-1">
+                className="w-full text-center text-xs text-muted hover:text-coffee-light transition-colors pt-1">
                 Ver todas las {inSeasonSpecies.length} →
               </button>
             )}
@@ -119,15 +119,15 @@ export default function Dashboard() {
       {/* ─── ZONAS ─── */}
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-8 rounded-full bg-[#4a7c59]" />
-          <h3 className="font-display text-2xl font-semibold text-[#f4ebe1]">Zonas</h3>
+          <div className="w-1 h-8 rounded-full bg-green-f" />
+          <h3 className="font-display text-2xl font-semibold text-cream">Zonas</h3>
         </div>
 
         {/* Top zonas */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[#d9cda1] text-sm font-medium uppercase tracking-wider">🌟 Mejores condiciones hoy</p>
-            <button onClick={() => navigate('/zonas')} className="text-[#d9cda1] hover:text-[#c4a06b] text-xs transition-colors">Ver todas →</button>
+            <p className="text-muted text-sm font-medium uppercase tracking-wider">🌟 Mejores condiciones hoy</p>
+            <button onClick={() => navigate('/zonas')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver todas →</button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {topZones.map(z => (
@@ -144,8 +144,8 @@ export default function Dashboard() {
         {followedZones.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[#d9cda1] text-sm font-medium uppercase tracking-wider">⭐ {t.followedZones}</p>
-              <button onClick={() => navigate('/zonas')} className="text-[#d9cda1] hover:text-[#c4a06b] text-xs transition-colors">Ver todas →</button>
+              <p className="text-muted text-sm font-medium uppercase tracking-wider">⭐ {t.followedZones}</p>
+              <button onClick={() => navigate('/zonas')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver todas →</button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {followedZones.slice(0, 4).map(z => {
@@ -155,8 +155,8 @@ export default function Dashboard() {
                   <div key={z.id} onClick={() => setSelectedZone(z)}
                     className="glass rounded-xl p-4 flex items-center gap-4 hover-lift cursor-pointer">
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-[#f4ebe1] text-sm truncate">{z.name}</div>
-                      <div className="text-[#d9cda1] text-xs">{z.province} · {z.forestType} · {z.elevation}m</div>
+                      <div className="font-medium text-cream text-sm truncate">{z.name}</div>
+                      <div className="text-muted text-xs">{z.province} · {z.forestType} · {z.elevation}m</div>
                       <div className="mt-2 progress-bar">
                         <div className={`progress-fill ${sc.bar}`} style={{ width: `${cond.overallScore}%` }} />
                       </div>
@@ -174,7 +174,7 @@ export default function Dashboard() {
         {/* Mapa */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[#d9cda1] text-sm font-medium uppercase tracking-wider">🗺️ Dónde recolectar ahora</p>
+            <p className="text-muted text-sm font-medium uppercase tracking-wider">🗺️ Dónde recolectar ahora</p>
           </div>
           <div className="rounded-2xl overflow-hidden">
             <LeafletMap
@@ -186,7 +186,7 @@ export default function Dashboard() {
               title="Zonas micológicas" />
           </div>
           {mapMode === 'heatmap' && (
-            <div className="mt-3 flex items-center justify-center gap-6 text-xs text-[#f4ebe1]/60">
+            <div className="mt-3 flex items-center justify-center gap-6 text-xs text-cream/60">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-sm" style={{ background: '#d97706' }} />
                 <span>Bueno</span>
@@ -207,15 +207,15 @@ export default function Dashboard() {
       {/* ─── ESPECIES ─── */}
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-8 rounded-full bg-[#887b4b]" />
-          <h3 className="font-display text-2xl font-semibold text-[#f4ebe1]">Especies</h3>
+          <div className="w-1 h-8 rounded-full bg-bar" />
+          <h3 className="font-display text-2xl font-semibold text-cream">Especies</h3>
         </div>
 
         {inSeasonSpecies.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[#d9cda1] text-sm font-medium uppercase tracking-wider">🌱 Fructificando este mes</p>
-              <button onClick={() => navigate('/especies')} className="text-[#d9cda1] hover:text-[#c4a06b] text-xs transition-colors">Ver catálogo →</button>
+              <p className="text-muted text-sm font-medium uppercase tracking-wider">🌱 Fructificando este mes</p>
+              <button onClick={() => navigate('/especies')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver catálogo →</button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {inSeasonSpecies.map((e, i) => (
@@ -228,8 +228,8 @@ export default function Dashboard() {
         {favoriteSpecies.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[#d9cda1] text-sm font-medium uppercase tracking-wider">❤️ {t.favoriteSpecies}</p>
-              <button onClick={() => navigate('/especies')} className="text-[#d9cda1] hover:text-[#c4a06b] text-xs transition-colors">Ver todas →</button>
+              <p className="text-muted text-sm font-medium uppercase tracking-wider">❤️ {t.favoriteSpecies}</p>
+              <button onClick={() => navigate('/especies')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver todas →</button>
             </div>
             <div className="flex flex-wrap gap-3">
               {favoriteSpecies.slice(0, 6).map(e => {
@@ -241,7 +241,7 @@ export default function Dashboard() {
                       <SpeciesImg localSrc={e.photo?.url} scientificName={e.scientificName} className="w-full h-full opacity-80" objectFit="cover" />
                     </div>
                     <div className="min-w-0">
-                      <div className="font-display text-sm text-[#f4ebe1] truncate max-w-[120px]">{e.scientificName}</div>
+                      <div className="font-display text-sm text-cream truncate max-w-[120px]">{e.scientificName}</div>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <EdibilityTag edibility={e.edibility} variant="glass" showDot className="text-[9px] px-0 bg-transparent" />
                         {enTemporada && <span className="text-emerald-400 text-[9px] font-medium">EN TEMPORADA</span>}
@@ -259,12 +259,12 @@ export default function Dashboard() {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="w-1 h-8 rounded-full bg-[#4a6a8a]" />
-          <h3 className="font-display text-2xl font-semibold text-[#f4ebe1]">Micología</h3>
+          <h3 className="font-display text-2xl font-semibold text-cream">Micología</h3>
         </div>
         <div>
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[#d9cda1] text-sm font-medium uppercase tracking-wider">📖 Artículos recientes</p>
-            <button onClick={() => navigate('/micologia')} className="text-[#d9cda1] hover:text-[#c4a06b] text-xs transition-colors">Ver todos →</button>
+            <p className="text-muted text-sm font-medium uppercase tracking-wider">📖 Artículos recientes</p>
+            <button onClick={() => navigate('/micologia')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver todos →</button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {mockArticles.slice(0, 3).map(article => (
@@ -274,18 +274,18 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between mb-3">
                   <span className="text-3xl">{article.emoji || '🍄'}</span>
                   {article.status === 'published'
-                    ? <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-[#4a7c59]/25 text-emerald-400">Nuevo</span>
-                    : <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-[#f4ebe1]/40">Próximamente</span>
+                    ? <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-green-f/25 text-emerald-400">Nuevo</span>
+                    : <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-cream/40">Próximamente</span>
                   }
                 </div>
-                <h4 className="font-display text-base text-[#f4ebe1] leading-snug mb-1">{article.title}</h4>
-                <p className="text-xs text-[#d9cda1]/50 leading-relaxed line-clamp-2">{article.summary}</p>
+                <h4 className="font-display text-base text-cream leading-snug mb-1">{article.title}</h4>
+                <p className="text-xs text-muted/50 leading-relaxed line-clamp-2">{article.summary}</p>
                 <div className="flex items-center gap-2 mt-3">
                   {article.tags.slice(0, 2).map(tag => (
                     <span key={tag} className="text-[10px] text-emerald-400 bg-emerald-400/5 px-2 py-0.5 rounded-full">{tag}</span>
                   ))}
                   {article.readingTime && (
-                    <span className="text-[10px] text-[#f4ebe1]/25 ml-auto">{article.readingTime} min</span>
+                    <span className="text-[10px] text-cream/25 ml-auto">{article.readingTime} min</span>
                   )}
                 </div>
               </div>

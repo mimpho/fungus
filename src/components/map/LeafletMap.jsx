@@ -33,8 +33,8 @@ function heatRadiusForZoom(zoom) {
   return base
 }
 
-const FOREST_COLORS = { pinar: '#4a7c59', hayedo: '#d9cda1', robledal: '#a0522d', encinar: '#6b8e23' }
-const mushIcon = (color = '#d9cda1', active = false) => L.divIcon({
+const FOREST_COLORS = { pinar: 'var(--color-green-f)', hayedo: 'var(--color-muted)', robledal: '#a0522d', encinar: '#6b8e23' }
+const mushIcon = (color = 'var(--color-muted)', active = false) => L.divIcon({
   className: '',
   html: `<div style="width:${active ? 38 : 28}px;height:${active ? 38 : 28}px;background:${color};border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${active ? 16 : 12}px;box-shadow:0 0 ${active ? 20 : 10}px ${color}80;transition:all 0.2s;">🍄</div>`,
   iconSize: [active ? 38 : 28, active ? 38 : 28],
@@ -86,7 +86,7 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
           radius: initRadius,
           blur: Math.ceil(initRadius * 0.70),
           maxZoom: 17, max: 0.85, minOpacity: 0.25,
-          gradient: { 0.0: '#7f1d1d', 0.25: '#d97706', 0.50: '#a3a020', 0.75: '#4a7c59', 1.0: '#2d6640' },
+          gradient: { 0.0: '#7f1d1d', 0.25: '#d97706', 0.50: '#a3a020', 0.75: 'var(--color-green-f)', 1.0: '#2d6640' },
         }).addTo(map)
         heatLayerRef.current = heatLayer
         map.on('zoomend', () => {
@@ -118,13 +118,13 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
     group.clearLayers()
     const toRender = singleZone ? [singleZone] : (zonas || [])
     toRender.forEach(z => {
-      const color  = FOREST_COLORS[z.forestType] || '#d9cda1'
+      const color  = FOREST_COLORS[z.forestType] || 'var(--color-muted)'
       const popupHtml = `
-        <div style="font-family:'DM Sans',sans-serif;color:#f4ebe1;min-width:175px;">
+        <div style="font-family:'DM Sans',sans-serif;color:var(--color-cream);min-width:175px;">
           <div style="font-weight:600;font-size:13px;margin-bottom:3px;">${z.name}</div>
-          <div style="color:#d9cda1;font-size:11px;margin-bottom:2px;text-transform:capitalize">${z.province} · ${z.forestType}</div>
-          <div style="color:#887b4b;font-size:11px;margin-bottom:10px;">⛰️ ${z.elevation}m alt.</div>
-          <button class="popup-zone-btn" style="font-size:11px;color:#c4a06b;cursor:pointer;background:rgba(139,111,71,0.18);border:1px solid rgba(139,111,71,0.28);padding:5px 10px;border-radius:8px;font-family:inherit;width:100%;text-align:center;transition:background 0.15s,border-color 0.15s;">Ver zona →</button>
+          <div style="color:var(--color-muted);font-size:11px;margin-bottom:2px;text-transform:capitalize">${z.province} · ${z.forestType}</div>
+          <div style="color:var(--color-bar);font-size:11px;margin-bottom:10px;">⛰️ ${z.elevation}m alt.</div>
+          <button class="popup-zone-btn" style="font-size:11px;color:var(--color-coffee-light);cursor:pointer;background:rgba(139,111,71,0.18);border:1px solid rgba(139,111,71,0.28);padding:5px 10px;border-radius:8px;font-family:inherit;width:100%;text-align:center;transition:background 0.15s,border-color 0.15s;">Ver zona →</button>
         </div>`
       const marker = L.marker([z.lat, z.lng], { icon: mushIcon(color, !!singleZone) })
         .bindPopup(popupHtml, { className: 'fungus-popup', closeButton: false, offset: [0, -6] })
@@ -201,21 +201,21 @@ function MapFullscreenModal({ zonas, singleZone, onZoneClick, title, onClose, mo
   }, [onClose])
 
   return createPortal(
-    <div className="fixed inset-0 flex flex-col" style={{ zIndex: 10000, background: '#0f1f18' }}>
+    <div className="fixed inset-0 flex flex-col" style={{ zIndex: 10000, background: 'var(--color-bg-deep)' }}>
       {/* Header */}
       <div className="glass flex items-center justify-between px-4 py-3 shrink-0">
         <div className="flex items-center gap-3">
           {IC.map}
-          <span className="font-display text-lg text-[#f4ebe1]">{title || 'Mapa'}</span>
+          <span className="font-display text-lg text-cream">{title || 'Mapa'}</span>
           {singleZone && (
-            <span className="text-xs text-[#d9cda1] hidden sm:block">
+            <span className="text-xs text-muted hidden sm:block">
               {singleZone.lat.toFixed(4)}, {singleZone.lng.toFixed(4)} · ⛰️ {singleZone.elevation}m
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {onModeChange && (
-            <div className="backdrop-blur-sm bg-[#30372a]/80 rounded-xl p-1">
+            <div className="backdrop-blur-sm bg-modal/80 rounded-xl p-1">
               <Tabs
                 options={[{ id: 'markers', label: 'Zonas' }, { id: 'heatmap', label: 'Mapa de calor' }]}
                 selected={mode}
@@ -225,7 +225,7 @@ function MapFullscreenModal({ zonas, singleZone, onZoneClick, title, onClose, mo
             </div>
           )}
           <button onClick={onClose}
-            className="p-2.5 rounded-xl hover:bg-white/10 text-[#f4ebe1]/60 hover:text-[#f4ebe1] transition-colors">
+            className="p-2.5 rounded-xl hover:bg-white/10 text-cream/60 hover:text-cream transition-colors">
             {IC.close}
           </button>
         </div>
@@ -259,7 +259,7 @@ export function LeafletMap({
 
         {/* Selector modo (si se proporciona) */}
         {onModeChange && (
-          <div className="absolute top-3 left-3 z-[1000] backdrop-blur-sm bg-[#30372a]/80 rounded-xl p-1">
+          <div className="absolute top-3 left-3 z-[1000] backdrop-blur-sm bg-modal/80 rounded-xl p-1">
             <Tabs
               options={[{ id: 'markers', label: 'Zonas' }, { id: 'heatmap', label: 'Mapa de calor' }]}
               selected={mode}
@@ -271,7 +271,7 @@ export function LeafletMap({
 
         {/* Botón pantalla completa */}
         <button
-          className="absolute bottom-3 right-3 z-[1000] p-2 rounded-xl backdrop-blur-sm bg-[#30372a]/80 text-[#f4ebe1]/60 hover:text-[#f4ebe1] transition-colors"
+          className="absolute bottom-3 right-3 z-[1000] p-2 rounded-xl backdrop-blur-sm bg-modal/80 text-cream/60 hover:text-cream transition-colors"
           onClick={() => setFullscreen(true)}
           title="Pantalla completa">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -11,19 +11,16 @@ function ArticleCard({ article, onSelect }) {
   return (
     <div
       onClick={() => isPublished && onSelect(article)}
-      className={`glass rounded-2xl overflow-hidden transition-all duration-200 ${isPublished ? 'hover-lift cursor-pointer' : 'opacity-60'}`}
-      style={{ border: isPublished ? '1px solid #4a7c5930' : '1px solid #ffffff08' }}>
+      className={`glass rounded-2xl overflow-hidden transition-all duration-200 ${isPublished ? 'hover-lift cursor-pointer border border-green-f/20' : 'opacity-60 border border-white/[0.05]'}`}>
       <div className="h-56">
         <div className="absolute top-4 right-4">
           {!isPublished && (
-            <span className="text-xs px-2.5 py-1 rounded-full font-medium"
-              style={{ background: '#ffffff10', color: '#f4ebe1', opacity: 0.5 }}>
+            <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-white/10 text-cream/50">
               Próximamente
             </span>
           )}
           {isPublished && (
-            <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
-              style={{ background: '#4a7c5930', color: '#84cc16' }}>
+            <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-green-f/20 text-lime-400">
               Nuevo
             </span>
           )}
@@ -31,10 +28,10 @@ function ArticleCard({ article, onSelect }) {
         <img src={article.heroImage} className="w-full h-full object-cover" alt={article.title} />
       </div>
       <div className="px-5 pb-5">
-        <h3 className="font-display text-xl text-[#f4ebe1] mb-1 leading-tight mt-3">
+        <h3 className="font-display text-xl text-cream mb-1 leading-tight mt-3">
           {article.title}
         </h3>
-        <p className="text-sm text-[#f4ebe1]/70 mb-3 leading-relaxed line-clamp-2">
+        <p className="text-sm text-cream/70 mb-3 leading-relaxed line-clamp-2">
           {article.summary}
         </p>
         <div className="flex items-center justify-between mt-3">
@@ -45,7 +42,7 @@ function ArticleCard({ article, onSelect }) {
               </span>
             ))}
           </div>
-          <span className="text-xs text-[#f4ebe1]/30 ml-2 flex-shrink-0">
+          <span className="text-xs text-cream/30 ml-2 flex-shrink-0">
             {article.readingTime} min
           </span>
         </div>
@@ -68,8 +65,8 @@ export default function Micologia() {
       <div className="max-w-5xl mx-auto anim-up">
         {/* Header */}
         <div className="mb-8">
-          <h2 className="font-display text-4xl font-semibold text-[#f4ebe1] mb-1">Micología</h2>
-          <p className="text-[#d9cda1] text-sm">Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.</p>
+          <h2 className="font-display text-4xl font-semibold text-cream mb-1">Micología</h2>
+          <p className="text-muted text-sm">Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.</p>
         </div>
 
         {/* Artículo destacado */}
@@ -81,7 +78,7 @@ export default function Micologia() {
               <img src={article.heroImage} className="w-full h-full object-cover" alt={article.title} />
             </div>
             <div className="md:w-1/2 p-6 sm:p-8 flex flex-col justify-center">
-              <h2 className="font-display text-xl sm:text-3xl text-[#f4ebe1] mb-3 leading-snug">
+              <h2 className="font-display text-xl sm:text-3xl text-cream mb-3 leading-snug">
                 {article.title}
               </h2>
               <p className="text-sm text-amber-100/80 leading-relaxed mb-4 max-w-xl">
@@ -95,7 +92,7 @@ export default function Micologia() {
                     </span>
                   ))}
                 </div>
-                <span className="hidden md:block text-xs text-[#f4ebe1]/30">
+                <span className="hidden md:block text-xs text-cream/30">
                   {article.readingTime} min de lectura
                 </span>
               </div>
@@ -105,7 +102,7 @@ export default function Micologia() {
 
         {/* Resto de artículos */}
         <div className="mb-4">
-          <h3 className="text-[#d9cda1] text-sm font-medium uppercase mb-4">Más artículos</h3>
+          <h3 className="text-muted text-sm font-medium uppercase mb-4">Más artículos</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {rest.map(article => (
               <ArticleCard
@@ -117,7 +114,7 @@ export default function Micologia() {
         </div>
 
         <div className="mt-8 text-center py-8">
-          <p className="text-xs text-[#f4ebe1]/25">
+          <p className="text-xs text-cream/25">
             Nuevos artículos cada mes · Basados en fuentes científicas
           </p>
         </div>

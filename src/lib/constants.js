@@ -1,33 +1,34 @@
 // =====================================================
-// Design tokens — fuente única de verdad para colores y constantes UI
-// Usar estos valores en todos los componentes
+// Design tokens — fuente única de verdad para inline style={{ }} en JSX
+// Para clases Tailwind usar los tokens definidos en tailwind.config.js:
+//   text-cream, text-muted, text-coffee-light, text-green-f, bg-modal…
+// Para inline styles usar las CSS vars: color: 'var(--color-cream)'
 // =====================================================
 
 export const COLORS = {
-  // Backgrounds
-  bgDeep:    '#0f1f18',
-  bgBase:    '#1a2e22',
-  // Text
-  cream:     '#f4ebe1',
-  creamMuted:'#d9cda1',
-  // Accents
-  coffee:    '#8b6f47',
-  coffeeMid: '#c4a06b',
-  green:     '#4a7c59',
-  greenBar:  '#887b4b',
-  // Semantic
-  positive:  '#059669',
-  danger:    '#dc2626',
-  warning:   '#d97706',
+  // Textos
+  cream:        'var(--color-cream)',        // #f4ebe1
+  muted:        'var(--color-muted)',        // #d9cda1
+  // Acentos
+  coffee:       'var(--color-coffee)',       // #8b6f47
+  coffeeLight:  'var(--color-coffee-light)', // #c4a06b
+  // Verde forestal
+  green:        'var(--color-green-f)',      // #4a7c59
+  // Score intermedio
+  bar:          'var(--color-bar)',          // #887b4b
+  // Fondos
+  bgDeep:       'var(--color-bg-deep)',      // #0f1f18
+  modal:        'var(--color-modal)',        // #30372a
 };
 
 // Paleta modal — compartida por ZoneModal, SpeciesModal, ArticleModal, FamilyModal
 export const MODAL = {
-  bg:      '#30372a',      // fondo verde oscuro del modal
-  overlay: '#232522d9',    // backdrop semitransparente
+  bg:      'var(--color-modal)',    // #30372a
+  overlay: 'var(--modal-overlay)', // #232522d9
 };
 
 // Colores de markers en el mapa Leaflet por tipo de bosque
+// ⚠️ Deben ser hex — se usan en atributos SVG fill/stroke de Leaflet (no soportan CSS vars)
 export const FOREST_COLORS = {
   pinar:   '#4a7c59',
   hayedo:  '#8b6f47',

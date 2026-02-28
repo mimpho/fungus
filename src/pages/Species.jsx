@@ -80,8 +80,8 @@ export default function Species() {
       {/* Header + barra búsqueda */}
       <div className="flex flex-col md:grid md:grid-cols-[auto_1fr] md:items-center gap-4">
         <div>
-          <h2 className="font-display text-4xl font-semibold text-[#f4ebe1]">{t.especies}</h2>
-          <p className="text-[#d9cda1] text-sm mt-1">{filteredSpecies.length} especies encontradas</p>
+          <h2 className="font-display text-4xl font-semibold text-cream">{t.especies}</h2>
+          <p className="text-muted text-sm mt-1">{filteredSpecies.length} especies encontradas</p>
         </div>
         <div className="flex justify-center">
           <SearchFilterBar
@@ -100,32 +100,32 @@ export default function Species() {
       {/* Panel filtros */}
       <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)}>
         <div className="mb-5">
-          <p className="text-[#d9cda1] text-xs uppercase tracking-wider mb-3">Mostrar</p>
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">Mostrar</p>
           <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
             {SHOW_FILTERS.map(f => (
               <button key={f.id} onClick={() => setShowFilter(f.id)}
-                className={`py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col sm:flex-row items-center gap-1 sm:px-3.5 ${showFilter === f.id ? 'bg-[#887b4b] text-white' : 'glass text-[#f4ebe1]/60 hover:text-[#f4ebe1]'}`}>
+                className={`py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col sm:flex-row items-center gap-1 sm:px-3.5 ${showFilter === f.id ? 'bg-bar text-white' : 'glass text-cream/60 hover:text-cream'}`}>
                 <span className="text-base sm:text-sm">{f.emoji}</span>{f.label}
               </button>
             ))}
           </div>
         </div>
         <div className="mb-5">
-          <p className="text-[#d9cda1] text-xs uppercase tracking-wider mb-3">Familia</p>
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">Familia</p>
           <div className="relative sm:inline-block sm:min-w-[220px]">
             <select value={familyFilter} onChange={e => setFamilyFilter(e.target.value)}
-              className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-[#f4ebe1] outline-none cursor-pointer appearance-none"
+              className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-cream outline-none cursor-pointer appearance-none"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <option value="" style={{ background: '#30372a' }}>Todas las familias</option>
-              {uniqueFamilies.map(f => <option key={f} value={f} style={{ background: '#30372a' }}>{f}</option>)}
+              <option value="" style={{ background: 'var(--color-modal)' }}>Todas las familias</option>
+              {uniqueFamilies.map(f => <option key={f} value={f} style={{ background: 'var(--color-modal)' }}>{f}</option>)}
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#f4ebe1]/50">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cream/50">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
           </div>
         </div>
         <div className="mb-5">
-          <p className="text-[#d9cda1] text-xs uppercase tracking-wider mb-3">Ordenar por</p>
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">Ordenar por</p>
           <div className="flex flex-col sm:flex-row gap-2">
             {[
               { id: 'alfa',   label: '🔤 Nombre (A–Z)' },
@@ -133,8 +133,8 @@ export default function Species() {
               { id: 'comest', label: '⭐ Comestibilidad' },
             ].map(op => (
               <button key={op.id} onClick={() => setOrden(op.id)}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm text-left transition-all ${orden === op.id ? 'bg-[#887b4b]/20 text-[#c4a06b]' : 'glass text-[#f4ebe1]/70 hover:text-[#f4ebe1]'}`}>
-                <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${orden === op.id ? 'bg-[#887b4b]' : 'bg-white/20'}`}>
+                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm text-left transition-all ${orden === op.id ? 'bg-bar/20 text-coffee-light' : 'glass text-cream/70 hover:text-cream'}`}>
+                <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${orden === op.id ? 'bg-bar' : 'bg-white/20'}`}>
                   {orden === op.id && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
                 </span>
                 {op.label}
@@ -144,7 +144,7 @@ export default function Species() {
         </div>
         <div className="sm:flex sm:justify-end">
           <button onClick={() => setPillOpen(false)}
-            className="w-full sm:w-auto sm:px-6 py-3 bg-[#887b4b] text-white rounded-xl font-medium hover:bg-[#a0855a] transition-colors">
+            className="w-full sm:w-auto sm:px-6 py-3 bg-bar text-white rounded-xl font-medium hover:bg-[#a0855a] transition-colors">
             Ver {filteredSpecies.length} especie{filteredSpecies.length !== 1 ? 's' : ''}
           </button>
         </div>
@@ -163,7 +163,7 @@ export default function Species() {
 
       {/* Grid */}
       {pageItems.length === 0 ? (
-        <div className="text-center py-16 text-[#f4ebe1]/70">
+        <div className="text-center py-16 text-cream/70">
           <div className="text-4xl mb-3">🔍</div>
           <p>Sin resultados para tu búsqueda.</p>
         </div>
@@ -184,24 +184,24 @@ export default function Species() {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-1.5 pt-4 flex-wrap">
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm glass text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-25 disabled:cursor-not-allowed transition-all shrink-0">
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm glass text-cream/60 hover:text-cream disabled:opacity-25 disabled:cursor-not-allowed transition-all shrink-0">
             {IC.chevron('left')}
           </button>
           {pageItems2().map((item, i) =>
             typeof item === 'number' ? (
               <button key={item} onClick={() => setPage(item)}
-                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all shrink-0 ${item === page ? 'bg-[#887b4b] text-white' : 'text-[#f4ebe1]/40 hover:text-[#f4ebe1] hover:bg-white/[0.05]'}`}>
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all shrink-0 ${item === page ? 'bg-bar text-white' : 'text-cream/40 hover:text-cream hover:bg-white/[0.05]'}`}>
                 {item}
               </button>
             ) : (
-              <span key={item + i} className="w-6 text-center text-[#f4ebe1]/25 text-sm select-none">…</span>
+              <span key={item + i} className="w-6 text-center text-cream/25 text-sm select-none">…</span>
             )
           )}
           <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm glass text-[#f4ebe1]/60 hover:text-[#f4ebe1] disabled:opacity-25 disabled:cursor-not-allowed transition-all shrink-0">
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm glass text-cream/60 hover:text-cream disabled:opacity-25 disabled:cursor-not-allowed transition-all shrink-0">
             {IC.chevron('right')}
           </button>
-          <span className="text-[#f4ebe1]/30 text-xs ml-1 shrink-0">{page}/{totalPages}</span>
+          <span className="text-cream/30 text-xs ml-1 shrink-0">{page}/{totalPages}</span>
         </div>
       )}
     </div>

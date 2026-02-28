@@ -46,8 +46,8 @@ export function Lightbox({ photos, initialIndex = 0, onClose }) {
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4 z-10"
         style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)' }}
         onClick={e => e.stopPropagation()}>
-        <span className="text-[#f4ebe1]/60 text-sm font-medium">{idx + 1} / {photos.length}</span>
-        <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-[#f4ebe1]/70 hover:text-[#f4ebe1] transition-colors">
+        <span className="text-cream/60 text-sm font-medium">{idx + 1} / {photos.length}</span>
+        <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-cream/70 hover:text-cream transition-colors">
           {IC.close}
         </button>
       </div>
@@ -55,14 +55,14 @@ export function Lightbox({ photos, initialIndex = 0, onClose }) {
       {/* Imagen */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden" onClick={e => e.stopPropagation()}>
         {photos.length > 1 && (
-          <button onClick={prev} className="hidden sm:flex absolute left-4 z-10 w-12 h-12 rounded-full glass items-center justify-center text-[#f4ebe1]/70 hover:text-[#f4ebe1] hover:bg-white/10 transition-all">
+          <button onClick={prev} className="hidden sm:flex absolute left-4 z-10 w-12 h-12 rounded-full glass items-center justify-center text-cream/70 hover:text-cream hover:bg-white/10 transition-all">
             {IC.chevron('left')}
           </button>
         )}
         <img key={idx} src={imgUrl} alt={photo.caption || ''}
           style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '56px 0 80px' }} />
         {photos.length > 1 && (
-          <button onClick={next} className="hidden sm:flex absolute right-4 z-10 w-12 h-12 rounded-full glass items-center justify-center text-[#f4ebe1]/70 hover:text-[#f4ebe1] hover:bg-white/10 transition-all">
+          <button onClick={next} className="hidden sm:flex absolute right-4 z-10 w-12 h-12 rounded-full glass items-center justify-center text-cream/70 hover:text-cream hover:bg-white/10 transition-all">
             {IC.chevron('right')}
           </button>
         )}
@@ -72,7 +72,7 @@ export function Lightbox({ photos, initialIndex = 0, onClose }) {
       <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center pb-5 pt-12 pointer-events-none"
         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}>
         <div className="pointer-events-auto flex flex-col items-center gap-3 w-full px-4" onClick={e => e.stopPropagation()}>
-          {photo.caption && <p className="text-[#f4ebe1]/80 text-sm text-center">{photo.caption}</p>}
+          {photo.caption && <p className="text-cream/80 text-sm text-center">{photo.caption}</p>}
           {photos.length > 1 && (
             <>
               <div className="hidden sm:flex gap-2">

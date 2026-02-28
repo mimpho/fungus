@@ -10,17 +10,17 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0 cursor-pointer" onClick={onClick}>
-            <h3 className="font-display text-xl font-semibold text-[#f4ebe1] truncate">{zone.name}</h3>
-            <p className="text-[#d9cda1] text-xs mt-0.5">{zone.region} · {zone.province}</p>
+            <h3 className="font-display text-xl font-semibold text-cream truncate">{zone.name}</h3>
+            <p className="text-muted text-xs mt-0.5">{zone.region} · {zone.province}</p>
           </div>
           <button onClick={e => { e.stopPropagation(); onToggle() }}
-            className={`ml-3 p-2 rounded-xl transition-all ${isFollowed ? 'text-yellow-400 hover:bg-yellow-400/20' : 'text-[#f4ebe1]/30 hover:text-yellow-400 hover:bg-yellow-400/10'}`}>
+            className={`ml-3 p-2 rounded-xl transition-all ${isFollowed ? 'text-yellow-400 hover:bg-yellow-400/20' : 'text-cream/30 hover:text-yellow-400 hover:bg-yellow-400/10'}`}>
             {IC.star(isFollowed)}
           </button>
         </div>
 
         <div onClick={onClick} className="cursor-pointer relative z-[1]">
-          <div className="flex items-center gap-3 text-xs text-[#f4ebe1]/70 mb-4">
+          <div className="flex items-center gap-3 text-xs text-cream/70 mb-4">
             <span className="flex items-center gap-1.5">
               <img src={`/assets/images/icons/forest-type-${zone.forestType}.png`} alt={zone.forestType} height="16" width="16" />
               {zone.forestType}
@@ -46,13 +46,13 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
           ) : (
             <>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[#f4ebe1]/70 text-xs">Cond. de recolección</span>
+                <span className="text-cream/70 text-xs">Cond. de recolección</span>
                 <span className={`text-xs font-semibold ${sc.text}`}>{sc.label}</span>
               </div>
               <div className="progress-bar">
                 <div className={`progress-fill ${sc.bar}`} style={{ width: `${cond.overallScore}%` }} />
               </div>
-              <div className="flex gap-1.5 mt-1.5 text-[#f4ebe1]/35 text-xs flex-wrap">
+              <div className="flex gap-1.5 mt-1.5 text-cream/35 text-xs flex-wrap">
                 <span className="flex items-center gap-1">
                   <img src="/assets/images/icons/temperature.png" alt="temp" height="16" width="16" />
                   {cond.temperature}°C

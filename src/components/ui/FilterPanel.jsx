@@ -37,7 +37,7 @@ export function FilterPanel({ isOpen, onClose, children }) {
       <div className={`hidden sm:block overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
         <div className="glass rounded-2xl p-5 mt-2">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="font-display text-lg font-semibold text-[#f4ebe1]">Filtrar y ordenar</h4>
+            <h4 className="font-display text-lg font-semibold text-cream">Filtrar y ordenar</h4>
             <button onClick={onClose} className="p-1.5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all">{IC.close}</button>
           </div>
           {children}
@@ -56,7 +56,7 @@ export function FilterPanel({ isOpen, onClose, children }) {
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
             <div className="flex items-center justify-between px-5 pb-3 shrink-0">
-              <h4 className="font-display text-xl font-semibold text-[#f4ebe1]">Filtrar y ordenar</h4>
+              <h4 className="font-display text-xl font-semibold text-cream">Filtrar y ordenar</h4>
               <button onClick={onClose} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all">{IC.close}</button>
             </div>
             <div className="px-5 pb-8 overflow-y-auto">

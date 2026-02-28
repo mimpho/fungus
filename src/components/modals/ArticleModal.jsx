@@ -11,8 +11,8 @@ import { MODAL } from '../../lib/constants'
 export function ArticleSection({ title, children }) {
   return (
     <section className="mb-8">
-      <h3 className="font-display text-xl text-[#d9cda1] mb-3 mt-6"
-        style={{ borderLeft: '3px solid #8b7a5a', paddingLeft: '12px' }}>
+      <h3 className="font-display text-xl text-muted mb-3 mt-6"
+        style={{ borderLeft: '3px solid var(--color-coffee)', paddingLeft: '12px' }}>
         {title}
       </h3>
       {children}
@@ -22,16 +22,17 @@ export function ArticleSection({ title, children }) {
 
 export function ArticleP({ children }) {
   return (
-    <p className="text-[#f4ebe1]/80 leading-relaxed mb-4" style={{ fontSize: '15px' }}>
+    <p className="text-cream/80 leading-relaxed mb-4" style={{ fontSize: '15px' }}>
       {children}
     </p>
   )
 }
 
-export function ArticleCallout({ emoji, children, color = '#8b7a5a' }) {
+// color debe ser hex — se usa para construir color+'18' y color+'35' como alpha
+export function ArticleCallout({ emoji, children, color = '#8b6f47' }) {
   return (
     <div className="rounded-xl p-4 mb-6" style={{ background: color + '18', border: `1px solid ${color}35` }}>
-      <p className="leading-relaxed text-[#d9cda1]" style={{ fontSize: '14px' }}>
+      <p className="leading-relaxed text-muted" style={{ fontSize: '14px' }}>
         <span className="mr-2 text-base">{emoji}</span>{children}
       </p>
     </div>
@@ -42,12 +43,12 @@ export function ArticleInfographic({ title, caption, children }) {
   return (
     <div className="my-8 rounded-2xl overflow-hidden" style={{ background: '#0e1a0a', border: '1px solid #ffffff0a' }}>
       <div className="px-5 pt-4 pb-2">
-        <p className="text-xs font-semibold text-[#d9cda1]/40 uppercase tracking-widest mb-0.5">Infografía</p>
-        <p className="text-[#f4ebe1]/75 font-medium text-sm">{title}</p>
+        <p className="text-xs font-semibold text-muted/40 uppercase tracking-widest mb-0.5">Infografía</p>
+        <p className="text-cream/75 font-medium text-sm">{title}</p>
       </div>
       <div className="px-4 pb-4">
         {children}
-        {caption && <p className="text-xs text-[#f4ebe1]/30 mt-2 text-center leading-snug">{caption}</p>}
+        {caption && <p className="text-xs text-cream/30 mt-2 text-center leading-snug">{caption}</p>}
       </div>
     </div>
   )
@@ -101,8 +102,8 @@ export function ArticleModal({ slug, onClose }) {
         <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
-            <p className="font-display text-xl font-semibold text-[#f4ebe1] truncate">{article.title}</p>
-            <p className="text-[#d9cda1]/60 text-xs truncate">{article.subtitle}</p>
+            <p className="font-display text-xl font-semibold text-cream truncate">{article.title}</p>
+            <p className="text-muted/60 text-xs truncate">{article.subtitle}</p>
           </div>
           <button onClick={onClose}
             className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all shrink-0">
@@ -117,13 +118,13 @@ export function ArticleModal({ slug, onClose }) {
           <div className="absolute inset-0"
             style={{ background: 'linear-gradient(to top, rgb(48,55,42) 15%, rgba(48,55,42,0.25) 60%, transparent 100%)' }} />
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-8">
-            <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#8b7a5a' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-2 text-coffee">
               {tagsLabel}
             </p>
-            <h1 className="font-display text-3xl sm:text-4xl text-[#f4ebe1] leading-tight mb-2 drop-shadow-lg">
+            <h1 className="font-display text-3xl sm:text-4xl text-cream leading-tight mb-2 drop-shadow-lg">
               {article.title}
             </h1>
-            <p className="text-[#d9cda1]/80 text-sm leading-relaxed max-w-2xl">{article.subtitle}</p>
+            <p className="text-muted/80 text-sm leading-relaxed max-w-2xl">{article.subtitle}</p>
             <div className="flex items-center gap-3 mt-4 text-xs" style={{ color: 'rgba(244,235,225,0.38)' }}>
               {dateLabel && <span>{dateLabel}</span>}
               {dateLabel && <span>·</span>}
@@ -138,7 +139,7 @@ export function ArticleModal({ slug, onClose }) {
 
         {/* Cuerpo */}
         {Body ? <Body /> : (
-          <div className="p-8 text-center text-[#f4ebe1]/40 text-sm">Contenido no disponible.</div>
+          <div className="p-8 text-center text-cream/40 text-sm">Contenido no disponible.</div>
         )}
       </div>
     </div>,

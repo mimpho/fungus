@@ -2,6 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens — CSS custom properties ──────────────────────────────────
+   Fuente de verdad para inline style={{ }} en JSX.
+   Las clases Tailwind (text-cream, bg-modal…) usan los mismos hex values
+   definidos en tailwind.config.js.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Textos */
+  --color-cream:         #f4ebe1;
+  --color-muted:         #d9cda1;
+
+  /* Acentos cálidos */
+  --color-coffee:        #8b6f47;
+  --color-coffee-light:  #c4a06b;
+
+  /* Verde forestal */
+  --color-green-f:       #4a7c59;
+
+  /* Score intermedio */
+  --color-bar:           #887b4b;
+
+  /* Fondos */
+  --color-bg-deep:       #0f1f18;
+  --color-modal:         #30372a;
+
+  /* Efectos glass */
+  --glass-white:         rgba(255, 255, 255, 0.04);
+  --glass-warm:          rgba(139, 111, 71, 0.08);
+  --glass-warm-border:   rgba(139, 111, 71, 0.20);
+  --glass-warm-thumb:    rgba(139, 111, 71, 0.40);
+
+  /* Overlay modal */
+  --modal-overlay:       #232522d9;
+}
+
 /* ── Google Fonts already loaded via index.html ── */
 
 /* ── Base ──────────────────────────────────────── */
@@ -11,9 +45,9 @@ html { font-size: 18px; scroll-behavior: smooth; }
 body {
   margin: 0;
   font-family: 'DM Sans', sans-serif;
-  background: #30372a;
+  background: var(--color-modal);
   min-height: 100vh;
-  color: #f4ebe1;
+  color: var(--color-cream);
 }
 
 body::after {
@@ -29,17 +63,17 @@ body::after {
 /* ── Scrollbar ──────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(139, 111, 71, 0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--glass-warm-thumb); border-radius: 3px; }
 
 /* ── Glass morphism ─────────────────────────────── */
 .glass {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-white);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
 .glass-warm {
-  background: rgba(139, 111, 71, 0.08);
+  background: var(--glass-warm);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -130,7 +164,7 @@ body::after {
   background: rgba(30,42,26,0.88);
   border: 1px solid rgba(196,160,107,0.30);
   border-radius: 10px; padding: 10px;
-  color: #c4a06b; cursor: pointer;
+  color: var(--color-coffee-light); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.2s, border-color 0.2s, transform 0.15s;
   backdrop-filter: blur(10px);
@@ -144,20 +178,20 @@ body::after {
 .map-expand-btn svg { width: 18px; height: 18px; }
 
 /* ── Leaflet overrides ──────────────────────────── */
-.leaflet-container { background: #0f1f18 !important; }
+.leaflet-container { background: var(--color-bg-deep) !important; }
 .leaflet-tile-pane { filter: brightness(0.85) saturate(0.8); }
 
 /* ── Leaflet popup: fungus theme ────────────────── */
 .fungus-popup .leaflet-popup-content-wrapper {
-  background: rgb(48, 55, 42);
+  background: var(--color-modal);
   border: 1px solid rgba(244, 235, 225, 0.10);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
   padding: 0;
-  color: #f4ebe1;
+  color: var(--color-cream);
 }
 .fungus-popup .leaflet-popup-tip {
-  background: rgb(48, 55, 42);
+  background: var(--color-modal);
 }
 .fungus-popup .leaflet-popup-content {
   margin: 13px 15px;

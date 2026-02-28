@@ -51,8 +51,8 @@ export function SpeciesModal({ species, onClose }) {
         <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
-            <p className="font-display text-xl font-semibold text-[#f4ebe1] truncate">{species.scientificName}</p>
-            <p className="text-[#d9cda1]/60 text-xs truncate">{species.commonNames?.[0]}</p>
+            <p className="font-display text-xl font-semibold text-cream truncate">{species.scientificName}</p>
+            <p className="text-muted/60 text-xs truncate">{species.commonNames?.[0]}</p>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button onClick={() => toggleFavorite(species)}
@@ -66,10 +66,10 @@ export function SpeciesModal({ species, onClose }) {
         {/* Hero foto */}
         <div ref={heroRef} className="relative overflow-hidden sm:rounded-t-2xl modal-header" style={{ minHeight: '224px', height: '50vh' }}>
           <SpeciesImg localSrc={species.photo?.url} scientificName={species.scientificName} className="w-full h-full" objectFit="cover" objectPosition="top" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#30372a] via-[#30372a]/0 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-modal via-modal/0 to-transparent" />
           <div className="absolute bottom-0 left-6 right-6">
-            <h2 className="font-display text-4xl font-semibold text-[#f4ebe1] drop-shadow-lg">{species.scientificName}</h2>
-            <p className="text-[#d9cda1] text-sm mt-1">{species.family} · {species.commonNames[0]}</p>
+            <h2 className="font-display text-4xl font-semibold text-cream drop-shadow-lg">{species.scientificName}</h2>
+            <p className="text-muted text-sm mt-1">{species.family} · {species.commonNames[0]}</p>
           </div>
           <div className="absolute top-4 right-4 flex gap-2">
             <button onClick={() => toggleFavorite(species)}
@@ -86,7 +86,7 @@ export function SpeciesModal({ species, onClose }) {
             <EdibilityTag edibility={species.edibility} variant="glass" showDot={true} className="px-4 py-2 rounded-xl text-sm font-semibold" />
             {family && (
               <button onClick={() => { onClose(); setSelectedFamily(family) }}
-                className="glass px-4 py-2 rounded-xl text-sm text-[#d9cda1] hover:text-[#c4a06b] transition-colors">
+                className="glass px-4 py-2 rounded-xl text-sm text-muted hover:text-coffee-light transition-colors">
                 🔬 {t.ver_familia}: {species.family}
               </button>
             )}
@@ -105,10 +105,10 @@ export function SpeciesModal({ species, onClose }) {
           {/* Nombres comunes + Taxonomía */}
           {species.commonNames?.length > 0 && (
             <section>
-              <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.tambienConocida}</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">{t.tambienConocida}</h3>
               <div className="flex flex-wrap gap-2">
                 {species.commonNames.map((n, i) => (
-                  <span key={i} className="px-3 py-1 rounded-full bg-[#887b4b]/15 text-[#c4a06b] text-sm">{n}</span>
+                  <span key={i} className="px-3 py-1 rounded-full bg-bar/15 text-coffee-light text-sm">{n}</span>
                 ))}
               </div>
               <TaxonomyBlock species={species} />
@@ -118,30 +118,30 @@ export function SpeciesModal({ species, onClose }) {
           {/* Descripción */}
           {species.description && (
             <section>
-              <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.descripcion}</h3>
-              <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">{species.description}</p>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">{t.descripcion}</h3>
+              <p className="text-cream/70 text-sm leading-relaxed">{species.description}</p>
             </section>
           )}
 
           {/* Hábitat + altitud */}
           <section>
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.habitat}</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">{t.habitat}</h3>
             <div className="flex flex-wrap gap-2 mb-3">
               {species.forestTypes?.map((b, i) => (
-                <span key={i} className="px-3 py-1 rounded-full bg-[#4a7c59]/15 text-[#4a7c59] text-sm">🌲 {b}</span>
+                <span key={i} className="px-3 py-1 rounded-full bg-green-f/15 text-green-f text-sm">🌲 {b}</span>
               ))}
             </div>
             {species.elevationMin != null && (
-              <div className="text-xs text-[#f4ebe1]/50">⛰️ Altitud: {species.elevationMin}–{species.elevationMax}m s.n.m.</div>
+              <div className="text-xs text-cream/50">⛰️ Altitud: {species.elevationMin}–{species.elevationMax}m s.n.m.</div>
             )}
           </section>
 
           {/* Fructificación */}
           <section>
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">{t.fructificacion}</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">{t.fructificacion}</h3>
             <div className="grid grid-cols-12 gap-1.5">
               {MONTHS.map((m, i) => (
-                <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${species.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-[#f4ebe1]/20'}`}>{m}</div>
+                <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${species.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-cream/20'}`}>{m}</div>
               ))}
             </div>
           </section>
@@ -154,7 +154,7 @@ export function SpeciesModal({ species, onClose }) {
             if (allPhotos.length === 0) return null
             return (
               <section>
-                <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">
+                <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">
                   📷 Galería ({allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'})
                 </h3>
                 <div className={`grid gap-2 ${extraPhotos.length === 0 ? 'grid-cols-1' : extraPhotos.length === 1 ? 'grid-cols-2' : extraPhotos.length === 2 ? 'grid-cols-2 sm:grid-cols-4 sm:grid-rows-2 w-full sm:aspect-[2/1] sm:overflow-hidden' : 'grid-cols-4'}`}>
@@ -192,22 +192,22 @@ export function SpeciesModal({ species, onClose }) {
                     </div>
                   ))}
                 </div>
-                <p className="text-[#f4ebe1]/30 text-[10px] mt-2 text-center">Haz clic en cualquier imagen para verla a pantalla completa · ← → para navegar</p>
+                <p className="text-cream/30 text-[10px] mt-2 text-center">Haz clic en cualquier imagen para verla a pantalla completa · ← → para navegar</p>
               </section>
             )
           })()}
 
           {/* Condiciones de fructificación */}
           <section>
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-4">Condiciones de fructificación</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-4">Condiciones de fructificación</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-white/[0.03] rounded-xl p-4 flex items-start gap-3">
                 <div className="shrink-0">
                   <img src="/assets/images/icons/temperature.png" alt="Temperatura" height="36" width="36" />
                 </div>
                 <div>
-                  <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-1">Temperatura</h4>
-                  <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">
+                  <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-1">Temperatura</h4>
+                  <p className="text-cream/70 text-sm leading-relaxed">
                     {species.family === 'Amanitaceae' && species.edibility === 'excelente'
                       ? 'Noches frescas (8–14°C) con días cálidos. Requiere oscilación térmica diaria mínima de 15°C para estimular la fructificación.'
                       : species.family === 'Morchellaceae'
@@ -224,8 +224,8 @@ export function SpeciesModal({ species, onClose }) {
                   <img src="/assets/images/icons/cloudy-sun.png" alt="Precipitación" height="36" width="36" />
                 </div>
                 <div>
-                  <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-1">Precipitación</h4>
-                  <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">
+                  <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-1">Precipitación</h4>
+                  <p className="text-cream/70 text-sm leading-relaxed">
                     {species.family === 'Cantharellaceae'
                       ? 'Mínimo 30–50mm en los 14 días previos. Prefiere periodos húmedos prolongados con buena infiltración.'
                       : species.family === 'Morchellaceae'
@@ -238,8 +238,8 @@ export function SpeciesModal({ species, onClose }) {
               <div className="bg-white/[0.03] rounded-xl p-4 flex items-start gap-3">
                 <div className="text-2xl shrink-0">🌱</div>
                 <div>
-                  <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-1">Suelo</h4>
-                  <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">
+                  <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-1">Suelo</h4>
+                  <p className="text-cream/70 text-sm leading-relaxed">
                     {species.family === 'Boletaceae'
                       ? 'Suelos ácidos a neutros, bien drenados. Prefiere substrato orgánico rico con pH 5–6.5. Micorriza con coníferas y caducifolios.'
                       : species.family === 'Russulaceae'
@@ -256,8 +256,8 @@ export function SpeciesModal({ species, onClose }) {
                   <img src="/assets/images/icons/search.png" alt="Requisitos especiales" height="36" width="36" />
                 </div>
                 <div>
-                  <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-1">Requisitos especiales</h4>
-                  <p className="text-[#f4ebe1]/70 text-sm leading-relaxed">
+                  <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-1">Requisitos especiales</h4>
+                  <p className="text-cream/70 text-sm leading-relaxed">
                     {species.scientificName === 'Amanita caesarea'
                       ? 'Requiere choque térmico pronunciado. Sensible a heladas. Aparece tras tormentas de verano en zonas templadas mediterráneas.'
                       : species.scientificName === 'Morchella esculenta'
@@ -281,9 +281,9 @@ export function SpeciesModal({ species, onClose }) {
                 <div key={i} className="text-center">
                   <div className="text-sm mb-1">{m.icon}</div>
                   <div className="progress-bar mb-1">
-                    <div className="progress-fill bg-[#887b4b]" style={{ width: `${m.value}%` }} />
+                    <div className="progress-fill bg-bar" style={{ width: `${m.value}%` }} />
                   </div>
-                  <div className="text-[#f4ebe1]/40 text-xs">{m.label}</div>
+                  <div className="text-cream/40 text-xs">{m.label}</div>
                 </div>
               ))}
             </div>
@@ -292,7 +292,7 @@ export function SpeciesModal({ species, onClose }) {
           {/* Morfología técnica */}
           {(species.cap || species.stem || species.flesh) && (
             <section>
-              <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-4">{t.morfologia}</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-4">{t.morfologia}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {species.cap && (
                   <div className="bg-white/[0.03] rounded-xl p-4">
@@ -303,12 +303,12 @@ export function SpeciesModal({ species, onClose }) {
                         <ellipse cx="30" cy="32" rx="27" ry="4" fill="rgba(139,111,71,0.4)" />
                       </svg>
                     </div>
-                    <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-2 text-center">Sombrero</h4>
-                    <div className="space-y-1.5 text-xs text-[#f4ebe1]/60">
-                      <div><span className="text-[#f4ebe1]/40">Forma:</span> {species.cap.forma}</div>
-                      <div><span className="text-[#f4ebe1]/40">Color:</span> {species.cap.color}</div>
-                      <div><span className="text-[#f4ebe1]/40">Diámetro:</span> {species.cap.diametro}</div>
-                      <div><span className="text-[#f4ebe1]/40">Superficie:</span> {species.cap.superficie}</div>
+                    <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-2 text-center">Sombrero</h4>
+                    <div className="space-y-1.5 text-xs text-cream/60">
+                      <div><span className="text-cream/40">Forma:</span> {species.cap.forma}</div>
+                      <div><span className="text-cream/40">Color:</span> {species.cap.color}</div>
+                      <div><span className="text-cream/40">Diámetro:</span> {species.cap.diametro}</div>
+                      <div><span className="text-cream/40">Superficie:</span> {species.cap.superficie}</div>
                     </div>
                   </div>
                 )}
@@ -320,12 +320,12 @@ export function SpeciesModal({ species, onClose }) {
                         <ellipse cx="15" cy="52" rx="14" ry="5" fill="rgba(139,111,71,0.25)" />
                       </svg>
                     </div>
-                    <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-2 text-center">Pie</h4>
-                    <div className="space-y-1.5 text-xs text-[#f4ebe1]/60">
-                      <div><span className="text-[#f4ebe1]/40">Forma:</span> {species.stem.forma}</div>
-                      <div><span className="text-[#f4ebe1]/40">Color:</span> {species.stem.color}</div>
-                      <div><span className="text-[#f4ebe1]/40">Altura:</span> {species.stem.altura}</div>
-                      <div><span className="text-[#f4ebe1]/40">Diámetro:</span> {species.stem.diametro}</div>
+                    <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-2 text-center">Pie</h4>
+                    <div className="space-y-1.5 text-xs text-cream/60">
+                      <div><span className="text-cream/40">Forma:</span> {species.stem.forma}</div>
+                      <div><span className="text-cream/40">Color:</span> {species.stem.color}</div>
+                      <div><span className="text-cream/40">Altura:</span> {species.stem.altura}</div>
+                      <div><span className="text-cream/40">Diámetro:</span> {species.stem.diametro}</div>
                     </div>
                   </div>
                 )}
@@ -338,19 +338,19 @@ export function SpeciesModal({ species, onClose }) {
                         <path d="M10,25 Q25,10 40,25 Q25,40 10,25" fill="rgba(139,111,71,0.2)" />
                       </svg>
                     </div>
-                    <h4 className="text-[#c4a06b] font-medium text-xs uppercase tracking-wide mb-2 text-center">Carne</h4>
-                    <div className="space-y-1.5 text-xs text-[#f4ebe1]/60">
-                      <div><span className="text-[#f4ebe1]/40">Color:</span> {species.flesh.color}</div>
-                      <div><span className="text-[#f4ebe1]/40">Textura:</span> {species.flesh.textura}</div>
-                      <div><span className="text-[#f4ebe1]/40">Olor:</span> {species.flesh.olor}</div>
-                      <div><span className="text-[#f4ebe1]/40">Sabor:</span> {species.flesh.sabor}</div>
+                    <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-2 text-center">Carne</h4>
+                    <div className="space-y-1.5 text-xs text-cream/60">
+                      <div><span className="text-cream/40">Color:</span> {species.flesh.color}</div>
+                      <div><span className="text-cream/40">Textura:</span> {species.flesh.textura}</div>
+                      <div><span className="text-cream/40">Olor:</span> {species.flesh.olor}</div>
+                      <div><span className="text-cream/40">Sabor:</span> {species.flesh.sabor}</div>
                     </div>
                   </div>
                 )}
               </div>
               {species.sporePrint && (
-                <div className="mt-3 flex items-center gap-2 text-xs text-[#f4ebe1]/50 bg-white/[0.03] rounded-lg px-4 py-2">
-                  <span className="text-[#f4ebe1]/30">Esporada:</span> {species.sporePrint}
+                <div className="mt-3 flex items-center gap-2 text-xs text-cream/50 bg-white/[0.03] rounded-lg px-4 py-2">
+                  <span className="text-cream/30">Esporada:</span> {species.sporePrint}
                 </div>
               )}
             </section>
@@ -358,15 +358,15 @@ export function SpeciesModal({ species, onClose }) {
 
           {/* Posibles Confusiones */}
           <section>
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-3">⚠️ Posibles confusiones</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">⚠️ Posibles confusiones</h3>
             <ConfusionesBlock species={species} onViewSpecies={setSelectedSpecies} allSpecies={mockSpecies} />
           </section>
 
           {/* Dónde encontrarla */}
           {compatZones.length > 0 && (
             <section>
-              <h3 className="text-sm font-semibold uppercase tracking-widest text-[#d9cda1] mb-1">{t.dondeEncontrar}</h3>
-              <p className="text-[#f4ebe1]/35 text-xs mb-3">{compatZones.length} zonas compatibles · Pulsa un marcador para ver su ficha</p>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-1">{t.dondeEncontrar}</h3>
+              <p className="text-cream/35 text-xs mb-3">{compatZones.length} zonas compatibles · Pulsa un marcador para ver su ficha</p>
               <LeafletMap
                 zonas={compatZones}
                 onZoneClick={setSelectedZone}

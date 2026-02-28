@@ -30,7 +30,7 @@ export default function Layout() {
               <NavLink key={to} to={to} end={end}
                 className={({ isActive }) =>
                   `relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive ? 'bg-[#d9cea1]/10 text-[#d9cea1]' : 'text-[#f4ebe1] hover:bg-white/[0.05]'
+                    isActive ? 'bg-[#d9cea1]/10 text-[#d9cea1]' : 'text-cream hover:bg-white/[0.05]'
                   }`
                 }>
                 {icon} {label}
@@ -44,7 +44,7 @@ export default function Layout() {
           {/* Botón hamburguesa — solo mobile */}
           <button
             onClick={() => setMobileMenuOpen(o => !o)}
-            className="md:hidden p-2 rounded-lg hover:bg-white/10 text-[#f4ebe1]/70 transition-colors">
+            className="md:hidden p-2 rounded-lg hover:bg-white/10 text-cream/70 transition-colors">
             {mobileMenuOpen
               ? IC.close
               : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
@@ -60,7 +60,7 @@ export default function Layout() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
                   `relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                    isActive ? 'bg-[#d9cea1]/10 text-[#d9cea1]' : 'text-[#f4ebe1] hover:bg-white/[0.05]'
+                    isActive ? 'bg-[#d9cea1]/10 text-[#d9cea1]' : 'text-cream hover:bg-white/[0.05]'
                   }`
                 }>
                 {icon} {label}
