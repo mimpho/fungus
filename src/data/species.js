@@ -102,7 +102,7 @@ export const mockSpecies = [
   {
     id: "esp-005", scientificName: "Imleria badia",
     commonNames: ["Boleto bayo", "Cep bru"],
-    family: "Boletaceae", edibility: "bueno",
+    family: "Boletaceae", edibility: "excelente",
     forestTypes: ["pinar", "hayedo"],
     fruitingMonths: [8,9,10,11],
     description: "Seta de pino de tamaño mediano con sombrero marrón castaño y poros blanquecinos que azulean ligeramente al corte. Especie comestible muy apreciada, frecuente en pinares y hayedos del norte y centro peninsular. Puede confundirse con el Boletus edulis, del que se distingue por los poros que azulean y la ausencia de reticulado en el pie.",
@@ -152,7 +152,7 @@ export const mockSpecies = [
   {
     id: "esp-007", scientificName: "Leccinum versipelle",
     commonNames: ["Boleto anaranjado", "Llenega taronja"],
-    family: "Boletaceae", edibility: "comestible",
+    family: "Boletaceae", edibility: "bueno",
     forestTypes: ["robledal", "mixto"],
     fruitingMonths: [8,9,10],
     description: "Boleto robusto con sombrero naranja herrumbre y pie blanco salpicado de escamas oscuras, asociado principalmente a abedules. La carne blanca vira a violáceo-negro al corte, lo que facilita su identificación. Comestible apreciado en el norte de España y Pirineos, aunque requiere cocción completa.",
@@ -377,7 +377,7 @@ export const mockSpecies = [
   {
     id: "esp-016", scientificName: "Gyroporus cyanescens",
     commonNames: ["Boleto azulante", "Giropor blau"],
-    family: "Boletaceae", edibility: "comestible",
+    family: "Boletaceae", edibility: "bueno",
     forestTypes: ["pinar", "robledal", "mixto"],
     fruitingMonths: [7,8,9,10],
     description: "Boleto frágil y quebradizo con pie hueco que azulea de forma espectacular e instantánea al corte, uno de los más llamativos del género. Sombrero amarillo pálido a ocre, de tamaño mediano. Comestible apreciado, poco frecuente en pinares y robledales del norte peninsular.",
@@ -402,7 +402,7 @@ export const mockSpecies = [
   {
     id: "esp-017", scientificName: "Gyroporus castaneus",
     commonNames: ["Boleto castaño", "Giropor castany"],
-    family: "Boletaceae", edibility: "comestible",
+    family: "Boletaceae", edibility: "bueno",
     forestTypes: ["robledal", "encinar", "mixto"],
     fruitingMonths: [7,8,9,10],
     description: "Boleto pequeño de color castaño uniforme con pie pronto hueco y carne blanca que no cambia de color al corte. Crece bajo robles y encinas en el centro y sur de España. Comestible de buena calidad, se distingue de otros boletos por su pie hueco y ausencia de reacción al corte.",
@@ -1152,7 +1152,7 @@ export const mockSpecies = [
   {
     id: "esp-047", scientificName: "Cantharellus aurora",
     commonNames: ["Rebozuelo dorado", "Rossinyol daurat"],
-    family: "Cantharellaceae", edibility: "bueno",
+    family: "Cantharellaceae", edibility: "excelente",
     forestTypes: ["pinar", "robledal"],
     fruitingMonths: [9,10,11],
     description: "Cantarelo amarillo-dorado de tamaño pequeño a mediano que crece en pinares y robledales del norte y este peninsular en otoño tardío. Excelente comestible. Se distingue del C. cibarius por su coloración más intensa anaranjada y aparición más tardía en la temporada.",
@@ -1202,7 +1202,7 @@ export const mockSpecies = [
   {
     id: "esp-049", scientificName: "Craterellus lutescens",
     commonNames: ["Cántaro amarillo", "Cantarel·la groga", "Surreny groc", "Camagroc", "Rossinyolic", "Trompeta amarilla dorada"],
-    family: "Cantharellaceae", edibility: "bueno",
+    family: "Cantharellaceae", edibility: "excelente",
     forestTypes: ["pinar", "hayedo"],
     fruitingMonths: [9,10,11,12],
     description: "Seta en forma de trompeta amarilla-anaranjada. Crece en grandes grupos en suelos húmedos. Muy aromática, excelente para salsas y revueltos. Más tardía que el rebozuelo clásico, aparece en otoño avanzado.",
@@ -1227,7 +1227,7 @@ export const mockSpecies = [
   {
     id: "esp-050", scientificName: "Craterellus tubaeformis",
     commonNames: ["Cántaro tubiforme", "Cantarel·la d'hivern", "Trompeta amarilla", "Rebozuelo tubiforme"],
-    family: "Cantharellaceae", edibility: "bueno",
+    family: "Cantharellaceae", edibility: "excelente",
     forestTypes: ["pinar", "hayedo"],
     fruitingMonths: [9,10,11,12],
     description: "Pariente pequeño del rebozuelo, muy aromático y excelente seco. Crece en grandes grupos en pinares y hayedos húmedos en otoño avanzado. Tolera las heladas y puede encontrarse hasta diciembre. Pie hueco con canal interior.",
@@ -1252,7 +1252,7 @@ export const mockSpecies = [
   {
     id: "esp-051", scientificName: "Hydnum repandum",
     commonNames: ["Pie de carnero", "Llengua de vaca", "Llengua de gat", "Hedgehog mushroom", "Peu de rata"],
-    family: "Hydnaceae", edibility: "bueno",
+    family: "Hydnaceae", edibility: "excelente",
     forestTypes: ["hayedo", "robledal"],
     fruitingMonths: [8,9,10,11],
     description: "Seta fácil de identificar por sus aguijones o dentículos bajo el sombrero en lugar de láminas. Comestible sin riesgo de confusión peligrosa. Sabor algo amargo que desaparece al cocinar. Muy recomendable para principiantes.",
@@ -1277,7 +1277,7 @@ export const mockSpecies = [
   {
     id: "esp-052", scientificName: "Hydnum rufescens",
     commonNames: ["Pie de carnero rojizo", "Llengua de vaca rojenca"],
-    family: "Hydnaceae", edibility: "bueno",
+    family: "Hydnaceae", edibility: "excelente",
     forestTypes: ["pinar", "hayedo", "mixto"],
     fruitingMonths: [9,10,11],
     description: "Seta de erizo más pequeña y de color más anaranjado-salmón que H. repandum, con la que a menudo crece junto. Comestible de buena calidad con sabor ligeramente amargo. Los aguijones bajo el sombrero la hacen inconfundible. Crece en pinares y hayedos del norte peninsular en otoño.",
@@ -1302,7 +1302,7 @@ export const mockSpecies = [
   {
     id: "esp-053", scientificName: "Gomphus clavatus",
     commonNames: ["Gomfo amoratado", "Gomfo amorat"],
-    family: "Gomphaceae", edibility: "comestible",
+    family: "Gomphaceae", edibility: "bueno",
     forestTypes: ["hayedo", "pinar"],
     fruitingMonths: [8,9,10],
     description: "Seta con forma de trompeta o embudo de color violáceo-lila en la juventud que fructifica en grupos en hayedos y pinares de montaña. Comestible apreciado, aunque escaso y protegido en algunas comunidades. Destaca por su forma irregular y coloración violácea que se pierde con la edad.",
@@ -1802,7 +1802,7 @@ export const mockSpecies = [
   {
     id: "esp-073", scientificName: "Pleurotus pulmonarius",
     commonNames: ["Seta de pulmón", "Gírgola de pulmó"],
-    family: "Pleurotaceae", edibility: "bueno",
+    family: "Pleurotaceae", edibility: "excelente",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [3,4,5,6,9,10,11],
     description: "Gírgola de verano o gírgola blanca, similar a P. ostreatus pero de color más pálido y crecimiento en estaciones más cálidas. Buen comestible, muy cultivado junto a P. ostreatus. Crece sobre madera muerta de frondosas en toda España, preferentemente en primavera y otoño. Fuente: https://es.wikipedia.org/wiki/Pleurotus_pulmonarius",
@@ -2002,7 +2002,7 @@ export const mockSpecies = [
   {
     id: "esp-081", scientificName: "Morchella importuna",
     commonNames: ["Colmenilla importuna", "Múrgola de jardí"],
-    family: "Morchellaceae", edibility: "bueno",
+    family: "Morchellaceae", edibility: "excelente",
     forestTypes: ["pinar", "mixto"],
     fruitingMonths: [3,4,5],
     description: "Morilla de aparición frecuente en suelos alterados y jardines, con sombrero cónico de costillas verticales bien marcadas. Excelente comestible como todas las morillas. Siempre cocinar antes de consumir. Ha proliferado en zonas urbanas y periurbanas, apareciendo en parques y jardines de toda España. Fuente: https://es.wikipedia.org/wiki/Morchella_importuna",
@@ -2277,7 +2277,7 @@ export const mockSpecies = [
   {
     id: "esp-092", scientificName: "Tricholoma terreum",
     commonNames: ["Ratón", "Fredolic gris", "Ratolí", "Grísola", "Grey knight"],
-    family: "Tricholomataceae", edibility: "bueno",
+    family: "Tricholomataceae", edibility: "precaucion",
     forestTypes: ["pinar"],
     fruitingMonths: [10,11,12],
     description: "Seta pequeña gris muy común en pinares. Su sombrero gris con cutícula fibrilosa es característico. Crece en corros o grandes grupos bajo pinos. Comestible pero sin gran valor gastronómico. Muy apreciada en Cataluña.",
@@ -5002,7 +5002,7 @@ export const mockSpecies = [
   {
     id: "esp-201", scientificName: "Butyriboletus regius",
     commonNames: ["Boleto real", "Cep reial", "Royal bolete"],
-    family: "Boletaceae", edibility: "bueno",
+    family: "Boletaceae", edibility: "excelente",
     forestTypes: ["robledal", "hayedo", "encinar"],
     fruitingMonths: [6,7,8,9,10],
     description: "Boleto de gran tamaño y sombrero rosado-violáceo inconfundible. Los poros son amarillos brillantes. No azulea al corte, la carne permanece firme y amarilla. Especie micorrizógena de frondosas, menos frecuente que B. edulis.",
