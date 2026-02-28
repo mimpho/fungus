@@ -7,7 +7,7 @@
 //   - Fallback a fakeConditions si la API falla
 // =====================================================
 import { useState, useEffect } from 'react'
-import { fetchAllZoneConditions, fetchZoneConditions } from '../services/weatherService'
+import { fetchAllZoneConditions, fetchZoneConditions, getCacheTimestamp } from '../services/weatherService'
 import { fakeConditions } from '../lib/helpers'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,6 +66,7 @@ export function useZoneConditions(zone) {
   const [conditions, setConditions] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [updatedAt, setUpdatedAt] = useState(null)
 
   useEffect(() => {
     if (!zone) return
@@ -75,13 +76,18 @@ export function useZoneConditions(zone) {
 
     fetchZoneConditions(zone)
       .then(cond => {
-        if (!cancelled) { setConditions(cond); setLoading(false) }
+        if (!cancelled) {
+          setConditions(cond)
+          setUpdatedAt(getCacheTimestamp())
+          setLoading(false)
+        }
       })
       .catch(err => {
         if (!cancelled) {
           console.warn('[useZoneConditions] fetch failed:', err)
           setError('No se pudieron cargar datos en tiempo real.')
           setConditions(fakeConditions())
+          setUpdatedAt(null)
           setLoading(false)
         }
       })
@@ -89,5 +95,5 @@ export function useZoneConditions(zone) {
     return () => { cancelled = true }
   }, [zone?.id])
 
-  return { conditions, loading, error }
+  return { conditions, loading, error, updatedAt }
 }

@@ -18,9 +18,13 @@ export function ZoneModal({ zone, onClose }) {
   const { t, followedZones, toggleFollow, setSelectedSpecies } = useApp()
   const isFollowed = followedZones.some(z => z.id === zone.id)
   const zoneSpecies = mockSpecies.filter(e => e.forestTypes?.includes(zone.forestType))
-  const { conditions: weatherConditions, loading: weatherLoading } = useZoneConditions(zone)
+  const { conditions: weatherConditions, loading: weatherLoading, updatedAt } = useZoneConditions(zone)
   // Mientras carga, usar valores neutros para no romper el UI
   const conditions = weatherConditions ?? { overallScore: 0, temperature: '–', soilTemp: '–', rainfall14d: '–', humidity: '–', wind: '–', dryDays: '–' }
+
+  const updatedLabel = updatedAt
+    ? `Actualizado el ${new Date(updatedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} a las ${new Date(updatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
+    : 'Open-Meteo'
   const currentMonth = new Date().getMonth() + 1
   const sc = getScoreColor(conditions.overallScore)
   const [calFilter, setCalFilter] = useState('todas')
@@ -87,7 +91,7 @@ export function ZoneModal({ zone, onClose }) {
               alt={zone.forestType}
               className="w-full h-full object-cover"
               style={{ objectPosition: 'center', opacity: 0.75 }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-modal via-modal/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-modal via-modal/0 to-transparent" />
             <div className="absolute bottom-4 left-6 right-14">
               <h2 className="font-display text-3xl font-semibold text-cream drop-shadow-lg">{zone.name}</h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -127,7 +131,7 @@ export function ZoneModal({ zone, onClose }) {
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">{t.termometro}</h3>
               {weatherLoading
                 ? <span className="text-bar text-[10px]">cargando datos reales…</span>
-                : <span className="text-cream/25 text-[10px]">Open-Meteo · actualizado ahora</span>
+                : <span className="text-cream/25 text-[10px]">{updatedLabel}</span>
               }
             </div>
             <p className="text-cream/35 text-xs mb-3">Temperatura · Precipitación 14 días · Humedad del suelo</p>

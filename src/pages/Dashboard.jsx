@@ -251,7 +251,7 @@ export default function Dashboard() {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="w-1 h-8 rounded-full bg-bar" />
-          <h3 className="font-display text-2xl font-semibold text-cream">Especies</h3>
+          <h3 className="font-display text-2xl font-semibold text-cream">Catálogo</h3>
         </div>
 
         {inSeasonSpecies.length > 0 && (

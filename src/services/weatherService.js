@@ -210,6 +210,18 @@ function saveCache(data) {
   } catch { /* ignore quota errors */ }
 }
 
+/** Devuelve el timestamp (ms) de la última escritura en caché, o null si no hay caché válida */
+export function getCacheTimestamp() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const { ts, v } = JSON.parse(raw)
+    if (v !== CACHE_VERSION) return null
+    if (Date.now() - ts > CACHE_TTL) return null
+    return ts ?? null
+  } catch { return null }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // IN-FLIGHT CACHE (evita dobles fetches en React StrictMode)
 // ─────────────────────────────────────────────────────────────────────────────
