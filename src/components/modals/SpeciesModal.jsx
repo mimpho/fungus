@@ -25,7 +25,9 @@ export function SpeciesModal({ species, onClose }) {
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', onKey) }
   }, [])
 
   useEffect(() => {
