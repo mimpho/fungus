@@ -149,6 +149,64 @@ export function getScoreColor(s) {
 }
 
 // =====================================================
+// speciesQualityScore — puntuación de calidad de especies en temporada
+//
+// Para una zona y el mes actual, filtra las especies que coinciden en
+// forestType y fruitingMonths, y devuelve una puntuación 0-100 basada
+// en la comestibilidad media de las especies presentes.
+//
+// Pesos de comestibilidad (muy orientados al valor gastronómico real):
+//   excelente  → 100   (Boletus edulis, Cantharellus, Tuber… — el motivo del viaje)
+//   bueno      →  20   (Trufa bianchetto, Marzuelo… — interesantes pero no el objetivo)
+//   comestible →   5   (Hipóloma, Auriscalpio… — existen pero no justifican la salida)
+//   precaucion →   0   (no aptas para consumo general)
+//   toxico     →   0
+//   mortal     →   0
+//
+// Retorna:
+//   { sqs: number|null, allToxic: boolean }
+//   sqs=null  → no hay especies para esta zona/mes (sin ajuste al score)
+//   sqs=0 + allToxic=true → solo tóxicas/mortales → score final = 0
+// =====================================================
+export const EDIBILITY_SCORE = {
+  excelente:  100,
+  bueno:       20,
+  comestible:   5,
+  precaucion:   0,
+  toxico:       0,
+  mortal:       0,
+}
+
+export function speciesQualityScore(zone, allSpecies) {
+  const month = new Date().getMonth() + 1
+  const matching = allSpecies.filter(
+    s => s.forestTypes?.includes(zone.forestType) && s.fruitingMonths?.includes(month)
+  )
+  if (matching.length === 0) return { sqs: null, allToxic: false }
+
+  const scores = matching.map(s => EDIBILITY_SCORE[s.edibility] ?? 0)
+  const avg    = scores.reduce((a, b) => a + b, 0) / scores.length
+  const allToxic = scores.every(s => s === 0)
+  return { sqs: Math.round(avg), allToxic }
+}
+
+/**
+ * Ajusta el overallScore de las condiciones meteorológicas según la calidad
+ * de las especies disponibles en la zona y mes actual.
+ *
+ *  - Solo tóxicas/mortales  → overallScore = 0 (zona sin interés gastronómico)
+ *  - Con datos de especies  → 60 % meteorología + 40 % calidad de especies
+ *  - Sin especies en temporada → score meteorológico sin cambio
+ */
+export function applySpeciesModifier(conditions, zone, allSpecies) {
+  const { sqs, allToxic } = speciesQualityScore(zone, allSpecies)
+  if (sqs === null) return conditions                                   // sin datos → neutro
+  if (allToxic)     return { ...conditions, overallScore: 0, speciesScore: 0 }
+  const adjusted = Math.round(conditions.overallScore * 0.60 + sqs * 0.40)
+  return { ...conditions, overallScore: Math.max(0, Math.min(100, adjusted)), speciesScore: sqs }
+}
+
+// =====================================================
 // fakeConditions — genera condiciones aleatorias mock
 // Usar con useMemo(() => fakeConditions(), [zone.id]) para evitar flicker
 // =====================================================

@@ -8,7 +8,8 @@
 // =====================================================
 import { useState, useEffect } from 'react'
 import { fetchAllZoneConditions, fetchZoneConditions, getCacheTimestamp } from '../services/weatherService'
-import { fakeConditions } from '../lib/helpers'
+import { fakeConditions, applySpeciesModifier } from '../lib/helpers'
+import { mockSpecies } from '../data/species'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useAllZoneConditions — para Zones y Dashboard (todas las zonas)
@@ -36,7 +37,8 @@ export function useAllZoneConditions(zones) {
         if (cancelled) return
         const complete = {}
         zones.forEach(z => {
-          complete[z.id] = map[z.id] ?? fakeConditions()
+          const raw = map[z.id] ?? fakeConditions()
+          complete[z.id] = applySpeciesModifier(raw, z, mockSpecies)
         })
         setConditionsMap(complete)
         setLoading(false)
@@ -77,7 +79,7 @@ export function useZoneConditions(zone) {
     fetchZoneConditions(zone)
       .then(cond => {
         if (!cancelled) {
-          setConditions(cond)
+          setConditions(applySpeciesModifier(cond, zone, mockSpecies))
           setUpdatedAt(getCacheTimestamp())
           setLoading(false)
         }
@@ -86,7 +88,7 @@ export function useZoneConditions(zone) {
         if (!cancelled) {
           console.warn('[useZoneConditions] fetch failed:', err)
           setError('No se pudieron cargar datos en tiempo real.')
-          setConditions(fakeConditions())
+          setConditions(applySpeciesModifier(fakeConditions(), zone, mockSpecies))
           setUpdatedAt(null)
           setLoading(false)
         }

@@ -127,14 +127,10 @@ export function ZoneModal({ zone, onClose }) {
 
           {/* Termómetro */}
           <section>
-            <div className="flex items-baseline justify-between mb-1">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">{t.termometro}</h3>
-              {weatherLoading
-                ? <span className="text-bar text-[10px]">cargando datos reales…</span>
-                : <span className="text-cream/25 text-[10px]">{updatedLabel}</span>
-              }
-            </div>
-            <p className="text-cream/35 text-xs mb-3">Temperatura · Precipitación 14 días · Humedad del suelo</p>
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-1">{t.termometro}</h3>
+            <p className="text-cream/40 text-xs mb-3 leading-relaxed">
+              El índice pondera datos meteorológicos en tiempo real junto al factor estacional del mes actual para calcular las condiciones de recolección.
+            </p>
             <div className="flex items-center gap-4 bg-white/[0.03] rounded-xl p-4">
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
@@ -162,6 +158,9 @@ export function ZoneModal({ zone, onClose }) {
                 </div>
               ))}
             </div>
+            {!weatherLoading && (
+              <p className="text-cream/25 text-[11px] mt-2 text-right">{updatedLabel}</p>
+            )}
           </section>
 
           {/* Disponibles ahora */}
