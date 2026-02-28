@@ -33,8 +33,10 @@ function heatRadiusForZoom(zoom) {
   return base
 }
 
-const FOREST_COLORS = { pinar: 'var(--color-green-f)', hayedo: 'var(--color-muted)', robledal: '#a0522d', encinar: '#6b8e23' }
-const mushIcon = (color = 'var(--color-muted)', active = false) => L.divIcon({
+// IMPORTANTE: estos colores deben ser hex (no CSS vars) porque se concatenan
+// como `${color}80` para el box-shadow (ej. #4a7c5980) — las CSS vars rompen esa concatenación.
+const FOREST_COLORS = { pinar: '#4a7c59', hayedo: '#d9cda1', robledal: '#a0522d', encinar: '#6b8e23' }
+const mushIcon = (color = '#d9cda1', active = false) => L.divIcon({
   className: '',
   html: `<div style="width:${active ? 38 : 28}px;height:${active ? 38 : 28}px;background:${color};border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${active ? 16 : 12}px;box-shadow:0 0 ${active ? 20 : 10}px ${color}80;transition:all 0.2s;">🍄</div>`,
   iconSize: [active ? 38 : 28, active ? 38 : 28],
@@ -86,7 +88,8 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
           radius: initRadius,
           blur: Math.ceil(initRadius * 0.70),
           maxZoom: 17, max: 0.85, minOpacity: 0.25,
-          gradient: { 0.0: '#7f1d1d', 0.25: '#d97706', 0.50: '#a3a020', 0.75: 'var(--color-green-f)', 1.0: '#2d6640' },
+          // ⚠ CanvasGradient.addColorStop() NO soporta CSS vars — usar siempre hex
+          gradient: { 0.0: '#7f1d1d', 0.25: '#d97706', 0.50: '#a3a020', 0.75: '#4a7c59', 1.0: '#2d6640' },
         }).addTo(map)
         heatLayerRef.current = heatLayer
         map.on('zoomend', () => {
@@ -106,7 +109,14 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
       destroyed = true
       markersGroupRef.current = null
       heatLayerRef.current = null
-      if (leafletRef.current) { leafletRef.current.remove(); leafletRef.current = null }
+      if (leafletRef.current) {
+        // Envolver en try/catch: si el heatLayer falló a mitad de onAdd (canvas
+        // no añadido al DOM), map.remove() dispara removeChild en onRemove y lanza
+        // NotFoundError, que sin capturar impide que leafletRef se nullifique y
+        // rompe la navegación posterior.
+        try { leafletRef.current.remove() } catch (_e) { /* estado parcial — ignorar */ }
+        leafletRef.current = null
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
@@ -118,7 +128,7 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
     group.clearLayers()
     const toRender = singleZone ? [singleZone] : (zonas || [])
     toRender.forEach(z => {
-      const color  = FOREST_COLORS[z.forestType] || 'var(--color-muted)'
+      const color  = FOREST_COLORS[z.forestType] || '#d9cda1' // hex — no CSS var (ver comentario en FOREST_COLORS)
       const popupHtml = `
         <div style="font-family:'DM Sans',sans-serif;color:var(--color-cream);min-width:175px;">
           <div style="font-weight:600;font-size:13px;margin-bottom:3px;">${z.name}</div>
