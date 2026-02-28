@@ -37,8 +37,8 @@ export function ZoneModal({ zone, onClose }) {
     [zone.id]
   )
 
-  const heroSpecies = zoneSpecies[0]
-  const forestColors = { pinar: '#2a4a1e', hayedo: '#3a2a0a', robledal: '#2a180a', encinar: '#1a3a10' }
+  // Imagen de paisaje por tipo de bosque (WebP, ~11 kB c/u)
+  const ZONE_HERO = { pinar: '/assets/images/zones/pinar.webp', hayedo: '/assets/images/zones/hayedo.webp', robledal: '/assets/images/zones/robledal.webp', encinar: '/assets/images/zones/encinar.webp' }
 
   const filteredCalSpecies = useMemo(() => {
     if (calFilter === 'excelente') return zoneSpecies.filter(e => e.edibility === 'excelente')
@@ -82,12 +82,11 @@ export function ZoneModal({ zone, onClose }) {
         {/* Hero */}
         <div className="modal-header sm:rounded-t-2xl overflow-hidden" style={{ background: MODAL.bg }}>
           <div ref={heroRef} className="relative overflow-hidden" style={{ minHeight: '176px', height: '50vh' }}>
-            {heroSpecies ? (
-              <img src={heroSpecies.photo?.url} alt={zone.name}
-                className="w-full h-full object-cover opacity-70" style={{ objectPosition: 'top' }} />
-            ) : (
-              <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${forestColors[zone.forestType] || '#1a3a2e'}, #30372a)` }} />
-            )}
+            <img
+              src={ZONE_HERO[zone.forestType] || ZONE_HERO.pinar}
+              alt={zone.forestType}
+              className="w-full h-full object-cover"
+              style={{ objectPosition: 'center', opacity: 0.75 }} />
             <div className="absolute inset-0 bg-gradient-to-t from-[#30372a] via-[#30372a]/40 to-transparent" />
             <div className="absolute bottom-4 left-6 right-14">
               <h2 className="font-display text-3xl font-semibold text-[#f4ebe1] drop-shadow-lg">{zone.name}</h2>
