@@ -3,6 +3,7 @@ import { mockArticles } from '../data/articles'
 import { ArticleModal } from '../components/modals/ArticleModal'
 // Importar artículos para que se registren en ARTICLE_REGISTRY
 import '../articles/Micorrizas'
+import '../articles/Esporas'
 
 function ArticleCard({ article, onSelect }) {
   const isPublished = article.status === 'published'
@@ -11,10 +12,8 @@ function ArticleCard({ article, onSelect }) {
       onClick={() => isPublished && onSelect(article)}
       className={`glass rounded-2xl overflow-hidden transition-all duration-200 ${isPublished ? 'hover-lift cursor-pointer' : 'opacity-60'}`}
       style={{ border: isPublished ? '1px solid #4a7c5930' : '1px solid #ffffff08' }}>
-      <div className="px-5 py-5 flex items-start justify-between"
-        style={{ background: isPublished ? 'linear-gradient(135deg, #1a2e14, #243018)' : '#161e12' }}>
-        <span className="text-4xl">{article.emoji || '🍄'}</span>
-        <div className="flex items-center gap-2">
+      <div className="h-56">
+        <div className="absolute top-4 right-4">
           {!isPublished && (
             <span className="text-xs px-2.5 py-1 rounded-full font-medium"
               style={{ background: '#ffffff10', color: '#f4ebe1', opacity: 0.5 }}>
@@ -28,12 +27,13 @@ function ArticleCard({ article, onSelect }) {
             </span>
           )}
         </div>
+        <img src={article.heroImage} className="w-full h-full object-cover" alt={article.title} />
       </div>
       <div className="px-5 pb-5">
-        <h3 className="font-display text-base text-[#f4ebe1] mb-1 leading-tight mt-3">
+        <h3 className="font-display text-xl text-[#f4ebe1] mb-1 leading-tight mt-3">
           {article.title}
         </h3>
-        <p className="text-xs text-[#d9cda1]/50 mb-3 leading-relaxed line-clamp-2">
+        <p className="text-sm text-[#f4ebe1]/70 mb-3 leading-relaxed line-clamp-2">
           {article.summary}
         </p>
         <div className="flex items-center justify-between mt-3">
@@ -104,7 +104,7 @@ export default function Micologia() {
 
         {/* Resto de artículos */}
         <div className="mb-4">
-          <h3 className="font-display text-lg text-[#f4ebe1]/60 mb-4">Más artículos</h3>
+          <h3 className="text-[#d9cda1] text-sm font-medium uppercase mb-4">Más artículos</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {rest.map(article => (
               <ArticleCard

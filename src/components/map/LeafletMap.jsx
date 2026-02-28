@@ -28,8 +28,8 @@ function buildHeatPoints(zonas, conditionsMap) {
 }
 
 function heatRadiusForZoom(zoom) {
-  // Radio más generoso para que 28 zonas cubran visualmente toda España
-  const base = zoom <= 6 ? 55 : zoom <= 8 ? 40 : zoom <= 10 ? 28 : 18
+  // Radio ajustado para ~200 zonas distribuidas por España
+  const base = zoom <= 6 ? 38 : zoom <= 8 ? 28 : zoom <= 10 ? 20 : 14
   return base
 }
 
@@ -50,6 +50,14 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
   const markersGroupRef = useRef(null)
   const zonasRef        = useRef(zonas)
   useEffect(() => { zonasRef.current = zonas }, [zonas])
+
+  // ── Invalidate size cuando height cambia (ResizeObserver externo) ─────────────
+  // Sin esto, Leaflet no carga los tiles del área nueva y el fondo queda vacío.
+  useEffect(() => {
+    if (!leafletRef.current) return
+    const t = setTimeout(() => leafletRef.current?.invalidateSize(), 50)
+    return () => clearTimeout(t)
+  }, [height])
 
   // ── Init: crea el mapa y estructuras base. Se rehace solo si cambia el modo ──
   useEffect(() => {
