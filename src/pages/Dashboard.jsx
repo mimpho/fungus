@@ -7,7 +7,45 @@ import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { LeafletMap } from '../components/map/LeafletMap'
 import { mockArticles } from '../data/articles'
+import { ArticleModal } from '../components/modals/ArticleModal'
 import { useAllZoneConditions } from '../hooks/useWeatherConditions'
+import '../articles/Micorrizas'
+import '../articles/Esporas'
+import '../articles/Venenos'
+
+function ArticleCard({ article, onSelect }) {
+  const isPublished = article.status === 'published'
+  return (
+    <div
+      onClick={() => isPublished && onSelect(article)}
+      className={`glass rounded-2xl overflow-hidden transition-all duration-200 ${isPublished ? 'hover-lift cursor-pointer border border-green-f/20' : 'opacity-60 border border-white/[0.05]'}`}>
+      <div className="h-44 relative overflow-hidden">
+        {article.heroImage
+          ? <img src={article.heroImage} className="w-full h-full object-cover" alt={article.title} />
+          : <div className="w-full h-full bg-white/[0.03] flex items-center justify-center text-4xl">{article.emoji || '🍄'}</div>
+        }
+        <div className="absolute top-3 right-3">
+          {!isPublished
+            ? <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-white/10 text-cream/50">Próximamente</span>
+            : <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-green-f/20 text-lime-400">Nuevo</span>
+          }
+        </div>
+      </div>
+      <div className="px-4 pb-4 pt-3">
+        <h4 className="font-display text-base text-cream leading-snug mb-1">{article.title}</h4>
+        <p className="text-xs text-muted/60 leading-relaxed line-clamp-2">{article.summary}</p>
+        <div className="flex items-center gap-2 mt-3">
+          {article.tags.slice(0, 2).map(tag => (
+            <span key={tag} className="text-[10px] text-emerald-400 bg-emerald-400/5 px-2 py-0.5 rounded-full">{tag}</span>
+          ))}
+          {article.readingTime && (
+            <span className="text-[10px] text-cream/25 ml-auto">{article.readingTime} min</span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const { t, followedZones, toggleFollow, favoriteSpecies, setSelectedZone, setSelectedSpecies } = useApp()
@@ -16,6 +54,7 @@ export default function Dashboard() {
   const todayDate = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
 
   const [mapMode, setMapMode] = useState('markers')
+  const [selectedArticleSlug, setSelectedArticleSlug] = useState(null)
 
   const { conditionsMap, loading: weatherLoading } = useAllZoneConditions(mockZones)
 
@@ -28,6 +67,10 @@ export default function Dashboard() {
   [currentMonth])
 
   return (
+    <>
+    {selectedArticleSlug && (
+      <ArticleModal slug={selectedArticleSlug} onClose={() => setSelectedArticleSlug(null)} />
+    )}
     <div className="space-y-10 anim-up pb-20">
       {/* Header */}
       <div>
@@ -258,7 +301,7 @@ export default function Dashboard() {
       {/* ─── MICOLOGÍA ─── */}
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-8 rounded-full bg-[#4a6a8a]" />
+          <div className="w-1 h-8 rounded-full bg-coffee/60" />
           <h3 className="font-display text-2xl font-semibold text-cream">Micología</h3>
         </div>
         <div>
@@ -268,31 +311,15 @@ export default function Dashboard() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {mockArticles.slice(0, 3).map(article => (
-              <div key={article.id}
-                onClick={() => navigate('/micologia')}
-                className={`glass rounded-2xl p-5 transition-all duration-200 ${article.status === 'published' ? 'hover-lift cursor-pointer' : 'opacity-50 cursor-default'}`}>
-                <div className="flex items-start justify-between mb-3">
-                  <span className="text-3xl">{article.emoji || '🍄'}</span>
-                  {article.status === 'published'
-                    ? <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-green-f/25 text-emerald-400">Nuevo</span>
-                    : <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-cream/40">Próximamente</span>
-                  }
-                </div>
-                <h4 className="font-display text-base text-cream leading-snug mb-1">{article.title}</h4>
-                <p className="text-xs text-muted/50 leading-relaxed line-clamp-2">{article.summary}</p>
-                <div className="flex items-center gap-2 mt-3">
-                  {article.tags.slice(0, 2).map(tag => (
-                    <span key={tag} className="text-[10px] text-emerald-400 bg-emerald-400/5 px-2 py-0.5 rounded-full">{tag}</span>
-                  ))}
-                  {article.readingTime && (
-                    <span className="text-[10px] text-cream/25 ml-auto">{article.readingTime} min</span>
-                  )}
-                </div>
-              </div>
+              <ArticleCard
+                key={article.id}
+                article={article}
+                onSelect={a => setSelectedArticleSlug(a.slug)} />
             ))}
           </div>
         </div>
       </div>
     </div>
+    </>
   )
 }
