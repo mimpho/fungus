@@ -4,6 +4,7 @@ import { ArticleModal } from '../components/modals/ArticleModal'
 // Importar artículos para que se registren en ARTICLE_REGISTRY
 import '../articles/Micorrizas'
 import '../articles/Esporas'
+import '../articles/Venenos'
 
 function ArticleCard({ article, onSelect }) {
   const isPublished = article.status === 'published'

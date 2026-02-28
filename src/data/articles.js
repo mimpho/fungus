@@ -28,13 +28,14 @@ export const mockArticles = [
   {
     id: 'art-003',
     slug: 'toxinas',
-    title: 'Venenos del reino fungi',
+    heroImage: '/assets/images/content/articles/venenos.webp',
+    title: 'Venenos del reino Fungi',
     subtitle: 'Amatoxinas, muscarina y los mecanismos de las intoxicaciones fúngicas',
     summary: 'Amanita phalloides puede causar un fallo hepático fulminante con tan solo medio sombrero. Entender las toxinas fúngicas hace al recolector más consciente y al ciudadano más seguro.',
     tags: ['seguridad', 'toxicología', 'medicina'],
     readingTime: 10,
-    date: null,
-    status: 'coming_soon',
+    date: '2026-02-28',
+    status: 'published',
     featured: false,
   },
   {
