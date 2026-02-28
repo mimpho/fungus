@@ -13,7 +13,7 @@ const FOTOS = [
 // ─── Figura helper (igual patrón que Esporas) ─────────────────────────────────
 function Fig({ fotos, idx, height = 290, openLightbox }) {
   return (
-    <figure className="m-0 mt-4 relative cursor-pointer group" style={{ height }}
+    <figure className="m-0 my-4 relative cursor-pointer group" style={{ height }}
       onClick={() => openLightbox(idx)}>
       <div className="h-full rounded-xl overflow-hidden">
         <img src={fotos[idx].url} alt={fotos[idx].caption}
