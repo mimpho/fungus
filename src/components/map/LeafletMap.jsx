@@ -1,0 +1,295 @@
+// LeafletMap.jsx — mapa Leaflet vanilla (useRef/useEffect) con modo markers y heatmap
+// Depende de: leaflet, leaflet.heat (instalados vía npm)
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import L from 'leaflet'
+// leaflet.heat es CommonJS y busca `L` como global — hay que exponerlo antes de importarlo
+window.L = L
+let _heatLoaded = false
+async function ensureHeat() {
+  if (!_heatLoaded) { await import('leaflet.heat'); _heatLoaded = true }
+}
+import { IC } from '../../lib/helpers'
+import { Tabs } from '../ui/Tabs'
+
+// ─── Heatmap basado en scores reales de zonas ────────────────────────────────
+
+/**
+ * Genera puntos de heatmap a partir de zonas con scores reales.
+ * Cada zona aporta su overallScore (0-100) normalizado a 0-1.
+ * Con radio grande (zoom 6 → ~55px) los blobs se solapan creando
+ * un gradiente continuo sobre España.
+ */
+function buildHeatPoints(zonas, conditionsMap) {
+  return (zonas || []).map(z => {
+    const score = conditionsMap?.[z.id]?.overallScore ?? 0
+    return [z.lat, z.lng, score / 100]
+  })
+}
+
+function heatRadiusForZoom(zoom) {
+  // Radio ajustado para ~200 zonas distribuidas por España
+  const base = zoom <= 6 ? 38 : zoom <= 8 ? 28 : zoom <= 10 ? 20 : 14
+  return base
+}
+
+const FOREST_COLORS = { pinar: 'var(--color-green-f)', hayedo: 'var(--color-muted)', robledal: '#a0522d', encinar: '#6b8e23' }
+const mushIcon = (color = 'var(--color-muted)', active = false) => L.divIcon({
+  className: '',
+  html: `<div style="width:${active ? 38 : 28}px;height:${active ? 38 : 28}px;background:${color};border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${active ? 16 : 12}px;box-shadow:0 0 ${active ? 20 : 10}px ${color}80;transition:all 0.2s;">🍄</div>`,
+  iconSize: [active ? 38 : 28, active ? 38 : 28],
+  iconAnchor: [active ? 19 : 14, active ? 19 : 14],
+  popupAnchor: [0, -20],
+})
+
+// ─── LeafletMapInner ──────────────────────────────────────────────────────────
+function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = null, fullscreen = false, mode = 'markers', conditionsMap = {}, ccaaFilter = '' }) {
+  const mapRef          = useRef(null)
+  const leafletRef      = useRef(null)
+  const heatLayerRef    = useRef(null)
+  const markersGroupRef = useRef(null)
+  const zonasRef        = useRef(zonas)
+  useEffect(() => { zonasRef.current = zonas }, [zonas])
+
+  // ── Invalidate size cuando height cambia (ResizeObserver externo) ─────────────
+  // Sin esto, Leaflet no carga los tiles del área nueva y el fondo queda vacío.
+  useEffect(() => {
+    if (!leafletRef.current) return
+    const t = setTimeout(() => leafletRef.current?.invalidateSize(), 50)
+    return () => clearTimeout(t)
+  }, [height])
+
+  // ── Init: crea el mapa y estructuras base. Se rehace solo si cambia el modo ──
+  useEffect(() => {
+    if (!mapRef.current || leafletRef.current) return
+    let destroyed = false
+
+    ;(async () => {
+      if (mode === 'heatmap') await ensureHeat()
+      if (destroyed || !mapRef.current) return
+
+      const center = singleZone ? [singleZone.lat, singleZone.lng] : [41.8, 1.5]
+      const zoom   = singleZone ? 11 : 6
+
+      const map = L.map(mapRef.current, { zoomControl: false, scrollWheelZoom: true })
+        .setView(center, zoom)
+      L.control.zoom({ position: 'bottomleft' }).addTo(map)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors © CARTO',
+        subdomains: 'abcd', maxZoom: 19,
+      }).addTo(map)
+      leafletRef.current = map
+
+      if (mode === 'heatmap') {
+        const initRadius = heatRadiusForZoom(zoom)
+        const heatLayer  = L.heatLayer(buildHeatPoints(zonas, conditionsMap), {
+          radius: initRadius,
+          blur: Math.ceil(initRadius * 0.70),
+          maxZoom: 17, max: 0.85, minOpacity: 0.25,
+          gradient: { 0.0: '#7f1d1d', 0.25: '#d97706', 0.50: '#a3a020', 0.75: 'var(--color-green-f)', 1.0: '#2d6640' },
+        }).addTo(map)
+        heatLayerRef.current = heatLayer
+        map.on('zoomend', () => {
+          const r = heatRadiusForZoom(map.getZoom())
+          heatLayer.setOptions({ radius: r, blur: Math.ceil(r * 0.70) })
+          heatLayer.redraw()
+        })
+      } else {
+        // markers mode: LayerGroup vacío; los markers los añade el effect de zonas
+        markersGroupRef.current = L.layerGroup().addTo(map)
+      }
+
+      if (fullscreen) setTimeout(() => map.invalidateSize(), 100)
+    })()
+
+    return () => {
+      destroyed = true
+      markersGroupRef.current = null
+      heatLayerRef.current = null
+      if (leafletRef.current) { leafletRef.current.remove(); leafletRef.current = null }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
+
+  // ── Markers: se actualiza cada vez que zonas cambia (filtros, modo) ───────────
+  useEffect(() => {
+    if (mode !== 'markers' || !markersGroupRef.current) return
+    const group = markersGroupRef.current
+    group.clearLayers()
+    const toRender = singleZone ? [singleZone] : (zonas || [])
+    toRender.forEach(z => {
+      const color  = FOREST_COLORS[z.forestType] || 'var(--color-muted)'
+      const popupHtml = `
+        <div style="font-family:'DM Sans',sans-serif;color:var(--color-cream);min-width:175px;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:3px;">${z.name}</div>
+          <div style="color:var(--color-muted);font-size:11px;margin-bottom:2px;text-transform:capitalize">${z.province} · ${z.forestType}</div>
+          <div style="color:var(--color-bar);font-size:11px;margin-bottom:10px;">⛰️ ${z.elevation}m alt.</div>
+          <button class="popup-zone-btn" style="font-size:11px;color:var(--color-coffee-light);cursor:pointer;background:rgba(139,111,71,0.18);border:1px solid rgba(139,111,71,0.28);padding:5px 10px;border-radius:8px;font-family:inherit;width:100%;text-align:center;transition:background 0.15s,border-color 0.15s;">Ver zona →</button>
+        </div>`
+      const marker = L.marker([z.lat, z.lng], { icon: mushIcon(color, !!singleZone) })
+        .bindPopup(popupHtml, { className: 'fungus-popup', closeButton: false, offset: [0, -6] })
+      marker.addTo(group)
+
+      const isHover = window.matchMedia('(hover: hover)').matches
+
+      if (isHover) {
+        // Desktop: hover abre popup, mouseout lo cierra (salvo que el cursor vaya al popup)
+        marker.on('mouseover', () => marker.openPopup())
+        marker.on('mouseout', e => {
+          const dest    = e.originalEvent?.relatedTarget
+          const popupEl = marker.getPopup()?.getElement()
+          if (popupEl && dest && popupEl.contains(dest)) return
+          marker.closePopup()
+        })
+        // Click en desktop: cierra popup y abre ficha directamente
+        marker.on('click', () => {
+          marker.closePopup()
+          if (onZoneClick) onZoneClick(z)
+        })
+      } else {
+        // Touch: el primer tap abre el popup (comportamiento por defecto de Leaflet).
+        // El botón "Ver zona →" dentro del popup abre la ficha.
+        marker.on('popupopen', e => {
+          e.popup.getElement()?.querySelector('.popup-zone-btn')
+            ?.addEventListener('click', () => {
+              marker.closePopup()
+              if (onZoneClick) onZoneClick(z)
+            })
+        })
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zonas, mode])
+
+  // ── Zoom CCAA: fitBounds cuando cambia el filtro de comunidad autónoma ────────
+  useEffect(() => {
+    if (!leafletRef.current || singleZone) return
+    const zs = zonasRef.current
+    if (ccaaFilter && zs?.length > 0) {
+      leafletRef.current.fitBounds(zs.map(z => [z.lat, z.lng]), { padding: [50, 50], maxZoom: 10, animate: true })
+    } else if (!ccaaFilter) {
+      leafletRef.current.fitBounds(zs?.length > 0
+        ? zs.map(z => [z.lat, z.lng])
+        : [[36, -9], [43.8, 3.3]],  // fallback: España
+        { padding: [30, 30], maxZoom: 7, animate: true }
+      )
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ccaaFilter])
+
+  // ── Heatmap: se actualiza cuando zonas o conditionsMap cambian ────────────────
+  useEffect(() => {
+    if (mode !== 'heatmap' || !heatLayerRef.current || !leafletRef.current) return
+    heatLayerRef.current.setLatLngs(buildHeatPoints(zonas, conditionsMap))
+    heatLayerRef.current.redraw()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zonas, conditionsMap, mode])
+
+  const h = fullscreen ? '100%' : height
+  return (
+    <div ref={mapRef}
+      style={{ height: h, width: '100%', borderRadius: fullscreen ? '0' : '12px', zIndex: 1 }} />
+  )
+}
+
+// ─── MapFullscreenModal ───────────────────────────────────────────────────────
+function MapFullscreenModal({ zonas, singleZone, onZoneClick, title, onClose, mode = 'markers', onModeChange = null, conditionsMap = {} }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return createPortal(
+    <div className="fixed inset-0 flex flex-col" style={{ zIndex: 10000, background: 'var(--color-bg-deep)' }}>
+      {/* Header */}
+      <div className="glass flex items-center justify-between px-4 py-3 shrink-0">
+        <div className="flex items-center gap-3">
+          {IC.map}
+          <span className="font-display text-lg text-cream">{title || 'Mapa'}</span>
+          {singleZone && (
+            <span className="text-xs text-muted hidden sm:block">
+              {singleZone.lat.toFixed(4)}, {singleZone.lng.toFixed(4)} · ⛰️ {singleZone.elevation}m
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {onModeChange && (
+            <div className="backdrop-blur-sm bg-modal/80 rounded-xl p-1">
+              <Tabs
+                options={[{ id: 'markers', label: 'Zonas' }, { id: 'heatmap', label: 'Mapa de calor' }]}
+                selected={mode}
+                onChange={onModeChange}
+                size="sm"
+                variant="compact" />
+            </div>
+          )}
+          <button onClick={onClose}
+            className="p-2.5 rounded-xl hover:bg-white/10 text-cream/60 hover:text-cream transition-colors">
+            {IC.close}
+          </button>
+        </div>
+      </div>
+      {/* Map */}
+      <div className="flex-1 relative">
+        <LeafletMapInner
+          zonas={zonas} singleZone={singleZone} onZoneClick={onZoneClick}
+          height="100%" fullscreen mode={mode} conditionsMap={conditionsMap} />
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+// ─── LeafletMap (público) — con botón expand ─────────────────────────────────
+export function LeafletMap({
+  zonas, onZoneClick, height = '400px',
+  singleZone = null, title,
+  mode = 'markers', onModeChange = null,
+  conditionsMap = {}, ccaaFilter = '',
+}) {
+  const [fullscreen, setFullscreen] = useState(false)
+
+  return (
+    <>
+      <div className="relative">
+        <LeafletMapInner
+          zonas={zonas} onZoneClick={onZoneClick} height={height}
+          singleZone={singleZone} mode={mode} conditionsMap={conditionsMap} ccaaFilter={ccaaFilter} />
+
+        {/* Selector modo (si se proporciona) */}
+        {onModeChange && (
+          <div className="absolute top-3 left-3 z-[1000] backdrop-blur-sm bg-modal/80 rounded-xl p-1">
+            <Tabs
+              options={[{ id: 'markers', label: 'Zonas' }, { id: 'heatmap', label: 'Mapa de calor' }]}
+              selected={mode}
+              onChange={onModeChange}
+              size="sm"
+              variant="compact" />
+          </div>
+        )}
+
+        {/* Botón pantalla completa */}
+        <button
+          className="absolute bottom-3 right-3 z-[1000] p-2 rounded-xl backdrop-blur-sm bg-modal/80 text-cream/60 hover:text-cream transition-colors"
+          onClick={() => setFullscreen(true)}
+          title="Pantalla completa">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+        </button>
+      </div>
+
+      {fullscreen && (
+        <MapFullscreenModal
+          zonas={zonas} singleZone={singleZone} onZoneClick={onZoneClick}
+          title={title || (singleZone ? singleZone.name : 'Mapa de zonas')}
+          onClose={() => setFullscreen(false)}
+          mode={mode}
+          onModeChange={onModeChange}
+          conditionsMap={conditionsMap} />
+      )}
+    </>
+  )
+}

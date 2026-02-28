@@ -1,0 +1,209 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens — CSS custom properties ──────────────────────────────────
+   Fuente de verdad para inline style={{ }} en JSX.
+   Las clases Tailwind (text-cream, bg-modal…) usan los mismos hex values
+   definidos en tailwind.config.js.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Textos */
+  --color-cream:         #f4ebe1;
+  --color-muted:         #d9cda1;
+
+  /* Acentos cálidos */
+  --color-coffee:        #8b6f47;
+  --color-coffee-light:  #c4a06b;
+
+  /* Verde forestal */
+  --color-green-f:       #4a7c59;
+
+  /* Score intermedio */
+  --color-bar:           #887b4b;
+
+  /* Fondos */
+  --color-bg-deep:       #0f1f18;
+  --color-modal:         #30372a;
+
+  /* Efectos glass */
+  --glass-white:         rgba(255, 255, 255, 0.04);
+  --glass-warm:          rgba(139, 111, 71, 0.08);
+  --glass-warm-border:   rgba(139, 111, 71, 0.20);
+  --glass-warm-thumb:    rgba(139, 111, 71, 0.40);
+
+  /* Overlay modal */
+  --modal-overlay:       #232522d9;
+}
+
+/* ── Google Fonts already loaded via index.html ── */
+
+/* ── Base ──────────────────────────────────────── */
+html { font-size: 18px; scroll-behavior: smooth; }
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--color-modal);
+  min-height: 100vh;
+  color: var(--color-cream);
+}
+
+body::after {
+  content: '';
+  display: block;
+  position: fixed;
+  z-index: -1;
+  top: 0; left: 0;
+  height: 100vh; width: 100vw;
+  background: linear-gradient(135deg, rgb(43, 53, 41) 0%, rgb(61, 69, 54) 50%, rgb(67, 66, 28) 100%);
+}
+
+/* ── Scrollbar ──────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--glass-warm-thumb); border-radius: 3px; }
+
+/* ── Glass morphism ─────────────────────────────── */
+.glass {
+  background: var(--glass-white);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-warm {
+  background: var(--glass-warm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── Grain texture ──────────────────────────────── */
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── Hover lift ─────────────────────────────────── */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Animations ─────────────────────────────────── */
+@keyframes animUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes animRight {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes animScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.anim-up    { animation: animUp    0.3s ease both; }
+.anim-right { animation: animRight 0.3s ease both; }
+.anim-scale { animation: animScale 0.25s ease both; }
+
+/* ── Progress bar ───────────────────────────────── */
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ── Modal ──────────────────────────────────────── */
+.modal-outer { padding: 0; }
+
+@media (max-width: 639px) {
+  .modal-outer {
+    align-items: flex-end !important;
+  }
+  .modal-inner {
+    border-radius: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    position: fixed !important;
+    inset: 0 !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    overflow-y: auto !important;
+  }
+  .modal-header { position: relative !important; }
+  .modal-scroll { max-height: none !important; overflow-y: visible !important; }
+}
+
+@media (min-width: 640px) {
+  .modal-inner {
+    border-radius: 1rem !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-scroll { max-height: none !important; overflow-y: visible !important; }
+}
+
+/* ── Map expand button ──────────────────────────── */
+.map-expand-btn {
+  position: absolute; top: 10px; right: 10px; z-index: 999;
+  background: rgba(30,42,26,0.88);
+  border: 1px solid rgba(196,160,107,0.30);
+  border-radius: 10px; padding: 10px;
+  color: var(--color-coffee-light); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
+.map-expand-btn:hover {
+  background: rgba(196,160,107,0.18);
+  border-color: rgba(196,160,107,0.55);
+  transform: scale(1.08);
+}
+.map-expand-btn svg { width: 18px; height: 18px; }
+
+/* ── Leaflet overrides ──────────────────────────── */
+.leaflet-container { background: var(--color-bg-deep) !important; }
+.leaflet-tile-pane { filter: brightness(0.85) saturate(0.8); }
+
+/* ── Leaflet popup: fungus theme ────────────────── */
+.fungus-popup .leaflet-popup-content-wrapper {
+  background: var(--color-modal);
+  border: 1px solid rgba(244, 235, 225, 0.10);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  padding: 0;
+  color: var(--color-cream);
+}
+.fungus-popup .leaflet-popup-tip {
+  background: var(--color-modal);
+}
+.fungus-popup .leaflet-popup-content {
+  margin: 13px 15px;
+}
+.fungus-popup .leaflet-popup-close-button {
+  display: none;
+}
+.fungus-popup .popup-zone-btn:hover {
+  background: rgba(139, 111, 71, 0.35) !important;
+  border-color: rgba(196, 160, 107, 0.5) !important;
+}
+/* Solo visible en táctil — en desktop se abre la zona al clicar la chincheta */
+@media (hover: hover) {
+  .fungus-popup .popup-zone-btn { display: none; }
+}

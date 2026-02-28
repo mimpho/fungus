@@ -1,6 +1,7 @@
 {
-  "outputDirectory": "standalone/latest",
-  "buildCommand": "echo 'static site, no build needed'",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

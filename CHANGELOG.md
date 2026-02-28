@@ -7,6 +7,126 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [3.0.0-fase5] - 2026-02-26 — Migración a Vite + React Router (Fase 5: Mapa Leaflet + Micología)
+
+### Contexto
+Quinta fase: la migración a Vite está completa. Mapa Leaflet interactivo en todos los puntos de la app, página Micología funcional con ArticleModal y sistema de artículos, y code splitting que reduce el bundle principal de 617KB a 133KB.
+
+### Añadido
+- `src/components/map/LeafletMap.jsx` — mapa Leaflet vanilla con modo markers (marcadores 🍄 por forestType) y modo heatmap meteórico sintético (grid de España con `leaflet.heat`), botón pantalla completa con portal, zoom control, popups dark
+- `src/components/modals/ArticleModal.jsx` — modal de artículos con hero foto, mini-barra sticky, ARTICLE_REGISTRY pattern; exporta helpers `ArticleSection`, `ArticleP`, `ArticleCallout`, `ArticleInfographic`
+- `src/articles/Micorrizas.jsx` — artículo completo con 3 infografías SVG (intercambio de nutrientes, Ecto vs Endo, tabla especie-árbol), 5 secciones y fuentes bibliográficas
+- `src/pages/Micologia.jsx` — página real con artículo destacado (hero imagen + texto) y grid de cards (publicados/próximamente)
+
+### Modificado
+- `src/pages/Zones.jsx` — tab Mapa ahora usa `<LeafletMap>` real (antes placeholder)
+- `src/components/modals/ZoneModal.jsx` — sección Ubicación usa `<LeafletMap singleZone>` (antes placeholder)
+- `src/components/modals/SpeciesModal.jsx` — sección Dónde encontrarla usa `<LeafletMap zonas>` (antes placeholder)
+- `src/components/Layout.jsx` — navegación mobile cambiada de bottom tab bar a hamburguesa ☰ desplegable (alineado con standalone)
+- `vite.config.js` — `manualChunks` para code splitting: bundle principal 617KB → 133KB; chunks separados para react-vendor, leaflet-vendor, data-species, data-zones
+
+### Instalado
+- `leaflet.heat` — plugin de mapa de calor para Leaflet
+
+---
+
+## [3.0.0-fase4] - 2026-02-26 — Migración a Vite + React Router (Fase 4: Modales)
+
+### Contexto
+Cuarta fase: todos los modales (ZoneModal, SpeciesModal, FamilyModal, Lightbox) están portados a componentes React con imports ES module. El stack modal completo funciona desde AppContext sin props drilling.
+
+### Añadido
+- `src/components/modals/Lightbox.jsx` — visor de fotos full-screen con nav por teclado (← → Esc), swipe táctil, thumbnails en desktop, dots en mobile, portal a `document.body`
+- `src/components/modals/FamilyModal.jsx` — ficha de familia con descripción, características y listado de especies de la familia
+- `src/components/modals/ZoneModal.jsx` — ficha de zona: hero foto, mini-barra sticky al scroll, termómetro con 6 métricas, especies disponibles ahora, calendario de fructificación con filtros, placeholder mapa (Fase 5)
+- `src/components/modals/SpeciesModal.jsx` — ficha de especie: hero foto, comestibilidad + enlace familia, aviso mortal, nombres comunes, TaxonomyBlock, descripción, hábitat, calendario 12 meses, galería con lightbox, condiciones de fructificación, morfología (cap/stem/flesh), ConfusionesBlock, placeholder mapa distribución (Fase 5)
+- `src/components/modals/ModalRenderer.jsx` — renderiza el modal activo leyendo el estado de AppContext; montado en `App.jsx` fuera del árbol de rutas
+- `src/lib/helpers.jsx` — añadidos `TaxonomyBlock`, `ConfusionesBlock`, `CONFUSIONES_POR_FAMILIA`, `CONFUSION_GENERICA`
+
+### Modificado
+- `src/App.jsx` — añadido `<ModalRenderer />` justo después de `<ScrollToTop />`
+
+### Pendiente (próximas fases)
+- Fase 5: Mapa Leaflet interactivo en ZoneModal y SpeciesModal, página Micología + ArticleModal
+
+---
+
+## [3.0.0-fase3] - 2026-02-26 — Migración a Vite + React Router (Fase 3: Páginas y Estado Global)
+
+### Contexto
+Tercera fase: las cuatro páginas principales tienen contenido real y el estado global está centralizado en React Context. La app Vite ya es navegable con datos reales.
+
+### Añadido
+- `src/contexts/AppContext.jsx` — estado global con React Context: `followedZones`, `favoriteSpecies`, `lang`, `profile`, modal stack (`selectedZone`, `selectedSpecies`, `selectedFamily`, `lightbox`). Persiste en `localStorage` con clave `fungus_v3` (compatible con el standalone)
+- `src/components/ui/FilterPanel.jsx` — panel de filtros responsive: inline colapsable en desktop, bottom-sheet con drag-to-close en mobile
+- `src/components/ui/SearchFilterBar.jsx` — barra de búsqueda con botón Filtrar integrado (variants: `full` / `split`)
+- `src/components/ui/Tabs.jsx` — tabs reutilizables (variants: `default` / `compact`, sizes: `sm/md/lg`)
+- `src/components/ui/ActiveFilterChip.jsx` — chip de filtro activo con botón de eliminar
+- `src/components/ui/ZoneCard.jsx` — card de zona con condiciones mock, barra de score, icono de bosque
+- `src/pages/Dashboard.jsx` — portado completo: stat cards, top zonas, zonas seguidas, especies en temporada, favoritas
+- `src/pages/Species.jsx` — portado completo: búsqueda, filtros (edibilidad, familia, orden), grid paginado (24/pág), paginación con elipsis
+- `src/pages/Zones.jsx` — portado completo: tabs mapa/listado, filtros (seguidas, lluvia, bosque, CCAA, orden), cards con condiciones
+- `src/pages/Profile.jsx` — portado completo: notificaciones, datos personales, selector de idioma, stats
+- `src/components/Layout.jsx` — añadida navegación mobile bottom bar con emojis + active state
+
+### Pendiente (próximas fases)
+- Fase 4: Modales + deep links (`/zonas/:id`, `/especies/:id`)
+- Fase 5: Mapa Leaflet interactivo, Micología + ArticleModal
+
+---
+
+## [3.0.0-fase2] - 2026-02-26 — Migración a Vite + React Router (Fase 2: Datos y Helpers)
+
+### Contexto
+Segunda fase de la migración: los datos y las utilidades compartidas ya son módulos ES importables, desacoplados del scope global del standalone.
+
+### Añadido
+- `src/lib/constants.js` — fuente única de verdad para design tokens: `COLORS`, `MODAL`, `FOREST_COLORS`, `MONTHS`
+- `src/lib/helpers.jsx` — helpers portados del standalone como named exports: `IC` (iconos SVG), `getEdibilityColor`, `EdibilityTag`, `SpeciesImg` (con fallback Wikipedia), `SpeciesCard`, `getScoreColor`, `fakeConditions`
+- `src/data/zones.js` — 28 zonas como `export const mockZones`
+- `src/data/species.js` — 27 especies (5218 líneas) como `export const mockSpecies`
+- `src/data/families.js` — 8 familias como `export const mockFamilies`
+- `src/data/i18n.js` — traducciones es/ca/en como `export const i18n`
+- `src/data/articles.js` — artículos de micología como `export const mockArticles`
+- `src/data/opportunities.js` — oportunidades mock como `export const mockOpportunities`
+
+### Pendiente (próximas fases)
+- Fase 3: Páginas con contenido real (Dashboard, Profile, Species, Zones)
+- Fase 4: Modales + deep links (`/zonas/:id`, `/especies/:id`)
+- Fase 5: Micología, ArticleModal, mapa Leaflet
+
+---
+
+## [3.0.0-fase1] - 2026-02-26 — Migración a Vite + React Router (Fase 1: Fundación)
+
+### Contexto
+Inicio de la migración de la arquitectura standalone (Babel en browser) a una app React moderna con bundler y routing real. El standalone permanece en `standalone/` como archivo funcional.
+
+### Añadido
+- **Vite 6** como bundler — reemplaza el CRA de `frontend/` (eliminado) y el transpilado Babel en browser
+- **React Router v6** — routing basado en URL, reemplaza el `view` state manual
+- **Tailwind CSS 3** instalado vía npm (postcss) — reemplaza el CDN
+- **React Leaflet 4** instalado vía npm — reemplaza el CDN de Leaflet
+- Estructura de directorios `src/` (pages/, components/, lib/, data/, articles/)
+- Shell de rutas con 5 páginas placeholder: `/`, `/zonas`, `/especies`, `/micologia`, `/perfil`
+- Rutas anidadas para deep linking: `/zonas/:id`, `/especies/:id`, `/micologia/:slug`
+- `ScrollToTop` automático en cada cambio de ruta
+- `vercel.json` con rewrites SPA para que React Router funcione en producción
+- `public/assets/` con todos los recursos de imágenes (2.200+ ficheros)
+- Design system en `tailwind.config.js` (colores, tipografías)
+- `styles.css` con clases `.glass`, `.hover-lift`, `.anim-*`, `.modal-*` portadas del standalone
+
+### Eliminado
+- `frontend/` (CRA experimental, nunca en producción)
+
+### Pendiente (próximas fases)
+- Fase 2: Migración de datos y helpers (data/*.js → módulos ES, lib/helpers.jsx)
+- Fase 3: Páginas (Dashboard, Profile, Species, Zones)
+- Fase 4: Modales + deep links (/zonas/:id, /especies/:id)
+- Fase 5: Micología, ArticleModal, Leaflet map
+
+---
+
 ## [2.8.0] - 2026-02-18
 
 ### Añadido — Expansión masiva de datos
