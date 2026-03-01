@@ -445,3 +445,27 @@ Todo lo anterior, más:
 ### Lo que **no** hace falta actualizar en cada cambio
 - `memory/pending.md` — solo cuando cambia la cola de tareas activa
 - `docs/conventions.md` — solo cuando cambia cómo trabajamos, no qué construimos
+
+---
+
+## Flujo de trabajo con Claude
+
+### Cuándo usar Cowork
+
+**Siempre** para trabajo real en el proyecto: escribir código, leer o modificar archivos, ejecutar comandos, operaciones git. Cowork tiene acceso al repo y carga `CLAUDE.md` automáticamente al arrancar, lo que garantiza contexto sin tener que re-explicar nada.
+
+**No es necesario** para consultas puntuales que no tocan el proyecto directamente — discutir un concepto, revisar un fragmento de código suelto, o hacer una pregunta sobre una librería. Una conversación de Claude normal es más rápida para eso.
+
+### Alcance de una sesión
+
+Una sesión de Cowork debería cubrir un **bloque de trabajo cohesionado**, no una tarea suelta ni todo el proyecto. El criterio práctico: abrir una sesión nueva cuando se empieza un bloque diferente (un milestone, un tema distinto), no cuando se termina una tarea puntual dentro del mismo bloque.
+
+Cuando una conversación se extiende mucho, la calidad del contexto se degrada. La señal para abrir sesión nueva es notar que Claude está perdiendo el hilo, no esperar a que falle. `CLAUDE.md` garantiza la continuidad — la siguiente sesión arranca con el mismo contexto que dejó la anterior.
+
+### Arrancar una sesión
+
+No hace falta re-explicar el proyecto. Claude lee `CLAUDE.md` al inicio. Con indicar el bloque de trabajo ("continuamos con v4.1", "empezamos con las API conventions") es suficiente. Si hay contexto extra relevante que no está en `CLAUDE.md` (una decisión tomada fuera de Cowork, un cambio manual en el código), mencionarlo explícitamente al inicio.
+
+### Cerrar una sesión
+
+Antes de cerrar, aplicar el protocolo de actualización de documentación de la sección anterior. Eso es lo que hace que la próxima sesión arranque con contexto real. Si la sesión fue exploratoria y no hubo cambios concretos, basta con actualizar `memory/pending.md` si quedaron tareas pendientes identificadas.
