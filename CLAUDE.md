@@ -391,15 +391,57 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 
 ## Roadmap
 
-### Pendiente (v3.x) — ver `memory/pending.md` para detalle
-- Revisión `forestTypes` y `fruitingMonths` de todas las especies
-- Mostrar `speciesScore` (SQS) en la UI de ZoneModal
-- Meteocat API para zonas catalanas (requiere API key)
-- Zonas personalizadas en el mapa
+| Versión | Estado | Alcance |
+|---|---|---|
+| v3.1 | ✅ Entregado | Frontend Vite completo — meteo real, catálogo mock, modales, mapa |
+| v3.x | 🗂 Backlog | Mejoras frontend (ver `memory/pending.md`) — sin prioridad activa |
+| **v4.1** | 🚧 En curso | Backend meteo: FastAPI + OI + Open-Meteo server-side |
+| v4.2 | 📋 Planificado | Catálogo en DB: seed script + endpoints reemplazan mock data |
+| v4.3 | 📋 Planificado | Auth + social: JWT, favoritos reales, avistamientos comunitarios |
 
-### Próximo (v4.0) — ver `docs/backend_architecture.md` para spec completa
-- Backend FastAPI + PostgreSQL + PostGIS
-- Índice de Brote (IB) con histórico de 21 días y fuentes regionales (Meteocat, Euskalmet, etc.)
-- Autenticación real de usuarios
-- App móvil (React Native)
-- Fotografías comunitarias de avistamientos
+Spec completa de v4.x: `docs/backend_architecture.md`
+
+---
+
+## Protocolo de actualización de documentación
+
+Cuando Claude complete trabajo en este proyecto, debe actualizar los siguientes archivos según el tipo de cambio. **Esto no es opcional** — la documentación desincronizada genera confusión en sesiones futuras.
+
+### Al cerrar una tarea o PR (PATCH: vX.Y.Z → vX.Y.Z+1)
+
+| Archivo | Qué actualizar |
+|---|---|
+| `CHANGELOG.md` | Añadir entrada con los cambios, bajo el MINOR activo |
+| `backend/pyproject.toml` | Bump de versión patch |
+| `CLAUDE.md` → Overview | Versión actual si ha cambiado |
+
+### Al cerrar una fase/milestone (MINOR: vX.Y → vX.Y+1)
+
+Todo lo anterior, más:
+
+| Archivo | Qué actualizar |
+|---|---|
+| `CLAUDE.md` → Roadmap | Marcar la fase como ✅, actualizar la que pasa a "En curso" |
+| `CLAUDE.md` → Overview | Versión y estado del backend |
+| `docs/conventions.md` | Phase map si se añaden fases nuevas |
+| `docs/backend_architecture.md` | Si el spec cambió durante la implementación |
+| Git | `git tag -a vX.Y.0` en `main` tras el merge del epic |
+
+### Al tomar una decisión arquitectónica relevante
+
+| Archivo | Qué actualizar |
+|---|---|
+| `memory/decisions.md` | Registrar la decisión, alternativas descartadas y motivo |
+| `docs/backend_architecture.md` | Si afecta al diseño general del sistema |
+| `docs/conventions.md` | Si establece un nuevo patrón de trabajo |
+
+### Al añadir o cambiar un endpoint de la API
+
+| Archivo | Qué actualizar |
+|---|---|
+| `CLAUDE.md` → sección Backend | Tabla de endpoints |
+| `docs/backend_architecture.md` | Sección 8 (API Endpoints) |
+
+### Lo que **no** hace falta actualizar en cada cambio
+- `memory/pending.md` — solo cuando cambia la cola de tareas activa
+- `docs/conventions.md` — solo cuando cambia cómo trabajamos, no qué construimos
