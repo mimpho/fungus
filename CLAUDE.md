@@ -4,9 +4,10 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v3.0.0 (Vite + React Router, rama `feat/vite-migration`)
-**Estado**: Prototipo funcional — datos meteorológicos reales via Open-Meteo, catálogo de datos mock (28 zonas, 27 especies, 8 familias), sin backend propio.
-**Deploy**: Vercel, rama `feat/vite-migration` → `fungus-git-feat-vite-migration-mimphos-projects.vercel.app`
+**Versión actual**: v3.1.0 (Vite + React Router, rama `main`)
+**Estado**: Prototipo funcional — datos meteorológicos reales via Open-Meteo, catálogo de datos mock (28 zonas, 27 especies, 8 familias), sin backend propio. Modales con URL slugs y navegación browser-native (back/ESC).
+**Deploy**: Vercel → `fungus-git-feat-vite-migration-mimphos-projects.vercel.app`
+**Backend spec**: `docs/backend_architecture.md` — propuesta FastAPI + PostgreSQL + PostGIS (v4.0)
 
 ---
 
@@ -45,12 +46,14 @@ fungus/
 │       │   └── useWeatherConditions.js ← useAllZoneConditions / useZoneConditions
 │       ├── lib/
 │       │   ├── helpers.jsx  ← IC icons, getScoreColor, EdibilityTag, SpeciesCard,
-│       │   │                   ConfusionesBlock, CONFUSIONES_POR_FAMILIA, fakeConditions
+│       │   │                   ConfusionesBlock, CONFUSIONES_POR_FAMILIA, fakeConditions,
+│       │   │                   resolveUrl(), slugify()
 │       │   └── constants.js ← MODAL, COLORS, MONTHS
 │       ├── pages/
 │       │   ├── Dashboard.jsx
-│       │   ├── Zones.jsx
-│       │   ├── Species.jsx
+│       │   ├── Zones.jsx    ← useParams → setSelectedZone (sinc URL↔modal)
+│       │   ├── Species.jsx  ← useParams + useSearchParams (?pagina=N)
+│       │   ├── Family.jsx   ← ruta /familia/:slug, renderiza <Species /> como fondo
 │       │   ├── Micologia.jsx
 │       │   └── Profile.jsx
 │       ├── components/
@@ -58,9 +61,9 @@ fungus/
 │       │   ├── map/
 │       │   │   └── LeafletMap.jsx ← markers + heatmap (scores reales), fullscreen modal
 │       │   ├── modals/
-│       │   │   ├── ModalRenderer.jsx
+│       │   │   ├── ModalRenderer.jsx  ← única autoridad de navegación de modales
 │       │   │   ├── ZoneModal.jsx
-│       │   │   ├── SpeciesModal.jsx
+│       │   │   ├── SpeciesModal.jsx   ← GallerySection con tracking onError
 │       │   │   ├── FamilyModal.jsx
 │       │   │   ├── ArticleModal.jsx
 │       │   │   └── Lightbox.jsx
@@ -71,7 +74,9 @@ fungus/
 │       │       ├── SearchFilterBar.jsx
 │       │       └── ActiveFilterChip.jsx
 │       └── articles/
-│           └── Micorrizas.jsx   ← Artículo completo con infografías SVG
+│           ├── Micorrizas.jsx  ← Artículo con infografías SVG
+│           ├── Esporas.jsx     ← Artículo con galería (usa setLightbox)
+│           └── Venenos.jsx     ← Artículo con galería (usa setLightbox)
 └── standalone/              ← LEGACY (referencia, no desarrollo activo)
     ├── latest/              ← v2.8.0 multi-archivo
     └── archive/             ← Versiones anteriores HTML monolíticos
@@ -87,6 +92,25 @@ npm run dev      # Dev server → http://localhost:5173
 npm run build    # Build producción (dist/)
 npm run preview  # Preview del build
 ```
+
+---
+
+## Rutas (React Router v6)
+
+| Ruta | Componente | Descripción |
+|---|---|---|
+| `/` | `Dashboard` | Vista principal |
+| `/zonas` | `Zones` | Listado de zonas |
+| `/zonas/:id` | `Zones` | Zona con modal abierto (slug del nombre) |
+| `/especies` | `Species` | Catálogo de especies |
+| `/especies/:id` | `Species` | Especie con modal abierto (slug del nombre científico) |
+| `/familia/:slug` | `Family` | Modal de familia abierto (slug del nombre de familia) |
+| `/micologia` | `Micologia` | Listado de artículos |
+| `/micologia/:slug` | `Micologia` | Artículo abierto |
+| `/perfil` | `Profile` | Perfil de usuario |
+
+`slugify()` en `helpers.jsx` convierte nombres a slugs URL-safe (NFD + lowercase + hyphens).
+`resolveUrl()` en `helpers.jsx` garantiza `/` inicial en URLs de assets (crítico en rutas anidadas).
 
 ---
 
@@ -290,19 +314,24 @@ Props de `LeafletMap`: `zonas`, `onZoneClick`, `height`, `singleZone`, `title`, 
 8. **Leaflet.heat** es CommonJS y busca `L` global en su inicialización — la importación dinámica debe hacerse solo cuando `window.L` ya está asignado
 9. **Siempre mostrar disclaimer** de seguridad en especies tóxicas/mortales
 10. **`useMemo`** para cálculos derivados de `conditionsMap` en Dashboard/Zones — el mapa se actualiza async y los `useMemo` deben reaccionar a él
+11. **Patrón modal-from-modal** — abrir un modal desde otro: llamar solo a `setSelected*(item)`, nunca `navigate()` directamente desde dentro del modal. `ModalRenderer` es la única autoridad de navegación. Ver `memory/decisions.md`.
+12. **Patrón ESC + Lightbox** — modales con lightbox deben desregistrar su listener de ESC mientras el lightbox está abierto. El efecto debe depender de `[lightbox]`. Ver `memory/decisions.md`.
+13. **`resolveUrl()`** — usar siempre en `<img src>` de assets en modales y artículos. Las rutas relativas se rompen en URLs anidadas como `/especies/boletus-edulis`.
+14. **`GallerySection`** en `SpeciesModal` — componente propio con `useState(errored)`. Se oculta cuando todas las imágenes han fallado (404). No usar `SpeciesImg` en galería, usar `<img>` plano con `onError`.
 
 ---
 
 ## Roadmap
 
-### Pendiente (v3.x)
-- Meteocat API para zonas catalanas (requiere API key, híbrido con Open-Meteo)
-- Zonas personalizadas en el mapa (añadir/guardar puntos propios)
-- Exportar calendario a PDF
-- Notificaciones push reales
+### Pendiente (v3.x) — ver `memory/pending.md` para detalle
+- Revisión `forestTypes` y `fruitingMonths` de todas las especies
+- Mostrar `speciesScore` (SQS) en la UI de ZoneModal
+- Meteocat API para zonas catalanas (requiere API key)
+- Zonas personalizadas en el mapa
 
-### Futuro (v4.0)
-- Backend propio (FastAPI) + PostgreSQL
-- Autenticación de usuarios
+### Próximo (v4.0) — ver `docs/backend_architecture.md` para spec completa
+- Backend FastAPI + PostgreSQL + PostGIS
+- Índice de Brote (IB) con histórico de 21 días y fuentes regionales (Meteocat, Euskalmet, etc.)
+- Autenticación real de usuarios
 - App móvil (React Native)
 - Fotografías comunitarias de avistamientos

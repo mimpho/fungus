@@ -112,3 +112,42 @@ La herramienta `Edit` falla si el archivo no ha sido leído en la misma sesión.
 
 ### ⚠️ No añadir `className` duplicado en JSX
 Al editar con sed o reemplazos de texto, comprobar que no quede un atributo `className` duplicado en el mismo elemento. React lanza warning y usa solo el último.
+
+---
+
+## Routing de Modales (React Router v6)
+
+### ⚠️ `navigate()` nunca dentro de un modal — solo `setSelected*()`
+Los modales no llaman a `navigate()` directamente. Solo actualizan estado del contexto (`setSelectedSpecies`, etc.) y `ModalRenderer` reacciona navegando. Llamar `navigate()` desde un modal rompe el historial y hace que ESC no vuelva al sitio correcto. Ver `memory/decisions.md` → "ModalRenderer como única autoridad".
+
+### ⚠️ `navigate('/ruta', { replace: true })` entre modales rompe el Back button
+Si al abrir un modal B desde el modal A se hace `navigate('/ruta-base', { replace: true })`, se reemplaza la entrada del modal A en el historial. ESC desde B ya no puede volver a A. La solución es no navegar manualmente — dejar que ModalRenderer empuje la nueva entrada con `navigate(target)` (sin replace).
+
+### ⚠️ Guard anti-bucle obligatorio en ModalRenderer
+Sin el guard `if (location.pathname === target) return`, el `useEffect` de ModalRenderer puede dispararse infinitamente al cambiar `selectedSpecies` mientras ya estás en `/especies/:slug`. Siempre comparar antes de navegar.
+
+---
+
+## URLs de Assets en Rutas Anidadas
+
+### ⚠️ Imágenes con rutas relativas se rompen en `/especies/:id`, `/familia/:slug`, etc.
+Los datos mock usan rutas como `assets/images/species/esp-001.jpg` (sin `/` inicial). Cuando la URL del browser es `/especies/boletus-edulis`, el browser resuelve la ruta relativa como `/especies/assets/...` → 404.
+
+**Solución:** `resolveUrl()` en `helpers.jsx`. Usar siempre en `<img src>` de modales, galerías y artículos:
+
+```js
+import { resolveUrl } from '../../lib/helpers'
+<img src={resolveUrl(foto.url)} />   // garantiza /assets/... nunca assets/...
+```
+
+**Componentes donde ya está aplicado:** `SpeciesModal` (GallerySection), `FamilyModal` (thumbnails), `Lightbox` (main image + thumbnails).
+
+---
+
+## React Router v6 — Comportamiento de Instancias de Componentes
+
+### ℹ️ Rutas distintas que renderizan el mismo componente crean instancias separadas
+`/especies` y `/especies/:id` usan `<Species />` en rutas distintas → React crea una nueva instancia al navegar entre ellas (no reutiliza). Los refs empiezan a `false`/`null` en cada instancia nueva. Esto es relevante para el patrón two-effect de reset de paginador.
+
+### ℹ️ `Family.jsx` renderiza `<Species />` como hijo → instancia diferente a la de `/especies`
+Al navegar de `/familia/:slug` a `/especies/:id`, React desmonta la Species de Family y monta una nueva Species independiente. No hay reutilización de instancia entre rutas de diferente profundidad de árbol.

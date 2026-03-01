@@ -38,6 +38,7 @@
 - Verificar que `forestTypes` y `fruitingMonths` sean correctos para todas las especies
 - Añadir más especies si faltan representativas de cada tipo de bosque
 - Comprobar si hay especies con `forestType: 'mixto'` que deberían cubrirse en las zonas actuales (las zonas solo tienen: pinar, hayedo, robledal, encinar)
+- Valorar otros tipos como abetosas, coníferas (mixtos), etc
 
 ### Zonas sin especies en temporada
 Actualmente si no hay especies que coincidan con una zona/mes, el score meteorológico queda sin ajustar. Considerar si esto es correcto o si debería haber una penalización por "zona sin interés micológico este mes".
