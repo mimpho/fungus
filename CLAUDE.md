@@ -469,3 +469,22 @@ No hace falta re-explicar el proyecto. Claude lee `CLAUDE.md` al inicio. Con ind
 ### Cerrar una sesión
 
 Antes de cerrar, aplicar el protocolo de actualización de documentación de la sección anterior. Eso es lo que hace que la próxima sesión arranque con contexto real. Si la sesión fue exploratoria y no hubo cambios concretos, basta con actualizar `memory/pending.md` si quedaron tareas pendientes identificadas.
+
+### Sugerencias al terminar un bloque de trabajo
+
+Al acabar cada bloque, Claude debe sugerir proactivamente los siguientes pasos sin esperar a que se pidan. La sugerencia cubre tres dimensiones:
+
+**Git** — qué acciones están pendientes según el estado del repo:
+- Cambios sin commitear → sugerir commit con mensaje Conventional Commits
+- Feature branch terminada → sugerir squash merge a la epic y borrar la rama
+- Fase completa → sugerir merge `--no-ff` a `main`, tag y push
+- Nada pendiente → confirmarlo explícitamente
+
+**Conversación** — si conviene continuar aquí o abrir una nueva sesión:
+- Continuar aquí si el siguiente bloque es una extensión natural del actual (misma rama, mismo contexto)
+- Nueva sesión de Cowork si el siguiente bloque es un tema distinto, una rama nueva, o si la conversación ya es larga
+- Claude sin Cowork si lo que viene es una consulta puntual sin tocar ficheros
+
+**Documentación** — qué hay que actualizar antes de cerrar (según el protocolo de la sección anterior), y si hay algo que añadir a `memory/pending.md` para la próxima sesión
+
+El formato de la sugerencia debe ser breve y directo — no un informe, sino tres bullets accionables al final del trabajo.
