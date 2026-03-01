@@ -1,18 +1,26 @@
 import { useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../../contexts/AppContext'
 import { Lightbox } from './Lightbox'
 import { FamilyModal } from './FamilyModal'
 import { ZoneModal } from './ZoneModal'
 import { SpeciesModal } from './SpeciesModal'
+import { slugify } from '../../lib/helpers'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ModalRenderer — renderiza los modales globales y sincroniza con el historial
-// del navegador, de modo que el botón "Atrás" cierra el modal activo.
+// ModalRenderer — renderiza los modales globales y sincroniza con React Router.
 //
-// Flujo:
-//   apertura  → pushState (#zona/id, #seta/id, #familia/…, #galeria)
-//   cierre X/ESC/backdrop → onClose = history.back() → dispara popstate
-//   popstate  → cierra el modal más anidado activo
+// Zonas    → /zonas/{slug}        gestionado por Zones.jsx + useParams
+// Setas    → /especies/{slug}     gestionado por Species.jsx + useParams
+// Familias → /familia/{slug}      gestionado por Family.jsx + useParams
+// Lightbox → sin URL (efímero, sobre otro modal)
+//
+// Flujo apertura:
+//   setSelected*() → ModalRenderer navega a la URL canónica
+//   La página destino lee el param → sin bucle (guard pathname)
+//
+// Flujo cierre:
+//   onClose → navigate(-1) → React Router deshace la entrada
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function ModalRenderer() {
@@ -23,44 +31,44 @@ export function ModalRenderer() {
     lightbox,        setLightbox,
   } = useApp()
 
-  // ── Push history al abrir cada modal ──────────────────────────────────────
+  const navigate = useNavigate()
+  const location = useLocation()
 
+  // ── Zone → /zonas/{slug} ───────────────────────────────────────────────────
   useEffect(() => {
     if (!selectedZone) return
-    window.history.pushState({ fungusModal: 'zone' }, '', `#zona/${selectedZone.id}`)
+    const target = `/zonas/${slugify(selectedZone.name)}`
+    if (location.pathname === target) return
+    navigate(target)
   }, [selectedZone?.id])
 
+  // ── Species → /especies/{slug} ────────────────────────────────────────────
   useEffect(() => {
     if (!selectedSpecies) return
-    window.history.pushState({ fungusModal: 'species' }, '', `#seta/${selectedSpecies.id}`)
+    const target = `/especies/${slugify(selectedSpecies.scientificName)}`
+    if (location.pathname === target) return
+    navigate(target)
   }, [selectedSpecies?.id])
 
+  // ── Family → /familia/{slug} ──────────────────────────────────────────────
   useEffect(() => {
     if (!selectedFamily) return
-    window.history.pushState({ fungusModal: 'family' }, '', `#familia/${encodeURIComponent(selectedFamily.name)}`)
-  }, [selectedFamily?.name])
+    const familyName = selectedFamily.nombre || selectedFamily.name || ''
+    const target = `/familia/${slugify(familyName)}`
+    if (location.pathname === target) return
+    navigate(target)
+  }, [selectedFamily?.nombre ?? selectedFamily?.name])
 
-  useEffect(() => {
-    if (!lightbox) return
-    window.history.pushState({ fungusModal: 'lightbox' }, '', '#galeria')
-  }, [lightbox])
+  // ── Cierre unificado: navigate(-1) mantiene coherencia con el historial ───
+  const closeViaHistory = () => navigate(-1)
 
-  // ── popstate (botón Atrás) → cierra el modal más anidado activo ───────────
-
-  useEffect(() => {
-    const handlePop = () => {
-      // Cerrar por orden de anidación (más profundo primero)
-      if (lightbox)        { setLightbox(null);        return }
-      if (selectedFamily)  { setSelectedFamily(null);  return }
-      if (selectedSpecies) { setSelectedSpecies(null); return }
-      if (selectedZone)    { setSelectedZone(null);    return }
-    }
-    window.addEventListener('popstate', handlePop)
-    return () => window.removeEventListener('popstate', handlePop)
-  }, [lightbox, selectedFamily, selectedSpecies, selectedZone])
-
-  // ── Cerrar via history.back() → coherencia con el historial ───────────────
-  const closeViaHistory = () => window.history.back()
+  // ── onViewSpecies desde FamilyModal ──────────────────────────────────────
+  // Cierra la familia y abre la especie (navega a /especies/{slug})
+  const handleFamilyViewSpecies = (sp) => {
+    setSelectedFamily(null)
+    setSelectedSpecies(sp)
+    // La navegación la hace el useEffect de selectedSpecies
+  }
 
   return (
     <>
@@ -82,7 +90,7 @@ export function ModalRenderer() {
         <FamilyModal
           family={selectedFamily}
           onClose={closeViaHistory}
-          onViewSpecies={sp => { setSelectedFamily(null); setSelectedSpecies(sp) }}
+          onViewSpecies={handleFamilyViewSpecies}
         />
       )}
 
@@ -90,7 +98,7 @@ export function ModalRenderer() {
         <Lightbox
           photos={lightbox.photos}
           initialIndex={lightbox.index}
-          onClose={closeViaHistory}
+          onClose={() => setLightbox(null)}
         />
       )}
     </>

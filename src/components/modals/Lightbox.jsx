@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { IC } from '../../lib/helpers'
+import { IC, resolveUrl } from '../../lib/helpers'
 
 export function Lightbox({ photos, initialIndex = 0, onClose }) {
   const [idx, setIdx] = useState(initialIndex)
@@ -35,7 +35,7 @@ export function Lightbox({ photos, initialIndex = 0, onClose }) {
   }
 
   const photo = photos[idx]
-  const imgUrl = photo.largeUrl || photo.url
+  const imgUrl = resolveUrl(photo.largeUrl || photo.url)
 
   return createPortal(
     <div className="fixed inset-0 z-[10001] flex flex-col"
@@ -79,7 +79,7 @@ export function Lightbox({ photos, initialIndex = 0, onClose }) {
                 {photos.map((f, i) => (
                   <button key={i} onClick={() => setIdx(i)}
                     className={`w-12 h-12 rounded-lg overflow-hidden transition-all flex-shrink-0 ${i === idx ? 'scale-110 ring-2 ring-white/50' : 'opacity-40 hover:opacity-75'}`}>
-                    <img src={f.largeUrl || f.url} alt="" className="w-full h-full object-cover" />
+                    <img src={resolveUrl(f.largeUrl || f.url)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

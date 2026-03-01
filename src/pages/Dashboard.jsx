@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { mockZones } from '../data/zones'
 import { mockSpecies } from '../data/species'
-import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor } from '../lib/helpers'
+import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor, slugify } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { LeafletMap } from '../components/map/LeafletMap'
 import { mockArticles } from '../data/articles'
-import { ArticleModal } from '../components/modals/ArticleModal'
 import { useAllZoneConditions } from '../hooks/useWeatherConditions'
 import '../articles/Micorrizas'
 import '../articles/Esporas'
@@ -54,7 +53,11 @@ export default function Dashboard() {
   const todayDate = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
 
   const [mapMode, setMapMode] = useState('markers')
-  const [selectedArticleSlug, setSelectedArticleSlug] = useState(null)
+
+  const openArticle = (article) => {
+    if (article.status !== 'published') return
+    navigate(`/micologia/${slugify(article.title)}`)
+  }
 
   const { conditionsMap, loading: weatherLoading } = useAllZoneConditions(mockZones)
 
@@ -68,9 +71,6 @@ export default function Dashboard() {
 
   return (
     <>
-    {selectedArticleSlug && (
-      <ArticleModal slug={selectedArticleSlug} onClose={() => setSelectedArticleSlug(null)} />
-    )}
     <div className="space-y-10 anim-up pb-20">
       {/* Header */}
       <div>
@@ -314,7 +314,7 @@ export default function Dashboard() {
               <ArticleCard
                 key={article.id}
                 article={article}
-                onSelect={a => setSelectedArticleSlug(a.slug)} />
+                onSelect={openArticle} />
             ))}
           </div>
         </div>

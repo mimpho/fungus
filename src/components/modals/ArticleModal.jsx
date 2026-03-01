@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { mockArticles } from '../../data/articles'
 import { IC } from '../../lib/helpers'
 import { MODAL } from '../../lib/constants'
+import { useApp } from '../../contexts/AppContext'
 
 // ─── Helpers de artículo — exportados para uso en los archivos de contenido ──
 
@@ -59,19 +60,30 @@ export const ARTICLE_REGISTRY = {}
 
 // ─── Modal wrapper ────────────────────────────────────────────────────────────
 export function ArticleModal({ slug, onClose }) {
+  const { lightbox } = useApp()
   const [scrolled, setScrolled] = useState(false)
   const modalRef = useRef(null)
   const heroRef  = useRef(null)
 
+  // Referencia estable a onClose para el listener de teclado
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
+  // Bloquear scroll del body
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
-  }, [onClose])
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  // ESC cierra el modal — desactivado mientras el lightbox esté abierto
+  // (el lightbox tiene su propio listener; si ambos estuvieran activos
+  //  el ESC cerraría el lightbox Y el modal al mismo tiempo)
+  useEffect(() => {
+    if (lightbox) return  // el lightbox se ocupa del ESC
+    const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [lightbox])  // se registra/desregistra cuando cambia el estado del lightbox
 
   if (!slug) return null
   const article = mockArticles.find(a => a.slug === slug)

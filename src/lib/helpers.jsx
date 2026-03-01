@@ -9,6 +9,33 @@ import { MODAL, COLORS } from './constants';
 export { MODAL, COLORS };
 
 // =====================================================
+// resolveUrl — garantiza rutas absolutas desde la raíz
+// Las URLs de assets en los datos no tienen '/' inicial.
+// Cuando la ruta del browser es /especies/boletus-edulis
+// el browser resuelve rutas relativas desde /especies/,
+// rompiendo todas las imágenes. Esta función lo previene.
+// =====================================================
+export function resolveUrl(url) {
+  if (!url) return url
+  if (url.startsWith('/') || url.startsWith('http') || url.startsWith('data:')) return url
+  return `/${url}`
+}
+
+// =====================================================
+// slugify — normaliza texto a slug URL-friendly
+// =====================================================
+export function slugify(str) {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+}
+
+// =====================================================
 // IC — Iconos SVG inline (sin dependencias externas)
 // =====================================================
 export const IC = {
@@ -283,7 +310,7 @@ export function SpeciesImg({ localSrc, scientificName, className, style, objectF
 
   if (phase === 'failed') return <Placeholder loading={false} />;
   if (phase === 'local' && localSrc) {
-    return <img src={localSrc} alt={scientificName} className={className} style={imgStyle} onError={() => setPhase('wiki')} />;
+    return <img src={resolveUrl(localSrc)} alt={scientificName} className={className} style={imgStyle} onError={() => setPhase('wiki')} />;
   }
   if (phase === 'wiki' || (phase === 'local' && !localSrc)) return <Placeholder loading={true} />;
   return <img src={wikiSrc} alt={scientificName} className={className} style={imgStyle} />;

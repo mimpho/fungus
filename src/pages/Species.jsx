@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { mockSpecies } from '../data/species'
-import { SpeciesCard, IC } from '../lib/helpers'
+import { SpeciesCard, IC, slugify } from '../lib/helpers'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
@@ -19,12 +20,33 @@ const SHOW_FILTERS = [
 
 export default function Species() {
   const { t, favoriteSpecies, toggleFavorite, setSelectedSpecies, setSelectedFamily } = useApp()
+  const { id: speciesSlug } = useParams()
+
+  // Sincronizar URL param → modal de especie
+  useEffect(() => {
+    if (speciesSlug) {
+      const sp = mockSpecies.find(s => slugify(s.scientificName) === speciesSlug)
+      setSelectedSpecies(sp || null)
+    } else {
+      setSelectedSpecies(null)
+    }
+    return () => setSelectedSpecies(null)
+  }, [speciesSlug])
+
+  const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
   const [orden, setOrden]             = useState('alfa')
   const [showFilter, setShowFilter]   = useState('todas')
   const [familyFilter, setFamilyFilter] = useState('')
-  const [page, setPage]               = useState(1)
   const [pillOpen, setPillOpen]       = useState(false)
+
+  // Página desde URL (?pagina=N), con sanidad
+  const page = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
+  const setPage = (n) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); p.set('pagina', String(n)); return p },
+    { replace: false }
+  )
 
   const uniqueFamilies = useMemo(() => [...new Set(mockSpecies.map(e => e.family))].sort(), [])
   const isFav = useCallback(e => favoriteSpecies.some(f => f.id === e.id), [favoriteSpecies])
@@ -58,7 +80,32 @@ export default function Species() {
   const pageItems  = filteredSpecies.slice((page - 1) * PER_PAGE, page * PER_PAGE)
   const activeFilters = (showFilter !== 'todas' ? 1 : 0) + (familyFilter ? 1 : 0) + (orden !== 'alfa' ? 1 : 0)
 
-  useEffect(() => { setPage(1) }, [searchQuery, orden, showFilter, familyFilter])
+  // ── Reset de paginador al cambiar filtros ────────────────────────────────
+  // Queremos disparar solo cuando los filtros CAMBIAN, nunca en el primer mount.
+  //
+  // Problema con useRef(isFirstRender) simple:
+  //   React StrictMode hace mount→cleanup→remount con la MISMA instancia.
+  //   El ref queda a `false` tras el primer mount, y el remount lo ejecuta.
+  //
+  // Solución: dos efectos.
+  //   1. Efecto "init" (deps=[]) cuya CLEANUP resetea el flag.
+  //      StrictMode llama al cleanup entre mount y remount → el flag vuelve a false.
+  //   2. Efecto "trabajo" comprueba el flag; si es false, lo activa y sale.
+  //
+  // Ciclos:
+  //   Producción:  mount → false→true, skip  |  cambio filtro → true, ejecuta  ✓
+  //   StrictMode:  mount → skip  |  cleanup → reset a false  |  remount → skip  |  cambio filtro → ejecuta  ✓
+  //   Nueva instancia (nav entre rutas): ref empieza a false → skip en mount  ✓
+  const filterResetReady = useRef(false)
+  useEffect(() => {
+    return () => { filterResetReady.current = false }   // cleanup resetea el flag
+  }, [])
+  useEffect(() => {
+    if (!filterResetReady.current) { filterResetReady.current = true; return }
+    if (!location.pathname.startsWith('/especies')) return  // no contaminar /familia/...
+    setSearchParams(prev => { const p = new URLSearchParams(prev); p.set('pagina', '1'); return p }, { replace: true })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, orden, showFilter, familyFilter])
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [page])
 
   // Paginación con elipsis

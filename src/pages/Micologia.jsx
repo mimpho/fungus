@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { mockArticles } from '../data/articles'
 import { ArticleModal } from '../components/modals/ArticleModal'
+import { slugify } from '../lib/helpers'
 // Importar artículos para que se registren en ARTICLE_REGISTRY
 import '../articles/Micorrizas'
 import '../articles/Esporas'
@@ -52,14 +54,28 @@ function ArticleCard({ article, onSelect }) {
 }
 
 export default function Micologia() {
-  const [selectedSlug, setSelectedSlug] = useState(null)
+  const { slug } = useParams()
+  const navigate = useNavigate()
+
+  // Artículo activo determinado por la URL
+  const selectedArticle = slug
+    ? mockArticles.find(a => slugify(a.title) === slug) || null
+    : null
+
   const featured = mockArticles.filter(a => a.featured)
   const rest     = mockArticles.filter(a => !a.featured)
 
+  const openArticle = (article) => {
+    if (article.status !== 'published') return
+    navigate(`/micologia/${slugify(article.title)}`)
+  }
+
+  const closeArticle = () => navigate(-1)
+
   return (
     <>
-      {selectedSlug && (
-        <ArticleModal slug={selectedSlug} onClose={() => setSelectedSlug(null)} />
+      {selectedArticle && (
+        <ArticleModal slug={selectedArticle.slug} onClose={closeArticle} />
       )}
 
       <div className="max-w-5xl mx-auto anim-up">
@@ -72,7 +88,7 @@ export default function Micologia() {
         {/* Artículo destacado */}
         {featured.map(article => (
           <div key={article.id}
-            onClick={() => setSelectedSlug(article.slug)}
+            onClick={() => openArticle(article)}
             className="glass flex flex-col md:flex-row rounded-2xl overflow-hidden hover-lift cursor-pointer mb-8 transition-all duration-200">
             <div className="md:w-1/2 h-56 md:h-auto">
               <img src={article.heroImage} className="w-full h-full object-cover" alt={article.title} />
@@ -108,7 +124,7 @@ export default function Micologia() {
               <ArticleCard
                 key={article.id}
                 article={article}
-                onSelect={a => setSelectedSlug(a.slug)} />
+                onSelect={openArticle} />
             ))}
           </div>
         </div>

@@ -3,17 +3,109 @@ import { useApp } from '../../contexts/AppContext'
 import { mockFamilies } from '../../data/families'
 import { mockZones } from '../../data/zones'
 import { mockSpecies } from '../../data/species'
-import { IC, EdibilityTag, SpeciesImg, getScoreColor, TaxonomyBlock, ConfusionesBlock } from '../../lib/helpers'
+import { IC, EdibilityTag, SpeciesImg, getScoreColor, TaxonomyBlock, ConfusionesBlock, resolveUrl } from '../../lib/helpers'
 import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GallerySection — muestra la galería de fotos de una especie.
+// Rastrea el estado de carga de cada imagen en tiempo real:
+//   • Si todas las imágenes fallan (404 / error de red) → se oculta la sección
+//   • Si al menos una carga → muestra la galería normalmente
+// ─────────────────────────────────────────────────────────────────────────────
+function GallerySection({ species, onOpenLightbox }) {
+  const mainPhoto = species.photo?.url
+    ? { url: species.photo.largeUrl || species.photo.url, caption: species.scientificName }
+    : null
+  const extraPhotos = species.photos || []
+  const allPhotos = [...(mainPhoto ? [mainPhoto] : []), ...extraPhotos]
+  const total = allPhotos.length
+
+  const [errored, setErrored] = useState(0)
+  const onErr = () => setErrored(n => n + 1)
+
+  // Nada que mostrar, o todas las imágenes han fallado
+  if (total === 0 || errored >= total) return null
+
+  const mainUrl = resolveUrl(species.photo?.largeUrl || species.photo?.url)
+
+  return (
+    <section>
+      <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">
+        📷 Galería ({total} {total === 1 ? 'foto' : 'fotos'})
+      </h3>
+      <div className={`grid gap-2 ${
+        extraPhotos.length === 0 ? 'grid-cols-1'
+        : extraPhotos.length === 1 ? 'grid-cols-2'
+        : extraPhotos.length === 2 ? 'grid-cols-2 sm:grid-cols-4 sm:grid-rows-2 w-full sm:aspect-[2/1] sm:overflow-hidden'
+        : 'grid-cols-4'
+      }`}>
+        {/* Foto principal */}
+        <div
+          className={`gallery-thumb group relative overflow-hidden rounded-lg cursor-pointer${extraPhotos.length === 2 ? ' col-span-2 sm:col-span-3 sm:row-span-2' : ''}`}
+          style={extraPhotos.length === 2 ? { minHeight: 0 } : { aspectRatio: '4/3' }}
+          onClick={() => onOpenLightbox(allPhotos, 0)}>
+          <img
+            src={mainUrl}
+            alt={species.scientificName}
+            className="w-full h-full object-cover object-top"
+            onError={onErr}
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center rounded-lg">
+            <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+            </svg>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
+            {species.scientificName}
+          </div>
+        </div>
+
+        {/* Fotos extra */}
+        {extraPhotos.map((foto, i) => (
+          <div key={i}
+            className={`gallery-thumb group relative cursor-pointer overflow-hidden rounded-lg${extraPhotos.length === 2 ? ' col-span-1 row-span-1' : ''}`}
+            style={extraPhotos.length === 2 ? { minHeight: 0 } : { aspectRatio: '4/3' }}
+            onClick={() => onOpenLightbox(allPhotos, i + 1)}>
+            <img
+              src={resolveUrl(foto.url)}
+              alt={foto.caption || ''}
+              className="w-full h-full object-cover"
+              onError={onErr}
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+              <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+            </div>
+            {foto.caption && (
+              <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
+                {foto.caption}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="text-cream/30 text-[10px] mt-2 text-center">
+        Haz clic en cualquier imagen para verla a pantalla completa · ← → para navegar
+      </p>
+    </section>
+  )
+}
+
 export function SpeciesModal({ species, onClose }) {
-  const { t, favoriteSpecies, toggleFavorite, setSelectedFamily, setSelectedSpecies, setSelectedZone, setLightbox } = useApp()
+  const { t, favoriteSpecies, toggleFavorite, setSelectedFamily, setSelectedSpecies, setSelectedZone, setLightbox, lightbox } = useApp()
   const isFav = favoriteSpecies.some(f => f.id === species.id)
   const family = mockFamilies[species.family]
   const [scrolled, setScrolled] = useState(false)
   const modalRef = useRef(null)
   const heroRef = useRef(null)
+
+  // Referencia estable a onClose para usarla en el listener de teclado
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
   const compatZones = useMemo(() => {
     if (species.distributionZones?.length > 0) {
@@ -23,12 +115,21 @@ export function SpeciesModal({ species, onClose }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [species.id])
 
+  // Bloquear scroll del body
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
-    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', onKey) }
+    return () => { document.body.style.overflow = '' }
   }, [])
+
+  // ESC cierra el modal — desactivado mientras el lightbox esté abierto
+  // (el lightbox tiene su propio listener; si ambos estuvieran activos
+  //  el ESC cerraría el lightbox Y el modal al mismo tiempo)
+  useEffect(() => {
+    if (lightbox) return  // el lightbox se ocupa del ESC
+    const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [lightbox])  // se registra/desregistra cuando cambia el estado del lightbox
 
   useEffect(() => {
     if (modalRef.current) modalRef.current.scrollTop = 0
@@ -87,7 +188,13 @@ export function SpeciesModal({ species, onClose }) {
           <div className="flex flex-wrap gap-3 items-center">
             <EdibilityTag edibility={species.edibility} variant="glass" showDot={true} className="px-4 py-2 rounded-xl text-sm font-semibold" />
             {family && (
-              <button onClick={() => { onClose(); setSelectedFamily(family) }}
+              <button onClick={() => {
+                // Mismo patrón que abrir modal de zona desde aquí:
+                // dejar que ModalRenderer navegue a /familia/:slug
+                // sin alterar el historial previo → ESC/Back vuelve a esta seta
+                setSelectedSpecies(null)
+                setSelectedFamily(family)
+              }}
                 className="glass px-4 py-2 rounded-xl text-sm text-muted hover:text-coffee-light transition-colors">
                 🔬 {t.ver_familia}: {species.family}
               </button>
@@ -149,55 +256,7 @@ export function SpeciesModal({ species, onClose }) {
           </section>
 
           {/* Galería de fotos */}
-          {(() => {
-            const mainPhoto = species.photo ? { url: species.photo.largeUrl || species.photo.url, caption: species.scientificName } : null
-            const extraPhotos = species.photos || []
-            const allPhotos = [...(mainPhoto ? [mainPhoto] : []), ...extraPhotos]
-            if (allPhotos.length === 0) return null
-            return (
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">
-                  📷 Galería ({allPhotos.length} {allPhotos.length === 1 ? 'foto' : 'fotos'})
-                </h3>
-                <div className={`grid gap-2 ${extraPhotos.length === 0 ? 'grid-cols-1' : extraPhotos.length === 1 ? 'grid-cols-2' : extraPhotos.length === 2 ? 'grid-cols-2 sm:grid-cols-4 sm:grid-rows-2 w-full sm:aspect-[2/1] sm:overflow-hidden' : 'grid-cols-4'}`}>
-                  <div className={`gallery-thumb group relative overflow-hidden rounded-lg cursor-pointer${extraPhotos.length === 2 ? ' col-span-2 sm:col-span-3 sm:row-span-2' : ''}`}
-                    style={extraPhotos.length === 2 ? { minHeight: 0 } : { aspectRatio: '4/3' }}
-                    onClick={() => handleOpenLightbox(allPhotos, 0)}>
-                    <SpeciesImg localSrc={species.photo?.largeUrl || species.photo?.url} scientificName={species.scientificName} className="w-full h-full" objectFit="cover" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center rounded-lg">
-                      <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                      </svg>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
-                      {species.scientificName}
-                    </div>
-                  </div>
-                  {extraPhotos.map((foto, i) => (
-                    <div key={i} className={`gallery-thumb group relative cursor-pointer overflow-hidden rounded-lg${extraPhotos.length === 2 ? ' col-span-1 row-span-1' : ''}`}
-                      style={extraPhotos.length === 2 ? { minHeight: 0 } : { aspectRatio: '4/3' }}
-                      onClick={() => handleOpenLightbox(allPhotos, i + 1)}>
-                      <img src={foto.url} alt={foto.caption} className="w-full h-full object-cover"
-                        onError={ev => { ev.target.parentNode.style.background = 'rgba(139,111,71,0.1)'; ev.target.style.display = 'none' }} />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                        <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                        </svg>
-                      </div>
-                      {foto.caption && (
-                        <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                          style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
-                          {foto.caption}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <p className="text-cream/30 text-[10px] mt-2 text-center">Haz clic en cualquier imagen para verla a pantalla completa · ← → para navegar</p>
-              </section>
-            )
-          })()}
+          <GallerySection species={species} onOpenLightbox={handleOpenLightbox} />
 
           {/* Condiciones de fructificación */}
           <section>

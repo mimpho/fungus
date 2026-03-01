@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { mockZones } from '../data/zones'
+import { slugify } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { useAllZoneConditions } from '../hooks/useWeatherConditions'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
@@ -13,6 +15,19 @@ const RAIN_THRESHOLD = 30
 
 export default function Zones() {
   const { t, followedZones, toggleFollow, setSelectedZone } = useApp()
+  const { id: zoneSlug } = useParams()
+
+  // Sincronizar URL param → modal de zona
+  useEffect(() => {
+    if (zoneSlug) {
+      const zone = mockZones.find(z => slugify(z.name) === zoneSlug)
+      setSelectedZone(zone || null)
+    } else {
+      setSelectedZone(null)
+    }
+    return () => setSelectedZone(null)
+  }, [zoneSlug])
+
   const [tab, setTab]               = useState('mapa')
   const [onlyFollowed, setOnlyFollowed] = useState(false)
   const [onlyRained, setOnlyRained] = useState(false)

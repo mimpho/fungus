@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { mockSpecies } from '../../data/species'
-import { IC, EdibilityTag } from '../../lib/helpers'
+import { IC, EdibilityTag, resolveUrl } from '../../lib/helpers'
 import { MODAL } from '../../lib/constants'
 
 export function FamilyModal({ family, onClose, onViewSpecies }) {
@@ -9,9 +9,14 @@ export function FamilyModal({ family, onClose, onViewSpecies }) {
   const familyName = family.nombre || family.name || family.id || ''
   const familySpecies = mockSpecies.filter(e => e.family === familyName)
 
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current() }
+    document.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', onKey) }
   }, [])
 
   return (
@@ -53,7 +58,7 @@ export function FamilyModal({ family, onClose, onViewSpecies }) {
                 {familySpecies.map(e => (
                   <div key={e.id} onClick={() => onViewSpecies(e)}
                     className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] rounded-xl p-3 cursor-pointer transition-all hover-lift">
-                    <img src={e.photo?.url} alt="" className="w-14 h-14 rounded-lg object-cover opacity-80"
+                    <img src={resolveUrl(e.photo?.url)} alt="" className="w-14 h-14 rounded-lg object-cover opacity-80"
                       onError={ev => { ev.target.style.display = 'none' }} />
                     <div className="flex-1 min-w-0">
                       <div className="font-display text-cream text-lg truncate">{e.scientificName}</div>

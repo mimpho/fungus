@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Dashboard  from './pages/Dashboard'
 import Zones      from './pages/Zones'
 import Species    from './pages/Species'
+import Family     from './pages/Family'
 import Micologia  from './pages/Micologia'
 import Profile    from './pages/Profile'
 import Layout     from './components/Layout'
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="zonas/:id"       element={<Zones />} />
           <Route path="especies"        element={<Species />} />
           <Route path="especies/:id"    element={<Species />} />
+          <Route path="familia/:slug"   element={<Family />} />
           <Route path="micologia"       element={<Micologia />} />
           <Route path="micologia/:slug" element={<Micologia />} />
           <Route path="perfil"          element={<Profile />} />
