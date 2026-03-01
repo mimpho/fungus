@@ -4,10 +4,13 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v3.1.0 (Vite + React Router, rama `main`)
-**Estado**: Prototipo funcional — datos meteorológicos reales via Open-Meteo, catálogo de datos mock (28 zonas, 27 especies, 8 familias), sin backend propio. Modales con URL slugs y navegación browser-native (back/ESC).
-**Deploy**: Vercel → `fungus-git-feat-vite-migration-mimphos-projects.vercel.app`
-**Backend spec**: `docs/backend_architecture.md` — propuesta FastAPI + PostgreSQL + PostGIS (v4.0)
+**Versión actual**: v3.1.0 frontend / v4.0.0-fase1 backend (en desarrollo en `epic/v4-backend`)
+**Estado frontend**: Prototipo funcional — datos meteorológicos reales via Open-Meteo, catálogo de datos mock (28 zonas, 27 especies, 8 familias), sin backend propio. Modales con URL slugs y navegación browser-native (back/ESC).
+**Estado backend**: Scaffold completo (FastAPI + SQLAlchemy + Alembic). Fase 1 en desarrollo: ingesta Open-Meteo server-side + Outbreak Index + API endpoints.
+**Deploy frontend**: Vercel → `fungus-git-feat-vite-migration-mimphos-projects.vercel.app`
+**Deploy backend (objetivo)**: Render (API) + Supabase (PostgreSQL + PostGIS)
+**Backend spec**: `docs/backend_architecture.md` — FastAPI + PostgreSQL + PostGIS (v4.0)
+**Convenciones**: `docs/conventions.md` — idiomas, git branching, commit format
 
 ---
 
@@ -299,6 +302,71 @@ Props de `LeafletMap`: `zonas`, `onZoneClick`, `height`, `singleZone`, `title`, 
   // ... condiciones óptimas, morfología, etc.
 }
 ```
+
+---
+
+## Backend (v4.0) — `backend/`
+
+### Stack
+| Tecnología | Versión | Notas |
+|---|---|---|
+| FastAPI | ≥0.115 | Async, lifespan, CORS middleware |
+| SQLAlchemy | 2.x async | asyncpg driver |
+| Alembic | ≥1.13 | Migraciones; `migrations/versions/001_initial_schema.py` |
+| APScheduler | 3.x | Cron diario a las 05:00 UTC |
+| httpx | ≥0.27 | Cliente async para APIs externas |
+| tenacity | ≥9 | Reintentos con backoff en conectores |
+
+### Estructura `backend/`
+```
+backend/
+├── app/
+│   ├── main.py          ← FastAPI app + lifespan + scheduler
+│   ├── config.py        ← Settings (pydantic-settings, .env)
+│   ├── database.py      ← engine async + get_db dependency
+│   ├── models/          ← Zone, Species, ClimateHistory, ScoresCache, WeatherStation
+│   ├── schemas/         ← Pydantic schemas (zone.py, health.py)
+│   ├── routers/         ← health.py, zones.py
+│   ├── services/
+│   │   ├── scoring.py   ← Outbreak Index (OI) algorithm
+│   │   └── ingest.py    ← daily ingestion + backfill + scores cache refresh
+│   └── connectors/
+│       ├── base.py      ← abstract WeatherConnector + DailyWeatherData
+│       └── open_meteo.py← P3 connector (no API key needed)
+├── migrations/
+│   └── versions/001_initial_schema.py
+├── scripts/
+│   ├── backfill.py      ← python -m scripts.backfill --from YYYY-MM-DD --to YYYY-MM-DD
+│   └── seed_catalog.py  ← Fase 2: importa mock JS → PostgreSQL
+├── Dockerfile
+├── alembic.ini
+└── pyproject.toml
+```
+
+### Endpoints (Fase 1)
+```
+GET /api/v1/health            → system status, last ingest, providers
+GET /api/v1/zones             → all active zones + cached OI score
+GET /api/v1/zones/map-scores  → [{zone_id, lat, lon, score}] para heatmap
+GET /api/v1/zones/{id}        → zone detail + OI breakdown
+```
+
+### Outbreak Index (OI) — algoritmo (ver `app/services/scoring.py`)
+```
+OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
+   + Thermal_score × 0.25  (temperatura media 7d + penalización heladas)
+   + Seasonal      × 0.25  (factor mensual: Ene=15 … Oct=100)
+   + Ripening_score × 0.12 (días desde lluvia ≥10mm vs ciclo de la especie)
+   + Humidity_score × 0.08 (humedad relativa media)
+```
+
+### Reglas importantes del backend
+15. **`GENERATED ALWAYS AS` PostGIS** — la columna `geom` en `zones` y `weather_stations` se genera automáticamente desde `lat`/`lon`. No insertar `geom` directamente.
+16. **Upsert con upgrade rule** — `climate_history` nunca sobreescribe una fuente de mayor calidad con una inferior. `open-meteo` es P3; P1/P2 tienen prioridad.
+17. **Conector placeholder** — `_get_connector()` en `ingest.py` siempre devuelve `OpenMeteoConnector` hasta que las API keys P1/P2 estén disponibles. Enchufar Meteocat ahí.
+18. **Cron 05:00 UTC** — el scheduler arranca con la app en el lifespan. En Render free tier la app se duerme; usar UptimeRobot para keep-alive.
+19. **`Cache-Control: public, max-age=3600`** — middleware en `main.py` añade este header a todos los GET 200. El frontend no necesita localStorage de 3h.
+20. **Convenciones de código** — ver `docs/conventions.md`. Todo en inglés (identificadores, comentarios, commits, DB). Excepciones: `CLAUDE.md`, `memory/`, `CHANGELOG.md`.
 
 ---
 
