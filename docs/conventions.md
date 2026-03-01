@@ -71,6 +71,86 @@ This project uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH
 
 ---
 
+## Git integration strategy
+
+### The three integration directions
+
+```
+feat/* ──squash──▶ epic/v4-backend ──merge --no-ff──▶ main
+fix/*  ──squash──▶
+```
+
+#### 1. `feat/` / `fix/` / `chore/` → epic branch: **squash merge**
+
+Each feature branch is squashed into a single, well-named commit when it lands on the epic branch. This keeps `git log epic/v4-backend` clean and readable — one logical commit per feature, authored with Conventional Commits format.
+
+```bash
+# From the epic branch:
+git merge --squash feat/aemet-connector
+git commit -m "feat(connector): add AEMET weather connector (P2)"
+```
+
+Why squash and not rebase? Rebase preserves every WIP commit ("fix typo", "WIP", "try again") which adds noise without value. Squash gives us one atomic commit per feature while the full development history lives in the branch until it's deleted.
+
+#### 2. Epic branch → `main`: **merge commit (`--no-ff`)**
+
+When a phase is complete, the epic branch merges into `main` with an explicit merge commit. This creates a visible boundary in the graph — you can see exactly where v4.1 started and ended.
+
+```bash
+git checkout main
+git merge --no-ff epic/v4-backend -m "chore: merge epic/v4-backend — release v4.1.0"
+git tag -a v4.1.0 -m "v4.1.0: backend meteo phase complete"
+```
+
+Never squash the epic into main — that erases the feature-by-feature history that the squash merges already cleaned up.
+
+#### 3. Pulling updates onto a feature branch: **rebase**
+
+When the epic branch advances while you're working on a feature, bring those changes in with rebase rather than a merge commit:
+
+```bash
+git fetch origin
+git rebase epic/v4-backend
+```
+
+This keeps the feature branch linear and avoids a tangle of merge commits in its history before it gets squashed anyway.
+
+### Rules
+
+| Rule | Rationale |
+|---|---|
+| **Never rebase `epic/*` or `main`** | These are shared branches — rewriting their history breaks everyone's local copy |
+| **Never `push --force` to `epic/*` or `main`** | Same reason; `--force-with-lease` is acceptable only in emergencies on feature branches |
+| **Local rebase is fine** | `git rebase -i` to clean up WIP commits before opening a PR is encouraged |
+| **Tag after every MINOR merge** | `git tag -a v4.1.0` on `main` right after the epic merge |
+| **Delete feature branches after merge** | Keeps the repo tidy; the squash commit on the epic branch is the canonical record |
+
+### Cheatsheet
+
+```bash
+# Start a new feature
+git checkout epic/v4-backend
+git checkout -b feat/aemet-connector
+
+# Sync with the epic while working
+git fetch origin
+git rebase epic/v4-backend
+
+# Finish and land the feature (run from the epic branch)
+git checkout epic/v4-backend
+git merge --squash feat/aemet-connector
+git commit -m "feat(connector): add AEMET weather connector (P2)"
+git branch -d feat/aemet-connector
+
+# Close a phase and release
+git checkout main
+git merge --no-ff epic/v4-backend -m "chore: merge epic/v4-backend — release v4.1.0"
+git tag -a v4.1.0 -m "v4.1.0: backend meteo phase complete"
+git push origin main --tags
+```
+
+---
+
 ## Commit message format (Conventional Commits)
 
 ```
