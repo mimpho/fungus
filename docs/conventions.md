@@ -32,17 +32,42 @@ Project-level documentation and Claude's working memory remain in Spanish since 
 
 ---
 
+## Versioning
+
+This project uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`.
+
+| Segment | Meaning | Examples |
+|---|---|---|
+| **MAJOR** | Product generation (frontend-only era vs. backend era) | `3.x` = Vite frontend; `4.x` = with backend |
+| **MINOR** | Backend phase within the generation | `4.1` = Phase 1 (meteo + OI); `4.2` = Phase 2 (catalog in DB); `4.3` = Phase 3 (auth) |
+| **PATCH** | Individual task or PR within a phase | `4.1.0` = initial scaffold; `4.1.1` = add AEMET connector |
+
+**Never embed phase labels in version strings.** "Phase 1" is an informal name for the v4.1 milestone — use the version number in code, tags, and changelogs.
+
+### Phase map (v4.x)
+
+| Version | Phase | Scope |
+|---|---|---|
+| v4.1.x | Backend meteo | FastAPI scaffold, Open-Meteo ingestion, Outbreak Index, first API endpoints |
+| v4.2.x | Catalog in DB | Seed script, species/zones endpoints replace mock data in frontend |
+| v4.3.x | Auth + social | JWT auth, user follows/favorites, community sightings |
+
+---
+
 ## Git branching strategy
 
-| Branch type | Pattern | Scope |
-|---|---|---|
-| Epic | `epic/<name>` | Large multi-PR features (e.g. `epic/v4-backend`) |
-| Feature | `feat/<name>` | Single focused feature within an epic |
-| Fix | `fix/<name>` | Bug fixes |
-| Chore | `chore/<name>` | Dependency updates, config, tooling |
+| Branch type | Pattern | Version impact | Example |
+|---|---|---|---|
+| Epic | `epic/<name>` | Spans a full MINOR (vX.Y) | `epic/v4-backend` covers v4.1, v4.2, v4.3 |
+| Feature | `feat/<name>` | One PATCH bump (vX.Y.Z) | `feat/aemet-connector` → v4.1.1 |
+| Fix | `fix/<name>` | One PATCH bump | `fix/frost-hours-estimate` → v4.1.2 |
+| Chore | `chore/<name>` | One PATCH bump | `chore/update-httpx` → v4.1.3 |
 
-All feature branches within `epic/v4-backend` merge into the epic branch, not into `main`.
-The epic branch merges into `main` when the phase is complete and deployed.
+**Lifecycle:**
+1. `feat/` and `fix/` branches are cut from the current epic branch and merged back into it (not `main`). Each merged PR corresponds to one PATCH release.
+2. When all features for a MINOR phase are merged, the epic branch is tagged with the MINOR version (e.g. `v4.1.0`) and a PR is opened to merge into `main`.
+3. The next MINOR phase starts new `feat/` branches from the same epic branch.
+4. MAJOR bumps mark architectural generation changes (e.g. `3.x` frontend-only → `4.x` with backend).
 
 ---
 

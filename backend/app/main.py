@@ -12,7 +12,11 @@ Shutdown sequence:
 """
 import logging
 from contextlib import asynccontextmanager
+from importlib.metadata import version as pkg_version
 from typing import AsyncGenerator
+
+# Single source of truth for version — reads from pyproject.toml at runtime
+APP_VERSION = pkg_version("fungus-api")
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
@@ -75,7 +79,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title="Fungus API",
     description="Mushroom foraging prediction for Spain — Outbreak Index engine",
-    version="4.0.0",
+    version=APP_VERSION,
     docs_url="/docs" if not settings.is_production else None,
     redoc_url="/redoc" if not settings.is_production else None,
     lifespan=lifespan,
@@ -109,4 +113,4 @@ app.include_router(zones.router, prefix=API_PREFIX)
 
 @app.get("/", include_in_schema=False)
 async def root():
-    return {"service": "fungus-api", "version": "4.0.0", "docs": "/docs"}
+    return {"service": "fungus-api", "version": APP_VERSION, "docs": "/docs"}

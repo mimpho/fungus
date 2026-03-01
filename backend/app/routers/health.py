@@ -1,6 +1,7 @@
 """GET /api/v1/health — system status endpoint."""
 import logging
-from datetime import timezone, datetime
+from datetime import datetime, timezone
+from importlib.metadata import version as pkg_version
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select, text
@@ -45,7 +46,7 @@ async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
 
     return HealthResponse(
         status="ok" if db_ok else "degraded",
-        version="4.0.0",
+        version=pkg_version("fungus-api"),
         environment=settings.environment,
         last_ingest=last_ingest,
         active_zones=active_zones,
