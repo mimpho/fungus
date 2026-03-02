@@ -62,7 +62,7 @@ This project uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH
 | Feature | `feat/vX-Y-<name>` | epic branch | One PATCH bump | `feat/v4-1-aemet-connector` → v4.1.1 |
 | Fix | `fix/vX-Y-<name>` | epic branch | One PATCH bump | `fix/v4-1-frost-hours-estimate` → v4.1.2 |
 | Chore — code | `chore/vX-Y-<name>` | epic branch | One PATCH bump | `chore/v4-1-update-httpx` → v4.1.3 |
-| Chore — project | `chore/<name>` | **`main` directly** | One PATCH bump | `chore/update-readme` |
+| Chore — project | `chore/<name>` | `main` via PR | One PATCH bump | `chore/update-readme` |
 
 **Branch naming includes the target MINOR version** (`vX-Y`) for all branches that belong to an epic phase. This makes it immediately clear which phase a branch belongs to when looking at a branch list. Dots are replaced with hyphens (`v4-1`, not `v4.1`) to avoid issues in some git contexts.
 
@@ -77,7 +77,9 @@ Exception: project-wide chores that target `main` directly do not carry a versio
 
 This rule matters when `docs/` or project files exist only on the epic branch (not yet in `main`). In that case, even a documentation-style chore must be cut from the epic branch, because the file to edit doesn't exist in `main` yet.
 
-**Project-wide chores** (docs, `CLAUDE.md`, `docs/conventions.md`, workflow) that exist in `main` target `main` directly — they are independent of any feature work and should be available in `main` without waiting for a phase to complete.
+**Project-wide chores** (docs, `CLAUDE.md`, `docs/conventions.md`, workflow) target `main` via PR — they are independent of any feature work and should be available in `main` without waiting for a phase to complete.
+
+**`main` is branch-protected** — direct pushes are rejected. Every change, including single-line doc fixes, must go through a PR. No exceptions.
 
 **Lifecycle:**
 1. `feat/` and `fix/` branches are cut from the current epic branch and merged back into it (not `main`). Each merged PR corresponds to one PATCH release.
