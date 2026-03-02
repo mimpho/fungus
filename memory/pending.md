@@ -84,11 +84,10 @@ Formato de respuestas, errores, paginación cursor-based, HTTP codes, cache head
 
 ---
 
-## 🚧 Próximo — v4.2
+## 🚧 Próximo — v4.3
 
-1. Arreglar health endpoint para aceptar HEAD (falsos incidentes en UptimeRobot)
-2. Seed script: importar zonas y especies mock JS → PostgreSQL
-3. Endpoints que reemplacen mock data del frontend
+- **Integración frontend → API** (prioridad alta): reemplazar imports mock + llamadas Open-Meteo directas por llamadas al backend. Con 200 zonas el frontend genera ~200 requests a Open-Meteo y recibe 429s. Fix temporal aplicado: concurrencia reducida a 2 + delay 300ms entre batches en `weatherService.js`. Fix real: consumir scores desde `/api/v1/zones` (backend ya los cachea en BD).
+- Auth + social: JWT, favoritos reales, avistamientos comunitarios
 
 ---
 

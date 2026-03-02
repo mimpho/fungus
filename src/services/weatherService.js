@@ -259,7 +259,10 @@ export async function fetchAllZoneConditions(zones, opts = {}) {
 
   // Wrappear en promesa guardada para que llamadas concurrentes la compartan
   _allZonesPromise = (async () => {
-    const CONCURRENCY = 6
+    // Concurrencia baja + delay entre batches para no saturar Open-Meteo free tier
+    // (200 zonas × 1 req = 200 requests — sin throttling da 429)
+    const CONCURRENCY = 2
+    const BATCH_DELAY_MS = 300
     for (let i = 0; i < missing.length; i += CONCURRENCY) {
       const batch = missing.slice(i, i + CONCURRENCY)
       const results = await Promise.allSettled(
@@ -272,6 +275,9 @@ export async function fetchAllZoneConditions(zones, opts = {}) {
       })
       done += batch.length
       onProgress?.(done, missing.length)
+      if (i + CONCURRENCY < missing.length) {
+        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS))
+      }
     }
     saveCache(result)
     _allZonesPromise = null // limpiar tras resolver
