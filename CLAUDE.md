@@ -4,10 +4,13 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v3.1.0 (Vite + React Router, rama `main`)
-**Estado**: Prototipo funcional — datos meteorológicos reales via Open-Meteo, catálogo de datos mock (28 zonas, 27 especies, 8 familias), sin backend propio. Modales con URL slugs y navegación browser-native (back/ESC).
-**Deploy**: Vercel → `fungus-git-feat-vite-migration-mimphos-projects.vercel.app`
-**Backend spec**: `docs/backend_architecture.md` — propuesta FastAPI + PostgreSQL + PostGIS (v4.0)
+**Versión actual**: v3.1.0 frontend / v4.1.0 backend (en desarrollo en `epic/v4-backend`)
+**Estado frontend**: Prototipo funcional — datos meteorológicos reales via Open-Meteo, catálogo de datos mock (28 zonas, 27 especies, 8 familias), sin backend propio. Modales con URL slugs y navegación browser-native (back/ESC).
+**Estado backend**: Scaffold completo (FastAPI + SQLAlchemy + Alembic). v4.1 en desarrollo: ingesta Open-Meteo server-side + Outbreak Index + API endpoints.
+**Deploy frontend**: Vercel → `fungus-git-feat-vite-migration-mimphos-projects.vercel.app`
+**Deploy backend (objetivo)**: Render (API) + Supabase (PostgreSQL + PostGIS)
+**Backend spec**: `docs/backend_architecture.md` — FastAPI + PostgreSQL + PostGIS (v4.x)
+**Convenciones**: `docs/conventions.md` — idiomas, versionado, git branching, commit format
 
 ---
 
@@ -302,6 +305,71 @@ Props de `LeafletMap`: `zonas`, `onZoneClick`, `height`, `singleZone`, `title`, 
 
 ---
 
+## Backend (v4.0) — `backend/`
+
+### Stack
+| Tecnología | Versión | Notas |
+|---|---|---|
+| FastAPI | ≥0.115 | Async, lifespan, CORS middleware |
+| SQLAlchemy | 2.x async | asyncpg driver |
+| Alembic | ≥1.13 | Migraciones; `migrations/versions/001_initial_schema.py` |
+| APScheduler | 3.x | Cron diario a las 05:00 UTC |
+| httpx | ≥0.27 | Cliente async para APIs externas |
+| tenacity | ≥9 | Reintentos con backoff en conectores |
+
+### Estructura `backend/`
+```
+backend/
+├── app/
+│   ├── main.py          ← FastAPI app + lifespan + scheduler
+│   ├── config.py        ← Settings (pydantic-settings, .env)
+│   ├── database.py      ← engine async + get_db dependency
+│   ├── models/          ← Zone, Species, ClimateHistory, ScoresCache, WeatherStation
+│   ├── schemas/         ← Pydantic schemas (zone.py, health.py)
+│   ├── routers/         ← health.py, zones.py
+│   ├── services/
+│   │   ├── scoring.py   ← Outbreak Index (OI) algorithm
+│   │   └── ingest.py    ← daily ingestion + backfill + scores cache refresh
+│   └── connectors/
+│       ├── base.py      ← abstract WeatherConnector + DailyWeatherData
+│       └── open_meteo.py← P3 connector (no API key needed)
+├── migrations/
+│   └── versions/001_initial_schema.py
+├── scripts/
+│   ├── backfill.py      ← python -m scripts.backfill --from YYYY-MM-DD --to YYYY-MM-DD
+│   └── seed_catalog.py  ← Fase 2: importa mock JS → PostgreSQL
+├── Dockerfile
+├── alembic.ini
+└── pyproject.toml
+```
+
+### Endpoints (Fase 1)
+```
+GET /api/v1/health            → system status, last ingest, providers
+GET /api/v1/zones             → all active zones + cached OI score
+GET /api/v1/zones/map-scores  → [{zone_id, lat, lon, score}] para heatmap
+GET /api/v1/zones/{id}        → zone detail + OI breakdown
+```
+
+### Outbreak Index (OI) — algoritmo (ver `app/services/scoring.py`)
+```
+OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
+   + Thermal_score × 0.25  (temperatura media 7d + penalización heladas)
+   + Seasonal      × 0.25  (factor mensual: Ene=15 … Oct=100)
+   + Ripening_score × 0.12 (días desde lluvia ≥10mm vs ciclo de la especie)
+   + Humidity_score × 0.08 (humedad relativa media)
+```
+
+### Reglas importantes del backend
+15. **`GENERATED ALWAYS AS` PostGIS** — la columna `geom` en `zones` y `weather_stations` se genera automáticamente desde `lat`/`lon`. No insertar `geom` directamente.
+16. **Upsert con upgrade rule** — `climate_history` nunca sobreescribe una fuente de mayor calidad con una inferior. `open-meteo` es P3; P1/P2 tienen prioridad.
+17. **Conector placeholder** — `_get_connector()` en `ingest.py` siempre devuelve `OpenMeteoConnector` hasta que las API keys P1/P2 estén disponibles. Enchufar Meteocat ahí.
+18. **Cron 05:00 UTC** — el scheduler arranca con la app en el lifespan. En Render free tier la app se duerme; usar UptimeRobot para keep-alive.
+19. **`Cache-Control: public, max-age=3600`** — middleware en `main.py` añade este header a todos los GET 200. El frontend no necesita localStorage de 3h.
+20. **Convenciones de código** — ver `docs/conventions.md`. Todo en inglés (identificadores, comentarios, commits, DB). Excepciones: `CLAUDE.md`, `memory/`, `CHANGELOG.md`.
+
+---
+
 ## Reglas Importantes
 
 1. **`frontend/` es el path activo** — no tocar `standalone/` salvo referencia
@@ -323,15 +391,102 @@ Props de `LeafletMap`: `zonas`, `onZoneClick`, `height`, `singleZone`, `title`, 
 
 ## Roadmap
 
-### Pendiente (v3.x) — ver `memory/pending.md` para detalle
-- Revisión `forestTypes` y `fruitingMonths` de todas las especies
-- Mostrar `speciesScore` (SQS) en la UI de ZoneModal
-- Meteocat API para zonas catalanas (requiere API key)
-- Zonas personalizadas en el mapa
+| Versión | Estado | Alcance |
+|---|---|---|
+| v3.1 | ✅ Entregado | Frontend Vite completo — meteo real, catálogo mock, modales, mapa |
+| v3.x | 🗂 Backlog | Mejoras frontend (ver `memory/pending.md`) — sin prioridad activa |
+| **v4.1** | 🚧 En curso | Backend meteo: FastAPI + OI + Open-Meteo server-side |
+| v4.2 | 📋 Planificado | Catálogo en DB: seed script + endpoints reemplazan mock data |
+| v4.3 | 📋 Planificado | Auth + social: JWT, favoritos reales, avistamientos comunitarios |
 
-### Próximo (v4.0) — ver `docs/backend_architecture.md` para spec completa
-- Backend FastAPI + PostgreSQL + PostGIS
-- Índice de Brote (IB) con histórico de 21 días y fuentes regionales (Meteocat, Euskalmet, etc.)
-- Autenticación real de usuarios
-- App móvil (React Native)
-- Fotografías comunitarias de avistamientos
+Spec completa de v4.x: `docs/backend_architecture.md`
+
+---
+
+## Protocolo de actualización de documentación
+
+Cuando Claude complete trabajo en este proyecto, debe actualizar los siguientes archivos según el tipo de cambio. **Esto no es opcional** — la documentación desincronizada genera confusión en sesiones futuras.
+
+### Al cerrar una tarea o PR (PATCH: vX.Y.Z → vX.Y.Z+1)
+
+| Archivo | Qué actualizar |
+|---|---|
+| `CHANGELOG.md` | Añadir entrada con los cambios, bajo el MINOR activo |
+| `backend/pyproject.toml` | Bump de versión patch |
+| `CLAUDE.md` → Overview | Versión actual si ha cambiado |
+
+### Al cerrar una fase/milestone (MINOR: vX.Y → vX.Y+1)
+
+Todo lo anterior, más:
+
+| Archivo | Qué actualizar |
+|---|---|
+| `CLAUDE.md` → Roadmap | Marcar la fase como ✅, actualizar la que pasa a "En curso" |
+| `CLAUDE.md` → Overview | Versión y estado del backend |
+| `docs/conventions.md` | Phase map si se añaden fases nuevas |
+| `docs/backend_architecture.md` | Si el spec cambió durante la implementación |
+| Git | `git tag -a vX.Y.0` en `main` tras el merge del epic |
+
+### Al tomar una decisión arquitectónica relevante
+
+| Archivo | Qué actualizar |
+|---|---|
+| `memory/decisions.md` | Registrar la decisión, alternativas descartadas y motivo |
+| `docs/backend_architecture.md` | Si afecta al diseño general del sistema |
+| `docs/conventions.md` | Si establece un nuevo patrón de trabajo |
+
+### Al añadir o cambiar un endpoint de la API
+
+| Archivo | Qué actualizar |
+|---|---|
+| `CLAUDE.md` → sección Backend | Tabla de endpoints |
+| `docs/backend_architecture.md` | Sección 8 (API Endpoints) |
+
+### Lo que **no** hace falta actualizar en cada cambio
+- `memory/pending.md` — solo cuando cambia la cola de tareas activa
+- `docs/conventions.md` — solo cuando cambia cómo trabajamos, no qué construimos
+
+---
+
+## Flujo de trabajo con Claude
+
+### Cuándo usar Cowork
+
+**Siempre** para trabajo real en el proyecto: escribir código, leer o modificar archivos, ejecutar comandos, operaciones git. Cowork tiene acceso al repo y carga `CLAUDE.md` automáticamente al arrancar, lo que garantiza contexto sin tener que re-explicar nada.
+
+**No es necesario** para consultas puntuales que no tocan el proyecto directamente — discutir un concepto, revisar un fragmento de código suelto, o hacer una pregunta sobre una librería. Una conversación de Claude normal es más rápida para eso.
+
+### Alcance de una sesión
+
+Una sesión de Cowork debería cubrir un **bloque de trabajo cohesionado**, no una tarea suelta ni todo el proyecto. El criterio práctico: abrir una sesión nueva cuando se empieza un bloque diferente (un milestone, un tema distinto), no cuando se termina una tarea puntual dentro del mismo bloque.
+
+Cuando una conversación se extiende mucho, la calidad del contexto se degrada. La señal para abrir sesión nueva es notar que Claude está perdiendo el hilo, no esperar a que falle. `CLAUDE.md` garantiza la continuidad — la siguiente sesión arranca con el mismo contexto que dejó la anterior.
+
+### Arrancar una sesión
+
+No hace falta nombrar la sesión ni re-explicar el proyecto. Claude lee `CLAUDE.md` al inicio y consulta `memory/pending.md` para saber qué toca. Con una indicación mínima ("continuamos con v4.1") es suficiente para orientarse.
+
+Lo único que conviene mencionar explícitamente es contexto que ocurrió **fuera** de Cowork desde la última sesión: una decisión tomada en otra conversación, un cambio manual en el código, o que llegó una API key. Eso no se puede inferir de los ficheros.
+
+### Cerrar una sesión
+
+Antes de cerrar, aplicar el protocolo de actualización de documentación de la sección anterior. Eso es lo que hace que la próxima sesión arranque con contexto real. Si la sesión fue exploratoria y no hubo cambios concretos, basta con actualizar `memory/pending.md` si quedaron tareas pendientes identificadas.
+
+### Sugerencias al terminar un bloque de trabajo
+
+Al acabar cada bloque, Claude debe sugerir proactivamente los siguientes pasos sin esperar a que se pidan. La sugerencia cubre tres dimensiones:
+
+**Git** — qué acciones están pendientes según el estado del repo:
+- Cambios sin commitear → sugerir commit con mensaje Conventional Commits
+- Feature branch terminada → sugerir squash merge a la epic y borrar la rama
+- Fase completa → sugerir merge `--no-ff` a `main`, tag y push
+- Nada pendiente → confirmarlo explícitamente
+
+**Conversación** — si conviene continuar aquí o abrir una nueva sesión:
+- Continuar aquí si el siguiente bloque es una extensión natural del actual (misma rama, mismo contexto)
+- Nueva sesión de Cowork si el siguiente bloque es un tema distinto, una rama nueva, o si la conversación ya es larga
+- Claude sin Cowork si lo que viene es una consulta puntual sin tocar ficheros
+
+**Documentación** — qué hay que actualizar antes de cerrar (según el protocolo de la sección anterior), y si hay algo que añadir a `memory/pending.md` para la próxima sesión
+
+El formato de la sugerencia debe ser breve y directo — no un informe, sino tres bullets accionables al final del trabajo.

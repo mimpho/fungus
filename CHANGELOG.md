@@ -7,6 +7,35 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [4.1.0] - 2026-03-01 — Backend scaffold + Outbreak Index (rama `epic/v4-backend`)
+
+### Contexto
+Inicio de la era v4 (backend). v4.1 es la primera fase: scaffold FastAPI + PostgreSQL + PostGIS, motor de ingesta meteorológica server-side con Open-Meteo y el algoritmo Outbreak Index. El catálogo (zonas, especies) sigue siendo mock en el frontend hasta v4.2.
+
+### Añadido
+- `backend/` — proyecto FastAPI completo con pyproject.toml, Dockerfile y Alembic
+- `backend/app/models/` — 5 modelos SQLAlchemy 2.x async: `Zone`, `Species`, `ClimateHistory`, `ScoresCache`, `WeatherStation`
+- `backend/migrations/versions/001_initial_schema.py` — migración inicial con PostGIS (`geom` GENERATED ALWAYS AS desde lat/lon)
+- `backend/app/connectors/open_meteo.py` — conector P3, server-side, con retry/backoff (tenacity). Agrega datos horarios a diarios.
+- `backend/app/services/scoring.py` — algoritmo Outbreak Index (OI): PA21 × 0.30 + Thermal × 0.25 + Seasonal × 0.25 + Ripening × 0.12 + Humidity × 0.08
+- `backend/app/services/ingest.py` — ingesta diaria concurrente (semáforo 6), upsert idempotente con upgrade rule de fuentes, refresh de scores_cache
+- `backend/app/routers/health.py` — `GET /api/v1/health`
+- `backend/app/routers/zones.py` — `GET /api/v1/zones`, `GET /api/v1/zones/map-scores`, `GET /api/v1/zones/{id}`
+- `backend/app/main.py` — FastAPI + CORS + Cache-Control middleware + APScheduler cron (05:00 UTC)
+- `backend/scripts/backfill.py` — backfill histórico hasta 2 años vía Open-Meteo
+- `backend/scripts/seed_catalog.py` — preparado para v4.2: importa mock JS → PostgreSQL
+- `docs/conventions.md` — política de idiomas, versionado semántico, git branching, formato de commits
+- `CLAUDE.md` actualizado con sección completa del backend
+
+### Decisiones
+- **Infraestructura objetivo**: Render (API) + Supabase (PostgreSQL + PostGIS)
+- **Conector activo**: solo Open-Meteo (P3) hasta disponer de API key de Meteocat (v4.1.x)
+- **Código en inglés**: identificadores, comentarios, commits, nombres de tablas/columnas. Ver `docs/conventions.md`
+- **Versionado**: major=generación, minor=fase, patch=tarea. Sin etiquetas "-faseN" en versiones. Ver `docs/conventions.md`
+- **Rama**: `epic/v4-backend` agrupa todas las fases del backend (v4.1, v4.2, v4.3) antes de mergear a `main`
+
+---
+
 ## [3.0.0-fase5] - 2026-02-26 — Migración a Vite + React Router (Fase 5: Mapa Leaflet + Micología)
 
 ### Contexto

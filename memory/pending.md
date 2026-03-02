@@ -54,11 +54,51 @@ Permitir al usuario añadir y guardar puntos propios en el mapa.
 
 ---
 
-## 🟢 Roadmap (v4.0)
+## ✅ Completado — v4.1 pre-merge checklist (2026-03-02)
 
-- Backend propio (FastAPI) + PostgreSQL
-- Autenticación real de usuarios
-- App móvil (React Native)
-- Fotografías comunitarias de avistamientos
-- Notificaciones push reales
-- Exportar calendario a PDF
+Todo commiteado y pusheado en `epic/v4-backend`. Pendiente: deploy manual (Supabase + Render) siguiendo `docs/deploy.md`, y merge a `main` tras el deploy.
+
+### 1. ✅ API design conventions (`docs/conventions.md`)
+Formato de respuestas, errores, paginación cursor-based, HTTP codes, cache headers, datetimes UTC, snake_case.
+
+### 2. ✅ Local dev setup
+`backend/docker-compose.yml` (PostgreSQL 16 + PostGIS 3.4), `.env.example` actualizado, `docs/local_dev.md` con guía completa.
+
+### 3. ✅ Testing strategy + primeros tests
+`docs/conventions.md` sección Testing. `backend/tests/unit/test_scoring.py` — 41 tests del algoritmo OI, todos en verde.
+
+### 4. ✅ Secrets y gestión de entornos
+`docs/environments.md` — catálogo completo de variables, flujo local/Render/CI.
+
+### 5. ✅ CI/CD + guía de deploy
+`.github/workflows/ci.yml` (unit + integration + lint). `docs/deploy.md` — checklist paso a paso para Supabase + Render.
+
+---
+
+## 🚧 Próximo paso — Deploy real + merge a main
+
+1. Ejecutar `docs/deploy.md` (acción manual: Supabase, Render, UptimeRobot)
+2. Verificar health endpoint en producción
+3. Mergear `epic/v4-backend` → `main` con `--no-ff` y taggear `v4.1.0`
+4. Arrancar v4.2: seed script + endpoints que reemplacen mock data del frontend
+
+---
+
+## 🟡 Backlog — v3.x (sin prioridad activa)
+
+### Revisión general del catálogo de especies
+- Verificar que `forestTypes` y `fruitingMonths` sean correctos para todas las especies
+- Añadir más especies si faltan representativas de cada tipo de bosque
+- Comprobar si hay especies con `forestType: 'mixto'` que deberían cubrirse en las zonas actuales (las zonas solo tienen: pinar, hayedo, robledal, encinar)
+
+### Zonas sin especies en temporada
+Actualmente si no hay especies que coincidan con una zona/mes, el score meteorológico queda sin ajustar. Considerar si esto es correcto o si debería haber una penalización por "zona sin interés micológico este mes".
+
+### `speciesScore` en la UI de ZoneModal
+El campo `speciesScore` (SQS) se calcula y se añade al objeto conditions, pero no se muestra en ningún sitio. Podría ser útil mostrarlo como indicador adicional en la ficha de zona.
+
+### Meteocat API para zonas catalanas
+Requiere API key. Híbrido: Meteocat para zonas catalanas, Open-Meteo para el resto.
+
+### Zonas personalizadas
+Permitir al usuario añadir y guardar puntos propios en el mapa.
