@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
-import { mockSpecies } from '../data/species'
 import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor, slugify } from '../lib/helpers'
+import { useSpecies } from '../hooks/useSpecies'
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { LeafletMap } from '../components/map/LeafletMap'
 import { mockArticles } from '../data/articles'
@@ -78,9 +78,10 @@ export default function Dashboard() {
     }
   }, [topZones, conditionsMap])
 
+  const { species } = useSpecies()
   const inSeasonSpecies = useMemo(() =>
-    mockSpecies.filter(e => e.fruitingMonths.includes(currentMonth)).slice(0, 4),
-  [currentMonth])
+    species.filter(e => e.fruitingMonths.includes(currentMonth)).slice(0, 4),
+  [species, currentMonth])
 
   return (
     <>

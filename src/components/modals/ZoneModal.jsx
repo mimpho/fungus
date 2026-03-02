@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
-import { mockSpecies } from '../../data/species'
 import { IC, EdibilityTag, getScoreColor } from '../../lib/helpers'
+import { useSpecies } from '../../hooks/useSpecies'
 import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
 import { useZoneConditions } from '../../hooks/useWeatherConditions'
@@ -17,7 +17,8 @@ const CAL_FILTERS = [
 export function ZoneModal({ zone, onClose }) {
   const { t, followedZones, toggleFollow, setSelectedSpecies } = useApp()
   const isFollowed = followedZones.some(z => z.id === zone.id)
-  const zoneSpecies = mockSpecies.filter(e => e.forestTypes?.includes(zone.forestType))
+  const { species: allSpecies } = useSpecies()
+  const zoneSpecies = allSpecies.filter(e => e.forestTypes?.includes(zone.forestType))
   const { conditions: weatherConditions, loading: weatherLoading, updatedAt } = useZoneConditions(zone)
   // Mientras carga, usar valores neutros para no romper el UI
   const conditions = weatherConditions ?? { overallScore: 0, temperature: '–', soilTemp: '–', rainfall14d: '–', humidity: '–', wind: '–', dryDays: '–' }

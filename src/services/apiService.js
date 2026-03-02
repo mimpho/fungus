@@ -139,3 +139,120 @@ export async function fetchMapScores() {
   if (!res.ok) throw new Error(`API /zones/map-scores error ${res.status}`)
   return res.json()
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPECIES — normalizadores
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Normaliza un item de lista de especies del API al shape del frontend.
+ *
+ * API shape (SpeciesListItem):
+ *   { id, scientific_name, family, edibility, forest_types, fruiting_months,
+ *     elevation_min_m, elevation_max_m, common_names, photo_url, description }
+ *
+ * Frontend shape (mockSpecies):
+ *   { id, scientificName, family, edibility, forestTypes, fruitingMonths,
+ *     altitud_min, altitud_max, elevationMin, elevationMax,
+ *     commonNames, photo, description, photos, cap, stem, flesh, sporePrint,
+ *     synonyms, distributionZones }
+ *
+ * Los campos de detalle (cap, stem, flesh, photos…) se rellenan con null
+ * en el item de lista — se cargan bajo demanda en SpeciesModal.
+ */
+export function normalizeSpeciesListItem(s) {
+  return {
+    id:               s.id,
+    scientificName:   s.scientific_name,
+    family:           s.family,
+    edibility:        s.edibility,
+    forestTypes:      s.forest_types   ?? [],
+    fruitingMonths:   s.fruiting_months ?? [],
+    altitud_min:      s.elevation_min_m,  // alias usado en applySpeciesModifier
+    altitud_max:      s.elevation_max_m,
+    elevationMin:     s.elevation_min_m,  // alias usado en SpeciesModal
+    elevationMax:     s.elevation_max_m,
+    commonNames:      s.common_names   ?? [],
+    photo:            s.photo_url ? { url: s.photo_url } : null,
+    description:      s.description   ?? null,
+    // Detalle no disponible en lista — se carga en SpeciesModal al abrir
+    photos:           [],
+    cap:              null,
+    stem:             null,
+    flesh:            null,
+    sporePrint:       null,
+    synonyms:         [],
+    distributionZones: null,
+    _partial:         true,  // flag: indica que falta el detalle completo
+  }
+}
+
+/**
+ * Normaliza el detalle completo de una especie (GET /species/{id}).
+ * Desempaqueta extra_data para reconstruir el shape del frontend.
+ */
+export function normalizeSpeciesDetail(s) {
+  const base = normalizeSpeciesListItem(s)
+  const ex = s.extra_data ?? {}
+  return {
+    ...base,
+    // Sobrescribir con datos de extra_data que son más completos
+    photo:       ex.photo  ?? base.photo,
+    photos:      ex.photos ?? [],
+    cap:         ex.cap    ?? null,
+    stem:        ex.stem   ?? null,
+    flesh:       ex.flesh  ?? null,
+    sporePrint:  ex.sporePrint ?? null,
+    distribucion: ex.distribucion ?? [],
+    // OI params (útil para debugging futuro)
+    _oiParams: s.oi_params ?? null,
+    _partial:  false,
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPECIES — endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _SPECIES_PAGE_SIZE = 200  // max permitido por la API
+
+/**
+ * Obtiene todas las especies (con cursor pagination).
+ * Reemplaza el import estático de mockSpecies en las vistas de lista.
+ *
+ * @returns {Promise<Array>}  array de especies normalizadas al shape del frontend
+ */
+export async function fetchAllSpecies() {
+  const all = []
+  let cursor = null
+
+  while (true) {
+    const params = new URLSearchParams({ limit: _SPECIES_PAGE_SIZE })
+    if (cursor) params.set('cursor', cursor)
+
+    const res = await fetch(`${API_BASE}/species?${params}`)
+    if (!res.ok) throw new Error(`API /species error ${res.status}`)
+    const page = await res.json()
+
+    for (const s of page) all.push(normalizeSpeciesListItem(s))
+
+    if (page.length < _SPECIES_PAGE_SIZE) break  // última página
+    cursor = page[page.length - 1].id
+  }
+
+  return all
+}
+
+/**
+ * Obtiene el detalle completo de una especie.
+ * Llamado de forma lazy al abrir SpeciesModal.
+ *
+ * @param {string} speciesId
+ * @returns {Promise<object>}  especie normalizada con todos los campos (cap, stem, photos…)
+ */
+export async function fetchSpeciesDetail(speciesId) {
+  const res = await fetch(`${API_BASE}/species/${speciesId}`)
+  if (!res.ok) throw new Error(`API /species/${speciesId} error ${res.status}`)
+  const data = await res.json()
+  return normalizeSpeciesDetail(data)
+}

@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
-import { mockSpecies } from '../../data/species'
 import { IC, EdibilityTag, resolveUrl } from '../../lib/helpers'
+import { useSpecies } from '../../hooks/useSpecies'
 import { MODAL } from '../../lib/constants'
 
 export function FamilyModal({ family, onClose, onViewSpecies }) {
   const { t } = useApp()
   const familyName = family.nombre || family.name || family.id || ''
-  const familySpecies = mockSpecies.filter(e => e.family === familyName)
+  const { species: allSpecies } = useSpecies()
+  const familySpecies = allSpecies.filter(e => e.family === familyName)
 
   const onCloseRef = useRef(onClose)
   useEffect(() => { onCloseRef.current = onClose }, [onClose])

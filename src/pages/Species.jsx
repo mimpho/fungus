@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
-import { mockSpecies } from '../data/species'
 import { SpeciesCard, IC, slugify } from '../lib/helpers'
+import { useSpecies } from '../hooks/useSpecies'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
@@ -22,16 +22,18 @@ export default function Species() {
   const { t, favoriteSpecies, toggleFavorite, setSelectedSpecies, setSelectedFamily } = useApp()
   const { id: speciesSlug } = useParams()
 
+  const { species } = useSpecies()
+
   // Sincronizar URL param → modal de especie
   useEffect(() => {
     if (speciesSlug) {
-      const sp = mockSpecies.find(s => slugify(s.scientificName) === speciesSlug)
+      const sp = species.find(s => slugify(s.scientificName) === speciesSlug)
       setSelectedSpecies(sp || null)
     } else {
       setSelectedSpecies(null)
     }
     return () => setSelectedSpecies(null)
-  }, [speciesSlug])
+  }, [speciesSlug, species])
 
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -48,11 +50,11 @@ export default function Species() {
     { replace: false }
   )
 
-  const uniqueFamilies = useMemo(() => [...new Set(mockSpecies.map(e => e.family))].sort(), [])
+  const uniqueFamilies = useMemo(() => [...new Set(species.map(e => e.family))].sort(), [species])
   const isFav = useCallback(e => favoriteSpecies.some(f => f.id === e.id), [favoriteSpecies])
 
   const filteredSpecies = useMemo(() => {
-    let r = [...mockSpecies]
+    let r = [...species]
     if (showFilter === 'favoritas')  r = r.filter(e => favoriteSpecies.some(f => f.id === e.id))
     else if (showFilter === 'excelente')  r = r.filter(e => e.edibility === 'excelente')
     else if (showFilter === 'comestible') r = r.filter(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility))
