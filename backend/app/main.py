@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import AsyncSessionLocal, dispose_engine
-from app.routers import health, zones
+from app.routers import health, species, zones
 from app.services.ingest import run_daily_ingest
 
 # Single source of truth for version — reads from pyproject.toml at runtime
@@ -109,6 +109,7 @@ API_PREFIX = f"/api/{settings.api_version}"
 
 app.include_router(health.router, prefix=API_PREFIX)
 app.include_router(zones.router, prefix=API_PREFIX)
+app.include_router(species.router, prefix=API_PREFIX)
 
 
 @app.get("/", include_in_schema=False)
