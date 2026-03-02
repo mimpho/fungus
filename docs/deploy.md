@@ -65,7 +65,7 @@ Verify in Supabase → Table Editor that the tables exist: `zones`, `species`,
 | `DATABASE_URL` | The `postgresql+asyncpg://` string from Supabase |
 | `SECRET_KEY` | Run `openssl rand -hex 32` locally and paste the result |
 | `ENVIRONMENT` | `production` |
-| `CORS_ORIGINS` | `https://fungus-git-feat-vite-migration-mimphos-projects.vercel.app` |
+| `CORS_ORIGINS` | `https://fungus-ashen.vercel.app` |
 
 5. Click **Create Web Service** — Render will build and deploy automatically.
 
