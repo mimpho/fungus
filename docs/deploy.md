@@ -30,6 +30,7 @@ From your local machine (requires Python 3.12 — `brew install python@3.12` if 
 cd backend
 python3.12 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade setuptools
 pip install -e ".[dev]"
 DATABASE_URL="postgresql+asyncpg://postgres.xxxx:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres" \
   alembic upgrade head
