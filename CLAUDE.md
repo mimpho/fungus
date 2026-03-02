@@ -4,11 +4,11 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v3.1.0 frontend / v4.1.0 backend (en desarrollo en `epic/v4-backend`)
+**Versión actual**: v3.1.0 frontend / v4.1.0 backend
 **Estado frontend**: Prototipo funcional — datos meteorológicos reales via Open-Meteo, catálogo de datos mock (28 zonas, 27 especies, 8 familias), sin backend propio. Modales con URL slugs y navegación browser-native (back/ESC).
-**Estado backend**: Scaffold completo (FastAPI + SQLAlchemy + Alembic). v4.1 en desarrollo: ingesta Open-Meteo server-side + Outbreak Index + API endpoints.
-**Deploy frontend**: Vercel → `fungus-git-feat-vite-migration-mimphos-projects.vercel.app`
-**Deploy backend (objetivo)**: Render (API) + Supabase (PostgreSQL + PostGIS)
+**Estado backend**: v4.1.0 desplegado en producción. FastAPI + SQLAlchemy + Alembic + Outbreak Index. BD vacía (sin seed) — catálogo sigue siendo mock en frontend hasta v4.2.
+**Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
+**Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 **Backend spec**: `docs/backend_architecture.md` — FastAPI + PostgreSQL + PostGIS (v4.x)
 **Convenciones**: `docs/conventions.md` — idiomas, versionado, git branching, commit format
 
@@ -395,8 +395,8 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 |---|---|---|
 | v3.1 | ✅ Entregado | Frontend Vite completo — meteo real, catálogo mock, modales, mapa |
 | v3.x | 🗂 Backlog | Mejoras frontend (ver `memory/pending.md`) — sin prioridad activa |
-| **v4.1** | 🚧 En curso | Backend meteo: FastAPI + OI + Open-Meteo server-side |
-| v4.2 | 📋 Planificado | Catálogo en DB: seed script + endpoints reemplazan mock data |
+| v4.1 | ✅ Entregado | Backend meteo: FastAPI + OI + Open-Meteo server-side · desplegado en producción |
+| **v4.2** | 🚧 En curso | Catálogo en DB: seed script + endpoints reemplazan mock data |
 | v4.3 | 📋 Planificado | Auth + social: JWT, favoritos reales, avistamientos comunitarios |
 
 Spec completa de v4.x: `docs/backend_architecture.md`
