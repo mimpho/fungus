@@ -83,6 +83,7 @@ async def list_zones(
                 lon=z.lon,
                 elevation_m=z.elevation_m,
                 forest_type=z.forest_type,
+                description=z.description,
                 score=score,
             )
         )
@@ -142,6 +143,7 @@ async def get_zone(zone_id: str, db: AsyncSession = Depends(get_db)) -> ZoneDeta
         lon=zone.lon,
         elevation_m=zone.elevation_m,
         forest_type=zone.forest_type,
+        description=zone.description,
         soil_type=zone.soil_type,
         active=zone.active,
         created_at=zone.created_at,

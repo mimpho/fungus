@@ -7,7 +7,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
-## [4.1.0] - 2026-03-01 — Backend scaffold + Outbreak Index (rama `epic/v4-backend`)
+## [4.1.0] - 2026-03-02 — Backend scaffold + Outbreak Index · **desplegado en producción**
 
 ### Contexto
 Inicio de la era v4 (backend). v4.1 es la primera fase: scaffold FastAPI + PostgreSQL + PostGIS, motor de ingesta meteorológica server-side con Open-Meteo y el algoritmo Outbreak Index. El catálogo (zonas, especies) sigue siendo mock en el frontend hasta v4.2.
@@ -33,6 +33,13 @@ Inicio de la era v4 (backend). v4.1 es la primera fase: scaffold FastAPI + Postg
 - **Código en inglés**: identificadores, comentarios, commits, nombres de tablas/columnas. Ver `docs/conventions.md`
 - **Versionado**: major=generación, minor=fase, patch=tarea. Sin etiquetas "-faseN" en versiones. Ver `docs/conventions.md`
 - **Rama**: `epic/v4-backend` agrupa todas las fases del backend (v4.1, v4.2, v4.3) antes de mergear a `main`
+
+### Deploy
+- **API**: `https://fungus-api.onrender.com` (Render free tier, Frankfurt)
+- **BD**: Supabase PostgreSQL + PostGIS (Ireland)
+- **Frontend**: `https://fungus-ashen.vercel.app` (Vercel, apunta a `main`)
+- **Keep-alive**: UptimeRobot monitor en `/api/v1/health` (14 min interval)
+- **Pendiente**: health endpoint debe aceptar HEAD para que UptimeRobot no genere falsos incidentes
 
 ---
 

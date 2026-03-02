@@ -75,12 +75,20 @@ Formato de respuestas, errores, paginación cursor-based, HTTP codes, cache head
 
 ---
 
-## 🚧 Próximo paso — Deploy real + merge a main
+## ✅ Completado — Deploy v4.1.0 en producción (2026-03-02)
 
-1. Ejecutar `docs/deploy.md` (acción manual: Supabase, Render, UptimeRobot)
-2. Verificar health endpoint en producción
-3. Mergear `epic/v4-backend` → `main` con `--no-ff` y taggear `v4.1.0`
-4. Arrancar v4.2: seed script + endpoints que reemplacen mock data del frontend
+- **API**: `https://fungus-api.onrender.com` (Render free tier)
+- **BD**: Supabase PostgreSQL + PostGIS (Ireland)
+- **Merge**: `epic/v4-backend` → `main` con `--no-ff`, tag `v4.1.0`
+- **Keep-alive**: UptimeRobot monitor activo en `/api/v1/health`
+
+---
+
+## 🚧 Próximo — v4.2
+
+1. Arreglar health endpoint para aceptar HEAD (falsos incidentes en UptimeRobot)
+2. Seed script: importar zonas y especies mock JS → PostgreSQL
+3. Endpoints que reemplacen mock data del frontend
 
 ---
 
