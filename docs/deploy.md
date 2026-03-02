@@ -58,7 +58,12 @@ Verify in Supabase → Table Editor that the tables exist: `zones`, `species`,
 | **Start command** | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
 | **Instance type** | Free |
 
-4. Add environment variables (Environment tab):
+4. In **Advanced**:
+   - **Health Check Path**: `/api/v1/health`
+   - **Pre-Deploy Command**: leave empty (paid instances only — run migrations manually from local, see step 2)
+   - **Auto-Deploy**: On Commit (default)
+
+5. Add environment variables (Environment tab):
 
 | Key | Value |
 |---|---|
@@ -67,9 +72,9 @@ Verify in Supabase → Table Editor that the tables exist: `zones`, `species`,
 | `ENVIRONMENT` | `production` |
 | `CORS_ORIGINS` | `https://fungus-ashen.vercel.app` |
 
-5. Click **Create Web Service** — Render will build and deploy automatically.
+6. Click **Deploy Web Service** — Render will build and deploy automatically.
 
-6. Wait for the first deploy to go green (~3–5 min). Check the logs for errors.
+7. Wait for the first deploy to go green (~3–5 min). Check the logs for errors.
 
 ---
 
