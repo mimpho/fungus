@@ -24,12 +24,13 @@ automatic on every push to `main`.
 
 ## 2. Run migrations against Supabase
 
-From your local machine with the backend deps installed:
+From your local machine:
 
 ```bash
 cd backend
+pip install -e ".[dev]"
 DATABASE_URL="postgresql+asyncpg://postgres.xxxx:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres" \
-  alembic upgrade head
+  python3 -m alembic upgrade head
 ```
 
 Verify in Supabase → Table Editor that the tables exist: `zones`, `species`,
