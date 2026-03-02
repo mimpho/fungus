@@ -171,6 +171,73 @@ git push origin main --tags
 
 ---
 
+## Testing strategy
+
+### What we test
+
+| Layer | What | How | Priority |
+|---|---|---|---|
+| Scoring algorithm | `score_pa21`, `score_thermal`, `score_ripening`, `score_humidity`, `compute_oi` | Pure unit tests, no DB, no I/O | **Must-have** — it's the core logic and easiest to test |
+| API routers | Response shape, status codes, query param filtering | `pytest` + `httpx.AsyncClient` against the real app with a test DB | High |
+| Ingest service | Daily fetch → upsert → scores cache refresh | Mock the weather connector, real DB | Medium |
+| Weather connectors | HTTP parsing, retry logic, fallback behaviour | Mock `httpx` responses (no real API calls) | Medium |
+
+### What we don't test
+
+- Database migrations (Alembic handles correctness; we trust it)
+- FastAPI internals (Pydantic validation, OpenAPI schema generation)
+- Open-Meteo or third-party API behaviour (outside our control)
+- Frontend code (separate test surface, not in scope here)
+
+### Test layout
+
+```
+backend/
+└── tests/
+    ├── conftest.py          ← shared fixtures: test DB engine, async client, zone factory
+    ├── unit/
+    │   └── test_scoring.py  ← pure function tests, no fixtures needed
+    └── integration/
+        ├── test_routes_health.py
+        ├── test_routes_zones.py
+        └── test_ingest.py
+```
+
+Unit tests in `tests/unit/` have zero external dependencies — no DB, no HTTP. They run in milliseconds and are the first line of defence.
+
+Integration tests in `tests/integration/` spin up a real async SQLite or PostgreSQL test database. They are slower but verify the full request/response cycle.
+
+### Running tests
+
+```bash
+cd backend
+
+# All tests
+pytest
+
+# Unit tests only (fast, no DB required)
+pytest tests/unit/
+
+# With coverage
+pytest --cov=app --cov-report=term-missing
+```
+
+### Fixtures (conftest.py)
+
+The shared `conftest.py` provides:
+
+- `db_session` — async SQLAlchemy session backed by an in-memory SQLite DB (for unit/integration tests that need DB access without spinning up PostgreSQL)
+- `async_client` — `httpx.AsyncClient` pointed at the FastAPI app, using the test DB session via dependency override
+- `make_zone` — factory fixture that inserts a minimal `Zone` row
+
+PostGIS-specific queries (geometry, spatial indexes) are not tested locally — they run in CI against a real PostgreSQL + PostGIS container.
+
+### CI
+
+GitHub Actions runs the full test suite on every push to `epic/*` and `main`. The workflow spins up `postgis/postgis:16-3.4` as a service for integration tests. Unit tests run without the DB service.
+
+---
+
 ## Commit message format (Conventional Commits)
 
 ```
