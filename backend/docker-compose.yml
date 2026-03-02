@@ -1,0 +1,30 @@
+# Local development environment — PostgreSQL 16 + PostGIS 3.4
+#
+# Usage:
+#   docker compose up -d        # start in background
+#   docker compose down         # stop (data persists in volume)
+#   docker compose down -v      # stop + wipe data
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: fungus-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fungus
+    ports:
+      - "5432:5432"
+    volumes:
+      - fungus_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fungus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  fungus_pgdata:
+    name: fungus_pgdata
