@@ -98,8 +98,9 @@ Expected response:
 }
 ```
 
-`active_zones: 0` and `last_ingest: null` are expected — the catalog hasn't
-been seeded yet (Phase 2) and no ingest has run.
+`active_zones: 0` and `last_ingest: null` are expected at this point — the
+catalog hasn't been seeded yet and no ingest has run. After step 7 (seed),
+`active_zones` will show 200.
 
 ---
 
@@ -134,7 +135,31 @@ This keeps the service warm continuously at no cost.
 
 ---
 
-## 7. Auto-deploy on push
+## 7. Incremental releases (v4.2+)
+
+For each new release after the initial deploy, the process is:
+
+```bash
+cd backend
+export DATABASE_URL="postgresql+asyncpg://postgres.xxxx:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres"
+
+# 1. Apply new migrations (if any)
+alembic upgrade head
+
+# 2. Re-run the seed (idempotent — uses ON CONFLICT DO UPDATE)
+python -m scripts.seed_catalog --mock-dir ../src/data
+```
+
+Render auto-deploys the new code on merge to `main`. Migrations and seed must
+be run manually from local (Render free tier has no pre-deploy hook support).
+
+**v4.2 specifically:**
+- Migration `002` adds `description TEXT` to `zones`
+- Seed populates 200 zones and 201 species
+
+---
+
+## 8. Auto-deploy on push
 
 Render auto-deploys every time `main` is updated. No manual action needed for
 future releases — merge the epic, push, and Render picks it up.
