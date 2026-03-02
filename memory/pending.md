@@ -54,24 +54,33 @@ Permitir al usuario añadir y guardar puntos propios en el mapa.
 
 ---
 
-## 🚧 En curso — v4.1 Backend meteo (rama `epic/v4-backend`)
+## ✅ Completado — v4.1 pre-merge checklist (2026-03-02)
 
-Scaffold completo commiteado y pusheado. Pendiente antes de mergear a `main`:
+Todo commiteado y pusheado en `epic/v4-backend`. Pendiente: deploy manual (Supabase + Render) siguiendo `docs/deploy.md`, y merge a `main` tras el deploy.
 
-### 1. API design conventions (`docs/conventions.md`)
-Documentar formato estándar de respuestas de éxito y error, estrategia de paginación, códigos de estado HTTP. Afecta a todo lo que se construya a partir de aquí — hacerlo antes de añadir más endpoints.
+### 1. ✅ API design conventions (`docs/conventions.md`)
+Formato de respuestas, errores, paginación cursor-based, HTTP codes, cache headers, datetimes UTC, snake_case.
 
-### 2. Local dev setup
-`docker-compose.yml` con PostgreSQL + PostGIS para desarrollo local. Instrucciones para correr migraciones y hacer un backfill de prueba. Sin esto, retomar el proyecto cada vez requiere reconstruir el entorno de memoria.
+### 2. ✅ Local dev setup
+`backend/docker-compose.yml` (PostgreSQL 16 + PostGIS 3.4), `.env.example` actualizado, `docs/local_dev.md` con guía completa.
 
-### 3. Testing strategy (`docs/conventions.md`)
-Definir qué se testea (scoring unitario, routers con DB de test, mock de Open-Meteo) y qué no. Añadir los primeros tests del algoritmo OI — es la lógica más crítica y la más fácil de testear en aislamiento.
+### 3. ✅ Testing strategy + primeros tests
+`docs/conventions.md` sección Testing. `backend/tests/unit/test_scoring.py` — 41 tests del algoritmo OI, todos en verde.
 
-### 4. Secrets y gestión de entornos
-Documentar qué variables son obligatorias para dev local, cuáles son opcionales (P1 keys), y cómo fluyen a Render (env vars en el dashboard) y a CI/CD (GitHub Actions secrets).
+### 4. ✅ Secrets y gestión de entornos
+`docs/environments.md` — catálogo completo de variables, flujo local/Render/CI.
 
-### 5. Deploy Render + Supabase
-Primer deploy real de la API. Pasos: crear proyecto Supabase, activar PostGIS, configurar DATABASE_URL en Render, conectar auto-deploy desde `main`, correr migraciones, backfill inicial.
+### 5. ✅ CI/CD + guía de deploy
+`.github/workflows/ci.yml` (unit + integration + lint). `docs/deploy.md` — checklist paso a paso para Supabase + Render.
+
+---
+
+## 🚧 Próximo paso — Deploy real + merge a main
+
+1. Ejecutar `docs/deploy.md` (acción manual: Supabase, Render, UptimeRobot)
+2. Verificar health endpoint en producción
+3. Mergear `epic/v4-backend` → `main` con `--no-ff` y taggear `v4.1.0`
+4. Arrancar v4.2: seed script + endpoints que reemplacen mock data del frontend
 
 ---
 
