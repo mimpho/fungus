@@ -142,7 +142,8 @@ This keeps the feature branch linear and avoids a tangle of merge commits in its
 | **Never `push --force` to `epic/*` or `main`** | Same reason; `--force-with-lease` is acceptable only in emergencies on feature branches |
 | **Local rebase is fine** | `git rebase -i` to clean up WIP commits before opening a PR is encouraged |
 | **Tag after every MINOR merge** | `git tag -a v4.1.0` on `main` right after the epic merge |
-| **Delete feature branches after merge** | Keeps the repo tidy; the squash commit on the epic branch is the canonical record |
+| **Delete feature branches after merge** | Use `git branch -D` (force) — squash merges leave the branch tip unreachable, so `-d` always fails |
+| **Always provide the squash merge command** | When a branch is ready to land, always give the exact copy-paste block using `&&` chaining so it's safe to paste all at once (see cheatsheet) |
 
 ### Cheatsheet
 
@@ -155,16 +156,16 @@ git checkout -b feat/v4-1-aemet-connector
 git fetch origin
 git rebase epic/v4-backend
 
-# Finish and land the feature (run from the epic branch)
-git checkout epic/v4-backend
-git merge --squash feat/v4-1-aemet-connector
-git commit -m "feat(connector): add AEMET weather connector (P2)"
-git branch -d feat/v4-1-aemet-connector
+# Finish and land the feature — safe to paste the whole block:
+git checkout epic/v4-backend && \
+git merge --squash feat/v4-1-aemet-connector && \
+git commit -m "feat(connector): add AEMET weather connector (P2)" && \
+git branch -D feat/v4-1-aemet-connector
 
-# Close a phase and release
-git checkout main
-git merge --no-ff epic/v4-backend -m "chore: merge epic/v4-backend — release v4.1.0"
-git tag -a v4.1.0 -m "v4.1.0: backend meteo phase complete"
+# Close a phase and release — safe to paste the whole block:
+git checkout main && \
+git merge --no-ff epic/v4-backend -m "chore: merge epic/v4-backend — release v4.1.0" && \
+git tag -a v4.1.0 -m "v4.1.0: backend meteo phase complete" && \
 git push origin main --tags
 ```
 
