@@ -28,8 +28,8 @@ From your local machine:
 
 ```bash
 cd backend
-python3 -m pip install --upgrade pip
-pip3 install -e ".[dev]"
+python3 -m pip install --upgrade pip setuptools
+python3 -m pip install -e ".[dev]"
 DATABASE_URL="postgresql+asyncpg://postgres.xxxx:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres" \
   python3 -m alembic upgrade head
 ```
