@@ -7,6 +7,25 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [4.2.0] - 2026-03-02 — Catálogo en BD + endpoints de especies
+
+### Añadido
+- `GET /api/v1/species` — listado paginado con filtros por familia, edibilidad, tipo de bosque y mes de fructificación. Cursor-based pagination.
+- `GET /api/v1/species/{id}` — detalle completo: params OI, morfología, fotos, confusiones (extra_data)
+- `backend/app/schemas/species.py` — schemas Pydantic: `SpeciesListItem`, `SpeciesDetail`, `SpeciesOIParams`
+- `backend/migrations/versions/002_zone_description.py` — columna `description TEXT` en tabla `zones`
+- `HEAD /api/v1/health` — probe ligero para UptimeRobot sin query a BD (evita falsos incidentes)
+
+### Cambiado
+- `GET /api/v1/zones` y `GET /api/v1/zones/{id}` — ahora incluyen campo `description`
+- `seed_catalog.py` — reescrito: mapping correcto de campos planos del mock (`temp_optima_min/max`, `precip_14dias_*`, `altitud_min/max`, `dias_hasta_fructificacion`); importaciones Node con `file://` absolutos; flag `--dry-run`
+
+### Deploy
+- Migración `002` ejecutada en Supabase (`alembic upgrade head`)
+- Seed ejecutado con `python -m scripts.seed_catalog --mock-dir ../src/data` (200 zonas, 201 especies)
+
+---
+
 ## [4.1.0] - 2026-03-02 — Backend scaffold + Outbreak Index · **desplegado en producción**
 
 ### Contexto

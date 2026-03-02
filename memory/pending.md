@@ -84,6 +84,17 @@ Formato de respuestas, errores, paginación cursor-based, HTTP codes, cache head
 
 ---
 
+## ✅ Completado — v4.2.0 (2026-03-02)
+
+1. ✅ `HEAD /api/v1/health` — probe sin DB query (UptimeRobot)
+2. ✅ Seed script corregido y probado — 200 zonas, 201 especies en Supabase
+3. ✅ `GET /api/v1/species` y `GET /api/v1/species/{id}` — catálogo servido desde BD
+4. ✅ Zonas con campo `description` (migración 002)
+
+**Pendiente de deploy**: ejecutar `alembic upgrade head` + `python -m scripts.seed_catalog` en producción tras merge del PR.
+
+---
+
 ## 🚧 Próximo — v4.3
 
 - **Integración frontend → API** (prioridad alta): reemplazar imports mock + llamadas Open-Meteo directas por llamadas al backend. Con 200 zonas el frontend genera ~200 requests a Open-Meteo y recibe 429s. Fix temporal aplicado: concurrencia reducida a 2 + delay 300ms entre batches en `weatherService.js`. Fix real: consumir scores desde `/api/v1/zones` (backend ya los cachea en BD).
