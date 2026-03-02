@@ -56,12 +56,15 @@ This project uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH
 
 ## Git branching strategy
 
-| Branch type | Pattern | Version impact | Example |
-|---|---|---|---|
-| Epic | `epic/<name>` | Spans a full MINOR (vX.Y) | `epic/v4-backend` covers v4.1, v4.2, v4.3 |
-| Feature | `feat/<name>` | One PATCH bump (vX.Y.Z) | `feat/aemet-connector` → v4.1.1 |
-| Fix | `fix/<name>` | One PATCH bump | `fix/frost-hours-estimate` → v4.1.2 |
-| Chore | `chore/<name>` | One PATCH bump | `chore/update-httpx` → v4.1.3 |
+| Branch type | Pattern | Target | Version impact | Example |
+|---|---|---|---|---|
+| Epic | `epic/<name>` | `main` | Spans a full MINOR (vX.Y) | `epic/v4-backend` covers v4.1, v4.2, v4.3 |
+| Feature | `feat/<name>` | epic branch | One PATCH bump | `feat/aemet-connector` → v4.1.1 |
+| Fix | `fix/<name>` | epic branch | One PATCH bump | `fix/frost-hours-estimate` → v4.1.2 |
+| Chore — code | `chore/<name>` | epic branch | One PATCH bump | `chore/update-httpx` → v4.1.3 |
+| Chore — project | `chore/<name>` | **`main` directly** | One PATCH bump | `chore/project-conventions` |
+
+**Project-wide chores** (docs, `CLAUDE.md`, `docs/conventions.md`, workflow) target `main` directly — not the epic branch. They are independent of any feature work and should be available in `main` without waiting for a phase to complete.
 
 **Lifecycle:**
 1. `feat/` and `fix/` branches are cut from the current epic branch and merged back into it (not `main`). Each merged PR corresponds to one PATCH release.
@@ -76,8 +79,11 @@ This project uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH
 ### The three integration directions
 
 ```
-feat/* ──squash──▶ epic/v4-backend ──merge --no-ff──▶ main
-fix/*  ──squash──▶
+feat/*          ──squash──▶ epic/v4-backend ──merge --no-ff──▶ main
+fix/*           ──squash──▶
+chore/* (code)  ──squash──▶
+
+chore/* (docs/project-wide) ──squash──▶ main (directly)
 ```
 
 #### 1. `feat/` / `fix/` / `chore/` → epic branch: **squash merge**
