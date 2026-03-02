@@ -24,14 +24,15 @@ automatic on every push to `main`.
 
 ## 2. Run migrations against Supabase
 
-From your local machine:
+From your local machine (requires Python 3.12 — `brew install python@3.12` if needed):
 
 ```bash
 cd backend
-python3 -m pip install --upgrade pip setuptools
-python3 -m pip install -e ".[dev]"
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 DATABASE_URL="postgresql+asyncpg://postgres.xxxx:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres" \
-  python3 -m alembic upgrade head
+  alembic upgrade head
 ```
 
 Verify in Supabase → Table Editor that the tables exist: `zones`, `species`,
