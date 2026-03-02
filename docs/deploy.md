@@ -18,6 +18,7 @@ automatic on every push to `main`.
    - The URL looks like: `postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`
    - Replace `[YOUR-PASSWORD]` with your project password
    - Replace `postgresql://` with `postgresql+asyncpg://`
+   - **Copy this URL — you will need it in step 2 (migrations) and step 3 (Render env vars)**
 
 ---
 
