@@ -31,10 +31,10 @@ class Zone(Base):
     )
 
     # Relationships
-    climate_history: Mapped[list["ClimateHistory"]] = relationship(  # type: ignore[name-defined]
+    climate_history: Mapped[list["ClimateHistory"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
         "ClimateHistory", back_populates="zone", cascade="all, delete-orphan"
     )
-    score_cache: Mapped["ScoresCache | None"] = relationship(  # type: ignore[name-defined]
+    score_cache: Mapped["ScoresCache | None"] = relationship(  # type: ignore[name-defined]  # noqa: F821
         "ScoresCache", back_populates="zone", uselist=False
     )
 

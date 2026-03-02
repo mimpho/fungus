@@ -10,19 +10,19 @@ Entry points:
 """
 import asyncio
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.connectors.base import DailyWeatherData, ProviderUnavailable
 from app.connectors.open_meteo import OpenMeteoConnector
 from app.models.climate_history import ClimateHistory
 from app.models.scores_cache import ScoresCache
 from app.models.zone import Zone
 from app.services.scoring import OIResult, compute_oi
-from app.config import settings
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ async def run_daily_ingest(db: AsyncSession) -> dict:
         "zones_processed": len(zones),
         "rows_upserted": results["upserted"],
         "errors": results["errors"],
-        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": datetime.now(UTC).isoformat(),
     }
     log.info("Ingest complete: %s", summary)
     return summary
@@ -166,7 +166,7 @@ async def _upsert_climate_row(db: AsyncSession, row: DailyWeatherData) -> None:
 async def _refresh_scores_cache(db: AsyncSession, zones: list[Zone]) -> None:
     """Recompute and persist the Outbreak Index for all zones."""
     today = date.today()
-    valid_until = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    valid_until = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     valid_until = valid_until.replace(hour=5) + timedelta(days=1)  # next day at 05:00 UTC
 
     for zone in zones:
@@ -189,7 +189,7 @@ async def _refresh_scores_cache(db: AsyncSession, zones: list[Zone]) -> None:
                         "pa21_mm": oi.pa21_mm,
                         "days_since_rain": oi.days_since_rain,
                     },
-                    calculated_at=datetime.now(timezone.utc),
+                    calculated_at=datetime.now(UTC),
                     valid_until=valid_until,
                 )
                 .on_conflict_do_update(
@@ -205,7 +205,7 @@ async def _refresh_scores_cache(db: AsyncSession, zones: list[Zone]) -> None:
                             "pa21_mm": oi.pa21_mm,
                             "days_since_rain": oi.days_since_rain,
                         },
-                        "calculated_at": datetime.now(timezone.utc),
+                        "calculated_at": datetime.now(UTC),
                         "valid_until": valid_until,
                     },
                 )

@@ -3,7 +3,7 @@ ScoresCache model — cached Outbreak Index per zone.
 Recomputed after each daily ingestion run.
 Avoids recalculating the OI on every frontend request.
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
@@ -28,11 +28,11 @@ class ScoresCache(Base):
     )  # calculated_at + 24h
 
     # Relationship
-    zone: Mapped["Zone"] = relationship("Zone", back_populates="score_cache")  # type: ignore[name-defined]
+    zone: Mapped["Zone"] = relationship("Zone", back_populates="score_cache")  # type: ignore[name-defined]  # noqa: F821
 
     @property
     def is_valid(self) -> bool:
-        return datetime.now(timezone.utc) < self.valid_until
+        return datetime.now(UTC) < self.valid_until
 
     def __repr__(self) -> str:
         return f"<ScoresCache zone={self.zone_id!r} score={self.score_oi} valid={self.is_valid}>"

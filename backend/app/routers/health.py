@@ -1,6 +1,6 @@
 """GET /api/v1/health — system status endpoint."""
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from importlib.metadata import version as pkg_version
 
 from fastapi import APIRouter, Depends

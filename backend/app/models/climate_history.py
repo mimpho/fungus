@@ -61,7 +61,7 @@ class ClimateHistory(Base):
     )
 
     # Relationship
-    zone: Mapped["Zone"] = relationship("Zone", back_populates="climate_history")  # type: ignore[name-defined]
+    zone: Mapped["Zone"] = relationship("Zone", back_populates="climate_history")  # type: ignore[name-defined]  # noqa: F821
 
     def __repr__(self) -> str:
         return f"<ClimateHistory zone={self.zone_id!r} date={self.date!r} source={self.source!r}>"

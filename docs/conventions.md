@@ -159,6 +159,9 @@ git rebase epic/v4-backend
 # Step 1 — checkout the branch for manual QA:
 git checkout feat/v4-1-aemet-connector
 
+# Step 1b — lint check before pushing (run from backend/):
+python3 -m ruff check app/
+
 # Step 2 — after QA passes, squash and delete (safe to paste the whole block):
 git checkout epic/v4-backend && \
 git merge --squash feat/v4-1-aemet-connector && \

@@ -11,12 +11,9 @@ Shutdown sequence:
   2. Dispose the DB connection pool
 """
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from importlib.metadata import version as pkg_version
-from typing import AsyncGenerator
-
-# Single source of truth for version — reads from pyproject.toml at runtime
-APP_VERSION = pkg_version("fungus-api")
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
@@ -26,6 +23,9 @@ from app.config import settings
 from app.database import AsyncSessionLocal, dispose_engine
 from app.routers import health, zones
 from app.services.ingest import run_daily_ingest
+
+# Single source of truth for version — reads from pyproject.toml at runtime
+APP_VERSION = pkg_version("fungus-api")
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),

@@ -1,6 +1,5 @@
 """Zone routes: list, detail, and map scores."""
 import logging
-from datetime import timezone, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -8,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
-from app.models.zone import Zone
 from app.models.scores_cache import ScoresCache
+from app.models.zone import Zone
 from app.schemas.zone import MapPoint, ScoreDetail, ZoneDetail, ZoneListItem, ZoneScore
 from app.services.scoring import score_label
 

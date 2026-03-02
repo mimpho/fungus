@@ -3,6 +3,7 @@ Configuración centralizada via pydantic-settings.
 Todas las variables de entorno se leen aquí — nunca os.environ directamente.
 """
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

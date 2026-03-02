@@ -14,7 +14,6 @@ Formula:
 from dataclasses import dataclass
 from datetime import date
 
-
 # ── Seasonal factor (inherited from frontend, calibrated by observations) ─────
 
 SEASONAL_FACTOR: dict[int, int] = {

@@ -7,10 +7,10 @@ but runs server-side, aggregates hourly data to daily, and supports full date ra
 API docs: https://open-meteo.com/en/docs
 """
 import logging
-from datetime import date, timedelta, datetime, timezone
+from datetime import date, timedelta
 
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.connectors.base import DailyWeatherData, ProviderUnavailable, WeatherConnector
 
@@ -19,7 +19,10 @@ log = logging.getLogger(__name__)
 BASE_URL = "https://api.open-meteo.com/v1/forecast"
 
 # Open-Meteo variables we need
-DAILY_VARS = "temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,windspeed_10m_max"
+DAILY_VARS = (
+    "temperature_2m_max,temperature_2m_min,temperature_2m_mean,"
+    "precipitation_sum,windspeed_10m_max"
+)
 HOURLY_VARS = "soil_temperature_0cm,relativehumidity_2m"
 
 

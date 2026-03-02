@@ -1,5 +1,6 @@
 """Pydantic schema for the /health endpoint."""
 from datetime import datetime
+
 from pydantic import BaseModel
 
 
