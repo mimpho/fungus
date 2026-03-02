@@ -1,10 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
-import { mockZones } from '../data/zones'
 import { slugify } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
-import { useAllZoneConditions } from '../hooks/useWeatherConditions'
+import { useZones } from '../hooks/useZones'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
@@ -17,16 +16,18 @@ export default function Zones() {
   const { t, followedZones, toggleFollow, setSelectedZone } = useApp()
   const { id: zoneSlug } = useParams()
 
+  const { zones, conditionsMap, loading: weatherLoading } = useZones()
+
   // Sincronizar URL param → modal de zona
   useEffect(() => {
     if (zoneSlug) {
-      const zone = mockZones.find(z => slugify(z.name) === zoneSlug)
+      const zone = zones.find(z => slugify(z.name) === zoneSlug)
       setSelectedZone(zone || null)
     } else {
       setSelectedZone(null)
     }
     return () => setSelectedZone(null)
-  }, [zoneSlug])
+  }, [zoneSlug, zones])
 
   const [tab, setTab]               = useState('mapa')
   const [onlyFollowed, setOnlyFollowed] = useState(false)
@@ -41,10 +42,8 @@ export default function Zones() {
 
   const isFollowed = id => followedZones.some(z => z.id === id)
 
-  const { conditionsMap, loading: weatherLoading, progress: weatherProgress } = useAllZoneConditions(mockZones)
-
-  const forestTypes = useMemo(() => [...new Set(mockZones.map(z => z.forestType))].sort(), [])
-  const comunidades = useMemo(() => [...new Set(mockZones.map(z => z.comunidadAutonoma).filter(Boolean))].sort(), [])
+  const forestTypes = useMemo(() => [...new Set(zones.map(z => z.forestType))].sort(), [zones])
+  const comunidades = useMemo(() => [...new Set(zones.map(z => z.comunidadAutonoma).filter(Boolean))].sort(), [zones])
 
   // Calcula la altura disponible para el mapa (viewport − cabecera layout − contenido superior)
   useEffect(() => {
@@ -69,7 +68,7 @@ export default function Zones() {
   }, [tab, pillOpen])
 
   const filteredZones = useMemo(() => {
-    let r = onlyFollowed ? mockZones.filter(z => isFollowed(z.id)) : [...mockZones]
+    let r = onlyFollowed ? zones.filter(z => isFollowed(z.id)) : [...zones]
     if (onlyRained) r = r.filter(z => parseFloat(conditionsMap[z.id]?.rainfall14d ?? 0) >= RAIN_THRESHOLD)
     if (forestFilter) r = r.filter(z => z.forestType === forestFilter)
     if (ccaaFilter) r = r.filter(z => z.comunidadAutonoma === ccaaFilter)
@@ -95,9 +94,7 @@ export default function Zones() {
             <p className="text-muted text-sm mt-1">
               {followedZones.length} {t.followedZones.toLowerCase()}
               {weatherLoading && (
-                <span className="ml-2 text-bar text-xs">
-                  · cargando datos meteorológicos {weatherProgress.done}/{weatherProgress.total}…
-                </span>
+                <span className="ml-2 text-bar text-xs">· cargando datos…</span>
               )}
             </p>
           </div>

@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
-import { mockZones } from '../data/zones'
 import { mockSpecies } from '../data/species'
 import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor, slugify } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { LeafletMap } from '../components/map/LeafletMap'
 import { mockArticles } from '../data/articles'
-import { useAllZoneConditions } from '../hooks/useWeatherConditions'
+import { useZones } from '../hooks/useZones'
 import '../articles/Micorrizas'
 import '../articles/Esporas'
 import '../articles/Venenos'
@@ -59,11 +58,25 @@ export default function Dashboard() {
     navigate(`/micologia/${slugify(article.title)}`)
   }
 
-  const { conditionsMap, loading: weatherLoading } = useAllZoneConditions(mockZones)
+  const { zones, conditionsMap, loading: weatherLoading } = useZones()
 
   const topZones = useMemo(() =>
-    [...mockZones].sort((a, b) => (conditionsMap[b.id]?.overallScore ?? 0) - (conditionsMap[a.id]?.overallScore ?? 0)).slice(0, 3),
-  [conditionsMap])
+    [...zones].sort((a, b) => (conditionsMap[b.id]?.overallScore ?? 0) - (conditionsMap[a.id]?.overallScore ?? 0)).slice(0, 3),
+  [zones, conditionsMap])
+
+  // Stats del panel Condiciones Generales — null si los datos del API no incluyen ese campo
+  const topStats = useMemo(() => {
+    if (!topZones.length) return { tempMedia: null, humMedia: null, lluviaMedia: null }
+    const avg = (field) => {
+      const vals = topZones.map(z => conditionsMap[z.id]?.[field]).filter(v => v != null)
+      return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null
+    }
+    return {
+      tempMedia:   avg('temperature'),
+      humMedia:    avg('humidity'),
+      lluviaMedia: avg('rainfall14d'),
+    }
+  }, [topZones, conditionsMap])
 
   const inSeasonSpecies = useMemo(() =>
     mockSpecies.filter(e => e.fruitingMonths.includes(currentMonth)).slice(0, 4),
@@ -97,9 +110,9 @@ export default function Dashboard() {
           </div>
           <div className="space-y-2 text-xs">
             {[
-              ['Temperatura media', weatherLoading ? '–' : `${Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.temperature ?? 0), 0) / Math.max(topZones.length, 1))}°C`],
-              ['Humedad media',     weatherLoading ? '–' : `${Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.humidity ?? 0), 0) / Math.max(topZones.length, 1))}%`],
-              ['Lluvia últimos 14d',weatherLoading ? '–' : `${Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.rainfall14d ?? 0), 0) / Math.max(topZones.length, 1))}mm`],
+              ['Temperatura media', weatherLoading ? '–' : (topStats.tempMedia   != null ? `${topStats.tempMedia}°C`   : '—')],
+              ['Humedad media',     weatherLoading ? '–' : (topStats.humMedia    != null ? `${topStats.humMedia}%`     : '—')],
+              ['Lluvia últimos 14d',weatherLoading ? '–' : (topStats.lluviaMedia != null ? `${topStats.lluviaMedia}mm` : '—')],
             ].map(([label, val]) => (
               <div key={label} className="flex justify-between items-center">
                 <span className="text-cream/60">{label}</span>
@@ -124,8 +137,15 @@ export default function Dashboard() {
           <div className="bg-emerald-500/10 rounded-lg p-3">
             <div className="text-xs text-emerald-300 mb-1">¿Por qué es la mejor?</div>
             <div className="text-cream/80 text-xs leading-relaxed">
-              {conditionsMap[topZones[0]?.id]?.rainfall14d > 30 ? `Lluvia abundante (${conditionsMap[topZones[0]?.id]?.rainfall14d}mm), ` : 'Lluvia moderada, '}
-              temperatura óptima ({conditionsMap[topZones[0]?.id]?.temperature}°C), humedad alta ({conditionsMap[topZones[0]?.id]?.humidity}%).
+              {(() => {
+                const c = conditionsMap[topZones[0]?.id]
+                if (!c) return 'Datos cargando…'
+                const lluvia = c.rainfall14d != null ? (c.rainfall14d > 30 ? `Lluvia abundante (${c.rainfall14d}mm)` : `Lluvia moderada (${c.rainfall14d}mm)`) : null
+                const temp   = c.temperature != null ? `temperatura óptima (${c.temperature}°C)` : null
+                const hum    = c.humidity    != null ? `humedad alta (${c.humidity}%)` : null
+                const parts  = [lluvia, temp, hum].filter(Boolean)
+                return parts.length ? parts.join(', ') + '.' : `Score OI: ${c.overallScore}/100.`
+              })()}
             </div>
           </div>
         </div>
@@ -221,7 +241,7 @@ export default function Dashboard() {
           </div>
           <div className="rounded-2xl overflow-hidden">
             <LeafletMap
-              zonas={mockZones}
+              zonas={zones}
               onZoneClick={setSelectedZone}
               height="420px"
               mode={mapMode}
