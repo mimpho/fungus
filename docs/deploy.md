@@ -11,7 +11,7 @@ automatic on every push to `main`.
 ## 1. Supabase — create the database
 
 1. Go to [supabase.com](https://supabase.com) → New project
-2. Name: `fungus` — Region: `West EU (Ireland)` — Password: generate a strong one and save it
+2. Name: `fungus` — Region: `EU Central (Frankfurt)` — Password: generate a strong one and save it
 3. Wait for the project to provision (~2 min)
 4. Enable PostGIS: **Database → Extensions → search "postgis" → Enable**
 5. Get the connection string: **Settings → Database → Connection string → URI**
