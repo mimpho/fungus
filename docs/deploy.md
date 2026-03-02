@@ -54,7 +54,7 @@ Verify in Supabase → Table Editor that the tables exist: `zones`, `species`,
 | **Branch** | `main` |
 | **Root directory** | `backend` |
 | **Runtime** | Python 3 |
-| **Build command** | `pip install -e .` |
+| **Build command** | `pip install ".[dev]"` |
 | **Start command** | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
 | **Instance type** | Free |
 
