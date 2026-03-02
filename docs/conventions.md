@@ -143,7 +143,7 @@ This keeps the feature branch linear and avoids a tangle of merge commits in its
 | **Local rebase is fine** | `git rebase -i` to clean up WIP commits before opening a PR is encouraged |
 | **Tag after every MINOR merge** | `git tag -a v4.1.0` on `main` right after the epic merge |
 | **Delete feature branches after merge** | Use `git branch -D` (force) — squash merges leave the branch tip unreachable, so `-d` always fails |
-| **Always provide the squash merge command** | When a branch is ready to land, always give the exact copy-paste block using `&&` chaining so it's safe to paste all at once (see cheatsheet) |
+| **QA before squash** | When a branch is ready, provide `git checkout <branch>` first for manual QA. Only provide the squash+delete block once QA is confirmed — never bundle both steps together |
 
 ### Cheatsheet
 
@@ -156,7 +156,10 @@ git checkout -b feat/v4-1-aemet-connector
 git fetch origin
 git rebase epic/v4-backend
 
-# Finish and land the feature — safe to paste the whole block:
+# Step 1 — checkout the branch for manual QA:
+git checkout feat/v4-1-aemet-connector
+
+# Step 2 — after QA passes, squash and delete (safe to paste the whole block):
 git checkout epic/v4-backend && \
 git merge --squash feat/v4-1-aemet-connector && \
 git commit -m "feat(connector): add AEMET weather connector (P2)" && \
