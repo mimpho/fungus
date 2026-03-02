@@ -14,10 +14,10 @@ automatic on every push to `main`.
 2. Name: `fungus` — Region: `EU Central (Frankfurt)` — Password: generate a strong one and save it
 3. Wait for the project to provision (~2 min)
 4. Enable PostGIS: **Database → Extensions → search "postgis" → Enable**
-5. Get the connection string: **Settings → Database → Connection string → URI**
-   - Select **Transaction mode** (port 5432, compatible with the async pool)
-   - Copy the string — it looks like: `postgresql://postgres:<password>@db.xxxx.supabase.co:5432/postgres`
-   - Convert the scheme to async: replace `postgresql://` with `postgresql+asyncpg://`
+5. Get the connection string: **Connect** (top of dashboard) → **Connection String** tab → Method: **Session Pooler**
+   - The URL looks like: `postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`
+   - Replace `[YOUR-PASSWORD]` with your project password
+   - Replace `postgresql://` with `postgresql+asyncpg://`
 
 ---
 
@@ -27,7 +27,7 @@ From your local machine with the backend deps installed:
 
 ```bash
 cd backend
-DATABASE_URL="postgresql+asyncpg://postgres:<password>@db.xxxx.supabase.co:5432/postgres" \
+DATABASE_URL="postgresql+asyncpg://postgres.xxxx:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres" \
   alembic upgrade head
 ```
 
