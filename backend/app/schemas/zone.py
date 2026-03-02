@@ -31,6 +31,7 @@ class ZoneBase(BaseModel):
     lon: float
     elevation_m: int | None
     forest_type: str | None
+    description: str | None = None
 
 
 class ZoneListItem(ZoneBase):
