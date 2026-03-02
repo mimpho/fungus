@@ -464,7 +464,9 @@ Cuando una conversación se extiende mucho, la calidad del contexto se degrada. 
 
 ### Arrancar una sesión
 
-No hace falta re-explicar el proyecto. Claude lee `CLAUDE.md` al inicio. Con indicar el bloque de trabajo ("continuamos con v4.1", "empezamos con las API conventions") es suficiente. Si hay contexto extra relevante que no está en `CLAUDE.md` (una decisión tomada fuera de Cowork, un cambio manual en el código), mencionarlo explícitamente al inicio.
+No hace falta nombrar la sesión ni re-explicar el proyecto. Claude lee `CLAUDE.md` al inicio y consulta `memory/pending.md` para saber qué toca. Con una indicación mínima ("continuamos con v4.1") es suficiente para orientarse.
+
+Lo único que conviene mencionar explícitamente es contexto que ocurrió **fuera** de Cowork desde la última sesión: una decisión tomada en otra conversación, un cambio manual en el código, o que llegó una API key. Eso no se puede inferir de los ficheros.
 
 ### Cerrar una sesión
 
