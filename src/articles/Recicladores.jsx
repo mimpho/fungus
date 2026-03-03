@@ -12,7 +12,7 @@ const FOTOS = [
 ]
 
 // ─── Figura helper ────────────────────────────────────────────────────────────
-function Fig({ fotos, idx, height = 290, openLightbox }) {
+function Fig({ fotos, idx, height = 'auto', openLightbox }) {
   return (
     <figure className="m-0 my-4 relative cursor-pointer group" style={{ height }}
       onClick={() => openLightbox(idx)}>
@@ -54,7 +54,7 @@ function RecicladoresContent() {
           Hace 300 millones de años, la Tierra acumuló vastos depósitos de madera que no se pudría porque ningún organismo podía romper la <strong>lignina</strong>. Este estancamiento terminó con la aparición de los hongos de podredumbre blanca, los primeros "recicladores" eficaces de la historia biológica.
         </ArticleP>
         
-        <Fig fotos={FOTOS} idx={0} height={300} openLightbox={openLightbox} />
+        <Fig fotos={FOTOS} idx={0} openLightbox={openLightbox} />
 
         <ArticleP>
           Al evolucionar enzimas capaces de desmantelar esta armadura química, los hongos liberaron el carbono atrapado, permitiendo que la atmósfera y la vida recuperaran su equilibrio dinámico.
@@ -79,7 +79,7 @@ function RecicladoresContent() {
           ))}
         </ul>
 
-        <Fig fotos={FOTOS} idx={1} height={270} openLightbox={openLightbox} />
+        <Fig fotos={FOTOS} idx={1} openLightbox={openLightbox} />
 
         <ArticleCallout emoji="🧪" color="var(--color-coffee)">
           <strong>Química pura:</strong> La degradación de la madera es un proceso oxidativo tan potente que hoy se estudia para la limpieza de suelos contaminados con hidrocarburos y plásticos (micorremediación).
@@ -104,7 +104,7 @@ function RecicladoresContent() {
           ))}
         </ul>
 
-        <Fig fotos={FOTOS} idx={2} height={290} openLightbox={openLightbox} />
+        <Fig fotos={FOTOS} idx={2} openLightbox={openLightbox} />
       </ArticleSection>
 
       {/* Sabías que */}

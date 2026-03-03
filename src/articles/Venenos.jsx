@@ -11,7 +11,7 @@ const FOTOS = [
 ]
 
 // ─── Figura helper (igual patrón que Esporas) ─────────────────────────────────
-function Fig({ fotos, idx, height = 290, openLightbox }) {
+function Fig({ fotos, idx, height = 'auto', openLightbox }) {
   return (
     <figure className="m-0 my-4 relative cursor-pointer group" style={{ height }}
       onClick={() => openLightbox(idx)}>
@@ -77,13 +77,13 @@ function VenenosContent() {
           Las amatoxinas son bicíclicos octapéptidos con una estabilidad extraordinaria: resisten el calor, la congelación, el secado y los jugos gástricos. Se absorben íntegramente en el intestino delgado, circulan hasta el hígado y allí ejercen su acción bloqueando la ARN-polimerasa II, la enzima responsable de transcribir el ADN en ARNm. Sin síntesis de proteínas, la célula hepática muere.
         </ArticleP>
 
-        <Fig fotos={FOTOS} idx={0} height={300} openLightbox={openLightbox} />
+        <Fig fotos={FOTOS} idx={0} openLightbox={openLightbox} />
 
         <ArticleP>
           La intoxicación evoluciona en tres fases. La primera (6–24 h) es un período de latencia silencioso —la toxina actúa sin síntomas—. La segunda (24–72 h) produce gastroenteritis violenta con diarrea sanguinolenta y vómitos. La tercera fase, la más temida, es la citólisis hepática que puede conducir al fallo multiorgánico entre el día 4 y el día 8.
         </ArticleP>
 
-        <Fig fotos={FOTOS} idx={1} height={270} openLightbox={openLightbox} />
+        <Fig fotos={FOTOS} idx={1} openLightbox={openLightbox} />
 
         <ArticleCallout emoji="🏥" color="var(--color-coffee)">
           <strong>Tratamiento:</strong> No existe antídoto específico. El protocolo incluye silibinina intravenosa (extracto de cardo mariano), N-acetilcisteína y, en casos graves, trasplante hepático. La supervivencia depende casi exclusivamente de la rapidez del diagnóstico.
@@ -116,7 +116,7 @@ function VenenosContent() {
           La mayoría de intoxicaciones graves no ocurren por ignorancia total sino por una confusión concreta entre dos especies que se parecen. Los errores más frecuentes en España:
         </ArticleP>
 
-        <Fig fotos={FOTOS} idx={2} height={290} openLightbox={openLightbox} />
+        <Fig fotos={FOTOS} idx={2} openLightbox={openLightbox} />
 
         <ul className="space-y-2 my-4 pl-1">
           {[
