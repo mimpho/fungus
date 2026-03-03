@@ -55,17 +55,17 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
               <div className="flex gap-1.5 mt-1.5 text-cream/35 text-xs flex-wrap">
                 <span className="flex items-center gap-1">
                   <img src="/assets/images/icons/temperature.png" alt="temp" height="16" width="16" />
-                  {cond.temperature}°C
+                  {cond.temperature != null ? `${cond.temperature}°C` : '—'}
                 </span>
                 <span>·</span>
                 <span className="flex items-center gap-1">
                   <img src="/assets/images/icons/accumulated-precipitation.png" alt="lluvia" height="16" width="16" />
-                  {cond.rainfall14d}mm
+                  {cond.rainfall14d != null ? `${cond.rainfall14d}mm` : '—'}
                 </span>
                 <span>·</span>
                 <span className="flex items-center gap-1">
                   <img src="/assets/images/icons/humidity.png" alt="humedad" height="16" width="16" />
-                  {cond.humidity}%
+                  {cond.humidity != null ? `${cond.humidity}%` : '—'}
                 </span>
               </div>
             </>

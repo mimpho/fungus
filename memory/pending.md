@@ -32,7 +32,7 @@
 
 ---
 
-## 🟡 Mejoras pendientes (v3.x)
+## 🟡 Backlog — v3.x (sin prioridad activa)
 
 ### Revisión general del catálogo de especies
 - Verificar que `forestTypes` y `fruitingMonths` sean correctos para todas las especies
@@ -95,28 +95,16 @@ Formato de respuestas, errores, paginación cursor-based, HTTP codes, cache head
 
 ---
 
-## 🚧 Próximo — v4.3
+## 🚧 En curso — v4.3 (rama: feat/v4.3-frontend-api)
 
-- **Integración frontend → API** (prioridad alta): reemplazar imports mock + llamadas Open-Meteo directas por llamadas al backend. Con 200 zonas el frontend genera ~200 requests a Open-Meteo y recibe 429s. Fix temporal aplicado: concurrencia reducida a 2 + delay 300ms entre batches en `weatherService.js`. Fix real: consumir scores desde `/api/v1/zones` (backend ya los cachea en BD).
-- Auth + social: JWT, favoritos reales, avistamientos comunitarios
+### ✅ Integración frontend → API (zonas + especies)
+Reemplazados imports mock + llamadas Open-Meteo directas por llamadas al backend:
+- `useZones` hook: consume `/api/v1/zones` (scores cacheados en BD, sin 429s)
+- `useSpecies` hook: consume `/api/v1/species` con paginación cursor
+- `SpeciesModal`: lazy-load de detalle completo (cap/stem/flesh/photos) cuando `_partial=true`
+- Fallback a mock data si el backend no responde
 
----
+**Pendiente antes del merge:** CORS en Render — añadir `https://fungus-ashen.vercel.app` a `CORS_ORIGINS` env var.
 
-## 🟡 Backlog — v3.x (sin prioridad activa)
-
-### Revisión general del catálogo de especies
-- Verificar que `forestTypes` y `fruitingMonths` sean correctos para todas las especies
-- Añadir más especies si faltan representativas de cada tipo de bosque
-- Comprobar si hay especies con `forestType: 'mixto'` que deberían cubrirse en las zonas actuales (las zonas solo tienen: pinar, hayedo, robledal, encinar)
-
-### Zonas sin especies en temporada
-Actualmente si no hay especies que coincidan con una zona/mes, el score meteorológico queda sin ajustar. Considerar si esto es correcto o si debería haber una penalización por "zona sin interés micológico este mes".
-
-### `speciesScore` en la UI de ZoneModal
-El campo `speciesScore` (SQS) se calcula y se añade al objeto conditions, pero no se muestra en ningún sitio. Podría ser útil mostrarlo como indicador adicional en la ficha de zona.
-
-### Meteocat API para zonas catalanas
-Requiere API key. Híbrido: Meteocat para zonas catalanas, Open-Meteo para el resto.
-
-### Zonas personalizadas
-Permitir al usuario añadir y guardar puntos propios en el mapa.
+### ⏳ Auth + social (siguiente bloque)
+JWT, favoritos reales en BD, avistamientos comunitarios.
