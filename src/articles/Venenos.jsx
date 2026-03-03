@@ -158,4 +158,4 @@ function VenenosContent() {
 }
 
 // ─── Registro ─────────────────────────────────────────────────────────────────
-ARTICLE_REGISTRY['toxinas'] = VenenosContent
+ARTICLE_REGISTRY['venenos'] = VenenosContent

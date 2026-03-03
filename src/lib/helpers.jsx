@@ -567,3 +567,29 @@ export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
     </div>
   )
 }
+
+/**
+ * Convierte una variable CSS Hexadecimal a RGBA
+ * @param {string} variable - El nombre de la variable (ej: '--color-coffee')
+ * @param {number} alpha - Opacidad de 0 a 1
+ */
+export const getRGBAFromAsset = (variable, alpha) => {
+  if (typeof window === 'undefined') return ''; // Prevención para SSR
+
+  // 1. Obtener el valor de la variable del root (ej: "#6f4e37")
+  const rootStyle = getComputedStyle(document.documentElement);
+  let hex = rootStyle.getPropertyValue(variable).trim();
+
+  // Si la variable no existe o está vacía, devolvemos un fallback
+  if (!hex) return `rgba(0,0,0,${alpha})`;
+
+  // Limpiar el '#' si existe
+  hex = hex.replace('#', '');
+
+  // 2. Parsear a RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};

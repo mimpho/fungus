@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { mockArticles } from '../../data/articles'
-import { IC } from '../../lib/helpers'
+import { IC, getRGBAFromAsset } from '../../lib/helpers'
 import { MODAL } from '../../lib/constants'
 import { useApp } from '../../contexts/AppContext'
 
@@ -32,7 +32,7 @@ export function ArticleP({ children }) {
 // color debe ser hex — se usa para construir color+'18' y color+'35' como alpha
 export function ArticleCallout({ emoji, children, color = '#8b6f47' }) {
   return (
-    <div className="rounded-xl p-4 mb-6" style={{ background: color + '18', border: `1px solid ${color}35` }}>
+    <div className="rounded-xl p-4 mb-6" style={{ background: getRGBAFromAsset(color, 0.09)}}>
       <p className="leading-relaxed text-muted" style={{ fontSize: '14px' }}>
         <span className="mr-2 text-base">{emoji}</span>{children}
       </p>
@@ -103,7 +103,6 @@ export function ArticleModal({ slug, onClose }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-start justify-center modal-outer"
       style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)', overflowY: 'auto' }}
       onClick={onClose}>
-
       <div ref={modalRef}
         onScroll={() => setScrolled((modalRef.current?.scrollTop ?? 0) > (heroRef.current?.offsetHeight ?? 224) * 0.85)}
         className="sm:my-8 rounded-2xl max-w-4xl w-full anim-scale modal-inner"

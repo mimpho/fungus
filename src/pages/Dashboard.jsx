@@ -11,6 +11,7 @@ import { useAllZoneConditions } from '../hooks/useWeatherConditions'
 import '../articles/Micorrizas'
 import '../articles/Esporas'
 import '../articles/Venenos'
+import '../articles/Recicladores'
 
 function ArticleCard({ article, onSelect }) {
   const isPublished = article.status === 'published'
