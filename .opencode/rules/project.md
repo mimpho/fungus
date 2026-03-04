@@ -30,3 +30,15 @@
 4. **Frontend path**: Always work in `frontend/`, not `standalone/`
 
 5. **API endpoints**: Always update `docs/backend_architecture.md` when changing endpoints
+
+6. **Review tracking files**: When working on something that touches code in `memory/pending.md`, `memory/decisions.md`, or `CHANGELOG.md`, review and update them if needed
+
+## Tracking Files
+
+| File | Purpose |
+|---|---|
+| `memory/pending.md` | Task queue and backlog |
+| `memory/decisions.md` | Architectural decisions |
+| `memory/scoring.md` | Scoring algorithm details |
+| `memory/gotchas.md` | Known issues and workarounds |
+| `CHANGELOG.md` | Version history |
