@@ -386,6 +386,19 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 12. **Patrón ESC + Lightbox** — modales con lightbox deben desregistrar su listener de ESC mientras el lightbox está abierto. El efecto debe depender de `[lightbox]`. Ver `memory/decisions.md`.
 13. **`resolveUrl()`** — usar siempre en `<img src>` de assets en modales y artículos. Las rutas relativas se rompen en URLs anidadas como `/especies/boletus-edulis`.
 14. **`GallerySection`** en `SpeciesModal` — componente propio con `useState(errored)`. Se oculta cuando todas las imágenes han fallado (404). No usar `SpeciesImg` en galería, usar `<img>` plano con `onError`.
+15. **Revisar archivos de tracking** — al trabajar en algo relacionado con `memory/pending.md`, `memory/decisions.md` o `CHANGELOG.md`, revisarlos y actualizarlos si es necesario.
+
+---
+
+## Archivos de Tracking
+
+| Archivo | Propósito |
+|---|---|
+| `memory/pending.md` | Cola de tareas y backlog |
+| `memory/decisions.md` | Decisiones arquitectónicas |
+| `memory/scoring.md` | Detalles del algoritmo de scoring |
+| `memory/gotchas.md` | Errores conocidos y workarounds |
+| `CHANGELOG.md` | Historial de versiones |
 
 ---
 
