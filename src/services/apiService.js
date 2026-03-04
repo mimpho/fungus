@@ -71,6 +71,7 @@ export function normalizeZone(apiZone) {
 export function normalizeScore(apiScore) {
   if (!apiScore) return null
   const d = apiScore.score_detail ?? {}
+
   return {
     overallScore: apiScore.score_oi,
     temperature:  null,               // no disponible en endpoint de lista
@@ -84,7 +85,7 @@ export function normalizeScore(apiScore) {
       temperatura:   d.thermal  ?? null,
       estacional:    d.seasonal ?? null,
       humedad:       d.humidity ?? null,
-      diasSecos:     null,
+      diasSecos:     d.days_since_rain ?? null,
     },
     _source:       'api',
     _label:        apiScore.label,

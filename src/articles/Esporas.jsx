@@ -1,6 +1,6 @@
 // Esporas.jsx — contenido del artículo "El viaje de las esporas"
 // Se registra en ARTICLE_REGISTRY al importarse desde Micologia.jsx
-import { ARTICLE_REGISTRY, ArticleSection, ArticleP, ArticleCallout } from '../components/modals/ArticleModal'
+import { ARTICLE_REGISTRY, ArticleSection, ArticleP, ArticleCallout, Fig } from '../components/modals/ArticleModal'
 import { useApp } from '../contexts/AppContext'
 
 // ─── Cuerpo del artículo ──────────────────────────────────────────────────────
@@ -32,22 +32,7 @@ function EsporasContent() {
         </ArticleCallout>
 
         {/* Fig. 1 — micrografía de basidios, ancho completo */}
-        <figure className="m-0 mt-4 relative cursor-pointer group" style={{ height: '290px' }}
-          onClick={() => openLightbox(0)}>
-          <div className="h-full rounded-xl overflow-hidden">
-            <img src={FOTOS[0].url} alt="Detalle microscópico de basidios"
-              className="w-full h-full object-cover opacity-90 transition-transform duration-300 group-hover:scale-[1.02]" />
-          </div>
-          {/* Gradiente + caption overlay */}
-          <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72), transparent)' }} />
-          <figcaption className="absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
-            <strong className="text-muted">Fig. 1:</strong> Micrografía de la superficie de una lámina mostrando los basidios en maduración.
-          </figcaption>
-          <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
-          </div>
-        </figure>
+        <Fig fotos={FOTOS} idx={0} height="290px" openLightbox={openLightbox} />
       </ArticleSection>
 
       {/* Sección 2 */}
@@ -58,27 +43,8 @@ function EsporasContent() {
 
         {/* Fig. 2 y Fig. 3 — mecanismos de dispersión */}
         <div className="my-6 grid grid-cols-2 gap-2">
-          {[
-            { idx: 1, alt: 'Eyección balística de espora',     label: 'Fig. 2', sub: 'Eyección balística por tensión superficial.' },
-            { idx: 2, alt: 'Hidrocoria — copa de salpicadura', label: 'Fig. 3', sub: <>Copa de salpicadura en <em>Nidulariaceae</em>.</> },
-          ].map(({ idx, alt, label, sub }) => (
-            <figure key={idx} className="m-0 relative cursor-pointer group" style={{ height: '260px' }}
-              onClick={() => openLightbox(idx)}>
-              <div className="h-full rounded-xl overflow-hidden">
-                <img src={FOTOS[idx].url} alt={alt}
-                  className="w-full h-full object-cover opacity-90 transition-transform duration-300 group-hover:scale-[1.02]" />
-              </div>
-              {/* Gradiente + caption overlay */}
-              <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
-                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72), transparent)' }} />
-              <figcaption className="absolute bottom-3 left-3 right-3 text-cream/85 text-xs leading-snug">
-                <strong className="text-muted">{label}:</strong> {sub}
-              </figcaption>
-              <div className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
-              </div>
-            </figure>
-          ))}
+          <Fig fotos={FOTOS} idx={1} height="260px" openLightbox={openLightbox} />
+          <Fig fotos={FOTOS} idx={2} height="260px" openLightbox={openLightbox} />
         </div>
 
         <ul className="space-y-2 mb-4 pl-1">
@@ -103,21 +69,7 @@ function EsporasContent() {
         </ArticleP>
 
         {/* Fig. 4 — somatogamia, ancho completo */}
-        <figure className="m-0 mt-4 mb-2 relative cursor-pointer group" style={{ height: '290px' }}
-          onClick={() => openLightbox(3)}>
-          <div className="h-full rounded-xl overflow-hidden">
-            <img src={FOTOS[3].url} alt="Somatogamia — fusión de tubos germinales"
-              className="w-full h-full object-cover opacity-90 transition-transform duration-300 group-hover:scale-[1.02]" />
-          </div>
-          <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72), transparent)' }} />
-          <figcaption className="absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
-            <strong className="text-muted">Fig. 4:</strong> Somatogamia — fusión de dos tubos germinales compatibles formando un nuevo micelio dicariótico.
-          </figcaption>
-          <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
-          </div>
-        </figure>
+        <Fig fotos={FOTOS} idx={3} height="290px" openLightbox={openLightbox} />
 
         <ArticleP>
           La probabilidad de éxito es infinitesimal — se estima que solo una de cada varios millones de esporas llegará a formar un hongo maduro — pero la estrategia del número masivo ha demostrado ser una de las más exitosas en la historia de la vida.

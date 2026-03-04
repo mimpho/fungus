@@ -55,6 +55,29 @@ export function ArticleInfographic({ title, caption, children }) {
   )
 }
 
+export function Fig({ fotos, idx, height = 'auto', openLightbox }) {
+  return (
+    <figure className="m-0 my-4 relative cursor-pointer group" style={{ height }}
+      onClick={() => openLightbox(idx)}>
+      <div className="h-full rounded-xl overflow-hidden">
+        <img src={fotos[idx].url} alt={fotos[idx].caption}
+          className="w-full h-full object-cover opacity-90 transition-transform duration-300 group-hover:scale-[1.02]" />
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }} />
+      <figcaption className="absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
+        <strong className="text-muted">Fig. {idx + 1}:</strong>{' '}
+        {fotos[idx].caption.replace(/^Fig\. \d+ — /, '')}
+      </figcaption>
+      <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+        </svg>
+      </div>
+    </figure>
+  )
+}
+
 // ─── Registro global — los artículos se registran aquí ───────────────────────
 export const ARTICLE_REGISTRY = {}
 

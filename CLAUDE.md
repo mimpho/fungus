@@ -424,7 +424,7 @@ Cuando Claude complete trabajo en este proyecto, debe actualizar los siguientes 
 
 | Archivo | Qué actualizar |
 |---|---|
-| `CHANGELOG.md` | Añadir entrada con los cambios, bajo el MINOR activo |
+| `CHANGELOG.md` | Añadir entrada en sección `[Unreleased]` (arriba del todo), bajo el tipo apropiado (### Añadido/Cambiado/Eliminado) |
 | `backend/pyproject.toml` | Bump de versión patch |
 | `CLAUDE.md` → Overview | Versión actual si ha cambiado |
 

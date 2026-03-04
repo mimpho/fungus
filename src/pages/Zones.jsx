@@ -38,6 +38,7 @@ export default function Zones() {
   const [pillOpen, setPillOpen]     = useState(false)
   const [mapMode, setMapMode]       = useState('markers')
   const [mapHeight, setMapHeight]   = useState('500px')
+  const [zoneSort, setZoneSort]     = useState('score')
   const aboveMapRef = useRef(null)
 
   const isFollowed = id => followedZones.some(z => z.id === id)
@@ -76,9 +77,11 @@ export default function Zones() {
       const q = searchQuery.toLowerCase()
       r = r.filter(z => z.name.toLowerCase().includes(q) || z.province.toLowerCase().includes(q) || (z.region || '').toLowerCase().includes(q))
     }
-    r.sort((a, b) => (conditionsMap[b.id]?.overallScore ?? 0) - (conditionsMap[a.id]?.overallScore ?? 0))
+    if (zoneSort === 'score') r.sort((a, b) => (conditionsMap[b.id]?.overallScore ?? 0) - (conditionsMap[a.id]?.overallScore ?? 0))
+    else if (zoneSort === 'alfa') r.sort((a, b) => a.name.localeCompare(b.name))
+    else if (zoneSort === 'elevation') r.sort((a, b) => b.elevation - a.elevation)
     return r
-  }, [onlyFollowed, onlyRained, forestFilter, ccaaFilter, searchQuery, followedZones, conditionsMap])
+  }, [onlyFollowed, onlyRained, forestFilter, ccaaFilter, searchQuery, zoneSort, followedZones, conditionsMap, zones])
 
   const activeFilters = (onlyFollowed ? 1 : 0) + (onlyRained ? 1 : 0) + (forestFilter ? 1 : 0) + (ccaaFilter ? 1 : 0)
 
@@ -171,6 +174,23 @@ export default function Zones() {
                 </button>
               )
             })}
+          </div>
+        </div>
+        <div className="mb-5">
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">Ordenar por</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setZoneSort('score')}
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'score' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              🌡️ Mejor condición
+            </button>
+            <button onClick={() => setZoneSort('alfa')}
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'alfa' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              A–Z Nombre
+            </button>
+            <button onClick={() => setZoneSort('elevation')}
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'elevation' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              🏔️ Altitud
+            </button>
           </div>
         </div>
         <div className="sm:flex sm:justify-end">
