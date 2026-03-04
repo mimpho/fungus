@@ -29,3 +29,21 @@ Types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`
 - Never rebase `epic/*` or `main`
 - Never force push to `epic/*` or `main`
 - Never push secrets or API keys
+
+## Changelog
+
+Use [Keep a Changelog](https://keepachangelog.com) format:
+
+```
+## [Unreleased]
+### Añadido
+### Cambiado
+### Eliminado
+
+## [4.2.0] - YYYY-MM-DD
+## [4.1.0] - YYYY-MM-DD
+```
+
+- **Unreleased** at the top for upcoming changes
+- **Newest version first** — most recent release above older ones
+- Add to Unreleased section BEFORE committing (when making the change), not after

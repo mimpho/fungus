@@ -7,6 +7,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [Unreleased]
+
+### Añadido
+- Artículo "Los recicladores del bosque" — nuevo contenido micológico con imágenes (Recicladores.jsx)
+
+---
+
 ## [4.2.0] - 2026-03-02 — Catálogo en BD + endpoints de especies
 
 ### Añadido
@@ -62,35 +69,37 @@ Inicio de la era v4 (backend). v4.1 es la primera fase: scaffold FastAPI + Postg
 
 ---
 
-## [3.0.0-fase5] - 2026-02-26 — Migración a Vite + React Router (Fase 5: Mapa Leaflet + Micología)
+## [3.0.0] - 2026-02-26 — Migración completa a Vite + React Router
 
-### Contexto
+### Fase 5: Mapa Leaflet + Micología
+
+#### Contexto
 Quinta fase: la migración a Vite está completa. Mapa Leaflet interactivo en todos los puntos de la app, página Micología funcional con ArticleModal y sistema de artículos, y code splitting que reduce el bundle principal de 617KB a 133KB.
 
-### Añadido
+#### Añadido
 - `src/components/map/LeafletMap.jsx` — mapa Leaflet vanilla con modo markers (marcadores 🍄 por forestType) y modo heatmap meteórico sintético (grid de España con `leaflet.heat`), botón pantalla completa con portal, zoom control, popups dark
 - `src/components/modals/ArticleModal.jsx` — modal de artículos con hero foto, mini-barra sticky, ARTICLE_REGISTRY pattern; exporta helpers `ArticleSection`, `ArticleP`, `ArticleCallout`, `ArticleInfographic`
 - `src/articles/Micorrizas.jsx` — artículo completo con 3 infografías SVG (intercambio de nutrientes, Ecto vs Endo, tabla especie-árbol), 5 secciones y fuentes bibliográficas
 - `src/pages/Micologia.jsx` — página real con artículo destacado (hero imagen + texto) y grid de cards (publicados/próximamente)
 
-### Modificado
+#### Modificado
 - `src/pages/Zones.jsx` — tab Mapa ahora usa `<LeafletMap>` real (antes placeholder)
 - `src/components/modals/ZoneModal.jsx` — sección Ubicación usa `<LeafletMap singleZone>` (antes placeholder)
 - `src/components/modals/SpeciesModal.jsx` — sección Dónde encontrarla usa `<LeafletMap zonas>` (antes placeholder)
 - `src/components/Layout.jsx` — navegación mobile cambiada de bottom tab bar a hamburguesa ☰ desplegable (alineado con standalone)
 - `vite.config.js` — `manualChunks` para code splitting: bundle principal 617KB → 133KB; chunks separados para react-vendor, leaflet-vendor, data-species, data-zones
 
-### Instalado
+#### Instalado
 - `leaflet.heat` — plugin de mapa de calor para Leaflet
 
 ---
 
-## [3.0.0-fase4] - 2026-02-26 — Migración a Vite + React Router (Fase 4: Modales)
+### Fase 4: Modales
 
-### Contexto
+#### Contexto
 Cuarta fase: todos los modales (ZoneModal, SpeciesModal, FamilyModal, Lightbox) están portados a componentes React con imports ES module. El stack modal completo funciona desde AppContext sin props drilling.
 
-### Añadido
+#### Añadido
 - `src/components/modals/Lightbox.jsx` — visor de fotos full-screen con nav por teclado (← → Esc), swipe táctil, thumbnails en desktop, dots en mobile, portal a `document.body`
 - `src/components/modals/FamilyModal.jsx` — ficha de familia con descripción, características y listado de especies de la familia
 - `src/components/modals/ZoneModal.jsx` — ficha de zona: hero foto, mini-barra sticky al scroll, termómetro con 6 métricas, especies disponibles ahora, calendario de fructificación con filtros, placeholder mapa (Fase 5)
@@ -98,20 +107,17 @@ Cuarta fase: todos los modales (ZoneModal, SpeciesModal, FamilyModal, Lightbox) 
 - `src/components/modals/ModalRenderer.jsx` — renderiza el modal activo leyendo el estado de AppContext; montado en `App.jsx` fuera del árbol de rutas
 - `src/lib/helpers.jsx` — añadidos `TaxonomyBlock`, `ConfusionesBlock`, `CONFUSIONES_POR_FAMILIA`, `CONFUSION_GENERICA`
 
-### Modificado
+#### Modificado
 - `src/App.jsx` — añadido `<ModalRenderer />` justo después de `<ScrollToTop />`
-
-### Pendiente (próximas fases)
-- Fase 5: Mapa Leaflet interactivo en ZoneModal y SpeciesModal, página Micología + ArticleModal
 
 ---
 
-## [3.0.0-fase3] - 2026-02-26 — Migración a Vite + React Router (Fase 3: Páginas y Estado Global)
+### Fase 3: Páginas y Estado Global
 
-### Contexto
+#### Contexto
 Tercera fase: las cuatro páginas principales tienen contenido real y el estado global está centralizado en React Context. La app Vite ya es navegable con datos reales.
 
-### Añadido
+#### Añadido
 - `src/contexts/AppContext.jsx` — estado global con React Context: `followedZones`, `favoriteSpecies`, `lang`, `profile`, modal stack (`selectedZone`, `selectedSpecies`, `selectedFamily`, `lightbox`). Persiste en `localStorage` con clave `fungus_v3` (compatible con el standalone)
 - `src/components/ui/FilterPanel.jsx` — panel de filtros responsive: inline colapsable en desktop, bottom-sheet con drag-to-close en mobile
 - `src/components/ui/SearchFilterBar.jsx` — barra de búsqueda con botón Filtrar integrado (variants: `full` / `split`)
@@ -124,18 +130,14 @@ Tercera fase: las cuatro páginas principales tienen contenido real y el estado 
 - `src/pages/Profile.jsx` — portado completo: notificaciones, datos personales, selector de idioma, stats
 - `src/components/Layout.jsx` — añadida navegación mobile bottom bar con emojis + active state
 
-### Pendiente (próximas fases)
-- Fase 4: Modales + deep links (`/zonas/:id`, `/especies/:id`)
-- Fase 5: Mapa Leaflet interactivo, Micología + ArticleModal
-
 ---
 
-## [3.0.0-fase2] - 2026-02-26 — Migración a Vite + React Router (Fase 2: Datos y Helpers)
+### Fase 2: Datos y Helpers
 
-### Contexto
+#### Contexto
 Segunda fase de la migración: los datos y las utilidades compartidas ya son módulos ES importables, desacoplados del scope global del standalone.
 
-### Añadido
+#### Añadido
 - `src/lib/constants.js` — fuente única de verdad para design tokens: `COLORS`, `MODAL`, `FOREST_COLORS`, `MONTHS`
 - `src/lib/helpers.jsx` — helpers portados del standalone como named exports: `IC` (iconos SVG), `getEdibilityColor`, `EdibilityTag`, `SpeciesImg` (con fallback Wikipedia), `SpeciesCard`, `getScoreColor`, `fakeConditions`
 - `src/data/zones.js` — 28 zonas como `export const mockZones`
@@ -145,19 +147,14 @@ Segunda fase de la migración: los datos y las utilidades compartidas ya son mó
 - `src/data/articles.js` — artículos de micología como `export const mockArticles`
 - `src/data/opportunities.js` — oportunidades mock como `export const mockOpportunities`
 
-### Pendiente (próximas fases)
-- Fase 3: Páginas con contenido real (Dashboard, Profile, Species, Zones)
-- Fase 4: Modales + deep links (`/zonas/:id`, `/especies/:id`)
-- Fase 5: Micología, ArticleModal, mapa Leaflet
-
 ---
 
-## [3.0.0-fase1] - 2026-02-26 — Migración a Vite + React Router (Fase 1: Fundación)
+### Fase 1: Fundación
 
-### Contexto
+#### Contexto
 Inicio de la migración de la arquitectura standalone (Babel en browser) a una app React moderna con bundler y routing real. El standalone permanece en `standalone/` como archivo funcional.
 
-### Añadido
+#### Añadido
 - **Vite 6** como bundler — reemplaza el CRA de `frontend/` (eliminado) y el transpilado Babel en browser
 - **React Router v6** — routing basado en URL, reemplaza el `view` state manual
 - **Tailwind CSS 3** instalado vía npm (postcss) — reemplaza el CDN
@@ -167,24 +164,18 @@ Inicio de la migración de la arquitectura standalone (Babel en browser) a una a
 - Rutas anidadas para deep linking: `/zonas/:id`, `/especies/:id`, `/micologia/:slug`
 - `ScrollToTop` automático en cada cambio de ruta
 - `vercel.json` con rewrites SPA para que React Router funcione en producción
-- `public/assets/` con todos los recursos de imágenes (2.200+ ficheros)
+- `public/assets/` con todos los recursos de imágenes (2.200+ ficheos)
 - Design system en `tailwind.config.js` (colores, tipografías)
 - `styles.css` con clases `.glass`, `.hover-lift`, `.anim-*`, `.modal-*` portadas del standalone
 
-### Eliminado
+#### Eliminado
 - `frontend/` (CRA experimental, nunca en producción)
-
-### Pendiente (próximas fases)
-- Fase 2: Migración de datos y helpers (data/*.js → módulos ES, lib/helpers.jsx)
-- Fase 3: Páginas (Dashboard, Profile, Species, Zones)
-- Fase 4: Modales + deep links (/zonas/:id, /especies/:id)
-- Fase 5: Micología, ArticleModal, Leaflet map
 
 ---
 
-## [2.8.0] - 2026-02-18
+## [2.8.0] - 2026-02-18 — Expansión masiva de datos
 
-### Añadido — Expansión masiva de datos
+### Añadido
 - **28 zonas** (antes 8, +250%): cobertura de toda España — Pirineos, Sistema Central, Sistema Ibérico, Cordillera Cantábrica, zona mediterránea
 - **27 especies** (antes 7, +286%): nuevas especies comunes como Macrolepiota procera, Hydnum repandum, Calocybe gambosa, Craterellus cornucopioides, Lepista nuda, Hygrophorus marzuolus, entre otras
 - Representación de todas las temporadas: invierno, primavera, verano y otoño
@@ -232,7 +223,7 @@ Inicio de la migración de la arquitectura standalone (Babel en browser) a una a
 
 ---
 
-## [2.3.0] - 2026-02-17
+## [2.3.0] - 2026-02-17 — Rediseño completo UX
 
 ### Añadido
 
@@ -301,30 +292,7 @@ Inicio de la migración de la arquitectura standalone (Babel en browser) a una a
 
 ---
 
-## [2.0.0] - 2026-02-17
-
-### Añadido
-- Sección Seguimiento con zonas favoritas y localStorage
-- Modal de Zona con 3 pestañas (Tiempo Real, Calendario, Disponibles)
-- Termómetro de Recolección visual
-- Botón Seguir Zonas con contador en header
-- Fichas de Especies mejoradas con sinónimos regionales
-
----
-
-## [1.0.0] - 2026-02-16
-
-### Añadido
-- Dashboard con StatCards y grid de oportunidades
-- Vista de Zonas con modal de calendario
-- Vista de Especies con badges de comestibilidad
-- Sistema de Datos Mock: zonas, especies, oportunidades
-- Diseño glass morphism, tema oscuro, responsive
-- Versión Standalone HTML único sin dependencias
-
----
-
-## [2.2.0] - 2026-02-17
+## [2.2.0] - 2026-02-17 — Modal pantalla completa y galería
 
 ### Añadido
 - **Modal mapa pantalla completa**: botón "Pantalla completa" en todos los mapas Leaflet
@@ -346,34 +314,23 @@ Inicio de la migración de la arquitectura standalone (Babel en browser) a una a
 
 ---
 
-## [2.3.0] - 2026-02-17
+## [2.0.0] - 2026-02-17 — Sistema de seguimiento
 
-### Cambiado — UX y navegación
+### Añadido
+- Sección Seguimiento con zonas favoritas y localStorage
+- Modal de Zona con 3 pestañas (Tiempo Real, Calendario, Disponibles)
+- Termómetro de Recolección visual
+- Botón Seguir Zonas con contador en header
+- Fichas de Especies mejoradas con sinónimos regionales
 
-#### Modales
-- **Fullscreen en mobile**: todos los modales (Zona, Especie, Familia) se abren a pantalla completa en móvil, deslizando desde la parte inferior (bottom sheet). En desktop mantienen el comportamiento centrado anterior
-- **Header sticky**: la cabecera de cada modal queda fija mientras se hace scroll en el contenido
+---
 
-#### Ficha de Zona
-- **Hero con foto**: el header ahora incluye una imagen de fondo (foto de una especie representativa del tipo de bosque). Diseño análogo a la ficha de especie
-- **Descripción movida**: la descripción de la zona ya no está fija en el header — aparece en el área scrollable del contenido
-- **Botón seguir rediseñado**: icono estrella sin texto, igual que el corazón de la ficha de especie
-- **Items de setas clicables**: las filas de "Disponibles ahora" y el "Calendario de fructificación" son clicables y abren la ficha de dicha especie
+## [1.0.0] - 2026-02-16 — Lanzamiento inicial
 
-#### Página de Especies
-- **Card completamente clicable**: toda la surface de la card (foto + texto) abre la ficha de especie. El botón de favorito sigue siendo independiente (stopPropagation)
-
-#### Ficha de Especie
-- **Morfología reordenada**: la sección de morfología técnica (sombrero, pie, carne) se muestra ahora debajo de la galería de fotos
-- **Mapa de distribución clicable**: los marcadores del mapa dentro de la ficha de especie son clicables y abren la ficha de la zona correspondiente
-
-#### Página de Zonas
-- **Solo 2 tabs**: Mapa y Listado (eliminadas las tabs "Mis zonas" y "Todas las zonas" redundantes)
-- **Filtros en Listado**:
-  - Toggle "Mis zonas / Todas" para ver solo las seguidas
-  - Ordenamiento: Mejor condición (termómetro) · A–Z Nombre · Altitud
-  - Condiciones estables entre ordenamientos (mismo fakeCond por zona)
-
-### Eliminado
-- Tabs "Mis zonas" y "Todas las zonas" de la sección Zonas (sustituidas por el filtro en Listado)
-- Archivos de versiones anteriores (v2.2.0, v2.2.1 intermedios)
+### Añadido
+- Dashboard con StatCards y grid de oportunidades
+- Vista de Zonas con modal de calendario
+- Vista de Especies con badges de comestibilidad
+- Sistema de Datos Mock: zonas, especies, oportunidades
+- Diseño glass morphism, tema oscuro, responsive
+- Versión Standalone HTML único sin dependencias

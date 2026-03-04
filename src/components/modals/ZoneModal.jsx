@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
-import { IC, EdibilityTag, getScoreColor } from '../../lib/helpers'
+import { IC, EdibilityTag, getScoreColor, resolveUrl } from '../../lib/helpers'
 import { useSpecies } from '../../hooks/useSpecies'
 import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
@@ -179,7 +179,7 @@ export function ZoneModal({ zone, onClose }) {
                     <div key={e.id} onClick={() => setSelectedSpecies(e)}
                       className="flex items-center gap-3 bg-white/[0.03] rounded-xl p-3 hover:bg-white/[0.05] transition-all cursor-pointer group">
                       <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={e.photo?.url} alt={e.scientificName}
+                        <img src={resolveUrl(e.photo?.url)} alt={e.scientificName}
                           className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                           onError={ev => { ev.target.parentNode.style.background = 'rgba(139,111,71,0.15)'; ev.target.style.display = 'none' }} />
                       </div>
