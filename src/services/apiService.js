@@ -71,22 +71,18 @@ export function normalizeZone(apiZone) {
 export function normalizeScore(apiScore) {
   if (!apiScore) return null
   const d = apiScore.score_detail ?? {}
-  
-  // El endpoint /zones solo devuelve scores OI, NO datos meteorológicos reales.
-  // Los campos temperature/humidity/rainfall14d se dejan null — se mostrará "—"
-  // Los datos reales vienen en la ficha de zona desde otro endpoint.
-  
+
   return {
     overallScore: apiScore.score_oi,
-    temperature:  null,
+    temperature:  null,               // no disponible en endpoint de lista
     soilTemp:     null,
-    rainfall14d:  null,
+    rainfall14d:  d.pa21_mm ?? null,  // 21d ≈ 14d, suficiente para mostrar en card
     humidity:     null,
     wind:         null,
-    dryDays:      null,
+    dryDays:      d.days_since_rain ?? null,
     scores: {
-      precipitacion: d.pa21 ?? null,
-      temperatura:   d.thermal ?? null,
+      precipitacion: d.pa21     ?? null,
+      temperatura:   d.thermal  ?? null,
       estacional:    d.seasonal ?? null,
       humedad:       d.humidity ?? null,
       diasSecos:     d.days_since_rain ?? null,
