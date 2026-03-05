@@ -38,6 +38,7 @@ class Zone(Base):
     score_cache: Mapped["ScoresCache | None"] = relationship(  # type: ignore[name-defined]  # noqa: F821
         "ScoresCache", back_populates="zone", uselist=False
     )
+    weather_cache: Mapped["WeatherCache | None"] = relationship("WeatherCache", back_populates="zone", uselist=False)
 
     def __repr__(self) -> str:
         return f"<Zone id={self.id!r} name={self.name!r}>"
