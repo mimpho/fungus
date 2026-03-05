@@ -7,9 +7,10 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
-## [Unreleased]
+-## [Unreleased]
 
 ### Añadido
+- docs-sync: Unified CLAUDE ↔ OpenCode specs
 - Artículo "Los recicladores del bosque" — nuevo contenido micológico con imágenes (Recicladores.jsx)
 
 ---
