@@ -1,4 +1,4 @@
-""" Alembic migration for WeatherCache table. """
+"""Alembic migration for WeatherCache table (Phase 1)"""
 from alembic import op
 import sqlalchemy as sa
 
