@@ -9,7 +9,8 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 -## [Unreleased]
 
-### Añadido
+ ### Añadido
+- Weather Phase 1 (4.4.1): implementación de WeatherCache y endpoints esbozados
 - docs-sync: Unified CLAUDE ↔ OpenCode specs
 - Artículo "Los recicladores del bosque" — nuevo contenido micológico con imágenes (Recicladores.jsx)
 
