@@ -1,3 +1,4 @@
+"""WeatherCache model for weather cache integration."""
 from __future__ import annotations
 from datetime import datetime
 
@@ -10,7 +11,9 @@ from app.database import Base
 class WeatherCache(Base):
     __tablename__ = "weather_cache"
 
-    zone_id: Mapped[str] = mapped_column(String, ForeignKey("zones.id", ondelete="CASCADE"), primary_key=True)
+    zone_id: Mapped[str] = mapped_column(
+        String, ForeignKey("zones.id", ondelete="CASCADE"), primary_key=True
+    )
     provider_id: Mapped[str] = mapped_column(String, primary_key=True)  # e.g., 'open-meteo', 'meteocat', etc.
 
     temperature: Mapped[float | None] = mapped_column(Float, nullable=True)
