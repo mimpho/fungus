@@ -16,6 +16,7 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import date, timedelta
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
@@ -32,7 +33,7 @@ from app.models.scores_cache import ScoresCache
 from app.models.weather_cache import WeatherCache
 from app.models.zone import Zone
 from app.routers import health, species, weather, zones
-from app.services.ingest import run_daily_ingest
+from app.services.ingest import run_backfill, run_daily_ingest
 from app.services.weather_cache import (
     DEFAULT_PROVIDER,
     fetch_weather_for_zone,
@@ -242,6 +243,40 @@ async def trigger_ingest(background_tasks: BackgroundTasks) -> dict:
     """
     background_tasks.add_task(_scheduled_ingest)
     return {"status": "ingest triggered", "note": "running in background"}
+
+
+@app.get("/api/v1/admin/trigger-backfill", include_in_schema=False)
+async def trigger_backfill(
+    background_tasks: BackgroundTasks,
+    days: int = 21,
+) -> dict:
+    """
+    Manually trigger a backfill of the last N days (default 21).
+    Useful on free-tier Render where the shell is not available.
+    Returns immediately; backfill runs in the background.
+
+    Usage:
+        curl https://fungus-api.onrender.com/api/v1/admin/trigger-backfill
+        curl "https://fungus-api.onrender.com/api/v1/admin/trigger-backfill?days=30"
+    """
+    end = date.today() - timedelta(days=1)
+    start = end - timedelta(days=days - 1)
+
+    async def _run() -> None:
+        async with AsyncSessionLocal() as db:
+            try:
+                summary = await run_backfill(db, start=start, end=end)
+                log.info("Admin backfill finished: %s", summary)
+            except Exception as exc:
+                log.exception("Admin backfill failed: %s", exc)
+
+    background_tasks.add_task(_run)
+    return {
+        "status": "backfill triggered",
+        "from": start.isoformat(),
+        "to": end.isoformat(),
+        "note": "running in background — check /api/v1/health for last_ingest",
+    }
 
 
 @app.get("/", include_in_schema=False)
