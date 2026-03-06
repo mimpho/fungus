@@ -5,7 +5,7 @@ import { SpeciesCard, SpeciesImg, EdibilityTag, getEdibilityColor, getScoreColor
 import { useSpecies } from '../hooks/useSpecies'
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { LeafletMap } from '../components/map/LeafletMap'
-import { mockArticles } from '../data/articles'
+import { mockArticles } from '../data/articles' // MOCK PERMANENTE — artículos son contenido JSX estático, sin backend (v4.5)
 import { useZones } from '../hooks/useZones'
 import '../articles/Micorrizas'
 import '../articles/Esporas'

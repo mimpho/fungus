@@ -7,11 +7,27 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
--## [Unreleased]
+## [Unreleased]
 
 ### Añadido
 - docs-sync: Unified CLAUDE ↔ OpenCode specs
 - Artículo "Los recicladores del bosque" — nuevo contenido micológico con imágenes (Recicladores.jsx)
+
+---
+
+## [4.5.0] - 2026-03-07 — Auditoría mock → API
+
+### Cambiado
+- `useWeatherConditions.js`: eliminado import directo de `mockSpecies`. Ahora usa `useSpecies()` en `useZoneConditions` y `useAllZoneConditions`, obteniendo species data desde el hook con fallback automático a mockSpecies. Cierra el último import residual de datos de catálogo en hooks de lógica.
+- `useAllZoneConditions`: marcada como `@deprecated` en JSDoc. Dashboard y Zones usan `useZones()` (backend) desde v4.3; esta función se mantiene como fallback si se necesita reactivar Open-Meteo directo.
+
+### Documentado
+- Imports de `mockArticles` (Dashboard, Micologia, ArticleModal) marcados como `// MOCK PERMANENTE` — artículos son contenido JSX estático sin endpoint de backend planificado.
+- Imports de `mockFamilies` (SpeciesModal, Family.jsx) marcados como `// MOCK PERMANENTE` — catálogo de 8 familias estable, sin endpoint planificado.
+- Resumen de auditoría: único import residual era `mockSpecies` en `useWeatherConditions.js`. Todos los demás mocks son fallbacks explícitos (useZones, useSpecies) o datos permanentemente estáticos (artículos, familias).
+
+### Mejorado
+- `fetchSpeciesDetail` en `apiService.js`: caché en memoria por ID (`_detailCache` Map + `_detailPromises` para promesas en vuelo). Segunda apertura del mismo SpeciesModal es instantánea sin request adicional al backend. Sin dependencias nuevas.
 
 ---
 

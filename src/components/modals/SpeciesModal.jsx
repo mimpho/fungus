@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
-import { mockFamilies } from '../../data/families'
+import { mockFamilies } from '../../data/families' // MOCK PERMANENTE — sin endpoint de familias planificado (v4.5)
 import { IC, EdibilityTag, SpeciesImg, getScoreColor, TaxonomyBlock, ConfusionesBlock, resolveUrl } from '../../lib/helpers'
 import { useZones } from '../../hooks/useZones'
 import { useSpecies } from '../../hooks/useSpecies'

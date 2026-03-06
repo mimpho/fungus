@@ -412,7 +412,7 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v4.2 | ✅ Entregado | Catálogo en DB: seed script + endpoints especies + description en zonas |
 | v4.3 | ✅ Entregado | Integración frontend completa: mock → API, weather cache, useApiZoneConditions |
 | v4.4 | ✅ Entregado | Weather cache BD server-side + deploy producción |
-| **v4.5** | 🗂 Backlog | Auditoría mock → API: cierre de imports residuales en frontend |
+| v4.5 | ✅ Entregado | Auditoría mock → API: cierre de imports residuales en frontend |
 | v4.6 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos comunitarios |
 | v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
 | v5.1 | 🗂 Backlog | App móvil iOS — distribución App Store |

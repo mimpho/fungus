@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { mockArticles } from '../data/articles'
+import { mockArticles } from '../data/articles' // MOCK PERMANENTE — artículos son contenido JSX estático, sin backend (v4.5)
 import { ArticleModal } from '../components/modals/ArticleModal'
 import { slugify } from '../lib/helpers'
 // Importar artículos para que se registren en ARTICLE_REGISTRY
