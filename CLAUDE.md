@@ -438,6 +438,7 @@ Todo lo anterior, más:
 |---|---|
 | `CLAUDE.md` → Roadmap | Marcar la fase como ✅, actualizar la que pasa a "En curso" |
 | `CLAUDE.md` → Overview | Versión y estado del backend |
+| `README.md` | Versión, stack activo, instrucciones de arranque, deploy URLs |
 | `docs/conventions.md` | Phase map si se añaden fases nuevas |
 | `docs/backend_architecture.md` | Si el spec cambió durante la implementación |
 | Git | `git tag -a vX.Y.0` en `main` tras el merge del epic |
