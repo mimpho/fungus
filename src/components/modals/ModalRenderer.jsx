@@ -59,6 +59,23 @@ export function ModalRenderer() {
     navigate(target)
   }, [selectedFamily?.nombre ?? selectedFamily?.name])
 
+  // ── Lightbox → history entry ──────────────────────────────────────────────
+  // Al abrir el lightbox empujamos una entrada nueva en el historial (mismo
+  // pathname, state con _lightbox: true). Así el back button del browser lo
+  // cierra igual que los modales normales.
+  useEffect(() => {
+    if (!lightbox) return
+    navigate(location.pathname, { state: { ...location.state, _lightbox: true } })
+  }, [!!lightbox]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Si el usuario navega hacia atrás mientras el lightbox está abierto,
+  // la nueva location ya no tiene _lightbox → cerramos el lightbox.
+  useEffect(() => {
+    if (lightbox && !location.state?._lightbox) {
+      setLightbox(null)
+    }
+  }, [location.key]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Cierre unificado: navigate(-1) mantiene coherencia con el historial ───
   const closeViaHistory = () => navigate(-1)
 
@@ -98,7 +115,7 @@ export function ModalRenderer() {
         <Lightbox
           photos={lightbox.photos}
           initialIndex={lightbox.index}
-          onClose={() => setLightbox(null)}
+          onClose={closeViaHistory}
         />
       )}
     </>
