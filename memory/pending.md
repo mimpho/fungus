@@ -2,57 +2,61 @@
 
 ---
 
-## 🚧 En curso — Weather Phase 2 (4.4.2)
-- `fetch_weather_for_zone()` — fetch a Open-Meteo API
-- `store_weather_cache()` — almacena en BD con TTL 3h
-- `get_latest_weather()` — recupera caché con validación de TTL
-- Router endpoints implementados
+## 🚧 En curso — Cierre v4.4 (epic: `epic/v4-4-weather-cache`)
+
+### ⏳ Merge epic → main + tag
+- Merge `epic/v4-4-weather-cache` → `main` con `--no-ff`
+- Tag `v4.4.0`
+- Verificar que Render sigue apuntando a `main` (o cambiar si procede)
+
+### ⏳ CHANGELOG — cerrar bloque v4.4
+Mover Unreleased a `[4.4.0]` consolidando todo el trabajo de la epic.
 
 ---
 
-## ✅ Completado — Weather Phase 1 (4.4.1)
-- WeatherCache DB model, migraciones y endpoints iniciales (backend)
-- Skeleton de servicio y doc-sync (CLAUDE ↔ OpenCode)
-- Update de CHANGELOG y Unreleased para 4.4.1
----
+## ✅ Completado — v4.4 Weather Cache (epic/v4-4-weather-cache, 2026-03-06)
+
+### v4.4.1 — WeatherCache model + skeleton
+- Modelo `WeatherCache`, migración 003, skeleton de servicio y endpoints
+
+### v4.4.2 — Servicio + integración frontend
+- `fetch_weather_for_zone()` — fetch Open-Meteo con rango temp diario (min/max)
+- `store_weather_cache()` + `get_latest_weather()` — caché BD con TTL 3h
+- `GET /weather/zones/{id}` y `GET /weather/zones` — endpoints cache-first
+- `GET /zones` enriquecido con weather embebido (`ZoneWeather` en `ZoneListItem`)
+- Auto-migrate al arrancar: `await asyncio.to_thread(_run_db_migrations)`
+- CORS con `allow_origin_regex` para preview URLs dinámicas de Vercel
+- `VITE_API_BASE` configurable via env var en frontend
+- `GET /admin/trigger-backfill?days=N` — backfill sin shell (Render free tier)
+- Fix: `dryDays` leía de `weather_cache` en vez de `score_detail.days_since_rain`
+- Fix: float precision helpers `r1`/`r0` en normalizeScore y useApiZoneConditions
 
 ---
 
-## 🚧 En curso — v4.3 (rama: `chore/fixes-and-improvements`)
+## ✅ Completado — v4.3 Integración frontend → API
 
-### ✅ Integración frontend → API (zonas + especies)
-Reemplazados imports mock + llamadas Open-Meteo directas por llamadas al backend:
-- `useZones` hook: consume `/api/v1/zones` (scores cacheados en BD, sin 429s)
+- `useZones` hook: consume `/api/v1/zones` (scores OI cacheados, sin 429s)
 - `useSpecies` hook: consume `/api/v1/species` con paginación cursor
-- `SpeciesModal`: lazy-load de detalle completo (cap/stem/flesh/photos) cuando `_partial=true`
+- `SpeciesModal`: lazy-load de detalle completo (`_partial=true`)
 - Fallback a mock data si el backend no responde
-
-### ⏳ Auth + social (siguiente bloque)
-JWT, favoritos reales en BD, avistamientos comunitarios.
+- `ZoneModal`: usa `useApiZoneConditions` (score OI + weather desde backend)
 
 ---
 
 ## ✅ Completado — Nuevo artículo: Recicladores (2026-03-03)
-
 - Añadido artículo "Los recicladores del bosque" en `src/articles/Recicladores.jsx`
-- Imágenes: recicladores-tronco.webp, recicladores-infografia.webp, recicladores-corteza.webp
-- Actualizado en CHANGELOG.md
 
 ---
 
 ## ✅ Completado — v4.2.0 (2026-03-02)
-
 1. ✅ `HEAD /api/v1/health` — probe sin DB query (UptimeRobot)
-2. ✅ Seed script corregido y probado — 200 zonas, 201 especies en Supabase
-3. ✅ `GET /api/v1/species` y `GET /api/v1/species/{id}` — catálogo servido desde BD
+2. ✅ Seed script — 200 zonas, 201 especies en Supabase
+3. ✅ `GET /api/v1/species` y `GET /api/v1/species/{id}`
 4. ✅ Zonas con campo `description` (migración 002)
-
-**Pendiente de deploy**: ejecutar `alembic upgrade head` + `python -m scripts.seed_catalog` en producción tras merge del PR.
 
 ---
 
 ## ✅ Completado — Deploy v4.1.0 en producción (2026-03-02)
-
 - **API**: `https://fungus-api.onrender.com` (Render free tier)
 - **BD**: Supabase PostgreSQL + PostGIS (Ireland)
 - **Merge**: `epic/v4-backend` → `main` con `--no-ff`, tag `v4.1.0`
@@ -60,73 +64,35 @@ JWT, favoritos reales en BD, avistamientos comunitarios.
 
 ---
 
-## ✅ Completado — v4.1 pre-merge checklist (2026-03-02)
+## 🟡 Backlog — Próximas fases (sin prioridad activa)
 
-Todo commiteado y pusheado en `epic/v4-backend`. Pendiente: deploy manual (Supabase + Render) siguiendo `docs/deploy.md`, y merge a `main` tras el deploy.
+### Auth + social (bloque independiente — v5.x o posterior)
+Bloque de desarrollo propio, mayor envergadura que las fases anteriores.
+- JWT / autenticación de usuarios
+- Favoritos y seguimiento de zonas persistidos en BD (actualmente en localStorage)
+- Avistamientos comunitarios — registro de hallazgos por usuarios
 
-### 1. ✅ API design conventions (`docs/conventions.md`)
-Formato de respuestas, errores, paginación cursor-based, HTTP codes, cache headers, datetimes UTC, snake_case.
-
-### 2. ✅ Local dev setup
-`backend/docker-compose.yml` (PostgreSQL 16 + PostGIS 3.4), `.env.example` actualizado, `docs/local_dev.md` con guía completa.
-
-### 3. ✅ Testing strategy + primeros tests
-`docs/conventions.md` sección Testing. `backend/tests/unit/test_scoring.py` — 41 tests del algoritmo OI, todos en verde.
-
-### 4. ✅ Secrets y gestión de entornos
-`docs/environments.md` — catálogo completo de variables, flujo local/Render/CI.
-
-### 5. ✅ CI/CD + guía de deploy
-`.github/workflows/ci.yml` (unit + integration + lint). `docs/deploy.md` — checklist paso a paso para Supabase + Render.
-
----
-
-## ✅ Completado — Revisión de edibilidad (2026-02-28)
-
-### Revisión de edibilidad de todas las especies
-**Estado:** Completado. 14 cambios aplicados en `src/data/species.js`.
-
-**Cambios aplicados** (fuente: Wikipedia, MushroomExpert, First Nature, Ultimate Mushroom, Galloway Wild Foods):
-
-| Especie | Nombre común | Antes | Ahora | Motivo |
-|---|---|---|---|---|
-| *Imleria badia* | Boleto bayo / Cep bru | `bueno` | `excelente` | "Choice", comparable a B. edulis en sabor |
-| *Cantharellus aurora* | Rossinyol daurat | `bueno` | `excelente` | "Culinariamente igual que sus parientes grandes" |
-| *Craterellus lutescens* | Camagroc / Rossinyolic | `bueno` | `excelente` | Muy cotizado, aroma frutal intenso, todas las fuentes top |
-| *Craterellus tubaeformis* | Cantarel·la d'hivern | `bueno` | `excelente` | "Edible and excellent", muy popular en Escandinavia |
-| *Hydnum repandum* | Peu de rata / Llengua de vaca | `bueno` | `excelente` | 4/5, vendido en mercados junto a rebozuelos en Francia |
-| *Hydnum rufescens* | Pou de rata rojenc | `bueno` | `excelente` | Misma calidad que H. repandum |
-| *Morchella importuna* | Colmenilla importuna | `bueno` | `excelente` | "Highly priced", misma categoría que todas las colmenillas |
-| *Pleurotus pulmonarius* | Gírgola de pulmó | `bueno` | `excelente` | "Equally edible as P. ostreatus" (que ya era excelente) |
-| *Butyriboletus regius* | Cep reial / Royal bolete | `bueno` | `excelente` | "Same culinary league as Ceps (B. edulis)" |
-| *Leccinum versipelle* | Llenega taronja | `comestible` | `bueno` | "Good edible", superior al L. scabrum |
-| *Gyroporus cyanescens* | Giropor blau | `comestible` | `bueno` | "Choice" en varias fuentes |
-| *Gyroporus castaneus* | Giropor castany | `comestible` | `bueno` | "Choice edible" confirmado |
-| *Gomphus clavatus* | Gomfo amorat | `comestible` | `bueno` | "Choice" en guías europeas, cuidado con ejemplares viejos |
-| *Tricholoma terreum* | Ratolí / Fredolic gris | `bueno` | `precaucion` | Triterpenoides tóxicos aislados (2014), relación con rabdomiólisis |
-
-**Nota Tricholoma equestre:** ya estaba como `precaucion`, se confirma correcta (casos de rabdomiólisis, 20% mortalidad en brotes franceses). La investigación reciente sugiere que algunos casos podrían haberse confundido con T. terreum.
-
-**Impacto en scoring:** el species modifier no está en caché → cambios visibles inmediatamente, sin necesidad de subir `CACHE_VERSION`.
-
----
-
-## 🟡 Backlog — v3.x (sin prioridad activa)
-
-### Revisión general del catálogo de especies
-- Verificar que `forestTypes` y `fruitingMonths` sean correctos para todas las especies
-- Añadir más especies si faltan representativas de cada tipo de bosque
-- Comprobar si hay especies con `forestType: 'mixto'` que deberían cubrirse en las zonas actuales (las zonas solo tienen: pinar, hayedo, robledal, encinar)
-- Valorar otros tipos como abetosas, coníferas (mixtos), etc
-
-### Zonas sin especies en temporada
-Actualmente si no hay especies que coincidan con una zona/mes, el score meteorológico queda sin ajustar. Considerar si esto es correcto o si debería haber una penalización por "zona sin interés micológico este mes".
-
-### `speciesScore` en la UI de ZoneModal
-El campo `speciesScore` (SQS) se calcula y se añade al objeto conditions, pero no se muestra en ningún sitio. Podría ser útil mostrarlo como indicador adicional en la ficha de zona.
+### Temperatura del suelo en weather_cache
+`soilTemp` es siempre `null` en el frontend — el backend no la recoge actualmente.
+- Añadir `soil_temp` a tabla `weather_cache` (migración 004)
+- Actualizar `fetch_weather_for_zone()`: leer `hourly.soil_temperature_0cm`
+- Actualizar schema `ZoneWeather` y normalizeScore/useApiZoneConditions
+- ⚠️ `soil_temperature_0cm` solo existe en `hourly`, nunca en `current` (ver gotchas.md)
 
 ### Meteocat API para zonas catalanas
-Requiere API key. Híbrido: Meteocat para zonas catalanas, Open-Meteo para el resto.
+Requiere API key. Híbrido: Meteocat para catalanas, Open-Meteo para el resto.
+Enchufar en `_get_connector()` de `ingest.py`.
+
+### Revisión general del catálogo de especies
+- Verificar `forestTypes` y `fruitingMonths` para todas las especies
+- Añadir especies representativas que falten por tipo de bosque
+- Valorar tipos adicionales: abetosas, coníferas mixtas, etc.
+
+### Zonas sin especies en temporada
+Si no hay especies que coincidan con zona/mes, considerar penalización por "zona sin interés micológico este mes".
+
+### `speciesScore` en UI de ZoneModal
+El campo SQS se calcula en conditions pero no se muestra. Útil como indicador adicional.
 
 ### Zonas personalizadas
 Permitir al usuario añadir y guardar puntos propios en el mapa.
