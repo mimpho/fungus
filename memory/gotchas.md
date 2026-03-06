@@ -158,6 +158,13 @@ Render free tier no expone Shell. Ejecutar `alembic upgrade head` manualmente es
 
 **Solución implementada:** `_run_db_migrations()` en el lifespan de `main.py` llama a `alembic upgrade head` sincrónicamente al arrancar, antes de cualquier query. Alembic es idempotente: si el schema ya está actualizado, no hace nada. Cada deploy aplica automáticamente las migraciones pendientes.
 
+### ⚠️ `asyncio.run()` dentro del lifespan → RuntimeError (500 silencioso)
+`alembic env.py` usa un async engine y llama `asyncio.run(run_migrations_online())`. Si se llama `_run_db_migrations()` directamente desde el lifespan (que ya corre en un event loop), `asyncio.run()` falla con `RuntimeError: This event loop is already running` → el arranque crashea antes de servir cualquier request → 500 sin headers CORS (el browser muestra ambos errores, pero el CORS es consecuencia del 500).
+
+**Síntoma:** las peticiones al backend fallan con 500 + CORS error. El error parece de CORS pero en realidad es un crash de startup.
+
+**Solución implementada:** `await asyncio.to_thread(_run_db_migrations)` en el lifespan. La migración corre en un thread worker donde no hay event loop activo, por lo que `asyncio.run()` de env.py funciona sin conflicto.
+
 ### ⚠️ Floats del backend pueden tener precisión errática en el frontend
 Valores como `pa21_mm` vienen como floats crudos de Python (ej. `1.7999999999999998`). Siempre redondear al normalizar en el frontend.
 
