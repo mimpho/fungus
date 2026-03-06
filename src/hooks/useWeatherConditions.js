@@ -8,6 +8,7 @@
 // =====================================================
 import { useState, useEffect } from 'react'
 import { fetchAllZoneConditions, fetchZoneConditions, getCacheTimestamp } from '../services/weatherService'
+import { fetchZone, fetchZoneWeather } from '../services/apiService'
 import { fakeConditions, applySpeciesModifier } from '../lib/helpers'
 import { mockSpecies } from '../data/species'
 
@@ -98,4 +99,59 @@ export function useZoneConditions(zone) {
   }, [zone?.id])
 
   return { conditions, loading, error, updatedAt }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// useApiZoneConditions — para ZoneModal (una zona, vía backend)
+//
+// Llama en paralelo:
+//   GET /api/v1/zones/{id}          → OI score + breakdown
+//   GET /api/v1/weather/zones/{id}  → weather cacheado (temp_min/max, humidity…)
+//
+// Devuelve un conditions compatible con el shape esperado por ZoneModal.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function useApiZoneConditions(zone) {
+  const [conditions, setConditions] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!zone?.id) return
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+
+    Promise.allSettled([
+      fetchZone(zone.id),
+      fetchZoneWeather(zone.id),
+    ]).then(([scoreResult, weatherResult]) => {
+      if (cancelled) return
+
+      const apiZone  = scoreResult.status  === 'fulfilled' ? scoreResult.value  : null
+      const apiWeatherEnvelope = weatherResult.status === 'fulfilled' ? weatherResult.value : null
+      const w = apiWeatherEnvelope?.weather ?? {}
+
+      const overallScore = apiZone?.score?.score_oi ?? 0
+
+      setConditions({
+        overallScore,
+        tempMin:     w.temp_min    ?? null,
+        tempMax:     w.temp_max    ?? null,
+        soilTemp:    null,             // no en backend
+        rainfall14d: w.rainfall14d ?? null,
+        humidity:    w.humidity    ?? null,
+        wind:        w.wind        ?? null,
+        dryDays:     null,             // no en weather_cache aún
+        _source:      'api',
+        _label:       apiZone?.score?.label ?? null,
+        _collectedAt: w.collected_at ?? null,
+      })
+      setLoading(false)
+    })
+
+    return () => { cancelled = true }
+  }, [zone?.id])
+
+  return { conditions, loading, error }
 }

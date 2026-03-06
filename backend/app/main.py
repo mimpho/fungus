@@ -25,8 +25,15 @@ from sqlalchemy import func, select
 from app.config import settings
 from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
+from app.models.weather_cache import WeatherCache
+from app.models.zone import Zone
 from app.routers import health, species, weather, zones
 from app.services.ingest import run_daily_ingest
+from app.services.weather_cache import (
+    DEFAULT_PROVIDER,
+    fetch_weather_for_zone,
+    store_weather_cache,
+)
 
 # Single source of truth for version — reads from pyproject.toml at runtime
 APP_VERSION = pkg_version("fungus-api")
@@ -76,6 +83,52 @@ async def _startup_ingest_if_empty() -> None:
             log.exception("Startup ingest failed: %s", exc)
 
 
+_WEATHER_WARMUP_BATCH = 10  # concurrent Open-Meteo requests per batch
+
+
+async def _startup_weather_warmup() -> None:
+    """
+    On startup, populate weather_cache if it is completely empty.
+
+    Fetches Open-Meteo for all active zones in batches of _WEATHER_WARMUP_BATCH
+    concurrent requests so the zones list returns real weather from the first hit.
+    Runs in the background — does not block app startup.
+    """
+    async with AsyncSessionLocal() as db:
+        try:
+            # Skip if any valid cache entry already exists
+            count_result = await db.execute(select(func.count()).select_from(WeatherCache))
+            if count_result.scalar_one() > 0:
+                log.info("weather_cache already populated — skipping warmup")
+                return
+
+            # Load all active zones
+            zones_result = await db.execute(
+                select(Zone).where(Zone.active == True)  # noqa: E712
+            )
+            active_zones = zones_result.scalars().all()
+            total = len(active_zones)
+            log.info("weather_cache empty — warming up %d zones in batches of %d", total, _WEATHER_WARMUP_BATCH)
+
+            ok = 0
+            for i in range(0, total, _WEATHER_WARMUP_BATCH):
+                batch = active_zones[i : i + _WEATHER_WARMUP_BATCH]
+                results = await asyncio.gather(
+                    *(fetch_weather_for_zone(z.lat, z.lon) for z in batch),
+                    return_exceptions=True,
+                )
+                for z, data in zip(batch, results):
+                    if isinstance(data, Exception) or data is None:
+                        log.warning("weather warmup: no data for zone %s", z.id)
+                        continue
+                    await store_weather_cache(z.id, DEFAULT_PROVIDER, data, db)
+                    ok += 1
+
+            log.info("weather warmup finished: %d/%d zones populated", ok, total)
+        except Exception as exc:
+            log.exception("Weather warmup failed: %s", exc)
+
+
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
@@ -96,6 +149,8 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Fire-and-forget: populate scores_cache on first deploy / cold start
     asyncio.create_task(_startup_ingest_if_empty())
+    # Fire-and-forget: populate weather_cache on first deploy / cold start
+    asyncio.create_task(_startup_weather_warmup())
 
     yield
 

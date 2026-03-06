@@ -60,25 +60,28 @@ export function normalizeZone(apiZone) {
 }
 
 /**
- * Convierte el score del API al shape de conditions del frontend.
+ * Convierte el score + weather del API al shape de conditions del frontend.
  *
- * Nota: temperatura, humedad y viento NO están disponibles en el endpoint de lista
- * — se obtienen via Open-Meteo en useZoneConditions (ZoneModal).
- * rainfall14d se aproxima con pa21_mm (21 días vs 14 días, diferencia aceptable).
+ * apiScore: { score_oi, score_detail, label, valid_until, calculated_at }
+ * apiWeather (opcional): { temp_min, temp_max, humidity, rainfall14d, wind, collected_at }
+ *   — disponible en GET /zones a partir de v4.4.2
+ *   — rainfall14d del weather (14d real) tiene prioridad sobre pa21_mm (21d aprox)
  *
  * El campo _source: 'api' permite distinguir estos conditions de los Open-Meteo.
  */
-export function normalizeScore(apiScore) {
+export function normalizeScore(apiScore, apiWeather = null) {
   if (!apiScore) return null
   const d = apiScore.score_detail ?? {}
+  const w = apiWeather ?? {}
 
   return {
     overallScore: apiScore.score_oi,
-    temperature:  null,               // no disponible en endpoint de lista
+    tempMin:      w.temp_min  ?? null,   // rango diario forecast (min °C)
+    tempMax:      w.temp_max  ?? null,   // rango diario forecast (max °C)
     soilTemp:     null,
-    rainfall14d:  d.pa21_mm ?? null,  // 21d ≈ 14d, suficiente para mostrar en card
-    humidity:     null,
-    wind:         null,
+    rainfall14d:  w.rainfall14d ?? d.pa21_mm ?? null,  // weather real > pa21 approx
+    humidity:     w.humidity  ?? null,
+    wind:         w.wind      ?? null,
     dryDays:      d.days_since_rain ?? null,
     scores: {
       precipitacion: d.pa21     ?? null,
@@ -87,10 +90,11 @@ export function normalizeScore(apiScore) {
       humedad:       d.humidity ?? null,
       diasSecos:     d.days_since_rain ?? null,
     },
-    _source:       'api',
-    _label:        apiScore.label,
-    _validUntil:   apiScore.valid_until,
-    _calculatedAt: apiScore.calculated_at,
+    _source:            'api',
+    _label:             apiScore.label,
+    _validUntil:        apiScore.valid_until,
+    _calculatedAt:      apiScore.calculated_at,
+    _weatherCollectedAt: w.collected_at ?? null,
   }
 }
 
@@ -115,7 +119,7 @@ export async function fetchZones() {
   const zones = data.map(normalizeZone)
   const conditionsMap = {}
   for (const apiZone of data) {
-    const cond = normalizeScore(apiZone.score)
+    const cond = normalizeScore(apiZone.score, apiZone.weather)
     if (cond) conditionsMap[apiZone.id] = cond
   }
 
@@ -128,6 +132,19 @@ export async function fetchZones() {
 export async function fetchZone(zoneId) {
   const res = await fetch(`${API_BASE}/zones/${zoneId}`)
   if (!res.ok) throw new Error(`API /zones/${zoneId} error ${res.status}`)
+  return res.json()
+}
+
+/**
+ * GET /api/v1/weather/zones/{id} — weather cacheado de una zona.
+ *
+ * Devuelve: { zone_id, provider, weather: { temp_min, temp_max, humidity,
+ *   rainfall14d, wind, collected_at, valid_until }, cached }
+ * Lanza si 404 o 502.
+ */
+export async function fetchZoneWeather(zoneId) {
+  const res = await fetch(`${API_BASE}/weather/zones/${zoneId}`)
+  if (!res.ok) throw new Error(`API /weather/zones/${zoneId} error ${res.status}`)
   return res.json()
 }
 

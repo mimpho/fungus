@@ -55,7 +55,9 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
               <div className="flex gap-1.5 mt-1.5 text-cream/35 text-xs flex-wrap">
                 <span className="flex items-center gap-1">
                   <img src="/assets/images/icons/temperature.png" alt="temp" height="16" width="16" />
-                  {cond.temperature != null ? `${cond.temperature}°C` : '—'}
+                  {cond.tempMin != null && cond.tempMax != null
+                    ? `${cond.tempMin}–${cond.tempMax}°C`
+                    : '—'}
                 </span>
                 <span>·</span>
                 <span className="flex items-center gap-1">
