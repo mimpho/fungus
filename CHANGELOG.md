@@ -11,7 +11,19 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Añadido
 - docs-sync: Unified CLAUDE ↔ OpenCode specs
+- Weather cache en backend (v4.4.1): modelo `WeatherCache`, migración, servicio y endpoints
 - Artículo "Los recicladores del bosque" — nuevo contenido micológico con imágenes (Recicladores.jsx)
+
+---
+
+## [4.4.2] - 2026-03-06 — Weather cache service
+
+### Añadido
+- `fetch_weather_for_zone()` — fetch a Open-Meteo API con mismos parámetros que frontend
+- `store_weather_cache()` — almacena en BD con TTL 3h
+- `get_latest_weather()` — recupera caché con validación de TTL
+- `GET /weather/zones/{zone_id}` — endpoint con cache-first strategy
+- `GET /weather/zones` — lista todos los weather caches activos
 
 ---
 
