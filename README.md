@@ -85,7 +85,9 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v4.1 | ✅ | Backend meteo: FastAPI + OI + Open-Meteo server-side |
 | v4.2 | ✅ | Catálogo en DB: seed + endpoints especies/zonas |
 | v4.4 | ✅ | Weather cache BD + integración frontend completa |
-| v4.x | 🗂 Backlog | Auth/social, app móvil, imágenes reales |
+| v4.3 | 🚧 En curso | Integración frontend completa (mock → API) + Auth/social |
+| v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) |
+| v5.1 | 🗂 Backlog | App móvil iOS |
 
 Backlog detallado: `memory/pending.md`
 

@@ -410,7 +410,10 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v3.x | 🗂 Backlog | Mejoras frontend (ver `memory/pending.md`) — sin prioridad activa |
 | v4.1 | ✅ Entregado | Backend meteo: FastAPI + OI + Open-Meteo server-side · desplegado en producción |
 | v4.2 | ✅ Entregado | Catálogo en DB: seed script + endpoints especies + description en zonas |
+| v4.4 | ✅ Entregado | Weather cache BD + integración frontend completa |
 | **v4.3** | 🚧 En curso | Integración frontend (reemplazar mock imports → API) + Auth/social |
+| v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
+| v5.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
 
 Spec completa de v4.x: `docs/backend_architecture.md`
 
