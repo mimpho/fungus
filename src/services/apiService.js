@@ -1,14 +1,15 @@
 // =====================================================
 // apiService.js — Wrapper del backend Fungus
 //
-// Base URL: https://fungus-api.onrender.com/api/v1
-// Docs: ver docs/backend_architecture.md
+// Base URL: configurable via VITE_API_BASE (env var de Vite).
+//   - En local: crear .env.local con VITE_API_BASE=http://localhost:8000/api/v1
+//   - En Vercel: configurar la variable de entorno en el dashboard
+//   - Si no está definida, usa producción (https://fungus-api.onrender.com/api/v1)
 //
-// Reemplaza la combinación mockZones + Open-Meteo (200 req) por
-// una sola llamada al backend que devuelve zonas + scores cacheados.
+// Docs: ver docs/backend_architecture.md
 // =====================================================
 
-export const API_BASE = 'https://fungus-api.onrender.com/api/v1'
+export const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://fungus-api.onrender.com/api/v1'
 
 // Mapa provincia → CCAA (replicado de src/data/zones.js para normalizar zonas del API)
 const PROVINCE_TO_CCAA = {
