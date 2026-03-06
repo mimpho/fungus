@@ -2,10 +2,11 @@
 Fungus API — FastAPI application entry point.
 
 Startup sequence:
-  1. Connect to the database
+  1. Run Alembic migrations (upgrade head) — garantiza schema actualizado sin shell
   2. Schedule the daily ingestion cron (APScheduler)
   3. If scores_cache is empty, run an ingest immediately (background task)
-  4. Mount API routers
+  4. If weather_cache is empty, warm up weather for all zones (background task)
+  5. Mount API routers
 
 Shutdown sequence:
   1. Shut down the scheduler
@@ -16,7 +17,10 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from importlib.metadata import version as pkg_version
+from pathlib import Path
 
+from alembic import command as alembic_command
+from alembic.config import Config as AlembicConfig
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,11 +42,29 @@ from app.services.weather_cache import (
 # Single source of truth for version — reads from pyproject.toml at runtime
 APP_VERSION = pkg_version("fungus-api")
 
+# Ruta a alembic.ini: backend/alembic.ini (un nivel arriba de app/)
+_ALEMBIC_INI = Path(__file__).parent.parent / "alembic.ini"
+
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
     format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
 )
 log = logging.getLogger(__name__)
+
+# ── Migrations ────────────────────────────────────────────────────────────────
+
+def _run_db_migrations() -> None:
+    """
+    Ejecuta `alembic upgrade head` de forma síncrona.
+
+    Se llama al inicio del lifespan antes de cualquier query, lo que garantiza
+    que el schema esté actualizado sin necesidad de acceso a la shell de Render.
+    Alembic es idempotente: si no hay migraciones pendientes, no hace nada.
+    """
+    cfg = AlembicConfig(str(_ALEMBIC_INI))
+    alembic_command.upgrade(cfg, "head")
+    log.info("DB migrations: schema up to date")
+
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────
 
@@ -138,6 +160,9 @@ async def _startup_weather_warmup() -> None:
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     log.info("Starting Fungus API v4 (environment: %s)", settings.environment)
 
+    # 1. Apply pending DB migrations before serving any traffic
+    _run_db_migrations()
+
     # Register daily cron: 05:00 UTC → 07:00 Madrid
     scheduler.add_job(
         _scheduled_ingest,
@@ -174,10 +199,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow the Vite dev server and Vercel production URL
+# CORS — allow the Vite dev server, Vercel production URL and Vercel preview deployments
+# allow_origin_regex cubre URLs de preview dinámicas tipo fungus-xxxx.vercel.app
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    allow_origin_regex=r"https://fungus[^.]*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["GET"],   # read-only API for now (auth in Phase 3)
     allow_headers=["*"],
