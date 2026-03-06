@@ -2,6 +2,14 @@
 
 ---
 
+## 🚧 En curso — Weather Phase 1 (4.4.1)
+- WeatherCache DB model, migraciones y endpoints iniciales (backend)
+- Skeleton de servicio y doc-sync (CLAUDE ↔ OpenCode)
+- Update de CHANGELOG y Unreleased para 4.4.1
+---
+
+---
+
 ## 🚧 En curso — v4.3 (rama: `chore/fixes-and-improvements`)
 
 ### ✅ Integración frontend → API (zonas + especies)

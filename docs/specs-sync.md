@@ -6,18 +6,14 @@ Propósito
 
 Alcance
 - Archivos relevantes a sincronizar: docs/conventions.md, docs/backend_architecture.md, memory/pending.md, memory/decisions.md, CHANGELOG.md, CLAUDE.md, AGENTS.md, y las reglas de git de OpenCode.
-- Mantener el Keep a Changelog en Unreleased y las versiones en main (tag vX.Y.Z).
+- Mantener Keep a Changelog arriba (Unreleased) y versiones publicadas en main con tag vX.Y.Z.
 
 Flujo de trabajo recomendado
-- Crear rama de doc-sync: chore/docs-sync-vN
-- Hacer dos commits mínimos: 1) CLAUDE.md; 2) docs/specs-sync.md (la versión de OpenCode puede estar en .opencode si se quiere mantener separado)
-- Abrir PR paralelo en CLAUDE y OpenCode con el mismo título: "docs: sincronización CLAUDE ↔ OpenCode".
-- En cada merge a main, añadir entrada en Unreleased del CHANGELOG para el cambio de flujo de doc-sync.
+- Crear branch de doc-sync: chore/docs-sync-vN
+- Duplicar/copiar las modificaciones relevantes a CLAUDE.md en OpenCode (mirroring).
+- Abrir PR paralelo en CLAUDE y OpenCode con el mismo título.
+- En cada merge a main, añadir entrada en Unreleased de CHANGELOG.
 
-Nombres de ramas (ejemplos)
+Nombres de ramas de doc-sync
+- chore/docs-sync-vN
 - epic/docs-sync
-- chore/docs-sync-v1
-- feat/docs-sync-opencode
-
-Notas finales
-- Este doc es el espejo de la convención de organización y debe mantenerse actualizado al ritmo de cambios de flujo de trabajo.
