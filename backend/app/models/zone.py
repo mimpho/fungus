@@ -1,6 +1,4 @@
 """Zone model — equivalent to mockZones in src/data/zones.js."""
-from __future__ import annotations
-
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, func
@@ -34,11 +32,15 @@ class Zone(Base):
     )
 
     # Relationships
-    climate_history = relationship(
+    climate_history: Mapped[list["ClimateHistory"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
         "ClimateHistory", back_populates="zone", cascade="all, delete-orphan"
     )
-    score_cache = relationship("ScoresCache", back_populates="zone", uselist=False)
-    weather_cache = relationship("WeatherCache", back_populates="zone", uselist=False)
+    score_cache: Mapped["ScoresCache | None"] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        "ScoresCache", back_populates="zone", uselist=False
+    )
+    weather_cache: Mapped[list["WeatherCache"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        "WeatherCache", back_populates="zone", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Zone id={self.id!r} name={self.name!r}>"

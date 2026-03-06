@@ -2,7 +2,15 @@
 
 ---
 
-## 🚧 En curso — Weather Phase 1 (4.4.1)
+## 🚧 En curso — Weather Phase 2 (4.4.2)
+- `fetch_weather_for_zone()` — fetch a Open-Meteo API
+- `store_weather_cache()` — almacena en BD con TTL 3h
+- `get_latest_weather()` — recupera caché con validación de TTL
+- Router endpoints implementados
+
+---
+
+## ✅ Completado — Weather Phase 1 (4.4.1)
 - WeatherCache DB model, migraciones y endpoints iniciales (backend)
 - Skeleton de servicio y doc-sync (CLAUDE ↔ OpenCode)
 - Update de CHANGELOG y Unreleased para 4.4.1
