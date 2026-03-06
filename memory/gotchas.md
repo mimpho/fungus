@@ -144,6 +144,39 @@ import { resolveUrl } from '../../lib/helpers'
 
 ---
 
+## Backend — Deploy en Render (free tier)
+
+### ⚠️ CORS: las preview URLs de Vercel no están en la whitelist por defecto
+Las preview deployments de Vercel generan URLs dinámicas tipo `fungus-xxxx.vercel.app`. Si se intenta acceder al backend desde una de estas URLs sin tenerla en `CORS_ORIGINS`, el browser bloquea la petición.
+
+**Solución implementada:** `allow_origin_regex=r"https://fungus[^.]*\.vercel\.app"` en el `CORSMiddleware` de `main.py`. Cubre automáticamente cualquier preview URL del proyecto sin tocar variables de entorno.
+
+Si se añade un dominio de producción nuevo (ej. dominio propio), añadirlo a la env var `CORS_ORIGINS` en Render (comma-separated).
+
+### ⚠️ No hay acceso a shell en Render free tier → migraciones por código
+Render free tier no expone Shell. Ejecutar `alembic upgrade head` manualmente es imposible sin hacer deploy.
+
+**Solución implementada:** `_run_db_migrations()` en el lifespan de `main.py` llama a `alembic upgrade head` sincrónicamente al arrancar, antes de cualquier query. Alembic es idempotente: si el schema ya está actualizado, no hace nada. Cada deploy aplica automáticamente las migraciones pendientes.
+
+### ⚠️ `asyncio.run()` dentro del lifespan → RuntimeError (500 silencioso)
+`alembic env.py` usa un async engine y llama `asyncio.run(run_migrations_online())`. Si se llama `_run_db_migrations()` directamente desde el lifespan (que ya corre en un event loop), `asyncio.run()` falla con `RuntimeError: This event loop is already running` → el arranque crashea antes de servir cualquier request → 500 sin headers CORS (el browser muestra ambos errores, pero el CORS es consecuencia del 500).
+
+**Síntoma:** las peticiones al backend fallan con 500 + CORS error. El error parece de CORS pero en realidad es un crash de startup.
+
+**Solución implementada:** `await asyncio.to_thread(_run_db_migrations)` en el lifespan. La migración corre en un thread worker donde no hay event loop activo, por lo que `asyncio.run()` de env.py funciona sin conflicto.
+
+### ⚠️ Floats del backend pueden tener precisión errática en el frontend
+Valores como `pa21_mm` vienen como floats crudos de Python (ej. `1.7999999999999998`). Siempre redondear al normalizar en el frontend.
+
+**Solución implementada:** helpers `r1` (1 decimal) y `r0` (entero) en `normalizeScore()` de `apiService.js` y en `useApiZoneConditions`.
+
+### ℹ️ Conflictos entre feature branches que tocan los mismos archivos backend
+Si una epic branch tiene commits de una fase anterior (skeletons) y una feature branch tiene la implementación completa, la PR mostrará conflictos aunque no haya divergencia con `main`.
+
+**Patrón de resolución:** `git merge origin/epic/...` en la feature branch + `git checkout --ours` para todos los archivos backend donde nuestra implementación supera el skeleton. Commit del merge con explicación del criterio de resolución.
+
+---
+
 ## React Router v6 — Comportamiento de Instancias de Componentes
 
 ### ℹ️ Rutas distintas que renderizan el mismo componente crean instancias separadas

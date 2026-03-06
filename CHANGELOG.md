@@ -7,11 +7,34 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
--## [Unreleased]
+## [Unreleased]
+
+---
+
+## [4.4.0] - 2026-03-06 — Weather cache + integración frontend completa
 
 ### Añadido
-- docs-sync: Unified CLAUDE ↔ OpenCode specs
-- Artículo "Los recicladores del bosque" — nuevo contenido micológico con imágenes (Recicladores.jsx)
+- `WeatherCache` model + migración 003: tabla `weather_cache` (zone_id+provider_id PK, temp_min/max, humidity, rainfall14d, wind, TTL)
+- `fetch_weather_for_zone()` — fetch Open-Meteo server-side con rango diario temp (min/max)
+- `store_weather_cache()` + `get_latest_weather()` — caché BD con TTL 3h y validación de expiración
+- `GET /api/v1/weather/zones/{id}` + `GET /api/v1/weather/zones` — endpoints weather con cache-first
+- `GET /api/v1/zones` ahora incluye `weather: ZoneWeather` embebido en cada zona
+- Warmup de weather_cache al arrancar (background task, batches de 10)
+- Auto-migrate al arrancar: `await asyncio.to_thread(_run_db_migrations)` — no requiere shell
+- `GET /api/v1/admin/trigger-backfill?days=N` — backfill sin acceso a shell (Render free tier)
+- `VITE_API_BASE` configurable via env var en frontend (fallback a URL de producción)
+- Artículo "Los recicladores del bosque" — nuevo contenido micológico (Recicladores.jsx)
+
+### Cambiado
+- `ZoneListItem` schema incluye campo `weather: ZoneWeather | None`
+- `useApiZoneConditions`: `dryDays` ahora lee `score_detail.days_since_rain` (antes null)
+- `ZoneCard` y `ZoneModal` muestran rango `tempMin–tempMax°C` desde weather_cache
+
+### Corregido
+- `asyncio.run()` en lifespan causaba `RuntimeError` → 500 + CORS error silencioso al arrancar
+- CORS bloqueaba preview URLs de Vercel — resuelto con `allow_origin_regex`
+- Float precision en `pa21_mm` y similares (`1.7999...` → `r1`/`r0` helpers)
+- Doble fetch en React StrictMode — caché de promesas en vuelo `_apiZonePromises`
 
 ---
 
