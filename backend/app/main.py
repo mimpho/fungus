@@ -108,7 +108,10 @@ async def _startup_weather_warmup() -> None:
             )
             active_zones = zones_result.scalars().all()
             total = len(active_zones)
-            log.info("weather_cache empty — warming up %d zones in batches of %d", total, _WEATHER_WARMUP_BATCH)
+            log.info(
+                "weather_cache empty — warming up %d zones in batches of %d",
+                total, _WEATHER_WARMUP_BATCH
+            )
 
             ok = 0
             for i in range(0, total, _WEATHER_WARMUP_BATCH):
