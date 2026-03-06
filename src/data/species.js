@@ -5024,6 +5024,31 @@ export const mockSpecies = [
     requiere_helada: false, requiere_choque_termico: true,
     dias_hasta_fructificacion: 7,
   },
+  {
+    id: "esp-202", scientificName: "Chroogomphus rutilus",
+    commonNames: ["Cama de perdiu", "Gomfidio viscoso", "Spike cap", "Gomfidio aleonado"],
+    family: "Gomphidiaceae", edibility: "comestible",
+    forestTypes: ["pinar"],
+    fruitingMonths: [8,9,10,11],
+    description: "Seta de pinares con píleo viscoso de color ocre-anaranjado a marrón vinoso, láminas decurrentes gruesas de color gris-liláceo que oscurecen con la edad. Comestible de calidad mediocre, asociada exclusivamente a coníferas. Crece con frecuencia junto a Suillus y otros boletos, de los que puede ser parásita parcial. ATENCIÓN: puede confundirse con Cortinarius orellanus (MORTAL) por el color similar del sombrero y el hábitat compartido en pinares; distinguir siempre por las láminas gruesas decurrentes, esporada negra-grisácea y ausencia de cortina.",
+    cap: { forma: "Convexo a umbonado, luego aplanado", color: "Ocre-anaranjado a marrón vinoso, viscoso en húmedo", diametro: "4-10 cm", superficie: "Lisa, viscosa-glutinosa en tiempo húmedo" },
+    stem: { forma: "Cilíndrico, a veces fusiforme", color: "Amarillo-anaranjado con tonos violáceos hacia la base", altura: "4-9 cm", diametro: "1-2 cm" },
+    flesh: { color: "Amarillo-anaranjada, violácea en la base del pie", textura: "Firme", olor: "Suave, fúngico", sabor: "Suave, algo amargo" },
+    sporePrint: "Gris-negruzca",
+    altitud_min: 200, altitud_max: 1500,
+    distribucion: ["Europa", "España", "pinares de toda la Península"],
+    photo: { url: "assets/images/content/species/esp-202-main.jpg", largeUrl: "assets/images/content/species/esp-202-main-large.jpg" },
+    photos: [
+      { url: "assets/images/content/species/esp-202-foto1.jpg", largeUrl: "assets/images/content/species/esp-202-foto1-large.jpg" },
+      { url: "assets/images/content/species/esp-202-foto2.jpg", largeUrl: "assets/images/content/species/esp-202-foto2-large.jpg" },
+    ],
+    temp_optima_min: 8.0, temp_optima_max: 16.0,
+    humedad_min: 55.0, humedad_optima: 70.0,
+    precip_14dias_min: 20.0, precip_14dias_max: 60.0,
+    ph_suelo_min: 5.0, ph_suelo_max: 7.0,
+    requiere_helada: false, requiere_choque_termico: false,
+    dias_hasta_fructificacion: 7,
+  },
 ];
 
 // ==================== SINÓNIMOS TAXONÓMICOS ====================
@@ -5135,6 +5160,7 @@ const SPECIES_SYNONYMS = {
   // — Cortinariaceae —
   'Cortinarius caperatus':      ['Rozites caperatus (Pers.) P. Karst.', 'Rozites caperata (Pers.) P. Karst.', 'Pholiota caperata (Pers.) Gillet'],
   'Cortinarius orellanus':      ['Dermocybe orellana (Fr.) M.M. Moser', 'Cortinarius speciosissimus Kühner & Romagn.'],
+  'Chroogomphus rutilus':       ['Gomphidius rutilus (Schaeff.) O.K. Mill.', 'Agaricus rutilus Schaeff.', 'Gomphidius viscidus (L.) Fr.'],
   'Cortinarius rubellus':       ['Dermocybe rubella (Cooke) M.M. Moser', 'Cortinarius speciosissimus auct.'],
   'Cortinarius violaceus':      ['Agaricus violaceus L.', 'Phlegmacium violaceum (L.) Wünsche'],
   'Phlegmacium calochroum':     ['Cortinarius calochrous (Pers.) Gray', 'Phlegmacium calochrum (Pers.) Wünsche'],
