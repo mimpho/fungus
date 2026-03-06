@@ -84,8 +84,12 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v3.1 | ✅ | Frontend Vite — meteo real, catálogo mock, modales, mapa |
 | v4.1 | ✅ | Backend meteo: FastAPI + OI + Open-Meteo server-side |
 | v4.2 | ✅ | Catálogo en DB: seed + endpoints especies/zonas |
-| v4.4 | ✅ | Weather cache BD + integración frontend completa |
-| v4.x | 🗂 Backlog | Auth/social, app móvil, imágenes reales |
+| v4.3 | ✅ | Integración frontend completa: mock → API, weather cache |
+| v4.4 | ✅ | Weather cache BD server-side + deploy producción |
+| v4.5 | 🗂 Backlog | Auditoría mock → API: cierre de imports residuales |
+| v4.6 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos |
+| v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) |
+| v5.1 | 🗂 Backlog | App móvil iOS |
 
 Backlog detallado: `memory/pending.md`
 

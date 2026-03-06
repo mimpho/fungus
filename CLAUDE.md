@@ -410,9 +410,12 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v3.x | 🗂 Backlog | Mejoras frontend (ver `memory/pending.md`) — sin prioridad activa |
 | v4.1 | ✅ Entregado | Backend meteo: FastAPI + OI + Open-Meteo server-side · desplegado en producción |
 | v4.2 | ✅ Entregado | Catálogo en DB: seed script + endpoints especies + description en zonas |
-| v4.3 | ✅ Entregado | Integración frontend → API (zonas + especies + ZoneModal desde backend) |
-| **v4.4** | 🚧 Pendiente merge | Weather cache: temp min/max, rainfall, dryDays desde backend · epic lista, merge a main pendiente |
-| v5.x | 🗂 Backlog | Auth + social: JWT, favoritos en BD, avistamientos comunitarios |
+| v4.3 | ✅ Entregado | Integración frontend completa: mock → API, weather cache, useApiZoneConditions |
+| v4.4 | ✅ Entregado | Weather cache BD server-side + deploy producción |
+| **v4.5** | 🗂 Backlog | Auditoría mock → API: cierre de imports residuales en frontend |
+| v4.6 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos comunitarios |
+| v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
+| v5.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
 
 Spec completa de v4.x: `docs/backend_architecture.md`
 
@@ -461,6 +464,19 @@ Todo lo anterior, más:
 ### Lo que **no** hace falta actualizar en cada cambio
 - `memory/pending.md` — solo cuando cambia la cola de tareas activa
 - `docs/conventions.md` — solo cuando cambia cómo trabajamos, no qué construimos
+
+### Responsabilidad única de cada archivo de documentación
+
+Cada archivo tiene un rol exclusivo para evitar redundancia:
+
+| Archivo | Responsabilidad | Regla |
+|---|---|---|
+| `CHANGELOG.md` | Historial completo de cambios | Nunca se borra. Todo lo que ocurrió vive aquí. |
+| `memory/pending.md` | Cola activa: "próximo" y "backlog" | Los ítems completados se **eliminan** — no se archivan aquí. |
+| `CLAUDE.md` → Roadmap | Tabla de referencia rápida por versión | Solo estado (✅ / 🚧 / 🗂), sin detalle de tareas. |
+| `README.md` | Vista pública del proyecto | Roadmap resumido, stack, URLs de deploy. Sin detalle interno. |
+
+**Cuando se cierra una tarea**: añadir entrada al `CHANGELOG.md` y eliminar el ítem de `pending.md`. No copiar el detalle entre archivos.
 
 ---
 

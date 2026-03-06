@@ -1,98 +1,47 @@
 # Tareas Pendientes y Revisiones Abiertas
 
----
-
-## 🚧 En curso — Cierre v4.4 (epic: `epic/v4-4-weather-cache`)
-
-### ⏳ Merge epic → main + tag
-- Merge `epic/v4-4-weather-cache` → `main` con `--no-ff`
-- Tag `v4.4.0`
-- Verificar que Render sigue apuntando a `main` (o cambiar si procede)
-
-### ⏳ CHANGELOG — cerrar bloque v4.4
-Mover Unreleased a `[4.4.0]` consolidando todo el trabajo de la epic.
+Los ítems completados se eliminan de este archivo — el historial vive en `CHANGELOG.md`.
 
 ---
 
-## ✅ Completado — v4.4 Weather Cache (epic/v4-4-weather-cache, 2026-03-06)
+## 🗂 Próximo — v4.5 Auditoría mock → API
 
-### v4.4.1 — WeatherCache model + skeleton
-- Modelo `WeatherCache`, migración 003, skeleton de servicio y endpoints
+Verificar que ningún componente del frontend importe datos de `src/data/` directamente en producción. Cerrar cualquier import mock residual conectándolo al backend.
 
-### v4.4.2 — Servicio + integración frontend
-- `fetch_weather_for_zone()` — fetch Open-Meteo con rango temp diario (min/max)
-- `store_weather_cache()` + `get_latest_weather()` — caché BD con TTL 3h
-- `GET /weather/zones/{id}` y `GET /weather/zones` — endpoints cache-first
-- `GET /zones` enriquecido con weather embebido (`ZoneWeather` en `ZoneListItem`)
-- Auto-migrate al arrancar: `await asyncio.to_thread(_run_db_migrations)`
-- CORS con `allow_origin_regex` para preview URLs dinámicas de Vercel
-- `VITE_API_BASE` configurable via env var en frontend
-- `GET /admin/trigger-backfill?days=N` — backfill sin shell (Render free tier)
-- Fix: `dryDays` leía de `weather_cache` en vez de `score_detail.days_since_rain`
-- Fix: float precision helpers `r1`/`r0` en normalizeScore y useApiZoneConditions
+Alcance:
+- Auditar todos los componentes y páginas buscando imports de `mockZones`, `mockSpecies`, `mockFamilies`, `mockOpportunities`, `mockArticles`
+- Los que sean fallback explícito: documentar y mantener
+- Los que sean datos de producción: reemplazar por llamada a la API
+- Verificar que `useZones` y `useSpecies` sean los únicos puntos de entrada de datos de catálogo
 
 ---
 
-## ✅ Completado — v4.3 Integración frontend → API
+## 🗂 Backlog — v4.6 Auth/social
 
-- `useZones` hook: consume `/api/v1/zones` (scores OI cacheados, sin 429s)
-- `useSpecies` hook: consume `/api/v1/species` con paginación cursor
-- `SpeciesModal`: lazy-load de detalle completo (`_partial=true`)
-- Fallback a mock data si el backend no responde
-- `ZoneModal`: usa `useApiZoneConditions` (score OI + weather desde backend)
+JWT, favoritos reales en BD, avistamientos comunitarios. Sin rama activa todavía.
 
----
-
-## ✅ Completado — Nuevo artículo: Recicladores (2026-03-03)
-- Añadido artículo "Los recicladores del bosque" en `src/articles/Recicladores.jsx`
+Alcance previsto:
+- Auth: JWT (login/registro), middleware de protección de rutas
+- Favoritos: zonas y especies en BD por usuario (reemplaza localStorage)
+- Avistamientos: `POST /api/v1/sightings` — foto, zona, especie, fecha, usuario
 
 ---
 
-## ✅ Completado — v4.2.0 (2026-03-02)
-1. ✅ `HEAD /api/v1/health` — probe sin DB query (UptimeRobot)
-2. ✅ Seed script — 200 zonas, 201 especies en Supabase
-3. ✅ `GET /api/v1/species` y `GET /api/v1/species/{id}`
-4. ✅ Zonas con campo `description` (migración 002)
-
----
-
-## ✅ Completado — Deploy v4.1.0 en producción (2026-03-02)
-- **API**: `https://fungus-api.onrender.com` (Render free tier)
-- **BD**: Supabase PostgreSQL + PostGIS (Ireland)
-- **Merge**: `epic/v4-backend` → `main` con `--no-ff`, tag `v4.1.0`
-- **Keep-alive**: UptimeRobot monitor activo en `/api/v1/health`
-
----
-
-## 🟡 Backlog — Próximas fases (sin prioridad activa)
-
-### Auth + social (bloque independiente — v5.x o posterior)
-Bloque de desarrollo propio, mayor envergadura que las fases anteriores.
-- JWT / autenticación de usuarios
-- Favoritos y seguimiento de zonas persistidos en BD (actualmente en localStorage)
-- Avistamientos comunitarios — registro de hallazgos por usuarios
-
-### Temperatura del suelo en weather_cache
-`soilTemp` es siempre `null` en el frontend — el backend no la recoge actualmente.
-- Añadir `soil_temp` a tabla `weather_cache` (migración 004)
-- Actualizar `fetch_weather_for_zone()`: leer `hourly.soil_temperature_0cm`
-- Actualizar schema `ZoneWeather` y normalizeScore/useApiZoneConditions
-- ⚠️ `soil_temperature_0cm` solo existe en `hourly`, nunca en `current` (ver gotchas.md)
-
-### Meteocat API para zonas catalanas
-Requiere API key. Híbrido: Meteocat para catalanas, Open-Meteo para el resto.
-Enchufar en `_get_connector()` de `ingest.py`.
+## 🟡 Backlog — v3.x (sin prioridad activa)
 
 ### Revisión general del catálogo de especies
-- Verificar `forestTypes` y `fruitingMonths` para todas las especies
-- Añadir especies representativas que falten por tipo de bosque
+- Verificar que `forestTypes` y `fruitingMonths` sean correctos para todas las especies
+- Añadir más especies representativas de cada tipo de bosque
 - Valorar tipos adicionales: abetosas, coníferas mixtas, etc.
 
 ### Zonas sin especies en temporada
-Si no hay especies que coincidan con zona/mes, considerar penalización por "zona sin interés micológico este mes".
+Si no hay especies que coincidan con una zona/mes, el score meteorológico queda sin ajustar. Considerar penalización por "zona sin interés micológico este mes".
 
-### `speciesScore` en UI de ZoneModal
-El campo SQS se calcula en conditions pero no se muestra. Útil como indicador adicional.
+### `speciesScore` en ZoneModal
+El campo `speciesScore` (SQS) se calcula pero no se muestra en la UI. Candidato a indicador adicional en la ficha de zona.
+
+### Meteocat API para zonas catalanas
+Requiere API key. Híbrido: Meteocat para zonas catalanas, Open-Meteo para el resto.
 
 ### Zonas personalizadas
 Permitir al usuario añadir y guardar puntos propios en el mapa.
