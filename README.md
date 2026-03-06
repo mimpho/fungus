@@ -86,7 +86,8 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v4.2 | ✅ | Catálogo en DB: seed + endpoints especies/zonas |
 | v4.3 | ✅ | Integración frontend completa: mock → API, weather cache |
 | v4.4 | ✅ | Weather cache BD server-side + deploy producción |
-| v4.5 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos |
+| v4.5 | 🗂 Backlog | Auditoría mock → API: cierre de imports residuales |
+| v4.6 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos |
 | v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) |
 | v5.1 | 🗂 Backlog | App móvil iOS |
 
