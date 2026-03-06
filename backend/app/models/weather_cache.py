@@ -1,3 +1,4 @@
+from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Float, String
@@ -20,7 +21,7 @@ class WeatherCache(Base):
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     valid_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    zone: Mapped["WeatherCache | None"] = relationship("Zone", back_populates="weather_cache")
+    zone = relationship("Zone", back_populates="weather_cache")
 
     def __repr__(self) -> str:
         return f"<WeatherCache zone_id={self.zone_id!r} provider_id={self.provider_id!r}>" 
