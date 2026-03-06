@@ -160,8 +160,10 @@ async def _startup_weather_warmup() -> None:
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     log.info("Starting Fungus API v4 (environment: %s)", settings.environment)
 
-    # 1. Apply pending DB migrations before serving any traffic
-    _run_db_migrations()
+    # 1. Apply pending DB migrations before serving any traffic.
+    # Run in a worker thread so that env.py's asyncio.run() does not clash
+    # with the already-running FastAPI event loop (would raise RuntimeError).
+    await asyncio.to_thread(_run_db_migrations)
 
     # Register daily cron: 05:00 UTC → 07:00 Madrid
     scheduler.add_job(
