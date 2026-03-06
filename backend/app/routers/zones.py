@@ -1,5 +1,6 @@
 """Zone routes: list, detail, and map scores."""
 import logging
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -8,8 +9,9 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.scores_cache import ScoresCache
+from app.models.weather_cache import WeatherCache
 from app.models.zone import Zone
-from app.schemas.zone import MapPoint, ScoreDetail, ZoneDetail, ZoneListItem, ZoneScore
+from app.schemas.zone import MapPoint, ScoreDetail, ZoneDetail, ZoneListItem, ZoneScore, ZoneWeather
 from app.services.scoring import score_label
 
 log = logging.getLogger(__name__)
@@ -17,6 +19,28 @@ router = APIRouter(prefix="/zones", tags=["Zones"])
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _build_zone_weather(caches: list[WeatherCache]) -> ZoneWeather | None:
+    """Pick the valid open-meteo cache entry and return a ZoneWeather schema."""
+    now = datetime.now(UTC)
+    for c in caches:
+        if c.provider_id != "open-meteo":
+            continue
+        valid_until = c.valid_until
+        if valid_until.tzinfo is None:
+            valid_until = valid_until.replace(tzinfo=UTC)
+        if valid_until < now:
+            continue  # expired
+        return ZoneWeather(
+            temp_min=c.temp_min,
+            temp_max=c.temp_max,
+            humidity=c.humidity,
+            rainfall14d=c.rainfall14d,
+            wind=c.wind,
+            collected_at=c.collected_at,
+        )
+    return None
+
 
 def _build_zone_score(cache: ScoresCache | None) -> ZoneScore | None:
     if cache is None:
@@ -56,7 +80,7 @@ async def list_zones(
     """
     stmt = (
         select(Zone)
-        .options(selectinload(Zone.score_cache))
+        .options(selectinload(Zone.score_cache), selectinload(Zone.weather_cache))
         .where(Zone.active == True)  # noqa: E712
         .order_by(Zone.name)
     )
@@ -85,6 +109,7 @@ async def list_zones(
                 forest_type=z.forest_type,
                 description=z.description,
                 score=score,
+                weather=_build_zone_weather(z.weather_cache),
             )
         )
 

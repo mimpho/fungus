@@ -8,6 +8,7 @@
 // =====================================================
 import { useState, useEffect } from 'react'
 import { fetchAllZoneConditions, fetchZoneConditions, getCacheTimestamp } from '../services/weatherService'
+import { fetchZone, fetchZoneWeather } from '../services/apiService'
 import { fakeConditions, applySpeciesModifier } from '../lib/helpers'
 import { useSpecies } from './useSpecies'
 
@@ -110,4 +111,76 @@ export function useZoneConditions(zone) {
   // sería excesivo aquí.
 
   return { conditions, loading, error, updatedAt }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// useApiZoneConditions — para ZoneModal (una zona, vía backend)
+//
+// Llama en paralelo:
+//   GET /api/v1/zones/{id}          → OI score + breakdown
+//   GET /api/v1/weather/zones/{id}  → weather cacheado (temp_min/max, humidity…)
+//
+// Caché de promesas en vuelo (_apiZonePromises) para evitar dobles fetches
+// en React StrictMode (que monta/desmonta efectos dos veces en desarrollo).
+//
+// Devuelve un conditions compatible con el shape esperado por ZoneModal.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Caché de promesas en vuelo: zone_id → Promise<conditions>
+// Evita doble fetch en React StrictMode sin necesidad de useRef guards.
+const _apiZonePromises = {}
+
+export function useApiZoneConditions(zone) {
+  const [conditions, setConditions] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!zone?.id) return
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+
+    // Reutilizar promesa en vuelo si existe (evita doble fetch en StrictMode)
+    if (!_apiZonePromises[zone.id]) {
+      _apiZonePromises[zone.id] = Promise.allSettled([
+        fetchZone(zone.id),
+        fetchZoneWeather(zone.id),
+      ]).finally(() => {
+        // Limpiar caché cuando la promesa se resuelva para permitir re-fetch futuro
+        delete _apiZonePromises[zone.id]
+      })
+    }
+
+    _apiZonePromises[zone.id].then(([scoreResult, weatherResult]) => {
+      if (cancelled) return
+
+      const apiZone            = scoreResult.status  === 'fulfilled' ? scoreResult.value  : null
+      const apiWeatherEnvelope = weatherResult.status === 'fulfilled' ? weatherResult.value : null
+      const w = apiWeatherEnvelope?.weather ?? {}
+
+      // Helpers de redondeo (los mismos que en normalizeScore)
+      const r1 = v => v != null ? Math.round(v * 10) / 10 : null
+      const r0 = v => v != null ? Math.round(v) : null
+
+      setConditions({
+        overallScore: apiZone?.score?.score_oi ?? 0,
+        tempMin:      r1(w.temp_min),
+        tempMax:      r1(w.temp_max),
+        soilTemp:     null,             // no en backend (pendiente: añadir a weather_cache)
+        rainfall14d:  r1(w.rainfall14d ?? null),
+        humidity:     r0(w.humidity),
+        wind:         r0(w.wind),
+        dryDays:      apiZone?.score?.score_detail?.days_since_rain ?? null,  // desde OI score_detail
+        _source:      'api',
+        _label:       apiZone?.score?.label ?? null,
+        _collectedAt: w.collected_at ?? null,
+      })
+      setLoading(false)
+    })
+
+    return () => { cancelled = true }
+  }, [zone?.id])
+
+  return { conditions, loading, error }
 }
