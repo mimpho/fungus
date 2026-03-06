@@ -176,23 +176,25 @@ export default function Zones() {
             })}
           </div>
         </div>
-        <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">Ordenar por</p>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setZoneSort('score')}
-              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'score' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-              🌡️ Mejor condición
-            </button>
-            <button onClick={() => setZoneSort('alfa')}
-              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'alfa' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-              A–Z Nombre
-            </button>
-            <button onClick={() => setZoneSort('elevation')}
-              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'elevation' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-              🏔️ Altitud
-            </button>
+        {tab === 'listado' && (
+          <div className="mb-5">
+            <p className="text-muted text-xs uppercase tracking-wider mb-3">Ordenar por</p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setZoneSort('score')}
+                className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'score' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+                🌡️ Mejor condición
+              </button>
+              <button onClick={() => setZoneSort('alfa')}
+                className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'alfa' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+                A–Z Nombre
+              </button>
+              <button onClick={() => setZoneSort('elevation')}
+                className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'elevation' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+                🏔️ Altitud
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         <div className="sm:flex sm:justify-end">
           <button onClick={() => setPillOpen(false)}
             className="w-full sm:w-auto sm:px-6 py-3 bg-bar text-white rounded-xl font-medium hover:bg-[#a0855a] transition-colors">
