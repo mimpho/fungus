@@ -10,6 +10,7 @@
 | Code — log messages | English | `log.info("Ingest complete: %s", summary)` |
 | Git — branch names | English | `epic/v4-backend`, `feat/add-aemet-connector` |
 | Git — commit messages | English | `feat(ingest): add Open-Meteo daily connector` |
+| Git — tag messages | English | `v4.4.0: weather cache + frontend integration complete` |
 | Git — PR titles/descriptions | English | |
 | DB — table names | English | `zones`, `climate_history`, `scores_cache` |
 | DB — column names | English | `zone_id`, `precipitation_mm`, `forest_type` |
