@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def fetch_weather_for_zone(zone_id: str) -> dict | None:
     return None
 def store_weather_cache(
