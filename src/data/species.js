@@ -5052,6 +5052,7 @@ const SPECIES_SYNONYMS = {
   'Neoboletus luridiformis':    ['Boletus luridiformis Rostk.', 'Boletus erythropus auct. (en parte)', 'Boletus discolor Quél.'],
   'Paxillus involutus':         ['Agaricus involutus Batsch', 'Omphalia involuta (Batsch) Gray'],
   'Aureoboletus gentilis':      ['Boletus gentilis Quél.', 'Pulveroboletus gentilis (Quél.) Singer'],
+  'Butyriboletus regius':       ['Boletus regius Krombh.', 'Tubiporus regius (Krombh.) Rauschert'],
   'Tapinella atrotomentosa':    ['Paxillus atrotomentosus (Batsch) Fr.', 'Agaricus atrotomentosus Batsch'],
   // — Russulaceae —
   'Russula virescens':          ['Agaricus virescens Schaeff.', 'Krombholzia virescens (Schaeff.) Ricken'],
