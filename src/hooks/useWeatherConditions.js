@@ -155,11 +155,11 @@ export function useApiZoneConditions(zone) {
         overallScore: apiZone?.score?.score_oi ?? 0,
         tempMin:      r1(w.temp_min),
         tempMax:      r1(w.temp_max),
-        soilTemp:     null,             // no en backend
+        soilTemp:     null,             // no en backend (pendiente: añadir a weather_cache)
         rainfall14d:  r1(w.rainfall14d ?? null),
         humidity:     r0(w.humidity),
         wind:         r0(w.wind),
-        dryDays:      null,             // no en weather_cache aún
+        dryDays:      apiZone?.score?.score_detail?.days_since_rain ?? null,  // desde OI score_detail
         _source:      'api',
         _label:       apiZone?.score?.label ?? null,
         _collectedAt: w.collected_at ?? null,
