@@ -74,14 +74,18 @@ export function normalizeScore(apiScore, apiWeather = null) {
   const d = apiScore.score_detail ?? {}
   const w = apiWeather ?? {}
 
+  // Helpers de redondeo para evitar 1.7999999999999998 de floats del backend
+  const r1 = v => v != null ? Math.round(v * 10) / 10 : null  // 1 decimal
+  const r0 = v => v != null ? Math.round(v) : null             // entero
+
   return {
     overallScore: apiScore.score_oi,
-    tempMin:      w.temp_min  ?? null,   // rango diario forecast (min °C)
-    tempMax:      w.temp_max  ?? null,   // rango diario forecast (max °C)
+    tempMin:      r1(w.temp_min),    // rango diario forecast (min °C)
+    tempMax:      r1(w.temp_max),    // rango diario forecast (max °C)
     soilTemp:     null,
-    rainfall14d:  w.rainfall14d ?? d.pa21_mm ?? null,  // weather real > pa21 approx
-    humidity:     w.humidity  ?? null,
-    wind:         w.wind      ?? null,
+    rainfall14d:  r1(w.rainfall14d ?? d.pa21_mm ?? null),  // weather real > pa21 approx
+    humidity:     r0(w.humidity),
+    wind:         r0(w.wind),
     dryDays:      d.days_since_rain ?? null,
     scores: {
       precipitacion: d.pa21     ?? null,
@@ -140,10 +144,12 @@ export async function fetchZone(zoneId) {
  *
  * Devuelve: { zone_id, provider, weather: { temp_min, temp_max, humidity,
  *   rainfall14d, wind, collected_at, valid_until }, cached }
- * Lanza si 404 o 502.
+ * Devuelve null si 404 (zona sin weather aún) o 502 (API externa no disponible).
+ * Lanza solo en errores inesperados (5xx ≠ 502, 4xx ≠ 404).
  */
 export async function fetchZoneWeather(zoneId) {
   const res = await fetch(`${API_BASE}/weather/zones/${zoneId}`)
+  if (res.status === 404 || res.status === 502) return null  // sin datos — degradación elegante
   if (!res.ok) throw new Error(`API /weather/zones/${zoneId} error ${res.status}`)
   return res.json()
 }

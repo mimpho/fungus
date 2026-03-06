@@ -108,8 +108,15 @@ export function useZoneConditions(zone) {
 //   GET /api/v1/zones/{id}          → OI score + breakdown
 //   GET /api/v1/weather/zones/{id}  → weather cacheado (temp_min/max, humidity…)
 //
+// Caché de promesas en vuelo (_apiZonePromises) para evitar dobles fetches
+// en React StrictMode (que monta/desmonta efectos dos veces en desarrollo).
+//
 // Devuelve un conditions compatible con el shape esperado por ZoneModal.
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Caché de promesas en vuelo: zone_id → Promise<conditions>
+// Evita doble fetch en React StrictMode sin necesidad de useRef guards.
+const _apiZonePromises = {}
 
 export function useApiZoneConditions(zone) {
   const [conditions, setConditions] = useState(null)
@@ -122,27 +129,37 @@ export function useApiZoneConditions(zone) {
     setLoading(true)
     setError(null)
 
-    Promise.allSettled([
-      fetchZone(zone.id),
-      fetchZoneWeather(zone.id),
-    ]).then(([scoreResult, weatherResult]) => {
+    // Reutilizar promesa en vuelo si existe (evita doble fetch en StrictMode)
+    if (!_apiZonePromises[zone.id]) {
+      _apiZonePromises[zone.id] = Promise.allSettled([
+        fetchZone(zone.id),
+        fetchZoneWeather(zone.id),
+      ]).finally(() => {
+        // Limpiar caché cuando la promesa se resuelva para permitir re-fetch futuro
+        delete _apiZonePromises[zone.id]
+      })
+    }
+
+    _apiZonePromises[zone.id].then(([scoreResult, weatherResult]) => {
       if (cancelled) return
 
-      const apiZone  = scoreResult.status  === 'fulfilled' ? scoreResult.value  : null
+      const apiZone            = scoreResult.status  === 'fulfilled' ? scoreResult.value  : null
       const apiWeatherEnvelope = weatherResult.status === 'fulfilled' ? weatherResult.value : null
       const w = apiWeatherEnvelope?.weather ?? {}
 
-      const overallScore = apiZone?.score?.score_oi ?? 0
+      // Helpers de redondeo (los mismos que en normalizeScore)
+      const r1 = v => v != null ? Math.round(v * 10) / 10 : null
+      const r0 = v => v != null ? Math.round(v) : null
 
       setConditions({
-        overallScore,
-        tempMin:     w.temp_min    ?? null,
-        tempMax:     w.temp_max    ?? null,
-        soilTemp:    null,             // no en backend
-        rainfall14d: w.rainfall14d ?? null,
-        humidity:    w.humidity    ?? null,
-        wind:        w.wind        ?? null,
-        dryDays:     null,             // no en weather_cache aún
+        overallScore: apiZone?.score?.score_oi ?? 0,
+        tempMin:      r1(w.temp_min),
+        tempMax:      r1(w.temp_max),
+        soilTemp:     null,             // no en backend
+        rainfall14d:  r1(w.rainfall14d ?? null),
+        humidity:     r0(w.humidity),
+        wind:         r0(w.wind),
+        dryDays:      null,             // no en weather_cache aún
         _source:      'api',
         _label:       apiZone?.score?.label ?? null,
         _collectedAt: w.collected_at ?? null,
