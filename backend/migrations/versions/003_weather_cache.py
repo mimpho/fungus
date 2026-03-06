@@ -20,10 +20,13 @@ def upgrade() -> None:
         "weather_cache",
         sa.Column("zone_id", sa.String(), nullable=False),
         sa.Column("provider_id", sa.String(), nullable=False),
-        sa.Column("temperature", sa.Float(), nullable=True),
+        # Daily temperature range from today's forecast — shown as "5–12°C"
+        sa.Column("temp_min", sa.Float(), nullable=True),
+        sa.Column("temp_max", sa.Float(), nullable=True),
         sa.Column("humidity", sa.Float(), nullable=True),
         sa.Column("rainfall14d", sa.Float(), nullable=True),
         sa.Column("wind", sa.Float(), nullable=True),
+        # Timestamp of the actual Open-Meteo API call (not cache-read time)
         sa.Column("collected_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("valid_until", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["zone_id"], ["zones.id"], ondelete="CASCADE"),

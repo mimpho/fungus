@@ -12,12 +12,24 @@ DEFAULT_PROVIDER = "open-meteo"
 
 
 async def fetch_weather_for_zone(lat: float, lon: float) -> dict | None:
+    """
+    Fetch current weather from Open-Meteo for a single zone.
+
+    Returns a dict with:
+      - temp_min / temp_max: today's forecasted daily range (°C)
+      - humidity: current relative humidity (%)
+      - rainfall14d: accumulated precipitation over past 14 days (mm)
+      - wind: current wind speed (km/h)
+      - dry_days: days with <1mm precipitation in the last 7 days
+      - collected_at: UTC datetime of this API call
+    """
     params = {
         "latitude": f"{lat:.4f}",
         "longitude": f"{lon:.4f}",
-        "current": "temperature_2m,relative_humidity_2m,wind_speed_10m",
+        "current": "relative_humidity_2m,wind_speed_10m",
         "hourly": "soil_temperature_0cm",
-        "daily": "precipitation_sum",
+        # temperature_2m_min/max -> today's daily forecast range
+        "daily": "precipitation_sum,temperature_2m_min,temperature_2m_max",
         "past_days": 14,
         "forecast_days": 1,
         "timezone": "Europe/Madrid",
@@ -31,31 +43,31 @@ async def fetch_weather_for_zone(lat: float, lon: float) -> dict | None:
 
         data = res.json()
         current = data.get("current", {})
-        hourly = data.get("hourly", {})
         daily = data.get("daily", {})
 
-        temp = current.get("temperature_2m") or 12.0
         humidity = current.get("relative_humidity_2m") or 75
         wind = current.get("wind_speed_10m") or 10
-
-        soil_arr = hourly.get("soil_temperature_0cm") or []
-        soil_raw = soil_arr[-1] if soil_arr else None
-        soil_temp = round(soil_raw, 1) if soil_raw is not None else round(max(0, temp - 2.5), 1)
 
         precip_arr = daily.get("precipitation_sum") or []
         past_14 = precip_arr[:14]
         rainfall_14d = round(sum(v or 0 for v in past_14), 1)
-
         recent_7 = precip_arr[-7:] if len(precip_arr) >= 7 else precip_arr
         dry_days = sum(1 for v in recent_7 if (v or 0) < 1)
 
+        # Daily min/max: last entry = today's forecast (index -1 of 15-day array)
+        temp_min_arr = daily.get("temperature_2m_min") or []
+        temp_max_arr = daily.get("temperature_2m_max") or []
+        temp_min = round(temp_min_arr[-1], 1) if temp_min_arr else None
+        temp_max = round(temp_max_arr[-1], 1) if temp_max_arr else None
+
         return {
-            "temperature": round(temp, 1),
-            "soil_temp": soil_temp,
-            "rainfall14d": rainfall_14d,
+            "temp_min": temp_min,
+            "temp_max": temp_max,
             "humidity": round(humidity),
             "wind": round(wind),
+            "rainfall14d": rainfall_14d,
             "dry_days": dry_days,
+            "collected_at": datetime.now(UTC),
         }
 
 
@@ -64,13 +76,13 @@ async def store_weather_cache(
     provider_id: str,
     data: dict | None,
     db: AsyncSession,
-    collected_at: datetime | None = None,
 ) -> WeatherCache | None:
     if data is None:
         return None
 
-    now = datetime.now(UTC)
-    valid_until = now + timedelta(hours=CACHE_TTL_HOURS)
+    # Use the timestamp from the fetch, not the time of DB write
+    collected_at = data.get("collected_at") or datetime.now(UTC)
+    valid_until = collected_at + timedelta(hours=CACHE_TTL_HOURS)
 
     stmt = select(WeatherCache).where(
         WeatherCache.zone_id == zone_id,
@@ -80,11 +92,12 @@ async def store_weather_cache(
     existing = result.scalar_one_or_none()
 
     if existing:
-        existing.temperature = data.get("temperature")
+        existing.temp_min = data.get("temp_min")
+        existing.temp_max = data.get("temp_max")
         existing.humidity = data.get("humidity")
         existing.rainfall14d = data.get("rainfall14d")
         existing.wind = data.get("wind")
-        existing.collected_at = collected_at or now
+        existing.collected_at = collected_at
         existing.valid_until = valid_until
         await db.commit()
         await db.refresh(existing)
@@ -93,11 +106,12 @@ async def store_weather_cache(
         cache = WeatherCache(
             zone_id=zone_id,
             provider_id=provider_id,
-            temperature=data.get("temperature"),
+            temp_min=data.get("temp_min"),
+            temp_max=data.get("temp_max"),
             humidity=data.get("humidity"),
             rainfall14d=data.get("rainfall14d"),
             wind=data.get("wind"),
-            collected_at=collected_at or now,
+            collected_at=collected_at,
             valid_until=valid_until,
         )
         db.add(cache)
@@ -111,6 +125,11 @@ async def get_latest_weather(
     provider_id: str,
     db: AsyncSession,
 ) -> dict | None:
+    """
+    Return cached weather for a zone if still valid (within TTL).
+    Returns None if no cache exists or cache has expired.
+    collected_at reflects when Open-Meteo was actually queried.
+    """
     now = datetime.now(UTC)
     stmt = select(WeatherCache).where(
         WeatherCache.zone_id == zone_id,
@@ -126,7 +145,8 @@ async def get_latest_weather(
         return None
 
     return {
-        "temperature": cache.temperature,
+        "temp_min": cache.temp_min,
+        "temp_max": cache.temp_max,
         "humidity": cache.humidity,
         "rainfall14d": cache.rainfall14d,
         "wind": cache.wind,
