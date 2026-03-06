@@ -14,6 +14,8 @@ Alcance:
 - Los que sean datos de producción: reemplazar por llamada a la API
 - Verificar que `useZones` y `useSpecies` sean los únicos puntos de entrada de datos de catálogo
 
+**Mejora técnica opcional dentro de v4.5:** introducir TanStack Query para reemplazar la caché manual de promesas en vuelo (`_apiZonePromises`, `_singlePromises`) y estandarizar estados loading/error en todos los hooks de datos. Dificultad baja, impacto UX alto. Evaluar durante la auditoría si el refactor de hooks lo justifica.
+
 ---
 
 ## 🗂 Backlog — v4.6 Auth/social
