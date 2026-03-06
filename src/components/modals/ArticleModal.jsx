@@ -2,7 +2,7 @@
 // Los artículos se registran en src/articles/*.jsx y se importan en Micologia.jsx
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { mockArticles } from '../../data/articles'
+import { mockArticles } from '../../data/articles' // MOCK PERMANENTE — artículos son contenido JSX estático, sin backend (v4.5)
 import { IC, getRGBAFromAsset } from '../../lib/helpers'
 import { MODAL } from '../../lib/constants'
 import { useApp } from '../../contexts/AppContext'

@@ -272,12 +272,38 @@ export async function fetchAllSpecies() {
  * Obtiene el detalle completo de una especie.
  * Llamado de forma lazy al abrir SpeciesModal.
  *
+ * Caché en memoria por ID: si el usuario abre la misma especie dos veces
+ * en la misma sesión, el segundo open es instantáneo (sin request).
+ * La promesa en vuelo también se comparte para evitar dobles fetches si
+ * el modal se abre antes de que acabe la primera llamada.
+ *
  * @param {string} speciesId
  * @returns {Promise<object>}  especie normalizada con todos los campos (cap, stem, photos…)
  */
+const _detailCache = new Map()    // speciesId → detalle normalizado
+const _detailPromises = new Map() // speciesId → promesa en vuelo
+
 export async function fetchSpeciesDetail(speciesId) {
-  const res = await fetch(`${API_BASE}/species/${speciesId}`)
-  if (!res.ok) throw new Error(`API /species/${speciesId} error ${res.status}`)
-  const data = await res.json()
-  return normalizeSpeciesDetail(data)
+  if (_detailCache.has(speciesId)) return _detailCache.get(speciesId)
+
+  if (!_detailPromises.has(speciesId)) {
+    const promise = fetch(`${API_BASE}/species/${speciesId}`)
+      .then(res => {
+        if (!res.ok) throw new Error(`API /species/${speciesId} error ${res.status}`)
+        return res.json()
+      })
+      .then(data => {
+        const detail = normalizeSpeciesDetail(data)
+        _detailCache.set(speciesId, detail)
+        _detailPromises.delete(speciesId)
+        return detail
+      })
+      .catch(err => {
+        _detailPromises.delete(speciesId)
+        throw err
+      })
+    _detailPromises.set(speciesId, promise)
+  }
+
+  return _detailPromises.get(speciesId)
 }
