@@ -33,9 +33,7 @@ class Zone(Base):
     )
 
     # Relationships
-    climate_history = relationship(
-        "ClimateHistory", back_populates="zone", cascade="all, delete-orphan"
-    )
+    climate_history = relationship("ClimateHistory", back_populates="zone", cascade="all, delete-orphan")
     score_cache = relationship("ScoresCache", back_populates="zone", uselist=False)
     weather_cache = relationship("WeatherCache", back_populates="zone", uselist=False)
 
