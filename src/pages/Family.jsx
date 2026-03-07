@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
-import { mockFamilies } from '../data/families'
+import { mockFamilies } from '../data/families' // MOCK PERMANENTE — sin endpoint de familias planificado (v4.5)
 import { slugify } from '../lib/helpers'
 // La página de familia muestra el catálogo de especies como fondo
 // y el ModalRenderer se encarga de abrir el FamilyModal encima.

@@ -17,6 +17,15 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.head("/health", tags=["System"], status_code=200)
+async def health_head() -> None:
+    """
+    Lightweight HEAD probe for UptimeRobot / load-balancer keep-alive.
+    Returns 200 with no body and no DB query.
+    """
+    return
+
+
 @router.get("/health", response_model=HealthResponse, tags=["System"])
 async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
     """

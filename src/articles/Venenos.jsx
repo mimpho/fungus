@@ -1,6 +1,6 @@
 // Venenos.jsx — contenido del artículo "Venenos del reino Fungi"
 // Se registra en ARTICLE_REGISTRY al importarse desde Micologia.jsx
-import { ARTICLE_REGISTRY, ArticleSection, ArticleP, ArticleCallout } from '../components/modals/ArticleModal'
+import { ARTICLE_REGISTRY, ArticleSection, ArticleP, ArticleCallout, Fig } from '../components/modals/ArticleModal'
 import { useApp } from '../contexts/AppContext'
 
 // ─── Galería ──────────────────────────────────────────────────────────────────
@@ -9,30 +9,6 @@ const FOTOS = [
   { url: '/assets/images/content/articles/venenos-amatoxinas.webp', caption: 'Fig. 2 — Representación de la infiltración de amatoxinas en células hepáticas. La toxina bloquea la ARN-polimerasa II impidiendo la síntesis de proteínas.' },
   { url: '/assets/images/content/articles/venenos-confusion.webp',  caption: 'Fig. 3 — Las confusiones más letales: Amanita phalloides (izq., verde pálido, volva) vs. Agaricus campestris (der., marrón, sin volva). La diferencia es de vida o muerte.' },
 ]
-
-// ─── Figura helper (igual patrón que Esporas) ─────────────────────────────────
-function Fig({ fotos, idx, height = 290, openLightbox }) {
-  return (
-    <figure className="m-0 my-4 relative cursor-pointer group" style={{ height }}
-      onClick={() => openLightbox(idx)}>
-      <div className="h-full rounded-xl overflow-hidden">
-        <img src={fotos[idx].url} alt={fotos[idx].caption}
-          className="w-full h-full object-cover opacity-90 transition-transform duration-300 group-hover:scale-[1.02]" />
-      </div>
-      <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }} />
-      <figcaption className="absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
-        <strong className="text-muted">Fig. {idx + 1}:</strong>{' '}
-        {fotos[idx].caption.replace(/^Fig\. \d+ — /, '')}
-      </figcaption>
-      <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/40 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-        </svg>
-      </div>
-    </figure>
-  )
-}
 
 // ─── Cuerpo ───────────────────────────────────────────────────────────────────
 function VenenosContent() {
@@ -77,13 +53,13 @@ function VenenosContent() {
           Las amatoxinas son bicíclicos octapéptidos con una estabilidad extraordinaria: resisten el calor, la congelación, el secado y los jugos gástricos. Se absorben íntegramente en el intestino delgado, circulan hasta el hígado y allí ejercen su acción bloqueando la ARN-polimerasa II, la enzima responsable de transcribir el ADN en ARNm. Sin síntesis de proteínas, la célula hepática muere.
         </ArticleP>
 
-        <Fig fotos={FOTOS} idx={0} height={300} openLightbox={openLightbox} />
+        <Fig fotos={FOTOS} idx={0} openLightbox={openLightbox} />
 
         <ArticleP>
           La intoxicación evoluciona en tres fases. La primera (6–24 h) es un período de latencia silencioso —la toxina actúa sin síntomas—. La segunda (24–72 h) produce gastroenteritis violenta con diarrea sanguinolenta y vómitos. La tercera fase, la más temida, es la citólisis hepática que puede conducir al fallo multiorgánico entre el día 4 y el día 8.
         </ArticleP>
 
-        <Fig fotos={FOTOS} idx={1} height={270} openLightbox={openLightbox} />
+        <Fig fotos={FOTOS} idx={1} openLightbox={openLightbox} />
 
         <ArticleCallout emoji="🏥" color="var(--color-coffee)">
           <strong>Tratamiento:</strong> No existe antídoto específico. El protocolo incluye silibinina intravenosa (extracto de cardo mariano), N-acetilcisteína y, en casos graves, trasplante hepático. La supervivencia depende casi exclusivamente de la rapidez del diagnóstico.
@@ -116,7 +92,7 @@ function VenenosContent() {
           La mayoría de intoxicaciones graves no ocurren por ignorancia total sino por una confusión concreta entre dos especies que se parecen. Los errores más frecuentes en España:
         </ArticleP>
 
-        <Fig fotos={FOTOS} idx={2} height={290} openLightbox={openLightbox} />
+        <Fig fotos={FOTOS} idx={2} openLightbox={openLightbox} />
 
         <ul className="space-y-2 my-4 pl-1">
           {[
@@ -158,4 +134,4 @@ function VenenosContent() {
 }
 
 // ─── Registro ─────────────────────────────────────────────────────────────────
-ARTICLE_REGISTRY['toxinas'] = VenenosContent
+ARTICLE_REGISTRY['venenos'] = VenenosContent

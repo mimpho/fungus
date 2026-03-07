@@ -4,11 +4,11 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v3.1.0 frontend / v4.1.0 backend (en desarrollo en `epic/v4-backend`)
-**Estado frontend**: Prototipo funcional — datos meteorológicos reales via Open-Meteo, catálogo de datos mock (28 zonas, 27 especies, 8 familias), sin backend propio. Modales con URL slugs y navegación browser-native (back/ESC).
-**Estado backend**: Scaffold completo (FastAPI + SQLAlchemy + Alembic). v4.1 en desarrollo: ingesta Open-Meteo server-side + Outbreak Index + API endpoints.
-**Deploy frontend**: Vercel → `fungus-git-feat-vite-migration-mimphos-projects.vercel.app`
-**Deploy backend (objetivo)**: Render (API) + Supabase (PostgreSQL + PostGIS)
+**Versión actual**: v3.1.0 frontend / v4.4.0 backend
+**Estado frontend**: Integrado con backend. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable.
+**Estado backend**: v4.4.0 en `epic/v4-4-weather-cache`, pendiente merge a `main`. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. 200 zonas + 201 especies en Supabase.
+**Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
+**Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 **Backend spec**: `docs/backend_architecture.md` — FastAPI + PostgreSQL + PostGIS (v4.x)
 **Convenciones**: `docs/conventions.md` — idiomas, versionado, git branching, commit format
 
@@ -386,6 +386,19 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 12. **Patrón ESC + Lightbox** — modales con lightbox deben desregistrar su listener de ESC mientras el lightbox está abierto. El efecto debe depender de `[lightbox]`. Ver `memory/decisions.md`.
 13. **`resolveUrl()`** — usar siempre en `<img src>` de assets en modales y artículos. Las rutas relativas se rompen en URLs anidadas como `/especies/boletus-edulis`.
 14. **`GallerySection`** en `SpeciesModal` — componente propio con `useState(errored)`. Se oculta cuando todas las imágenes han fallado (404). No usar `SpeciesImg` en galería, usar `<img>` plano con `onError`.
+15. **Revisar archivos de tracking** — al trabajar en algo relacionado con `memory/pending.md`, `memory/decisions.md` o `CHANGELOG.md`, revisarlos y actualizarlos si es necesario.
+
+---
+
+## Archivos de Tracking
+
+| Archivo | Propósito |
+|---|---|
+| `memory/pending.md` | Cola de tareas y backlog |
+| `memory/decisions.md` | Decisiones arquitectónicas |
+| `memory/scoring.md` | Detalles del algoritmo de scoring |
+| `memory/gotchas.md` | Errores conocidos y workarounds |
+| `CHANGELOG.md` | Historial de versiones |
 
 ---
 
@@ -395,9 +408,14 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 |---|---|---|
 | v3.1 | ✅ Entregado | Frontend Vite completo — meteo real, catálogo mock, modales, mapa |
 | v3.x | 🗂 Backlog | Mejoras frontend (ver `memory/pending.md`) — sin prioridad activa |
-| **v4.1** | 🚧 En curso | Backend meteo: FastAPI + OI + Open-Meteo server-side |
-| v4.2 | 📋 Planificado | Catálogo en DB: seed script + endpoints reemplazan mock data |
-| v4.3 | 📋 Planificado | Auth + social: JWT, favoritos reales, avistamientos comunitarios |
+| v4.1 | ✅ Entregado | Backend meteo: FastAPI + OI + Open-Meteo server-side · desplegado en producción |
+| v4.2 | ✅ Entregado | Catálogo en DB: seed script + endpoints especies + description en zonas |
+| v4.3 | ✅ Entregado | Integración frontend completa: mock → API, weather cache, useApiZoneConditions |
+| v4.4 | ✅ Entregado | Weather cache BD server-side + deploy producción |
+| v4.5 | ✅ Entregado | Auditoría mock → API: cierre de imports residuales en frontend |
+| v4.6 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos comunitarios |
+| v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
+| v5.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
 
 Spec completa de v4.x: `docs/backend_architecture.md`
 
@@ -411,7 +429,7 @@ Cuando Claude complete trabajo en este proyecto, debe actualizar los siguientes 
 
 | Archivo | Qué actualizar |
 |---|---|
-| `CHANGELOG.md` | Añadir entrada con los cambios, bajo el MINOR activo |
+| `CHANGELOG.md` | Añadir entrada en sección `[Unreleased]` (arriba del todo), bajo el tipo apropiado (### Añadido/Cambiado/Eliminado) |
 | `backend/pyproject.toml` | Bump de versión patch |
 | `CLAUDE.md` → Overview | Versión actual si ha cambiado |
 
@@ -423,6 +441,7 @@ Todo lo anterior, más:
 |---|---|
 | `CLAUDE.md` → Roadmap | Marcar la fase como ✅, actualizar la que pasa a "En curso" |
 | `CLAUDE.md` → Overview | Versión y estado del backend |
+| `README.md` | Versión, stack activo, instrucciones de arranque, deploy URLs |
 | `docs/conventions.md` | Phase map si se añaden fases nuevas |
 | `docs/backend_architecture.md` | Si el spec cambió durante la implementación |
 | Git | `git tag -a vX.Y.0` en `main` tras el merge del epic |
@@ -445,6 +464,19 @@ Todo lo anterior, más:
 ### Lo que **no** hace falta actualizar en cada cambio
 - `memory/pending.md` — solo cuando cambia la cola de tareas activa
 - `docs/conventions.md` — solo cuando cambia cómo trabajamos, no qué construimos
+
+### Responsabilidad única de cada archivo de documentación
+
+Cada archivo tiene un rol exclusivo para evitar redundancia:
+
+| Archivo | Responsabilidad | Regla |
+|---|---|---|
+| `CHANGELOG.md` | Historial completo de cambios | Nunca se borra. Todo lo que ocurrió vive aquí. |
+| `memory/pending.md` | Cola activa: "próximo" y "backlog" | Los ítems completados se **eliminan** — no se archivan aquí. |
+| `CLAUDE.md` → Roadmap | Tabla de referencia rápida por versión | Solo estado (✅ / 🚧 / 🗂), sin detalle de tareas. |
+| `README.md` | Vista pública del proyecto | Roadmap resumido, stack, URLs de deploy. Sin detalle interno. |
+
+**Cuando se cierra una tarea**: añadir entrada al `CHANGELOG.md` y eliminar el ítem de `pending.md`. No copiar el detalle entre archivos.
 
 ---
 

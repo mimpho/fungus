@@ -1,10 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
-import { mockZones } from '../data/zones'
 import { slugify } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
-import { useAllZoneConditions } from '../hooks/useWeatherConditions'
+import { useZones } from '../hooks/useZones'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
@@ -16,20 +15,24 @@ const RAIN_THRESHOLD = 30
 export default function Zones() {
   const { t, followedZones, toggleFollow, setSelectedZone } = useApp()
   const { id: zoneSlug } = useParams()
+  const [searchParams] = useSearchParams()
+
+  const { zones, conditionsMap, loading: weatherLoading } = useZones()
 
   // Sincronizar URL param → modal de zona
   useEffect(() => {
     if (zoneSlug) {
-      const zone = mockZones.find(z => slugify(z.name) === zoneSlug)
+      const zone = zones.find(z => slugify(z.name) === zoneSlug)
       setSelectedZone(zone || null)
     } else {
       setSelectedZone(null)
     }
     return () => setSelectedZone(null)
-  }, [zoneSlug])
+  }, [zoneSlug, zones])
 
-  const [tab, setTab]               = useState('mapa')
-  const [onlyFollowed, setOnlyFollowed] = useState(false)
+  // Initialize tab and onlyFollowed from URL params (set by Dashboard links)
+  const [tab, setTab]               = useState(() => searchParams.get('vista') === 'listado' ? 'listado' : 'mapa')
+  const [onlyFollowed, setOnlyFollowed] = useState(() => searchParams.get('seguidas') === '1')
   const [onlyRained, setOnlyRained] = useState(false)
   const [forestFilter, setForestFilter] = useState('')
   const [ccaaFilter, setCcaaFilter] = useState('')
@@ -37,14 +40,13 @@ export default function Zones() {
   const [pillOpen, setPillOpen]     = useState(false)
   const [mapMode, setMapMode]       = useState('markers')
   const [mapHeight, setMapHeight]   = useState('500px')
+  const [zoneSort, setZoneSort]     = useState('score')
   const aboveMapRef = useRef(null)
 
   const isFollowed = id => followedZones.some(z => z.id === id)
 
-  const { conditionsMap, loading: weatherLoading, progress: weatherProgress } = useAllZoneConditions(mockZones)
-
-  const forestTypes = useMemo(() => [...new Set(mockZones.map(z => z.forestType))].sort(), [])
-  const comunidades = useMemo(() => [...new Set(mockZones.map(z => z.comunidadAutonoma).filter(Boolean))].sort(), [])
+  const forestTypes = useMemo(() => [...new Set(zones.map(z => z.forestType))].sort(), [zones])
+  const comunidades = useMemo(() => [...new Set(zones.map(z => z.comunidadAutonoma).filter(Boolean))].sort(), [zones])
 
   // Calcula la altura disponible para el mapa (viewport − cabecera layout − contenido superior)
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function Zones() {
   }, [tab, pillOpen])
 
   const filteredZones = useMemo(() => {
-    let r = onlyFollowed ? mockZones.filter(z => isFollowed(z.id)) : [...mockZones]
+    let r = onlyFollowed ? zones.filter(z => isFollowed(z.id)) : [...zones]
     if (onlyRained) r = r.filter(z => parseFloat(conditionsMap[z.id]?.rainfall14d ?? 0) >= RAIN_THRESHOLD)
     if (forestFilter) r = r.filter(z => z.forestType === forestFilter)
     if (ccaaFilter) r = r.filter(z => z.comunidadAutonoma === ccaaFilter)
@@ -77,9 +79,11 @@ export default function Zones() {
       const q = searchQuery.toLowerCase()
       r = r.filter(z => z.name.toLowerCase().includes(q) || z.province.toLowerCase().includes(q) || (z.region || '').toLowerCase().includes(q))
     }
-    r.sort((a, b) => (conditionsMap[b.id]?.overallScore ?? 0) - (conditionsMap[a.id]?.overallScore ?? 0))
+    if (zoneSort === 'score') r.sort((a, b) => (conditionsMap[b.id]?.overallScore ?? 0) - (conditionsMap[a.id]?.overallScore ?? 0))
+    else if (zoneSort === 'alfa') r.sort((a, b) => a.name.localeCompare(b.name))
+    else if (zoneSort === 'elevation') r.sort((a, b) => b.elevation - a.elevation)
     return r
-  }, [onlyFollowed, onlyRained, forestFilter, ccaaFilter, searchQuery, followedZones, conditionsMap])
+  }, [onlyFollowed, onlyRained, forestFilter, ccaaFilter, searchQuery, zoneSort, followedZones, conditionsMap, zones])
 
   const activeFilters = (onlyFollowed ? 1 : 0) + (onlyRained ? 1 : 0) + (forestFilter ? 1 : 0) + (ccaaFilter ? 1 : 0)
 
@@ -93,11 +97,9 @@ export default function Zones() {
           <div>
             <h2 className="font-display text-4xl font-semibold text-cream">{t.zonas}</h2>
             <p className="text-muted text-sm mt-1">
-              {followedZones.length} {t.followedZones.toLowerCase()}
+              {filteredZones.length} zona{filteredZones.length !== 1 ? 's' : ''}
               {weatherLoading && (
-                <span className="ml-2 text-bar text-xs">
-                  · cargando datos meteorológicos {weatherProgress.done}/{weatherProgress.total}…
-                </span>
+                <span className="ml-2 text-bar text-xs">· cargando datos…</span>
               )}
             </p>
           </div>
@@ -176,6 +178,25 @@ export default function Zones() {
             })}
           </div>
         </div>
+        {tab === 'listado' && (
+          <div className="mb-5">
+            <p className="text-muted text-xs uppercase tracking-wider mb-3">Ordenar por</p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setZoneSort('score')}
+                className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'score' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+                🌡️ Mejor condición
+              </button>
+              <button onClick={() => setZoneSort('alfa')}
+                className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'alfa' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+                A–Z Nombre
+              </button>
+              <button onClick={() => setZoneSort('elevation')}
+                className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'elevation' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+                🏔️ Altitud
+              </button>
+            </div>
+          </div>
+        )}
         <div className="sm:flex sm:justify-end">
           <button onClick={() => setPillOpen(false)}
             className="w-full sm:w-auto sm:px-6 py-3 bg-bar text-white rounded-xl font-medium hover:bg-[#a0855a] transition-colors">

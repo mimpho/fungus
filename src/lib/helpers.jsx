@@ -433,10 +433,18 @@ export const CONFUSIONES_POR_FAMILIA = {
       diff: 'La única Cortinarius comestible habitual. Sombrero ocráceo-crema arrugado, láminas violáceas en joven, anillo membranoso persistente. Solo recoger con identificación segura.' },
     { name: 'Cortinarius violaceus', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
       diff: 'Todo violáceo oscuro, superficie del sombrero fibrillosa, esporada herrumbrosa. Comestible de calidad mediocre. Confundible con Cortinarius tóxicos; verificar siempre la esporada.' },
+    { name: 'Chroogomphus rutilus', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'Cama de perdiu: láminas GRUESAS y decurrentes (no finas y adnadas), esporada negra-grisácea, sin cortina aracnoide. Comparte hábitat de pinar y tonos ocre-anaranjados con C. orellanus. Distinguir siempre antes de recoger cualquier Cortinarius.' },
     { name: 'Cortinarius orellanus', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
-      diff: 'Sombrero ocre-anaranjado, láminas herrumbrosas, cortina aracnoide en jóvenes. Contiene orellanina, nefrotóxico con síntomas retardados 2–3 semanas. Nunca consumir Cortinarius sin certeza absoluta.' },
+      diff: 'Sombrero ocre-anaranjado, láminas herrumbrosas finas, cortina aracnoide en jóvenes. Contiene orellanina, nefrotóxico con síntomas retardados 2–3 semanas. Nunca consumir Cortinarius sin certeza absoluta.' },
     { name: 'Cortinarius rubellus', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
       diff: 'Sombrero cónico-umbonado canela-rojizo, cortina aracnoide. Contiene orellanina. Propia de abetales y hayedos húmedos.' },
+  ],
+  Gomphidiaceae: [
+    { name: 'Cortinarius orellanus', risk: 'mortal', icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400',
+      diff: 'MORTAL. Láminas finas y herrumbrosas (no gruesas y grises), cortina aracnoide en jóvenes, esporada ocre-herrumbrosa. Comparte pinar y coloración ocre-anaranjada con Chroogomphus. Clave: si las láminas son gruesas, grises y decurrentes → Chroogomphus; si son finas, herrumbrosas y adnadas → posible Cortinarius mortal.' },
+    { name: 'Gomphidius glutinosus', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
+      diff: 'Muy similar: píleo gris-parduzco viscoso, láminas decurrentes grises. Comestible. Se distingue de C. rutilus por tonos más grises y ausencia del color vinoso. Ambos son comestibles mediocres.' },
   ],
   Tricholomataceae: [
     { name: 'Tricholoma portentosum', risk: 'comestible', icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300',
@@ -567,3 +575,29 @@ export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
     </div>
   )
 }
+
+/**
+ * Convierte una variable CSS Hexadecimal a RGBA
+ * @param {string} variable - El nombre de la variable (ej: '--color-coffee')
+ * @param {number} alpha - Opacidad de 0 a 1
+ */
+export const getRGBAFromAsset = (variable, alpha) => {
+  if (typeof window === 'undefined') return ''; // Prevención para SSR
+
+  // 1. Obtener el valor de la variable del root (ej: "#6f4e37")
+  const rootStyle = getComputedStyle(document.documentElement);
+  let hex = rootStyle.getPropertyValue(variable).trim();
+
+  // Si la variable no existe o está vacía, devolvemos un fallback
+  if (!hex) return `rgba(0,0,0,${alpha})`;
+
+  // Limpiar el '#' si existe
+  hex = hex.replace('#', '');
+
+  // 2. Parsear a RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};

@@ -27,7 +27,7 @@ export const mockArticles = [
   },
   {
     id: 'art-003',
-    slug: 'toxinas',
+    slug: 'venenos',
     heroImage: '/assets/images/content/articles/venenos.webp',
     title: 'Venenos del reino Fungi',
     subtitle: 'Amatoxinas, muscarina y los mecanismos de las intoxicaciones fúngicas',
@@ -40,14 +40,15 @@ export const mockArticles = [
   },
   {
     id: 'art-004',
-    slug: 'descomponedores',
+    slug: 'recicladores',
+    heroImage: '/assets/images/content/articles/recicladores.webp',
     title: 'Los recicladores del bosque',
     subtitle: 'Por qué sin los hongos el planeta quedaría sepultado bajo madera muerta',
     summary: 'Los hongos saprófitos son los únicos organismos capaces de degradar la lignina estructural. Sin ellos, los ciclos de carbono y nitrógeno colapsan. Una mirada al papel invisible pero esencial de los hongos como ingenieros del ecosistema.',
     tags: ['ecología', 'descomposición', 'ciclos biogeoquímicos'],
     readingTime: 7,
-    date: null,
-    status: 'coming_soon',
+    date: '2026-03-03',
+    status: 'published',
     featured: false,
   },
   {

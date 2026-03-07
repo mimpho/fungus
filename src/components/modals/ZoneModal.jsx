@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
-import { mockSpecies } from '../../data/species'
-import { IC, EdibilityTag, getScoreColor } from '../../lib/helpers'
+import { IC, EdibilityTag, getScoreColor, resolveUrl } from '../../lib/helpers'
+import { useSpecies } from '../../hooks/useSpecies'
 import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
-import { useZoneConditions } from '../../hooks/useWeatherConditions'
+import { useApiZoneConditions } from '../../hooks/useWeatherConditions'
 
 const CAL_FILTERS = [
   { id: 'todas',      label: 'Todas',       emoji: '🍄' },
@@ -17,13 +17,14 @@ const CAL_FILTERS = [
 export function ZoneModal({ zone, onClose }) {
   const { t, followedZones, toggleFollow, setSelectedSpecies } = useApp()
   const isFollowed = followedZones.some(z => z.id === zone.id)
-  const zoneSpecies = mockSpecies.filter(e => e.forestTypes?.includes(zone.forestType))
-  const { conditions: weatherConditions, loading: weatherLoading, updatedAt } = useZoneConditions(zone)
+  const { species: allSpecies } = useSpecies()
+  const zoneSpecies = allSpecies.filter(e => e.forestTypes?.includes(zone.forestType))
+  const { conditions: weatherConditions, loading: weatherLoading } = useApiZoneConditions(zone)
   // Mientras carga, usar valores neutros para no romper el UI
-  const conditions = weatherConditions ?? { overallScore: 0, temperature: '–', soilTemp: '–', rainfall14d: '–', humidity: '–', wind: '–', dryDays: '–' }
+  const conditions = weatherConditions ?? { overallScore: 0, tempMin: null, tempMax: null, soilTemp: null, rainfall14d: null, humidity: null, wind: null, dryDays: null }
 
-  const updatedLabel = updatedAt
-    ? `Actualizado el ${new Date(updatedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} a las ${new Date(updatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
+  const updatedLabel = conditions._collectedAt
+    ? `Actualizado el ${new Date(conditions._collectedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} a las ${new Date(conditions._collectedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
     : 'Open-Meteo'
   const currentMonth = new Date().getMonth() + 1
   const sc = getScoreColor(conditions.overallScore)
@@ -146,12 +147,17 @@ export function ZoneModal({ zone, onClose }) {
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-3">
               {[
-                { icon: 'temperature', l: 'Temperatura', v: `${conditions.temperature}°C` },
-                { icon: 'soil-moisture', l: 'T. Suelo', v: `${conditions.soilTemp}°C` },
-                { icon: 'accumulated-precipitation', l: 'Precipit. 14d', v: `${conditions.rainfall14d}mm` },
-                { icon: 'humidity', l: 'Humedad', v: `${conditions.humidity}%` },
-                { icon: 'wind', l: 'Viento', v: `${conditions.wind}km/h` },
-                { icon: 'sunny', l: 'Sin lluvia', v: `${conditions.dryDays}d` },
+                {
+                  icon: 'temperature', l: 'Temperatura',
+                  v: conditions.tempMin != null && conditions.tempMax != null
+                    ? `${conditions.tempMin}–${conditions.tempMax}°C`
+                    : '–',
+                },
+                { icon: 'soil-moisture', l: 'T. Suelo', v: conditions.soilTemp != null ? `${conditions.soilTemp}°C` : '–' },
+                { icon: 'accumulated-precipitation', l: 'Precipit. 14d', v: conditions.rainfall14d != null ? `${conditions.rainfall14d}mm` : '–' },
+                { icon: 'humidity', l: 'Humedad', v: conditions.humidity != null ? `${conditions.humidity}%` : '–' },
+                { icon: 'wind', l: 'Viento', v: conditions.wind != null ? `${conditions.wind}km/h` : '–' },
+                { icon: 'sunny', l: 'Sin lluvia', v: conditions.dryDays != null ? `${conditions.dryDays}d` : '–' },
               ].map((c, i) => (
                 <div key={i} className="bg-white/[0.03] rounded-xl p-3 text-center">
                   <img className="m-auto mb-1" src={`/assets/images/icons/${c.icon}.png`} alt={c.l} height="36" width="36" />
@@ -178,7 +184,7 @@ export function ZoneModal({ zone, onClose }) {
                     <div key={e.id} onClick={() => setSelectedSpecies(e)}
                       className="flex items-center gap-3 bg-white/[0.03] rounded-xl p-3 hover:bg-white/[0.05] transition-all cursor-pointer group">
                       <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={e.photo?.url} alt={e.scientificName}
+                        <img src={resolveUrl(e.photo?.url)} alt={e.scientificName}
                           className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                           onError={ev => { ev.target.parentNode.style.background = 'rgba(139,111,71,0.15)'; ev.target.style.display = 'none' }} />
                       </div>

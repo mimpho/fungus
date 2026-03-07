@@ -22,3 +22,7 @@ node_modules/
 # Vite build output
 dist/
 .vite/
+
+# Variables de entorno locales (nunca commitear)
+.env.local
+.env.*.local

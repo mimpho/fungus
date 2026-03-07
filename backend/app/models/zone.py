@@ -25,6 +25,7 @@ class Zone(Base):
     forest_type: Mapped[str | None] = mapped_column(Text, nullable=True)  # pinar | hayedo | …
     soil_type: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -36,6 +37,9 @@ class Zone(Base):
     )
     score_cache: Mapped["ScoresCache | None"] = relationship(  # type: ignore[name-defined]  # noqa: F821
         "ScoresCache", back_populates="zone", uselist=False
+    )
+    weather_cache: Mapped[list["WeatherCache"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
+        "WeatherCache", back_populates="zone", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
