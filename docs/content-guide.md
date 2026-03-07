@@ -230,9 +230,9 @@ Entry format:
 
 **Fallback:** if a species' family has no block in `CONFUSIONES_POR_FAMILIA`, the UI shows `CONFUSION_GENERICA` — a generic warning about looking for lookalikes within the same genus. Always add a proper block for toxic or mortal families.
 
-### Step 4 — Add to backend (Supabase)
+### Step 4 — Add to backend (Supabase) ⚠️ Bloqueante
 
-The backend is the source of truth in production. A species added only to the frontend mock will disappear once the API loads.
+The backend is the source of truth in production. **A species added only to the frontend mock will disappear from the catalog as soon as `useSpecies` finishes loading from the API** — this happens both in local dev and in production. Do not skip this step.
 
 **Option A — via seed script (preferred for batches)**
 
@@ -244,7 +244,9 @@ python -m scripts.seed_catalog
 
 **Option B — direct Supabase insert (single species)**
 
-Use the Supabase dashboard SQL editor or the REST API:
+Use the Supabase dashboard SQL editor. For each new species, create a file `docs/supabase-seeds/esp-XXX.sql` following the template below and run it in the SQL Editor. Use `ON CONFLICT (id) DO UPDATE` so the statement is safe to re-run.
+
+Full field reference and a worked example: [`docs/supabase-seeds/esp-202.sql`](./supabase-seeds/esp-202.sql)
 
 ```sql
 INSERT INTO species (
@@ -254,18 +256,23 @@ INSERT INTO species (
   common_names, description,
   oi_params, extra_data
 ) VALUES (
-  'esp-202',
-  'Chroogomphus rutilus',
-  'Gomphidiaceae',
-  'comestible',
-  ARRAY['pinar'],
-  ARRAY[8,9,10,11],
+  'esp-XXX', 'Genus species', 'Familyaceae', 'comestible',
+  ARRAY['pinar'], ARRAY[9,10,11],
   200, 1500,
-  ARRAY['Cama de perdiu', 'Gomfidio viscoso', 'Spike cap'],
-  '<description text>',
-  '{"temp_optima_min": 8, "temp_optima_max": 16, ...}'::jsonb,
-  '{"cap": {...}, "stem": {...}, "flesh": {...}, "photos": [...]}'::jsonb
-);
+  ARRAY['Nombre ES', 'Nombre CA'],
+  'Descripción completa...',
+  '{"temp_optima_min":8,"temp_optima_max":16,"humedad_min":55,"humedad_optima":70,
+    "precip_14dias_min":20,"precip_14dias_max":60,
+    "requiere_helada":false,"requiere_choque_termico":false,
+    "dias_hasta_fructificacion":7}'::jsonb,
+  '{"cap":{...},"stem":{...},"flesh":{...},"sporePrint":"...","distribucion":[...],"photos":[...]}'::jsonb
+) ON CONFLICT (id) DO UPDATE SET
+  scientific_name=EXCLUDED.scientific_name, family=EXCLUDED.family,
+  edibility=EXCLUDED.edibility, forest_types=EXCLUDED.forest_types,
+  fruiting_months=EXCLUDED.fruiting_months, elevation_min_m=EXCLUDED.elevation_min_m,
+  elevation_max_m=EXCLUDED.elevation_max_m, common_names=EXCLUDED.common_names,
+  description=EXCLUDED.description, oi_params=EXCLUDED.oi_params,
+  extra_data=EXCLUDED.extra_data;
 ```
 
 `extra_data` stores the full morphological detail (cap, stem, flesh, photos array) that the frontend unpacks in `normalizeSpeciesDetail()`.
