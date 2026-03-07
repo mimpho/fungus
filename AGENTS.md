@@ -4,9 +4,9 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v3.1.0 frontend / v4.2.0 backend
-**Estado frontend**: Prototipo funcional — datos meteorológicos reales via Open-Meteo, catálogo de datos mock (200 zonas, 201 especies, 8 familias), sin backend propio. Modales con URL slugs y navegación browser-native (back/ESC).
-**Estado backend**: v4.2.0 mergeado. FastAPI + SQLAlchemy + Alembic + Outbreak Index. Endpoints de catálogo activos (`/species`, `/zones`). Pendiente: deploy en Render + alembic upgrade + seed, e integración en frontend.
+**Versión actual**: v4.4.2 frontend / v4.4.2 backend
+**Estado frontend**: Integración completa con backend API — `/zonas` y `/especies` consumen endpoints del backend. Datos meteorológicos via backend (Open-Meteo cacheado). Catálogo de 200 zonas y 201 especies desde BD. Modales con URL slugs y navegación browser-native.
+**Estado backend**: v4.4.2. FastAPI + SQLAlchemy + Alembic + Outbreak Index + WeatherCache. Endpoints activos (`/zones`, `/species`, `/weather`). Weather cache con TTL 3h.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 
@@ -134,6 +134,14 @@ Fetch parameters:
 - `daily`: precipitation_sum
 - `past_days: 14`, `forecast_days: 1`, `timezone: Europe/Madrid`
 
+### Weather Cache (Backend)
+
+El backend implementa un sistema de caché meteorológico con TTL 3h:
+- `fetch_weather_for_zone()` — fetch a Open-Meteo API
+- `store_weather_cache()` — almacena en BD con TTL 3h
+- `get_latest_weather()` — recupera caché con validación de TTL
+- Cache-first strategy en los endpoints
+
 ### Algoritmo de Scoring
 
 ```
@@ -176,6 +184,8 @@ GET /api/v1/zones/map-scores
 GET /api/v1/zones/{id}
 GET /api/v1/species
 GET /api/v1/species/{id}
+GET /api/v1/weather/zones/{zone_id}
+GET /api/v1/weather/zones
 ```
 
 ---
@@ -187,7 +197,8 @@ GET /api/v1/species/{id}
 | v3.1 | ✅ Entregado |
 | v4.1 | ✅ Entregado |
 | v4.2 | ✅ Entregado |
-| **v4.3** | 🚧 En curso (integración frontend → API) |
+| v4.3 | ✅ Entregado |
+| **v4.4** | 🚧 En curso (WeatherCache) |
 
 ---
 
