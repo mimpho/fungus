@@ -1,4 +1,6 @@
 """Species model — biological parameters feed the Outbreak Index (OI) per species."""
+from typing import Any
+
 from sqlalchemy import ARRAY, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -36,8 +38,15 @@ class Species(Base):
     elevation_min_m: Mapped[int | None] = mapped_column(Integer, nullable=True)
     elevation_max_m: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    # Extra data: morphology, confusions, photos, common names, etc.
-    extra_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Extra data: morphology, confusions, photos, common names, synonyms, etc.
+    extra_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+
+    @property
+    def synonyms(self) -> list[str]:
+        """Get synonyms from extra_data JSONB field."""
+        if not self.extra_data:
+            return []
+        return self.extra_data.get("synonyms", [])
 
     def __repr__(self) -> str:
         return f"<Species id={self.id!r} name={self.scientific_name!r}>"

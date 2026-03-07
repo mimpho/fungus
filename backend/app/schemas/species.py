@@ -18,6 +18,7 @@ class SpeciesListItem(BaseModel):
     common_names: list[str] | None = None
     photo_url: str | None = None
     description: str | None = None
+    synonyms: list[str] | None = None
 
 
 class SpeciesOIParams(BaseModel):
