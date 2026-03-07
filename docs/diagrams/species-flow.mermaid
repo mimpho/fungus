@@ -1,0 +1,72 @@
+flowchart TD
+    %% ── SOURCES ────────────────────────────────────────────────
+    iNat["📷 iNaturalist\nCC BY / CC BY-NC photos"]
+    IF["📄 Index Fungorum\nsynonyms · taxonomy"]
+    SeedSQL["🗄 docs/supabase-seeds/\nesp-XXX.sql"]
+
+    %% ── BACKEND ─────────────────────────────────────────────────
+    subgraph BACKEND["⚙️  Backend — FastAPI (Render)"]
+        direction TB
+        Router["/api/v1/species\n/api/v1/species/{id}"]
+        ORM["SQLAlchemy\nasync ORM"]
+        DB[("PostgreSQL + PostGIS\n(Supabase, Ireland)\n\nspecies table\n  id · scientific_name · family\n  edibility · forest_types\n  fruiting_months · oi_params\n  extra_data JSONB")]
+    end
+
+    %% ── FRONTEND DATA LAYER ──────────────────────────────────────
+    subgraph FRONTEND_DATA["📦  Frontend — Data Layer"]
+        direction TB
+        Mock["mockSpecies\nsrc/data/species.js\n202 species\n(static ESM)"]
+        ApiSvc["apiService.js\nfetchAllSpecies()\nfetchSpeciesDetail(id)"]
+        Norm["normalizeSpeciesListItem()\nnormalizeSpeciesDetail()\nsnake_case → camelCase\nextra_data unpacking"]
+        Hook["useSpecies()\ninitialState = mockSpecies\nreplaced by API on load\nin-memory cache"]
+        DetailCache["_detailCache Map\n_detailPromises Map\nlazy · per-session"]
+    end
+
+    %% ── FRONTEND UI ─────────────────────────────────────────────
+    subgraph FRONTEND_UI["🖥  Frontend — UI (Vite + React)"]
+        direction TB
+        SpecPage["Species.jsx\npagination · search\nfamily/edibility/month filters"]
+        Modal["SpeciesModal.jsx\ngallery · morphology\nconfusions · synonyms"]
+        Assets["public/assets/images/\ncontent/species/\nesp-XXX-main.jpg\nesp-XXX-foto1.jpg …"]
+    end
+
+    %% ── SCRIPTS ─────────────────────────────────────────────────
+    subgraph SCRIPTS["🛠  Scripts"]
+        DL["scripts/download_images.py\niNaturalist API\n→ medium + large JPEGs"]
+        Seed["backend/scripts/seed_catalog.py\nbulk upsert\nfrom mockSpecies"]
+    end
+
+    %% ── FLOWS ───────────────────────────────────────────────────
+    iNat -->|"download manually\nor via script"| DL
+    DL -->|"esp-XXX-*.jpg"| Assets
+    IF -->|"synonyms array"| Mock
+    IF -->|"synonyms in extra_data"| SeedSQL
+
+    SeedSQL -->|"run in Supabase\nSQL Editor"| DB
+    Mock -->|"bulk import\n(first deploy)"| Seed
+    Seed -->|"upsert"| DB
+
+    DB --> ORM --> Router
+    Router -->|"SpeciesListItem[]"| ApiSvc
+    ApiSvc --> Norm --> Hook
+    Mock -.->|"initial render\n(instant, no flash)"| Hook
+    Hook -->|"species[]"| SpecPage
+    SpecPage -->|"open modal"| Modal
+    Modal -->|"fetchSpeciesDetail(id)\nfirst open only"| ApiSvc
+    ApiSvc -->|"GET /species/{id}"| Router
+    Norm -->|"full detail\ncap · stem · flesh\nphotos · synonyms"| DetailCache
+    DetailCache --> Modal
+    Assets -->|"img src"| Modal
+
+    %% ── STYLES ──────────────────────────────────────────────────
+    classDef backend  fill:#1e3a2f,stroke:#4a7c59,color:#f4ebe1
+    classDef frontend fill:#2a1f14,stroke:#8b6f47,color:#f4ebe1
+    classDef script   fill:#1a1a2e,stroke:#4a6fa5,color:#f4ebe1
+    classDef source   fill:#1a2a1a,stroke:#4a7c59,color:#f4ebe1,stroke-dasharray:4 4
+    classDef db       fill:#0d2318,stroke:#059669,color:#f4ebe1
+
+    class Router,ORM backend
+    class DB db
+    class Mock,ApiSvc,Norm,Hook,DetailCache,SpecPage,Modal,Assets frontend
+    class DL,Seed,SeedSQL script
+    class iNat,IF source
