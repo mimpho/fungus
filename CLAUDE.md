@@ -4,9 +4,9 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v3.1.0 frontend / v4.4.0 backend
-**Estado frontend**: Integrado con backend. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable.
-**Estado backend**: v4.4.0 en `epic/v4-4-weather-cache`, pendiente merge a `main`. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. 200 zonas + 201 especies en Supabase.
+**Versión actual**: v4.5.x frontend+backend
+**Estado frontend**: Integrado con backend. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies (esp-202 Chroogomphus rutilus añadida). Auditoría comestibilidad y nombres comunes catalanes completada.
+**Estado backend**: v4.5.x en `main`. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 **Backend spec**: `docs/backend_architecture.md` — FastAPI + PostgreSQL + PostGIS (v4.x)
@@ -18,7 +18,7 @@ Fungus es una app web de predicción micológica para Cataluña/España. Predice
 
 - **Entregable principal**: App Vite en `frontend/` — **ESTE es el path activo de desarrollo**
 - **Standalone legacy**: `standalone/latest/` — archivos HTML multi-archivo con Babel standalone. Ya no es el path activo pero se mantiene como referencia.
-- **Sin backend propio** — meteorología via Open-Meteo (API pública), resto de datos mockeados en `src/data/`
+- **Con backend propio** — FastAPI en Render, PostgreSQL+PostGIS en Supabase. Meteorología via Open-Meteo server-side. Datos mock en `src/data/` como fallback y referencia local.
 
 ---
 
@@ -412,7 +412,7 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v4.2 | ✅ Entregado | Catálogo en DB: seed script + endpoints especies + description en zonas |
 | v4.3 | ✅ Entregado | Integración frontend completa: mock → API, weather cache, useApiZoneConditions |
 | v4.4 | ✅ Entregado | Weather cache BD server-side + deploy producción |
-| v4.5 | ✅ Entregado | Auditoría mock → API: cierre de imports residuales en frontend |
+| v4.5 | ✅ Entregado | Auditoría mock → API + catálogo: esp-202, edibilidad, nombres comunes CA |
 | v4.6 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos comunitarios |
 | v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
 | v5.1 | 🗂 Backlog | App móvil iOS — distribución App Store |

@@ -1877,7 +1877,7 @@ export const mockSpecies = [
   {
     id: "esp-076", scientificName: "Hohenbuehelia petaloides",
     commonNames: ["Hohenbuehelia"],
-    family: "Pleurotaceae", edibility: "comestible",
+    family: "Pleurotaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [3,4,5,9,10,11],
     description: "Pequeña seta en forma de espátula o cuchara de color gris-pardo, que crece sobre madera muerta de frondosas o suelo rico en materia orgánica. Comestible de escaso interés culinario. Especie ampliamente distribuida pero poco vistosa, frecuentemente ignorada en las recolecciones. Fuente: https://es.wikipedia.org/wiki/Hohenbuehelia_petaloides",
@@ -2702,7 +2702,7 @@ export const mockSpecies = [
   {
     id: "esp-109", scientificName: "Rhodotus palmatus",
     commonNames: ["Rodoto palmado", "Rodot palmejat"],
-    family: "Physalacriaceae", edibility: "comestible",
+    family: "Physalacriaceae", edibility: "no_comestible",
     forestTypes: ["robledal", "mixto", "ribera"],
     fruitingMonths: [3,4,5,10,11],
     description: "El melocotón arrugado, seta inconfundible por su sombrero rosa-salmón con red de arrugas reticuladas. Considerada la seta más bonita de Europa. Incomestible, amargo. Crece sobre madera muerta de olmos, actualmente escasa por la grafiosis del olmo. Especie protegida en algunas comunidades autónomas. Fuente: https://es.wikipedia.org/wiki/Rhodotus_palmatus",
@@ -3127,7 +3127,7 @@ export const mockSpecies = [
   {
     id: "esp-126", scientificName: "Ganoderma lucidum",
     commonNames: ["Reishi", "Língzhi", "Lacquered bracket", "Oreja de árbol"],
-    family: "Ganodermataceae", edibility: "comestible",
+    family: "Ganodermataceae", edibility: "no_comestible",
     forestTypes: ["robledal", "encinar"],
     fruitingMonths: [6,7,8,9,10],
     description: "Hongo medicinal muy valorado en la medicina tradicional china (Reishi). Su cutícula lacada brillante es característica. Se usa en infusiones y extractos. Propiedades inmunomoduladoras, adaptógenas y anti-tumorales muy estudiadas.",
@@ -3152,7 +3152,7 @@ export const mockSpecies = [
   {
     id: "esp-127", scientificName: "Ganoderma applanatum",
     commonNames: ["Yesca plana"],
-    family: "Ganodermataceae", edibility: "comestible",
+    family: "Ganodermataceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [1,2,3,4,5,6,7,8,9,10,11,12],
     description: "El yesquero plano o ganoderma aplanado, políporo leñoso perenne que forma grandes consolas en troncos de frondosas. Incomestible pero muy apreciado en medicina tradicional oriental. Su superficie inferior blanca registra huellas permanentes al tocarse, usándose para dibujar. Especie cosmopolita muy frecuente en España. Fuente: https://es.wikipedia.org/wiki/Ganoderma_applanatum",
@@ -3176,7 +3176,7 @@ export const mockSpecies = [
   },
   {
     id: "esp-128", scientificName: "Laetiporus sulphureus",
-    commonNames: ["Poliporo azufrado", "Bolet de mel"],
+    commonNames: ["Poliporo azufrado", "Pollastre del bosc"],
     family: "Polyporaceae", edibility: "bueno",
     forestTypes: ["robledal", "encinar", "mixto"],
     fruitingMonths: [5,6,7,8,9],
@@ -3202,7 +3202,7 @@ export const mockSpecies = [
   {
     id: "esp-129", scientificName: "Fomes fomentarius",
     commonNames: ["Yesca", "Esponja"],
-    family: "Polyporaceae", edibility: "comestible",
+    family: "Polyporaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo", "ribera"],
     fruitingMonths: [1,2,3,4,5,6,7,8,9,10,11,12],
     description: "El yesquero de la yesca, hongo perenne en forma de pezuña que crece sobre hayas y otras frondosas. Incomestible. Históricamente muy importante: su carne esponjosa se usaba como yesca para encender fuego y como material hemostático. El 'Ötzi', hombre del hielo neolítico, portaba ejemplares. Fuente: https://es.wikipedia.org/wiki/Fomes_fomentarius",
@@ -3226,8 +3226,8 @@ export const mockSpecies = [
   },
   {
     id: "esp-130", scientificName: "Trametes versicolor",
-    commonNames: ["Cola de pavo real", "Cua de faisan"],
-    family: "Polyporaceae", edibility: "comestible",
+    commonNames: ["Cola de pavo real", "Cua de gall dindi"],
+    family: "Polyporaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [1,2,3,4,5,6,7,8,9,10,11,12],
     description: "La cola de pavo o coriolus, políporo flexible multicolor con zonas concéntricas de colores variados sobre madera muerta. Incomestible pero muy estudiado en medicina: contiene polisacárido-K (PSK) y PSP con propiedades inmunomoduladoras usadas como adyuvante en oncología en Asia. Muy frecuente en toda España. Fuente: https://es.wikipedia.org/wiki/Trametes_versicolor",
@@ -3252,7 +3252,7 @@ export const mockSpecies = [
   {
     id: "esp-131", scientificName: "Trametes gibbosa",
     commonNames: ["Trametes gibosa"],
-    family: "Polyporaceae", edibility: "comestible",
+    family: "Polyporaceae", edibility: "no_comestible",
     forestTypes: ["robledal", "hayedo", "mixto"],
     fruitingMonths: [1,2,3,4,5,6,7,8,9,10,11,12],
     description: "Políporo blanco-grisáceo giboso con poros alargados que crece sobre hayas y otras frondosas. Incomestible por su textura coriacea. Frecuente en toda España, especialmente en bosques de hayas del norte. Con el tiempo suele teñirse de verde por algas que colonizan su superficie. Fuente: https://es.wikipedia.org/wiki/Trametes_gibbosa",
@@ -3402,7 +3402,7 @@ export const mockSpecies = [
   {
     id: "esp-137", scientificName: "Daedalea quercina",
     commonNames: ["Corcho de roble", "Suro de roure"],
-    family: "Polyporaceae", edibility: "comestible",
+    family: "Polyporaceae", edibility: "no_comestible",
     forestTypes: ["robledal", "encinar", "mixto"],
     fruitingMonths: [1,2,3,4,5,6,7,8,9,10,11,12],
     description: "El daedalo del roble, políporo leñoso con poros laberínticos o dédalo en la cara inferior, que da nombre al género y a Dédalo de la mitología. Incomestible, muy duro y leñoso. Crece sobre robles vivos y muertos en toda España. Perenne, puede vivir décadas en el mismo árbol. Fuente: https://es.wikipedia.org/wiki/Daedalea_quercina",
@@ -4501,7 +4501,7 @@ export const mockSpecies = [
   },
   {
     id: "esp-181", scientificName: "Lycoperdon perlatum",
-    commonNames: ["Bejín común", "Bejí comú"],
+    commonNames: ["Bejín común", "Cuesco de lobo", "Pet de llop"],
     family: "Agaricaceae", edibility: "comestible",
     forestTypes: ["pinar", "mixto", "robledal"],
     fruitingMonths: [7,8,9,10,11],
@@ -4526,7 +4526,7 @@ export const mockSpecies = [
   },
   {
     id: "esp-182", scientificName: "Lycoperdon pyriforme",
-    commonNames: ["Bejín de los troncos", "Bejí dels troncs"],
+    commonNames: ["Bejín de los troncos", "Pet de llop piriforme"],
     family: "Agaricaceae", edibility: "comestible",
     forestTypes: ["mixto", "pinar", "robledal"],
     fruitingMonths: [7,8,9,10,11],
@@ -4551,11 +4551,11 @@ export const mockSpecies = [
   },
   {
     id: "esp-183", scientificName: "Scleroderma citrinum",
-    commonNames: ["Cuesco de lobo", "Cuesco de llop"],
-    family: "Sclerodermataceae", edibility: "toxico",
+    commonNames: ["Escleroderma amarillo", "Pota de cavall"],
+    family: "Sclerodermataceae", edibility: "no_comestible",
     forestTypes: ["pinar", "robledal", "mixto"],
     fruitingMonths: [7,8,9,10],
-    description: "La bola de tierra común o falsa trufa, globosa con cutícula gruesa y dura de color ocre con escamas. Tóxica, causa gastroenteritis. Se ha confundido con trufas en algunas intoxicaciones. La carne oscura-violácea que ennegrece al corte la diferencia inmediatamente de las trufas comestibles de carne clara. Fuente: https://es.wikipedia.org/wiki/Scleroderma_citrinum",
+    description: "La bola de tierra común o falsa trufa, globosa con cutícula gruesa y dura de color ocre con escamas. Tóxica, causa gastroenteritis. Se ha confundido con trufas en algunas intoxicaciones. La carne oscura-violácea que ennegrece al corte la diferencia inmediatamente de las trufas comestibles de carne clara. Fuente: https://en.wikipedia.org/wiki/Scleroderma_citrinum",
     cap: { forma: "Globoso a irregular", color: "Amarillo-ocre a marrón, con escamas poligonales oscuras", diametro: "4-12 cm", superficie: "Dura, coriacea, escamosa" },
     stem: { forma: "Reducido, sesil con cordones micelíares", color: "Ocre", altura: "N/A", diametro: "N/A" },
     flesh: { color: "Blanca-purpúrea a violácea oscura, ennegrece", textura: "Firme, dura", olor: "Fúngico, fuerte", sabor: "Picante" },
@@ -4652,7 +4652,7 @@ export const mockSpecies = [
   {
     id: "esp-187", scientificName: "Clathrus ruber",
     commonNames: ["Clatro rojo", "Clàtre vermell"],
-    family: "Phallaceae", edibility: "comestible",
+    family: "Phallaceae", edibility: "no_comestible",
     forestTypes: ["encinar", "mixto", "jardines"],
     fruitingMonths: [4,5,6,7,8,9,10],
     description: "El enrejado rojo o jaula del diablo, seta de aspecto extraterrestre con receptáculo en forma de jaula o red roja tridimensional cubierta de gleba fétida. Incomestible. Emerge de una volva blanca similar a la de los falos. Frecuente en jardines y zonas mediterráneas del sur y este peninsular. Fuente: https://es.wikipedia.org/wiki/Clathrus_ruber",
@@ -4677,7 +4677,7 @@ export const mockSpecies = [
   {
     id: "esp-188", scientificName: "Clathrus archeri",
     commonNames: ["Clatro estrellado", "Clàtre estrellat"],
-    family: "Phallaceae", edibility: "comestible",
+    family: "Phallaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "jardines", "prados"],
     fruitingMonths: [5,6,7,8,9,10],
     description: "Los dedos del diablo, especie invasora originaria de Australia llegada a Europa con lana en el siglo XX. Receptáculo con 4-8 brazos estrellados de color rojo que emergen de volva blanca. Incomestible, muy fétido. Se ha extendido por toda Europa y ya es frecuente en el norte y este de España. Fuente: https://es.wikipedia.org/wiki/Clathrus_archeri",
@@ -4777,7 +4777,7 @@ export const mockSpecies = [
   {
     id: "esp-192", scientificName: "Mycena galericulata",
     commonNames: ["Micena de gorro", "Micena de barret"],
-    family: "Mycenaceae", edibility: "comestible",
+    family: "Mycenaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [4,5,6,7,8,9,10,11],
     description: "El micena del tocón o galerita gris, una de las mycenas más comunes sobre madera muerta de frondosas en toda España. Incomestible, sin interés culinario. Olor desagradable a harina rancie. Crece durante gran parte del año, formando grupos densos en tocones. Una de las setas más fotogénicas en grupos. Fuente: https://es.wikipedia.org/wiki/Mycena_galericulata",
@@ -4802,7 +4802,7 @@ export const mockSpecies = [
   {
     id: "esp-193", scientificName: "Mycena haematopus",
     commonNames: ["Micena de sangre", "Micena de sang"],
-    family: "Mycenaceae", edibility: "comestible",
+    family: "Mycenaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [4,5,6,7,8,9,10],
     description: "La mycena sangrienta, reconocible porque al romper el pie exuda látex rojizo-vináceo. Incomestible. Crece en grupos sobre madera muerta de frondosas en bosques del norte peninsular. El látex rojo que destila al romper el pie la hace inconfundible entre las mycenas y una de las más fotogénicas del género. Fuente: https://es.wikipedia.org/wiki/Mycena_haematopus",
@@ -4902,7 +4902,7 @@ export const mockSpecies = [
   {
     id: "esp-197", scientificName: "Mycena chlorophos",
     commonNames: ["Micena bioluminiscente", "Micena bioluminescent"],
-    family: "Mycenaceae", edibility: "comestible",
+    family: "Mycenaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal"],
     fruitingMonths: [8,9,10],
     description: "La mycena bioluminiscente, que emite un suave brillo verde-azulado en la oscuridad. Originaria de regiones tropicales y subtropicales de Asia, Oceanía y Brasil; rarísima o ausente en condiciones naturales en España. Muy estudiada por sus mecanismos de bioluminiscencia. Algunos registros en zonas cálidas del mediterráneo ibérico. Fuente: https://es.wikipedia.org/wiki/Mycena_chlorophos",
@@ -4952,7 +4952,7 @@ export const mockSpecies = [
   {
     id: "esp-199", scientificName: "Trametes hirsuta",
     commonNames: ["Trametes hirsuta"],
-    family: "Polyporaceae", edibility: "comestible",
+    family: "Polyporaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [1,2,3,4,5,6,7,8,9,10,11,12],
     description: "El tramete hirsuto, políporo muy piloso de color gris-crema que crece sobre madera muerta de frondosas. Incomestible. Muy frecuente en toda España durante todo el año. Se diferencia de T. versicolor por su superficie mucho más hirsuta-tomentosa y coloración más uniforme sin zonas de colores variados. Fuente: https://es.wikipedia.org/wiki/Trametes_hirsuta",
@@ -4977,7 +4977,7 @@ export const mockSpecies = [
   {
     id: "esp-200", scientificName: "Xylaria hypoxylon",
     commonNames: ["Xilaria hipogilon", "Xilaria"],
-    family: "Xylariaceae", edibility: "comestible",
+    family: "Xylariaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [1,2,3,4,5,6,7,8,9,10,11,12],
     description: "El dedo de muerto o xilaria del hipoxylon, hongo ascomiceto con forma de vela o asta de ciervo ramificada, negro en la base y blanco-grisáceo en el ápice por los conidios. Incomestible. Muy frecuente sobre tocones de frondosas en toda España durante todo el año. Un hongo saprofítico descomponedor de madera muy eficaz. Fuente: https://es.wikipedia.org/wiki/Xylaria_hypoxylon",
