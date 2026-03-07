@@ -211,6 +211,36 @@ function GallerySection({ species, onOpenLightbox }) {
 
 ---
 
+## Confusiones — estructura de datos (v4.6.2)
+
+**Decisión:** Las confusiones se almacenan por especie como lista plana en `extra_data.confusions` (JSONB). Cada entrada tiene solo `with_species_id` y `diff`.
+
+```json
+"confusions": [
+  { "with_species_id": "esp-003", "diff": "Se distingue por el pie anillado y la volva…" },
+  { "with_species_id": "esp-007", "diff": "Poros rojos en *B. satanas*, carne azulea al corte" }
+]
+```
+
+**Qué NO se almacena en BD:** `icon`, `borderColor`, `nameColor`. Son responsabilidad del frontend y se derivan de `edibility` del objeto especie referenciado (mismo sistema que `EdibilityTag`).
+
+**Por qué no se agrupa por familia:** El hardcoded `CONFUSIONES_POR_FAMILIA` usaba la familia como nivel de agrupación por conveniencia inicial ("todas las posibles confusibles de esta familia"), pero la aproximación es incorrecta:
+- Las confusiones son relaciones especie-a-especie, no familia-a-familia
+- Puede haber confusiones cross-family (ej. Cantharellus vs Hygrophoropsis, distinta familia)
+- No toda especie de una familia confunde con todas las demás de la misma familia
+
+En el modelo nuevo, el nivel familia desaparece del dato. `ConfusionesBlock` leerá directamente `species.confusions` desde la API.
+
+**Flujo frontend (tras migración):**
+1. `SpeciesModal` recibe `detail.confusions = [{with_species_id, diff}]` desde la API
+2. `ConfusionesBlock` busca cada `with_species_id` en `allSpecies`
+3. Del objeto encontrado extrae `scientificName` (display) y `edibility` (para icon/colores)
+4. `diff` se muestra como texto descriptivo de la diferencia
+5. Si la especie referenciada existe en el catálogo → botón clickable que abre su modal
+6. Si no existe → div estático
+
+---
+
 ## Paginador con URL (?pagina=N)
 
 **Decisión:** El paginador de Species usa `useSearchParams` en vez de `useState`. La página actual vive en `?pagina=N`.
