@@ -2,6 +2,12 @@
 from pydantic import BaseModel, ConfigDict
 
 
+class SpeciesConfusion(BaseModel):
+    """A species that can be confused with another."""
+    with_species_id: str
+    diff: str
+
+
 class SpeciesListItem(BaseModel):
     """Lightweight item for GET /species — replaces mockSpecies on list views."""
     model_config = ConfigDict(from_attributes=True)
@@ -19,6 +25,7 @@ class SpeciesListItem(BaseModel):
     photo_url: str | None = None
     description: str | None = None
     synonyms: list[str] | None = None
+    confusions: list[SpeciesConfusion] | None = None
 
 
 class SpeciesOIParams(BaseModel):

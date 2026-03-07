@@ -53,6 +53,13 @@ def _synonyms(species: Species) -> list[str] | None:
     return species.extra_data.get("synonyms")
 
 
+def _confusions(species: Species) -> list[dict] | None:
+    """Extract confusions from extra_data JSONB field."""
+    if not species.extra_data:
+        return None
+    return species.extra_data.get("confusions")
+
+
 def _to_list_item(s: Species) -> SpeciesListItem:
     return SpeciesListItem(
         id=s.id,
@@ -67,6 +74,7 @@ def _to_list_item(s: Species) -> SpeciesListItem:
         photo_url=_photo_url(s),
         description=_extra_str(s, "description"),
         synonyms=_synonyms(s),
+        confusions=_confusions(s),
     )
 
 
