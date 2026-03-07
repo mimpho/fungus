@@ -39,4 +39,34 @@ export const mockFamilies = {
     caracteristicas: ['Cortina filamentosa', 'Esporada ocre-oxidada', 'Micorrizógenos', 'Algunos muy tóxicos'],
     imagen_tipo: '🔶',
   },
+  'Tuberaceae': {
+    id: 'fam-009', nombre: 'Tuberaceae', descripcion: 'Familia de ascomicetos hipogeos (trufas). Cuerpos fructíferos subterráneos con gleba marmórea y olor intenso para atraer a los animales que los dispersan. Forman micorrizas ectótrofas con árboles como encinas, robles y avellanos. Las trufas son los hongos gastronómicos más cotizados del mundo.',
+    caracteristicas: ['Hipogeas (crecen bajo tierra)', 'Ascomicetos', 'Gleba con venas (marmórea)', 'Micorrizógenas'],
+    imagen_tipo: '⚫',
+  },
+  'Agaricaceae': {
+    id: 'fam-010', nombre: 'Agaricaceae', descripcion: 'Gran familia de agaricales que incluye los champiñones (Agaricus), las macrolepiota y los negritos (Coprinus, Coprinellus). Esporada generalmente marrón-purpúrea o blanca. Incluye excelentes comestibles y algunas especies tóxicas que enrojecen al corte.',
+    caracteristicas: ['Láminas libres', 'Anillo membranoso frecuente', 'Esporada marrón-purpúrea o blanca', 'Gran diversidad morfológica'],
+    imagen_tipo: '🍄',
+  },
+  'Strophariaceae': {
+    id: 'fam-011', nombre: 'Strophariaceae', descripcion: 'Familia con esporada marrón-oscura a marrón-purpúrea. Incluye géneros como Hypholoma (gambotas), Pholiota, Agrocybe y la mortal Galerina marginata. Muchas especies crecen sobre madera o en prados. La Galerina marginata contiene las mismas amatoxinas que Amanita phalloides.',
+    caracteristicas: ['Esporada marrón oscura', 'Anillo frecuente', 'Lignícolas o pratícolas', 'Galerina: mortal'],
+    imagen_tipo: '🟫',
+  },
+  'Entolomataceae': {
+    id: 'fam-012', nombre: 'Entolomataceae', descripcion: 'Familia caracterizada por la esporada rosada y las esporas poliédricas o angulosas visibles al microscopio. Las láminas adquieren tonos rosados al madurar. Incluye Entoloma (muchas tóxicas) y Clitopilus prunulus (comestible). Gran parte del género Entoloma causa intoxicaciones gastrointestinales.',
+    caracteristicas: ['Esporada rosada', 'Esporas angulosas (microscópicas)', 'Láminas rosadas al madurar', 'Muchas tóxicas'],
+    imagen_tipo: '🌸',
+  },
+  'Hygrophoraceae': {
+    id: 'fam-013', nombre: 'Hygrophoraceae', descripcion: 'Familia de hongos con láminas cerosas, gruesas y espaciadas. Incluye los géneros Hygrophorus (bosques, micorrizógenos), Hygrocybe y Cuphophyllus (prados). Las Hygrocybe son indicadoras de prados no abonados de alto valor ecológico. Casi ninguna especie es de interés culinario destacado.',
+    caracteristicas: ['Láminas cerosas y espaciadas', 'Carne acuosa', 'Colores variados', 'Indicadoras ecológicas'],
+    imagen_tipo: '💧',
+  },
+  'Gomphidiaceae': {
+    id: 'fam-014', nombre: 'Gomphidiaceae', descripcion: 'Familia de la orden Boletales con morfología de agarical. Los géneros Gomphidius y Chroogomphus tienen láminas decurrentes gruesas y esporada negra-grisácea. Asociados a coníferas y a menudo parásitos de otros hongos micorrizógenos (Suillus). Comestibles de calidad mediocre.',
+    caracteristicas: ['Láminas decurrentes y gruesas', 'Esporada negra-grisácea', 'Asociadas a coníferas', 'Píleo viscoso frecuente'],
+    imagen_tipo: '🌲',
+  },
 };

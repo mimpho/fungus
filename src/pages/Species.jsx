@@ -43,6 +43,16 @@ export default function Species() {
   const [familyFilter, setFamilyFilter] = useState('')
   const [pillOpen, setPillOpen]       = useState(false)
 
+  // Fruiting month filter — activated via ?mes=N from Dashboard
+  const monthFilter = parseInt(searchParams.get('mes') || '0', 10)
+  const clearMonthFilter = () => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); p.delete('mes'); return p },
+    { replace: true }
+  )
+  const monthLabel = monthFilter >= 1 && monthFilter <= 12
+    ? new Date(2000, monthFilter - 1).toLocaleDateString('es-ES', { month: 'long' })
+    : null
+
   // Página desde URL (?pagina=N), con sanidad
   const page = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
   const setPage = (n) => setSearchParams(
@@ -60,6 +70,7 @@ export default function Species() {
     else if (showFilter === 'comestible') r = r.filter(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility))
     else if (showFilter === 'toxico')     r = r.filter(e => e.edibility === 'toxico')
     else if (showFilter === 'mortal')     r = r.filter(e => e.edibility === 'mortal')
+    if (monthFilter) r = r.filter(e => e.fruitingMonths.includes(monthFilter))
     if (familyFilter) r = r.filter(e => e.family === familyFilter)
     if (searchQuery) {
       const b = searchQuery.toLowerCase()
@@ -76,11 +87,11 @@ export default function Species() {
       r.sort((a, b) => (p[a.edibility] ?? 7) - (p[b.edibility] ?? 7))
     }
     return r
-  }, [searchQuery, orden, showFilter, familyFilter, favoriteSpecies])
+  }, [searchQuery, orden, showFilter, familyFilter, monthFilter, favoriteSpecies])
 
   const totalPages = Math.ceil(filteredSpecies.length / PER_PAGE)
   const pageItems  = filteredSpecies.slice((page - 1) * PER_PAGE, page * PER_PAGE)
-  const activeFilters = (showFilter !== 'todas' ? 1 : 0) + (familyFilter ? 1 : 0) + (orden !== 'alfa' ? 1 : 0)
+  const activeFilters = (showFilter !== 'todas' ? 1 : 0) + (familyFilter ? 1 : 0) + (orden !== 'alfa' ? 1 : 0) + (monthFilter ? 1 : 0)
 
   // ── Reset de paginador al cambiar filtros ────────────────────────────────
   // Queremos disparar solo cuando los filtros CAMBIAN, nunca en el primer mount.
@@ -107,7 +118,7 @@ export default function Species() {
     if (!location.pathname.startsWith('/especies')) return  // no contaminar /familia/...
     setSearchParams(prev => { const p = new URLSearchParams(prev); p.set('pagina', '1'); return p }, { replace: true })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, orden, showFilter, familyFilter])
+  }, [searchQuery, orden, showFilter, familyFilter, monthFilter])
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [page])
 
   // Paginación con elipsis
@@ -200,8 +211,11 @@ export default function Species() {
       </FilterPanel>
 
       {/* Chips filtros activos */}
-      {(showFilter !== 'todas' || familyFilter) && (
+      {(showFilter !== 'todas' || familyFilter || monthFilter > 0) && (
         <div className="flex flex-wrap gap-2">
+          {monthFilter > 0 && monthLabel && (
+            <ActiveFilterChip key="mf" emoji="🌱" label={`Fructifica en ${monthLabel}`} onRemove={clearMonthFilter} />
+          )}
           {showFilter !== 'todas' && (() => {
             const f = SHOW_FILTERS.find(f => f.id === showFilter)
             return <ActiveFilterChip key="sf" emoji={f?.emoji} label={f?.label} onRemove={() => setShowFilter('todas')} />
