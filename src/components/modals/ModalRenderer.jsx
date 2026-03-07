@@ -76,8 +76,22 @@ export function ModalRenderer() {
     }
   }, [location.key]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Cierre unificado: navigate(-1) mantiene coherencia con el historial ───
-  const closeViaHistory = () => navigate(-1)
+  // ── Cierre unificado ─────────────────────────────────────────────────────
+  // navigate(-1) cuando hay historial previo (navegación interna).
+  // Si location.key === 'default', la página se abrió directamente (nueva
+  // pestaña, bookmark, compartir URL) → no hay entrada anterior, navigate(-1)
+  // no hace nada. En ese caso navegamos a la ruta padre del listado.
+  const closeViaHistory = () => {
+    if (location.key !== 'default') {
+      navigate(-1)
+      return
+    }
+    // Fallback a la ruta padre según la URL actual
+    if (location.pathname.startsWith('/zonas/'))   { navigate('/zonas');   return }
+    if (location.pathname.startsWith('/especies/')) { navigate('/especies'); return }
+    if (location.pathname.startsWith('/familia/')) { navigate('/especies'); return }
+    navigate('/')
+  }
 
   // ── onViewSpecies desde FamilyModal ──────────────────────────────────────
   // Cierra la familia y abre la especie (navega a /especies/{slug})
