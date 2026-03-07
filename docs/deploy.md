@@ -164,6 +164,12 @@ be run manually from local (Render free tier has no pre-deploy hook support).
 Render auto-deploys every time `main` is updated. No manual action needed for
 future releases — merge the epic, push, and Render picks it up.
 
+**⚠️ Important:** Sometimes the auto-deploy doesn't trigger automatically (especially
+on free tier). If you don't see a new deployment after pushing to `main`:
+
+1. Go to [render.com](https://render.com) → Your service
+2. Click **Deploy** → **Manual Deploy** → **Deploy latest commit**
+
 To verify auto-deploy is enabled: Render dashboard → Service → Settings →
 Auto-Deploy → On.
 
