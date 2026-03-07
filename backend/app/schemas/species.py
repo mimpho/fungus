@@ -2,6 +2,12 @@
 from pydantic import BaseModel, ConfigDict
 
 
+class SpeciesConfusion(BaseModel):
+    """A species that can be confused with another."""
+    with_species_id: str
+    diff: str
+
+
 class SpeciesListItem(BaseModel):
     """Lightweight item for GET /species — replaces mockSpecies on list views."""
     model_config = ConfigDict(from_attributes=True)
@@ -17,8 +23,7 @@ class SpeciesListItem(BaseModel):
     # From extra_data — exposed at top level for frontend convenience
     common_names: list[str] | None = None
     photo_url: str | None = None
-    description: str | None = None
-    synonyms: list[str] | None = None
+    # description, synonyms, confusions NOT here — only in SpeciesDetail
 
 
 class SpeciesOIParams(BaseModel):
@@ -34,5 +39,8 @@ class SpeciesOIParams(BaseModel):
 class SpeciesDetail(SpeciesListItem):
     """Full species detail for GET /species/{id} — replaces ZoneModal species data."""
     oi_params: SpeciesOIParams
-    # Full extra_data blob: morphology, confusions, all photos, etc.
+    description: str | None = None
+    synonyms: list[str] | None = None
+    confusions: list[SpeciesConfusion] | None = None
+    # Full extra_data blob: morphology, all photos, etc.
     extra_data: dict | None = None

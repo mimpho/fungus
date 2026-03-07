@@ -53,6 +53,13 @@ def _synonyms(species: Species) -> list[str] | None:
     return species.extra_data.get("synonyms")
 
 
+def _confusions(species: Species) -> list[dict] | None:
+    """Extract confusions from extra_data JSONB field."""
+    if not species.extra_data:
+        return None
+    return species.extra_data.get("confusions")
+
+
 def _to_list_item(s: Species) -> SpeciesListItem:
     return SpeciesListItem(
         id=s.id,
@@ -65,8 +72,7 @@ def _to_list_item(s: Species) -> SpeciesListItem:
         elevation_max_m=s.elevation_max_m,
         common_names=_extra_list(s, "commonNames"),
         photo_url=_photo_url(s),
-        description=_extra_str(s, "description"),
-        synonyms=_synonyms(s),
+        # description, synonyms, confusions excluded from list — see _to_detail()
     )
 
 
@@ -83,6 +89,8 @@ def _to_detail(s: Species) -> SpeciesDetail:
         common_names=_extra_list(s, "commonNames"),
         photo_url=_photo_url(s),
         description=_extra_str(s, "description"),
+        synonyms=_synonyms(s),
+        confusions=_confusions(s),
         oi_params=SpeciesOIParams(
             temp_min_c=float(s.temp_min_c) if s.temp_min_c is not None else None,
             temp_opt_c=float(s.temp_opt_c) if s.temp_opt_c is not None else None,

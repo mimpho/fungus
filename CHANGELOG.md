@@ -9,6 +9,16 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Añadido (v4.6.2 — confusiones en BD)
+- Backend: schema `SpeciesConfusion` (`with_species_id: str`, `diff: str`) en `schemas/species.py`
+- Backend: campo `confusions: list[SpeciesConfusion] | None` en `SpeciesListItem`, leído de `extra_data.confusions` (JSONB)
+- Backend: `_confusions(species)` helper en `routers/species.py` para extraer el campo del JSONB
+- Backend: migración Alembic `005_confusions.py` (data-only, sin cambio de schema)
+- Backend: `005_confusions_data.sql` — datos iniciales para Morchellaceae (*Morchella esculenta*, *Gyromitra esculenta*, *Helvella lacunosa*) y *Boletus edulis* con relaciones bidireccionales
+
+### Documentado
+- `docs/deploy.md`: nota sobre trigger manual de deploy en Render free tier cuando el auto-deploy falla
+
 ### Cambiado
 - **Auditoría de comestibilidad** — 16 especies pasan de `comestible` a `no_comestible`: Ganoderma lucidum, G. applanatum, Fomes fomentarius, Trametes versicolor, T. gibbosa, T. hirsuta, Daedalea quercina, Clathrus ruber, C. archeri, Mycena galericulata, M. haematopus, M. chlorophos, Xylaria hypoxylon, Hohenbuehelia petaloides, Rhodotus palmatus, Scleroderma citrinum (era `toxico`)
 - **Nombres comunes catalanes corregidos** (eran catalanizaciones del castellano, no nombres populares reales):
