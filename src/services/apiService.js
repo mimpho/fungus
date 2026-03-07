@@ -239,7 +239,7 @@ export function normalizeSpeciesDetail(s) {
 // SPECIES — endpoints
 // ─────────────────────────────────────────────────────────────────────────────
 
-const _SPECIES_PAGE_SIZE = 200  // max permitido por la API
+const _SPECIES_PAGE_SIZE = 500  // max permitido por la API
 
 /**
  * Obtiene todas las especies (con cursor pagination).
