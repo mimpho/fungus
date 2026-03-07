@@ -234,17 +234,9 @@ Entry format:
 
 The backend is the source of truth in production. **A species added only to the frontend mock will disappear from the catalog as soon as `useSpecies` finishes loading from the API** — this happens both in local dev and in production. Do not skip this step.
 
-**Option A — via seed script (preferred for batches)**
+**For a single new species → Supabase SQL Editor (recommended)**
 
-```bash
-cd backend
-# Edit scripts/seed_catalog.py to include the new species
-python -m scripts.seed_catalog
-```
-
-**Option B — direct Supabase insert (single species)**
-
-Use the Supabase dashboard SQL editor. For each new species, create a file `docs/supabase-seeds/esp-XXX.sql` following the template below and run it in the SQL Editor. Use `ON CONFLICT (id) DO UPDATE` so the statement is safe to re-run.
+Create a file `docs/supabase-seeds/esp-XXX.sql` and run it in the Supabase dashboard → SQL Editor. No need to touch `seed_catalog.py`. Use `ON CONFLICT (id) DO UPDATE` so it is safe to re-run.
 
 Full field reference and a worked example: [`docs/supabase-seeds/esp-202.sql`](./supabase-seeds/esp-202.sql)
 
@@ -276,6 +268,8 @@ INSERT INTO species (
 ```
 
 `extra_data` stores the full morphological detail (cap, stem, flesh, photos array) that the frontend unpacks in `normalizeSpeciesDetail()`.
+
+> **For bulk re-sync** (e.g. after many mock changes or a first deploy): use `backend/scripts/seed_catalog.py` instead. It reads `mockSpecies` directly via Node.js and upserts everything in one pass. Requires the backend Python environment and `DATABASE_URL` — see `docs/scripts-guide.md`.
 
 ### Step 5 — Verify
 
