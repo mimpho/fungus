@@ -229,6 +229,9 @@ export function normalizeSpeciesDetail(s) {
     flesh:       ex.flesh  ?? null,
     sporePrint:  ex.sporePrint ?? null,
     distribucion: ex.distribucion ?? [],
+    // Campos solo disponibles en el endpoint de detalle
+    synonyms:    s.synonyms    ?? null,
+    confusions:  s.confusions  ?? null,
     // OI params (útil para debugging futuro)
     _oiParams: s.oi_params ?? null,
     _partial:  false,

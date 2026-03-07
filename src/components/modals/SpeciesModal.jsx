@@ -107,14 +107,11 @@ export function SpeciesModal({ species, onClose }) {
   // Detalle enriquecido cargado de forma lazy (cap, stem, photos…)
   // Mientras carga, usamos el species del prop (que tiene los campos básicos)
   const [detail, setDetail] = useState(species)
-  const [detailLoading, setDetailLoading] = useState(!!species._partial)
+  const [detailLoading, setDetailLoading] = useState(true)
 
   useEffect(() => {
-    if (!species._partial) {
-      setDetail(species)
-      setDetailLoading(false)
-      return
-    }
+    // Siempre fetch el detalle — mockSpecies no tiene _partial, así que no podemos
+    // confiar en ese flag. _detailCache evita peticiones duplicadas.
     let cancelled = false
     setDetail(species)
     setDetailLoading(true)
