@@ -230,45 +230,60 @@ Entry format:
 
 **Fallback:** if a species' family has no block in `CONFUSIONES_POR_FAMILIA`, the UI shows `CONFUSION_GENERICA` — a generic warning about looking for lookalikes within the same genus. Always add a proper block for toxic or mortal families.
 
-### Step 4 — Add to backend (Supabase)
+### Step 4 — Add to backend (Supabase) ⚠️ Bloqueante
 
-The backend is the source of truth in production. A species added only to the frontend mock will disappear once the API loads.
+The backend is the source of truth in production. **A species added only to the frontend mock will disappear from the catalog as soon as `useSpecies` finishes loading from the API** — this happens both in local dev and in production. Do not skip this step.
 
-**Option A — via seed script (preferred for batches)**
+**For a single new species → Supabase SQL Editor (recommended)**
 
-```bash
-cd backend
-# Edit scripts/seed_catalog.py to include the new species
-python -m scripts.seed_catalog
-```
+Create a file `docs/supabase-seeds/esp-XXX.sql` and run it in the Supabase dashboard → SQL Editor. No need to touch `seed_catalog.py`. Use `ON CONFLICT (id) DO UPDATE` so it is safe to re-run.
 
-**Option B — direct Supabase insert (single species)**
-
-Use the Supabase dashboard SQL editor or the REST API:
+Full field reference and a worked example: [`docs/supabase-seeds/esp-202.sql`](./supabase-seeds/esp-202.sql)
 
 ```sql
+-- ⚠️  common_names, description, oi_params are NOT columns.
+-- OI params → individual columns (temp_min_c etc.)
+-- Everything else → extra_data JSONB (see app/models/species.py)
 INSERT INTO species (
   id, scientific_name, family, edibility,
+  temp_min_c, temp_opt_c, temp_max_c,
+  rain_min_mm, rain_opt_mm, cycle_days,
   forest_types, fruiting_months,
   elevation_min_m, elevation_max_m,
-  common_names, description,
-  oi_params, extra_data
+  extra_data
 ) VALUES (
-  'esp-202',
-  'Chroogomphus rutilus',
-  'Gomphidiaceae',
-  'comestible',
-  ARRAY['pinar'],
-  ARRAY[8,9,10,11],
+  'esp-XXX', 'Genus species', 'Familyaceae', 'comestible',
+  8.0, 12.0, 16.0,
+  20, 60, 7,
+  ARRAY['pinar'], ARRAY[9,10,11],
   200, 1500,
-  ARRAY['Cama de perdiu', 'Gomfidio viscoso', 'Spike cap'],
-  '<description text>',
-  '{"temp_optima_min": 8, "temp_optima_max": 16, ...}'::jsonb,
-  '{"cap": {...}, "stem": {...}, "flesh": {...}, "photos": [...]}'::jsonb
-);
+  '{
+    "commonNames": ["Nombre ES", "Nombre CA"],
+    "description": "Descripción completa...",
+    "photo":  {"url":"assets/images/content/species/esp-XXX-main.jpg","largeUrl":"..."},
+    "photos": [{"url":"...","largeUrl":"..."}],
+    "cap":    {"forma":"...","color":"...","diametro":"X-Y cm","superficie":"..."},
+    "stem":   {"forma":"...","color":"...","altura":"X-Y cm","diametro":"X-Y cm"},
+    "flesh":  {"color":"...","textura":"...","olor":"...","sabor":"..."},
+    "sporePrint": "...",
+    "distribucion": ["Europa", "España", "..."],
+    "synonyms": ["OldGenus species Autor"],
+    "humedad_min": 55.0, "humedad_optima": 70.0,
+    "requiere_helada": false, "requiere_choque_termico": false
+  }'::jsonb
+) ON CONFLICT (id) DO UPDATE SET
+  scientific_name=EXCLUDED.scientific_name, family=EXCLUDED.family,
+  edibility=EXCLUDED.edibility,
+  temp_min_c=EXCLUDED.temp_min_c, temp_opt_c=EXCLUDED.temp_opt_c, temp_max_c=EXCLUDED.temp_max_c,
+  rain_min_mm=EXCLUDED.rain_min_mm, rain_opt_mm=EXCLUDED.rain_opt_mm, cycle_days=EXCLUDED.cycle_days,
+  forest_types=EXCLUDED.forest_types, fruiting_months=EXCLUDED.fruiting_months,
+  elevation_min_m=EXCLUDED.elevation_min_m, elevation_max_m=EXCLUDED.elevation_max_m,
+  extra_data=EXCLUDED.extra_data;
 ```
 
-`extra_data` stores the full morphological detail (cap, stem, flesh, photos array) that the frontend unpacks in `normalizeSpeciesDetail()`.
+`extra_data` stores everything that isn't a dedicated column: nombres comunes, descripción, fotos, morfología (cap/stem/flesh), sinónimos, distribución y parámetros de humedad. El frontend lo desempaqueta en `normalizeSpeciesDetail()`. Ver schema completo en `app/models/species.py`.
+
+> **For bulk re-sync** (e.g. after many mock changes or a first deploy): use `backend/scripts/seed_catalog.py` instead. It reads `mockSpecies` directly via Node.js and upserts everything in one pass. Requires the backend Python environment and `DATABASE_URL` — see `docs/scripts-guide.md`.
 
 ### Step 5 — Verify
 
@@ -333,6 +348,6 @@ INSERT INTO zones (
 
 | Item | Status | Notes |
 |---|---|---|
-| `esp-202` Chroogomphus rutilus images | ❌ Missing | Search iNaturalist for `Chroogomphus rutilus` |
-| `esp-202` backend sync | ❌ Missing | Not yet in Supabase — use Option B above |
+| `esp-202` Chroogomphus rutilus images | ❌ Missing | iNaturalist blocked in VM — download manually: `https://www.inaturalist.org/taxa/chroogomphus-rutilus` → 3 fotos CC BY/CC BY-NC → resize → `public/assets/images/content/species/esp-202-{main,foto1,foto2}{,-large}.jpg` |
+| `esp-202` backend sync | ❌ Missing | SQL ready in `docs/supabase-seeds/esp-202.sql` — run in Supabase dashboard |
 | `esp-201` backend sync | ❓ Verify | Butyriboletus regius — confirm it's in Supabase |

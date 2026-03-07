@@ -10,7 +10,7 @@ Reference for all utility and operational scripts in the project.
 |---|---|---|---|
 | `seed_catalog.py` | `backend/scripts/` | Import mock data (zones + species) into PostgreSQL | First deploy, or when mock data changes |
 | `backfill.py` | `backend/scripts/` | Load historical climate data from Open-Meteo | Once after first deploy |
-| `download_images.py` | `standalone/latest/` | Bulk-download species images from iNaturalist | When adding new species |
+| `download_images.py` | `scripts/` | Bulk-download species images from iNaturalist | When adding new species |
 | `extract-images.py` | `standalone/latest/` | *(Legacy)* Extract base64 images from old HTML monolith | Not needed — standalone era only |
 
 ---
@@ -77,14 +77,14 @@ python -m scripts.backfill --from 2026-01-01 --to 2026-02-28
 
 ## `download_images.py` — Bulk-download species images from iNaturalist
 
-**Location**: `standalone/latest/download_images.py`
+**Location**: `scripts/download_images.py`
 
 Reads a species list from `species_list.json` and downloads images from the iNaturalist API for each species. Saves two sizes per photo — `medium` (~600 px, for cards) and `large` (~1200 px, for lightbox) — and optionally re-encodes them as optimized JPEGs via Pillow.
 
 Requires: `pip install requests Pillow`
 
 ```bash
-cd standalone/latest
+cd scripts
 
 # Download 3 photos per species (medium + large each → 6 files per species)
 python3 download_images.py
@@ -115,7 +115,7 @@ python3 download_images.py --retry-failed
 | `--no-optimize` | false | Skip JPEG re-encoding |
 | `--retry-failed` | false | Read `download_not_found.txt` and retry only those species |
 
-**Output files**: `standalone/latest/assets/images/esp-XXX-main.jpg`, `esp-XXX-main-large.jpg`, `esp-XXX-foto1.jpg`, etc.
+**Output files**: `public/assets/images/content/species/esp-XXX-main.jpg`, `esp-XXX-main-large.jpg`, `esp-XXX-foto1.jpg`, etc.
 
 **species_list.json format** (input file the script expects):
 ```json
@@ -125,22 +125,16 @@ python3 download_images.py --retry-failed
 ]
 ```
 
-### ⚠️ Path notes for the current Vite project
-
-This script was written during the standalone era. Two things to keep in mind when using it for the current Vite project:
-
-1. **Output path**: the script writes to `standalone/latest/assets/images/`. After running, copy the resulting files to `frontend/public/assets/images/content/species/`.
-
-2. **species_list.json**: must be created manually or generated from `src/data/species.js`. A quick one-liner to generate it from the current mock:
-   ```bash
-   node -e "
-   import('./frontend/src/data/species.js').then(m =>
-     console.log(JSON.stringify(
-       m.mockSpecies.map(s => ({ id: s.id, name: s.scientificName })),
-       null, 2
-     ))
-   )" > standalone/latest/species_list.json
-   ```
+> `scripts/species_list.json` is kept in sync manually — add new entries when a new species is added to `src/data/species.js`. To regenerate it from scratch from the current mock:
+> ```bash
+> node -e "
+> import('../src/data/species.js').then(m =>
+>   console.log(JSON.stringify(
+>     m.mockSpecies.map(s => ({ id: s.id, name: s.scientificName })),
+>     null, 2
+>   ))
+> )" > scripts/species_list.json
+> ```
 
 ### Image discovery strategy
 

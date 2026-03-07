@@ -1,6 +1,5 @@
 esp-047 Cantharellus aurora
 esp-054 Pseudocraterellus undulatus
-esp-088 Tuber borchii
 esp-097 Clitocybe geotropa
 esp-100 Clitocybe dealbata
 esp-101 Lepista nuda
@@ -9,7 +8,6 @@ esp-115 Cortinarius splendens
 esp-116 Cortinarius praestans
 esp-118 Inocybe rimosa
 esp-119 Inocybe erubescens
-esp-121 Hebeloma sinapizans
 esp-124 Phlegmacium calochroum
 esp-125 Dermocybe sanguinea
 esp-135 Polyporus squamosus
@@ -24,4 +22,3 @@ esp-169 Psathyrella candolleana
 esp-175 Sarcodon scabrosus
 esp-178 Bankera fuligineoalba
 esp-182 Lycoperdon pyriforme
-esp-202 Chroogomphus rutilus

@@ -1,0 +1,80 @@
+flowchart TD
+    %% ── EXTERNAL ────────────────────────────────────────────────
+    OpenMeteo["🌦 Open-Meteo API\napi.open-meteo.com\nno API key · public\n\ndaily: precipitation_sum\nhourly: soil_temperature_0cm\ncurrent: temp · humidity · wind\npast_days: 14"]
+
+    %% ── BACKEND ─────────────────────────────────────────────────
+    subgraph BACKEND["⚙️  Backend — FastAPI (Render)"]
+        direction TB
+        Scheduler["APScheduler\ncron 05:00 UTC daily\n+ warmup on startup"]
+        Ingest["ingest.py\nfetchAllZones → connector\nupsert climate_history\nrefresh scores_cache"]
+        Connector["OpenMeteoConnector\nP3 provider\nasync · tenacity retries"]
+        Routers["/api/v1/zones\n/api/v1/zones/{id}\n/api/v1/zones/map-scores\n/api/v1/weather/zones/{id}"]
+        ORM["SQLAlchemy async"]
+        DB[("PostgreSQL + PostGIS\n(Supabase, Ireland)\n\nzones  ← static catalog\nclimate_history  ← daily ingest\nscores_cache  ← OI scores\nweather_stations")]
+        OI["Outbreak Index (OI)\nscoring.py\n\nPA21  × 0.30\nThermal × 0.25\nSeasonal × 0.25\nRipening × 0.12\nHumidity × 0.08"]
+    end
+
+    %% ── FRONTEND DATA LAYER ──────────────────────────────────────
+    subgraph FRONTEND_DATA["📦  Frontend — Data Layer"]
+        direction TB
+        MockZ["mockZones\nsrc/data/zones.js\n200 zones (static ESM)"]
+        ApiSvc["apiService.js\nfetchZones()\nfetchZone(id)\nfetchZoneWeather(id)\nfetchMapScores()"]
+        NormZ["normalizeZone()\nnormalizeScore()\nsnake_case → camelCase\nlon→lng · elevation_m→elevation\nforest_type→forestType\nprovince→comunidadAutonoma"]
+        HookZ["useZones()\ninitialState = mockZones\nreplaced by API on load\nreturns { zones, conditionsMap }"]
+        WeatherSvc["weatherService.js\n⚠️ fallback only\n(if API unavailable)\nOpen-Meteo direct · TTL 3h\nlocalStorage cache"]
+    end
+
+    %% ── FRONTEND UI ─────────────────────────────────────────────
+    subgraph FRONTEND_UI["🖥  Frontend — UI (Vite + React)"]
+        direction TB
+        Dashboard["Dashboard.jsx\ntop zones · OI score\nmonth chart"]
+        ZonePage["Zones.jsx\nlist + filter\nforest · CCAA · score\nonlyRained filter"]
+        ZoneModal["ZoneModal.jsx\nOI breakdown\ntemp range · dry days\nprecipitation 14d"]
+        Map["LeafletMap.jsx\nmarkers mode\nheatmap mode\n(buildHeatPoints → scores)"]
+    end
+
+    %% ── SCRIPTS ─────────────────────────────────────────────────
+    subgraph SCRIPTS["🛠  Scripts"]
+        Backfill["backend/scripts/backfill.py\n--from YYYY-MM-DD --to YYYY-MM-DD\nhistorical climate_history\nrun once on first deploy"]
+        SeedZ["backend/scripts/seed_catalog.py\nbulk upsert zones\nfrom mockZones"]
+    end
+
+    %% ── FLOWS ───────────────────────────────────────────────────
+    OpenMeteo -->|"daily fetch\n200 zones parallel"| Connector
+    Connector --> Ingest
+    Scheduler -->|"triggers"| Ingest
+    Ingest -->|"upsert P3\n(no overwrite P1/P2)"| DB
+    Ingest -->|"refresh after ingest"| OI
+    OI -->|"scores_cache\nCache-Control 1h"| DB
+
+    MockZ -->|"first deploy\nbulk import"| SeedZ
+    SeedZ -->|"upsert zones"| DB
+    OpenMeteo -.->|"first deploy\nhistorical fill"| Backfill
+    Backfill -.->|"climate_history"| DB
+
+    DB --> ORM --> Routers
+    Routers -->|"zones[] + score + weather"| ApiSvc
+    ApiSvc --> NormZ --> HookZ
+    MockZ -.->|"initial render\n(instant, no flash)"| HookZ
+    HookZ -->|"zones + conditionsMap"| Dashboard
+    HookZ -->|"zones + conditionsMap"| ZonePage
+    HookZ -->|"zones + conditionsMap"| Map
+    ZonePage -->|"open modal"| ZoneModal
+    ZoneModal -->|"fetchZone(id)\nfetchZoneWeather(id)"| ApiSvc
+
+    WeatherSvc -.->|"fallback if API\nnot available"| HookZ
+
+    Map -->|"heatmap mode\nbuildHeatPoints(conditionsMap)"| Map
+
+    %% ── STYLES ──────────────────────────────────────────────────
+    classDef backend  fill:#1e3a2f,stroke:#4a7c59,color:#f4ebe1
+    classDef frontend fill:#2a1f14,stroke:#8b6f47,color:#f4ebe1
+    classDef script   fill:#1a1a2e,stroke:#4a6fa5,color:#f4ebe1
+    classDef external fill:#1a2a1a,stroke:#4a7c59,color:#f4ebe1,stroke-dasharray:4 4
+    classDef db       fill:#0d2318,stroke:#059669,color:#f4ebe1
+
+    class Scheduler,Ingest,Connector,Routers,ORM,OI backend
+    class DB db
+    class MockZ,ApiSvc,NormZ,HookZ,WeatherSvc,Dashboard,ZonePage,ZoneModal,Map frontend
+    class Backfill,SeedZ script
+    class OpenMeteo external

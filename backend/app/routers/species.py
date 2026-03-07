@@ -102,7 +102,7 @@ async def list_species(
     cursor: str | None = Query(
         None, description="Cursor-based pagination: pass the last `id` from the previous page"
     ),
-    limit: int = Query(_PAGE_SIZE, ge=1, le=200, description="Items per page"),
+    limit: int = Query(_PAGE_SIZE, ge=1, le=500, description="Items per page"),
     db: AsyncSession = Depends(get_db),
 ) -> list[SpeciesListItem]:
     """
