@@ -200,7 +200,7 @@ GET /api/v1/weather/zones
 | v4.3 | ✅ Entregado |
 | v4.4 | ✅ Entregado |
 | v4.5 | ✅ Entregado |
-| v4.6 | 🗂 Backlog (Taxonomía + confusiones en BD) |
+| v4.6 | 🗂 Backlog (Taxonomía sinónimos + confusiones en BD) |
 | v4.7 | 🗂 Backlog (Auth/social) |
 | v5.0 | 🗂 Backlog (App móvil Android) |
 | v5.1 | 🗂 Backlog (App móvil iOS) |
