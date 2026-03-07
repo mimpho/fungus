@@ -442,11 +442,13 @@ export function SpeciesModal({ species, onClose }) {
             </section>
           )}
 
-          {/* Posibles Confusiones */}
-          <section>
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">⚠️ Posibles confusiones</h3>
-            <ConfusionesBlock species={detail} onViewSpecies={setSelectedSpecies} allSpecies={allSpecies} />
-          </section>
+          {/* Posibles Confusiones — solo si la API devuelve datos */}
+          {detail.confusions?.length > 0 && (
+            <section>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">⚠️ Posibles confusiones</h3>
+              <ConfusionesBlock species={detail} onViewSpecies={setSelectedSpecies} allSpecies={allSpecies} />
+            </section>
+          )}
 
           {/* Dónde encontrarla */}
           {compatZones.length > 0 && (
