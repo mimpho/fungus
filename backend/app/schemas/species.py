@@ -23,7 +23,7 @@ class SpeciesListItem(BaseModel):
     # From extra_data — exposed at top level for frontend convenience
     common_names: list[str] | None = None
     photo_url: str | None = None
-    # description, synonyms, confusions NOT here — only in SpeciesDetail (fetched on modal open, not in list)
+    # description, synonyms, confusions NOT here — only in SpeciesDetail
 
 
 class SpeciesOIParams(BaseModel):
