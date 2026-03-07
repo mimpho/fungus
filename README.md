@@ -2,7 +2,7 @@
 
 Sistema inteligente de predicción micológica para Cataluña y España.
 
-**Versión**: v4.4.0 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
+**Versión**: v4.5.x · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 
@@ -52,7 +52,9 @@ Requiere `.env.local` con `DATABASE_URL` apuntando a una instancia PostgreSQL + 
 fungus/
 ├── frontend/          ← Vite app (desarrollo activo)
 ├── backend/           ← FastAPI + OI algorithm
-├── docs/              ← Arquitectura, convenciones
+├── docs/              ← Arquitectura, convenciones, guías de contenido
+├── migrations/        ← SQL de datos para Supabase (INSERT/UPDATE)
+├── scripts/           ← download_images.py, species_list.json
 ├── memory/            ← Decisiones, pendientes, gotchas
 ├── standalone/        ← Legacy HTML (referencia, no activo)
 ├── CLAUDE.md          ← Instrucciones para Claude

@@ -236,9 +236,9 @@ The backend is the source of truth in production. **A species added only to the 
 
 **For a single new species → Supabase SQL Editor (recommended)**
 
-Create a file `docs/supabase-seeds/esp-XXX.sql` and run it in the Supabase dashboard → SQL Editor. No need to touch `seed_catalog.py`. Use `ON CONFLICT (id) DO UPDATE` so it is safe to re-run.
+Create a file `migrations/NNN_esp-XXX_species_name.sql` and run it in the Supabase dashboard → SQL Editor. No need to touch `seed_catalog.py`. Use `ON CONFLICT (id) DO UPDATE` so it is safe to re-run.
 
-Full field reference and a worked example: [`docs/supabase-seeds/esp-202.sql`](./supabase-seeds/esp-202.sql)
+Full field reference and a worked example: [`migrations/001_esp202_chroogomphus_rutilus.sql`](../migrations/001_esp202_chroogomphus_rutilus.sql)
 
 ```sql
 -- ⚠️  common_names, description, oi_params are NOT columns.
@@ -349,5 +349,5 @@ INSERT INTO zones (
 | Item | Status | Notes |
 |---|---|---|
 | `esp-202` Chroogomphus rutilus images | ❌ Missing | iNaturalist blocked in VM — download manually: `https://www.inaturalist.org/taxa/chroogomphus-rutilus` → 3 fotos CC BY/CC BY-NC → resize → `public/assets/images/content/species/esp-202-{main,foto1,foto2}{,-large}.jpg` |
-| `esp-202` backend sync | ❌ Missing | SQL ready in `docs/supabase-seeds/esp-202.sql` — run in Supabase dashboard |
+| `esp-202` backend sync | ❌ Missing | SQL ready in `migrations/001_esp202_chroogomphus_rutilus.sql` — run in Supabase dashboard |
 | `esp-201` backend sync | ❓ Verify | Butyriboletus regius — confirm it's in Supabase |
