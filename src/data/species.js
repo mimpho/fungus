@@ -4501,7 +4501,7 @@ export const mockSpecies = [
   },
   {
     id: "esp-181", scientificName: "Lycoperdon perlatum",
-    commonNames: ["Bejín común", "Pet de llop"],
+    commonNames: ["Bejín común", "Cuesco de lobo", "Pet de llop"],
     family: "Agaricaceae", edibility: "comestible",
     forestTypes: ["pinar", "mixto", "robledal"],
     fruitingMonths: [7,8,9,10,11],
@@ -4551,7 +4551,7 @@ export const mockSpecies = [
   },
   {
     id: "esp-183", scientificName: "Scleroderma citrinum",
-    commonNames: ["Cuesco de lobo", "Pota de cavall"],
+    commonNames: ["Escleroderma amarillo", "Pota de cavall"],
     family: "Sclerodermataceae", edibility: "no_comestible",
     forestTypes: ["pinar", "robledal", "mixto"],
     fruitingMonths: [7,8,9,10],

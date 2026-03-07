@@ -27,9 +27,10 @@ UPDATE species SET edibility = 'no_comestible' WHERE id = 'esp-199';  -- Tramete
 UPDATE species SET edibility = 'no_comestible' WHERE id = 'esp-200';  -- Xylaria hypoxylon
 
 -- ─── COMMON NAMES — Catalan names corrected ───────────────────────────────────
--- Lycoperdon perlatum: "Bejí comú" → "Pet de llop"
+-- Lycoperdon perlatum: añadir "Cuesco de lobo" (nombre ES correcto) + "Pet de llop" (CA correcto)
+-- "Cuesco de lobo" es nombre de L. perlatum, no de Scleroderma citrinum
 UPDATE species SET
-  extra_data = jsonb_set(extra_data, '{commonNames}', '["Bejín común", "Pet de llop"]'::jsonb)
+  extra_data = jsonb_set(extra_data, '{commonNames}', '["Bejín común", "Cuesco de lobo", "Pet de llop"]'::jsonb)
 WHERE id = 'esp-181';
 
 -- Lycoperdon pyriforme: "Bejí dels troncs" → "Pet de llop piriforme"
@@ -37,9 +38,10 @@ UPDATE species SET
   extra_data = jsonb_set(extra_data, '{commonNames}', '["Bejín de los troncos", "Pet de llop piriforme"]'::jsonb)
 WHERE id = 'esp-182';
 
--- Scleroderma citrinum: "Cuesco de llop" → "Pota de cavall"
+-- Scleroderma citrinum: nombre ES correcto "Escleroderma amarillo" (no "Cuesco de lobo"),
+-- nombre CA correcto "Pota de cavall"
 UPDATE species SET
-  extra_data = jsonb_set(extra_data, '{commonNames}', '["Cuesco de lobo", "Pota de cavall"]'::jsonb)
+  extra_data = jsonb_set(extra_data, '{commonNames}', '["Escleroderma amarillo", "Pota de cavall"]'::jsonb)
 WHERE id = 'esp-183';
 
 -- Trametes versicolor: "Cua de faisan" → "Cua de gall dindi"
