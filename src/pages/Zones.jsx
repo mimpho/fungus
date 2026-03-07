@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { slugify } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
@@ -15,6 +15,7 @@ const RAIN_THRESHOLD = 30
 export default function Zones() {
   const { t, followedZones, toggleFollow, setSelectedZone } = useApp()
   const { id: zoneSlug } = useParams()
+  const [searchParams] = useSearchParams()
 
   const { zones, conditionsMap, loading: weatherLoading } = useZones()
 
@@ -29,8 +30,9 @@ export default function Zones() {
     return () => setSelectedZone(null)
   }, [zoneSlug, zones])
 
-  const [tab, setTab]               = useState('mapa')
-  const [onlyFollowed, setOnlyFollowed] = useState(false)
+  // Initialize tab and onlyFollowed from URL params (set by Dashboard links)
+  const [tab, setTab]               = useState(() => searchParams.get('vista') === 'listado' ? 'listado' : 'mapa')
+  const [onlyFollowed, setOnlyFollowed] = useState(() => searchParams.get('seguidas') === '1')
   const [onlyRained, setOnlyRained] = useState(false)
   const [forestFilter, setForestFilter] = useState('')
   const [ccaaFilter, setCcaaFilter] = useState('')
@@ -95,7 +97,7 @@ export default function Zones() {
           <div>
             <h2 className="font-display text-4xl font-semibold text-cream">{t.zonas}</h2>
             <p className="text-muted text-sm mt-1">
-              {followedZones.length} {t.followedZones.toLowerCase()}
+              {filteredZones.length} zona{filteredZones.length !== 1 ? 's' : ''}
               {weatherLoading && (
                 <span className="ml-2 text-bar text-xs">· cargando datos…</span>
               )}

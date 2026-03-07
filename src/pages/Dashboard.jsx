@@ -81,7 +81,7 @@ export default function Dashboard() {
 
   const { species } = useSpecies()
   const inSeasonSpecies = useMemo(() =>
-    species.filter(e => e.fruitingMonths.includes(currentMonth)).slice(0, 4),
+    species.filter(e => e.fruitingMonths.includes(currentMonth)),
   [species, currentMonth])
 
   return (
@@ -172,7 +172,7 @@ export default function Dashboard() {
               </div>
             ))}
             {inSeasonSpecies.length > 3 && (
-              <button onClick={() => navigate('/especies')}
+              <button onClick={() => navigate(`/especies?mes=${currentMonth}`)}
                 className="w-full text-center text-xs text-muted hover:text-coffee-light transition-colors pt-1">
                 Ver todas las {inSeasonSpecies.length} →
               </button>
@@ -192,7 +192,7 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <p className="text-muted text-sm font-medium uppercase tracking-wider">🌟 Mejores condiciones hoy</p>
-            <button onClick={() => navigate('/zonas')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver todas →</button>
+            <button onClick={() => navigate('/zonas?vista=listado')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver todas →</button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {topZones.map(z => (
@@ -210,7 +210,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <p className="text-muted text-sm font-medium uppercase tracking-wider">⭐ {t.followedZones}</p>
-              <button onClick={() => navigate('/zonas')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver todas →</button>
+              <button onClick={() => navigate('/zonas?seguidas=1&vista=listado')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver todas →</button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {followedZones.slice(0, 4).map(z => {
@@ -283,7 +283,7 @@ export default function Dashboard() {
               <button onClick={() => navigate('/especies')} className="text-muted hover:text-coffee-light text-xs transition-colors">Ver catálogo →</button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {inSeasonSpecies.map((e, i) => (
+              {inSeasonSpecies.slice(0, 4).map((e, i) => (
                 <SpeciesCard key={e.id} species={e} onOpen={setSelectedSpecies} size="compact" animDelay={i * 0.06} />
               ))}
             </div>
