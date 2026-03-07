@@ -46,6 +46,13 @@ def _photo_url(species: Species) -> str | None:
     return None
 
 
+def _synonyms(species: Species) -> list[str] | None:
+    """Extract synonyms from extra_data JSONB field."""
+    if not species.extra_data:
+        return None
+    return species.extra_data.get("synonyms")
+
+
 def _to_list_item(s: Species) -> SpeciesListItem:
     return SpeciesListItem(
         id=s.id,
@@ -59,6 +66,7 @@ def _to_list_item(s: Species) -> SpeciesListItem:
         common_names=_extra_list(s, "commonNames"),
         photo_url=_photo_url(s),
         description=_extra_str(s, "description"),
+        synonyms=_synonyms(s),
     )
 
 
