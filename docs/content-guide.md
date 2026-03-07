@@ -241,33 +241,47 @@ Create a file `docs/supabase-seeds/esp-XXX.sql` and run it in the Supabase dashb
 Full field reference and a worked example: [`docs/supabase-seeds/esp-202.sql`](./supabase-seeds/esp-202.sql)
 
 ```sql
+-- ⚠️  common_names, description, oi_params are NOT columns.
+-- OI params → individual columns (temp_min_c etc.)
+-- Everything else → extra_data JSONB (see app/models/species.py)
 INSERT INTO species (
   id, scientific_name, family, edibility,
+  temp_min_c, temp_opt_c, temp_max_c,
+  rain_min_mm, rain_opt_mm, cycle_days,
   forest_types, fruiting_months,
   elevation_min_m, elevation_max_m,
-  common_names, description,
-  oi_params, extra_data
+  extra_data
 ) VALUES (
   'esp-XXX', 'Genus species', 'Familyaceae', 'comestible',
+  8.0, 12.0, 16.0,
+  20, 60, 7,
   ARRAY['pinar'], ARRAY[9,10,11],
   200, 1500,
-  ARRAY['Nombre ES', 'Nombre CA'],
-  'Descripción completa...',
-  '{"temp_optima_min":8,"temp_optima_max":16,"humedad_min":55,"humedad_optima":70,
-    "precip_14dias_min":20,"precip_14dias_max":60,
-    "requiere_helada":false,"requiere_choque_termico":false,
-    "dias_hasta_fructificacion":7}'::jsonb,
-  '{"cap":{...},"stem":{...},"flesh":{...},"sporePrint":"...","distribucion":[...],"photos":[...]}'::jsonb
+  '{
+    "commonNames": ["Nombre ES", "Nombre CA"],
+    "description": "Descripción completa...",
+    "photo":  {"url":"assets/images/content/species/esp-XXX-main.jpg","largeUrl":"..."},
+    "photos": [{"url":"...","largeUrl":"..."}],
+    "cap":    {"forma":"...","color":"...","diametro":"X-Y cm","superficie":"..."},
+    "stem":   {"forma":"...","color":"...","altura":"X-Y cm","diametro":"X-Y cm"},
+    "flesh":  {"color":"...","textura":"...","olor":"...","sabor":"..."},
+    "sporePrint": "...",
+    "distribucion": ["Europa", "España", "..."],
+    "synonyms": ["OldGenus species Autor"],
+    "humedad_min": 55.0, "humedad_optima": 70.0,
+    "requiere_helada": false, "requiere_choque_termico": false
+  }'::jsonb
 ) ON CONFLICT (id) DO UPDATE SET
   scientific_name=EXCLUDED.scientific_name, family=EXCLUDED.family,
-  edibility=EXCLUDED.edibility, forest_types=EXCLUDED.forest_types,
-  fruiting_months=EXCLUDED.fruiting_months, elevation_min_m=EXCLUDED.elevation_min_m,
-  elevation_max_m=EXCLUDED.elevation_max_m, common_names=EXCLUDED.common_names,
-  description=EXCLUDED.description, oi_params=EXCLUDED.oi_params,
+  edibility=EXCLUDED.edibility,
+  temp_min_c=EXCLUDED.temp_min_c, temp_opt_c=EXCLUDED.temp_opt_c, temp_max_c=EXCLUDED.temp_max_c,
+  rain_min_mm=EXCLUDED.rain_min_mm, rain_opt_mm=EXCLUDED.rain_opt_mm, cycle_days=EXCLUDED.cycle_days,
+  forest_types=EXCLUDED.forest_types, fruiting_months=EXCLUDED.fruiting_months,
+  elevation_min_m=EXCLUDED.elevation_min_m, elevation_max_m=EXCLUDED.elevation_max_m,
   extra_data=EXCLUDED.extra_data;
 ```
 
-`extra_data` stores the full morphological detail (cap, stem, flesh, photos array) that the frontend unpacks in `normalizeSpeciesDetail()`.
+`extra_data` stores everything that isn't a dedicated column: nombres comunes, descripción, fotos, morfología (cap/stem/flesh), sinónimos, distribución y parámetros de humedad. El frontend lo desempaqueta en `normalizeSpeciesDetail()`. Ver schema completo en `app/models/species.py`.
 
 > **For bulk re-sync** (e.g. after many mock changes or a first deploy): use `backend/scripts/seed_catalog.py` instead. It reads `mockSpecies` directly via Node.js and upserts everything in one pass. Requires the backend Python environment and `DATABASE_URL` — see `docs/scripts-guide.md`.
 
