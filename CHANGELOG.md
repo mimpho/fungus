@@ -9,12 +9,22 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-### Añadido (v4.6.2 — confusiones en BD)
+---
+
+## [4.6.2] - 2026-03-07 — Confusiones en BD
+
+### Añadido
 - Backend: schema `SpeciesConfusion` (`with_species_id: str`, `diff: str`) en `schemas/species.py`
-- Backend: campo `confusions: list[SpeciesConfusion] | None` en `SpeciesListItem`, leído de `extra_data.confusions` (JSONB)
+- Backend: campo `confusions: list[SpeciesConfusion] | None` en `SpeciesDetail` (no en `SpeciesListItem`), leído de `extra_data.confusions` (JSONB)
 - Backend: `_confusions(species)` helper en `routers/species.py` para extraer el campo del JSONB
 - Backend: migración Alembic `005_confusions.py` (data-only, sin cambio de schema)
-- Backend: `005_confusions_data.sql` — datos iniciales para Morchellaceae (*Morchella esculenta*, *Gyromitra esculenta*, *Helvella lacunosa*) y *Boletus edulis* con relaciones bidireccionales
+- Backend: `005_confusions_data.sql` — datos iniciales para Morchellaceae (*Morchella esculenta*, *M. importuna*, *M. elata*, *M. semilibera*, *Gyromitra esculenta*, *Helvella lacunosa*), *Boletus edulis* y boletos tóxicos (*Suillellus luridus*, *Neoboletus erythropus*, *Rubroboletus satanas*) con relaciones bidireccionales. Migración ejecutada en Supabase.
+- Frontend: `edibilityStyle(edibility)` helper en `helpers.jsx` — deriva `icon`, `borderColor`, `nameColor` del valor de comestibilidad (sin almacenar presentación en BD)
+- Frontend: `ConfusionesBlock` reescrito para leer `detail.confusions` de la API (eliminado `CONFUSIONES_POR_FAMILIA` y `CONFUSION_GENERICA`)
+- Frontend: guard en `SpeciesModal` — sección "Posibles confusiones" (título incluido) solo se renderiza si `detail.confusions?.length > 0`
+
+### Cambiado
+- `description`, `synonyms` y `confusions` movidos de `SpeciesListItem` a `SpeciesDetail` — el endpoint de listado no los incluye; solo se cargan al abrir el modal
 
 ### Documentado
 - `docs/deploy.md`: nota sobre trigger manual de deploy en Render free tier cuando el auto-deploy falla

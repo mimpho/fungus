@@ -4,18 +4,14 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚧 En curso — v4.6.2 Confusiones (PR #28 abierta)
+## 🗂 Pendiente — v4.6.x Confusiones (datos restantes)
 
-Backend completo. Frontend pendiente.
+PR #28 mergeada y desplegada en prod. Pendiente poblar más familias:
 
-- [ ] **Frontend: `ConfusionesBlock`** — leer `species.confusions` de la API en lugar de `CONFUSIONES_POR_FAMILIA`
-  - `species.confusions` llega como `[{with_species_id, diff}]` desde el endpoint
-  - Buscar la seta referenciada por `with_species_id` en `allSpecies` para obtener `scientificName` y `edibility`
-  - Derivar `icon` / `borderColor` / `nameColor` en frontend a partir de `edibility` (igual que `EdibilityTag`)
-  - Si `species.confusions` es `null` o vacío, no renderizar el bloque
-- [ ] **Frontend: eliminar agrupación por familia** — `CONFUSIONES_POR_FAMILIA` deja de usarse; se puede deprecar/eliminar de `helpers.jsx` una vez el frontend esté migrado
-- [ ] **Datos: poblar confusiones restantes** — SQL migrations para las demás familias (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae, etc.)
-- [ ] **Merge PR #28** cuando el frontend esté listo
+- [ ] **Datos: confusiones Amanitaceae** — *Amanita phalloides*, *A. muscaria*, *A. caesarea*, *A. vaginata* y similares
+- [ ] **Datos: confusiones Cantharellaceae** — *Cantharellus cibarius* vs *Omphalotus olearius*
+- [ ] **Datos: confusiones Russulaceae** — *Russula* spp., *Lactarius* spp.
+- [ ] **Datos: confusiones Cortinariaceae** — *Cortinarius* spp. (muchos tóxicos)
 
 ---
 
