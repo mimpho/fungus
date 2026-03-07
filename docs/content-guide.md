@@ -333,6 +333,6 @@ INSERT INTO zones (
 
 | Item | Status | Notes |
 |---|---|---|
-| `esp-202` Chroogomphus rutilus images | ❌ Missing | Search iNaturalist for `Chroogomphus rutilus` |
-| `esp-202` backend sync | ❌ Missing | Not yet in Supabase — use Option B above |
+| `esp-202` Chroogomphus rutilus images | ❌ Missing | iNaturalist blocked in VM — download manually: `https://www.inaturalist.org/taxa/chroogomphus-rutilus` → 3 fotos CC BY/CC BY-NC → resize → `public/assets/images/content/species/esp-202-{main,foto1,foto2}{,-large}.jpg` |
+| `esp-202` backend sync | ❌ Missing | SQL ready in `docs/supabase-seeds/esp-202.sql` — run in Supabase dashboard |
 | `esp-201` backend sync | ❓ Verify | Butyriboletus regius — confirm it's in Supabase |
