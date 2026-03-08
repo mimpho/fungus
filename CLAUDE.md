@@ -4,7 +4,7 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v4.6.2 frontend+backend
+**Versión actual**: v4.6.3 frontend+backend (v4.6.4 en curso)
 **Estado frontend**: Integrado con backend. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Bloque de confusiones solo visible si la API devuelve datos.
 **Estado backend**: v4.6.2 en `main`. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`. `description`/`synonyms`/`confusions` solo en endpoint de detalle (no en listado). Confusiones iniciales (Morchellaceae + Boletaceae) en Supabase vía `005_confusions_data.sql`.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
@@ -414,7 +414,8 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v4.4 | ✅ Entregado | Weather cache BD server-side + deploy producción |
 | v4.5 | ✅ Entregado | Auditoría mock → API: cierre de imports residuales en frontend |
 | v4.6 | ✅ Entregado | Taxonomía (sinónimos) + confusiones en BD — `ConfusionesBlock` desde API, datos iniciales Morchellaceae+Boletaceae |
-| v4.6.3 | 🚧 En curso | Datos confusiones familias restantes + mejoras UX: filtros comarca/CCAA, no_comestible, restyling ConfusionesBlock — rama `feat/v4-6-3` |
+| v4.6.3 | ✅ Entregado | Mejoras UX: filtros comarca/CCAA, `no_comestible`, restyling ConfusionesBlock, comarca en ZoneModal hero |
+| v4.6.4 | 🚧 En curso | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) + gap fix Agaricus campestris — rama `feat/v4-6-4` |
 | v4.7 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos comunitarios |
 | v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
 | v5.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
@@ -515,6 +516,7 @@ Al acabar cada bloque, Claude debe sugerir proactivamente los siguientes pasos s
 - Feature branch terminada → sugerir squash merge a la epic y borrar la rama
 - Fase completa → sugerir merge `--no-ff` a `main`, tag y push
 - Nada pendiente → confirmarlo explícitamente
+- **Al preparar una integración (PR)** → proporcionar siempre el **PR title** y **PR description** listos para pegar en GitHub, en inglés y con markdown. El título sigue Conventional Commits (≤72 chars). La descripción incluye: resumen de cambios, sección de migraciones o pasos manuales si aplica, y checklist de testing.
 
 **Conversación** — si conviene continuar aquí o abrir una nueva sesión:
 - Continuar aquí si el siguiente bloque es una extensión natural del actual (misma rama, mismo contexto)

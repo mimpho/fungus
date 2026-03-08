@@ -4,7 +4,7 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚧 En curso — v4.6.3 (rama `feat/v4-6-3`)
+## 🚧 En curso — v4.6.4 (rama `feat/v4-6-4`)
 
 Mejoras UX commitadas (pendiente push + PR):
 - [x] Filtros comarca + CCAA en página Zonas
@@ -18,7 +18,8 @@ Datos de confusiones — migraciones escritas, pendiente ejecutar en Supabase:
 - [x] `007_confusions_cantharellaceae.sql` — 6 especies + cross: Omphalotus olearius
 - [x] `008_confusions_russulaceae.sql` — 14 especies (Russula: virescens, cyanoxantha, delica, emetica, aurea, vesca, foetens, nigricans, laurocerasi + Lactarius: deliciosus, sanguifluus, deterrimus, volemus + Lactifluus: piperatus, vellereus)
 - [x] `009_confusions_cortinariaceae.sql` — 9 especies + cross: Inocybe erubescens
-- [ ] **Ejecutar las 4 migraciones en Supabase** (orden: 006 → 007 → 008 → 009)
+- [x] `010_confusions_agaricus_campestris.sql` — gap fix: campestris ↔ phalloides/verna/xanthodermus + silvicola ↔ campestris/xanthodermus
+- [ ] **Ejecutar `010` en Supabase** (006–009 ya aplicadas con overwrite pattern — datos correctos, no requieren reejecutar)
 
 ---
 
