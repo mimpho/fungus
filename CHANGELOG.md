@@ -9,6 +9,16 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Añadido
+- Frontend: filtro de comarca en página Zonas — `<select>` contextual (se filtra por CCAA seleccionada), chip activo eliminable, reset automático al cambiar CCAA
+- Frontend: `comunidadAutonoma` añadido a todas las zonas del mock (`src/data/zones.js`, 200 zonas) — desbloquea el filtro de CCAA que ya existía en código
+- Frontend: filtro de comestibilidad (`availFilter`/`calFilter`) en secciones "Disponibles ahora" y "Calendario de fructificación" del ZoneModal; smart default excelente → comestible → todas
+- Frontend: opción `no_comestible` añadida a todos los selectores de comestibilidad (ZoneModal y catálogo de especies)
+- Frontend: `ConfusionesBlock` restyling — foto + nombre + `EdibilityTag` al estilo de items de familia; descripción full-width en columna derecha
+- Frontend: padding mobile reducido en ZoneModal y SpeciesModal (`px-4 py-6 sm:px-6`)
+- Migrations: `003_edibility_no_comestible_round2.sql` — correcciones de comestibilidad para *Pycnoporus cinnabarinus*, *Phlebia radiata*, *Hygrophorus pustulatus* (comestible → no_comestible) y *Lepista personata* (bueno → comestible); aplicar en Supabase
+- Frontend: mock `species.js` actualizado con las mismas 4 correcciones de comestibilidad
+
 ---
 
 ## [4.6.2] - 2026-03-07 — Confusiones en BD
