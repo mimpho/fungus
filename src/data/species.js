@@ -5119,6 +5119,7 @@ const SPECIES_SYNONYMS = {
   'Amanita citrina':            ['Amanita mappa (Batsch) Bertillon', 'Agaricus citrinus Schaeff.'],
   'Amanita spissa':             ['Agaricus spissus Fr.', 'Amanita excelsa var. spissa (Fr.) Neville & Poumarat'],
   'Amanita excelsa':            ['Agaricus excelsus Fr.', 'Amanita excelsa var. valens (E.-J. Gilbert) Neville & Poumarat'],
+  'Amanita gemmata':            ['Amanita junquillea Quél.', 'Agaricus gemmatus Fr.', 'Amanita gemmata var. gemmata'],
   'Amanita strobiliformis':     ['Amanita solitaria (Bull.) Mérat', 'Agaricus solitarius Bull.'],
   'Amanita eliae':              ['Amanita eliae Quél.', 'Amanita ceciliae auct. (en parte)'],
   // — Pleurotaceae —

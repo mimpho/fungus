@@ -163,8 +163,13 @@ UPDATE species SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build
   ARRAY['Russula foetens var. laurocerasi (Melzer) Bon']
 ) WHERE scientific_name = 'Russula laurocerasi';
 
+-- Amanitaceae — gemmata/junquillea (iNaturalist accepted name: A. junquillea)
+UPDATE species SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object('synonyms',
+  ARRAY['Amanita junquillea Quél.', 'Agaricus gemmatus Fr.', 'Amanita gemmata var. gemmata']
+) WHERE scientific_name = 'Amanita gemmata';
+
 -- Verify count
-SELECT scientific_name, extra_data->>'synonyms' as synonyms_count 
-FROM species 
-WHERE extra_data ? 'synonyms' 
+SELECT scientific_name, extra_data->>'synonyms' as synonyms_count
+FROM species
+WHERE extra_data ? 'synonyms'
 ORDER BY scientific_name;
