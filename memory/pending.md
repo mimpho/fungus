@@ -16,9 +16,20 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚧 En curso — v4.7 Auth/social
+## 🚧 En curso — v4.7 i18n translations
 
-Sin rama activa todavía.
+Sin rama activa todavía. Enfocado en plan de i18n DB-backed y migraciones para 4.7.
+
+---
+
+## 🔜 En curso — v5.x Auth move
+- Migraciones y endpoints de Auth movidos a v5.x, MVP de login/register/me con JWT.
+- Seeds y pruebas para staging en v5.x.
+
+---
+## 🔜 En curso — v6.x Apps move
+- Planificar migración de apps a v6.x, con soporte para apps móviles y web.
+- Seeds y pruebas para staging en v6.x.
 
 **Alcance previsto:**
 - Auth: JWT (login/registro), middleware de protección de rutas

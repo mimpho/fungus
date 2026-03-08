@@ -200,6 +200,14 @@ GET /api/v1/weather/zones
 | v4.3 | ✅ Entregado |
 | v4.4 | ✅ Entregado |
 | v4.5 | ✅ Entregado |
+| v4.6 | ✅ Entregado |
+| v4.6.3 | ✅ Entregado |
+| v4.6.4 | 🚧 En curso |
+| v4.7 | ✅ Entregado? (i18n translations as MVP) |
+| v5.0 | 🗂 Backlog | Auth moved to v5 |
+| v6.0 | 🗂 Backlog | Apps moved to v6 |
+| v4.4 | ✅ Entregado |
+| v4.5 | ✅ Entregado |
 | v4.6 | ✅ Entregado (Taxonomía sinónimos + confusiones en BD) |
 | v4.6.3 | ✅ Entregado (Mejoras UX: filtros comarca/CCAA, no_comestible, restyling) |
 | v4.6.4 | ✅ Entregado (Datos confusiones familias restantes) |

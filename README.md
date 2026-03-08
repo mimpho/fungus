@@ -92,7 +92,9 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v4.6 | ✅ | Taxonomía (sinónimos) + confusiones en BD |
 | v4.6.3 | ✅ | Mejoras UX: filtros comarca/CCAA, no_comestible, restyling |
 | v4.6.4 | ✅ | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) |
-| v4.7 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos |
+| v4.7 | 🗂 Backlog | i18n translations MVP (plan) |
+| v5.0 | 🗂 Backlog | Auth moved to v5
+| v6.0 | 🗂 Backlog | Apps moved to v6
 | v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) |
 | v5.1 | 🗂 Backlog | App móvil iOS |
 

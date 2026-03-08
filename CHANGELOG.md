@@ -31,6 +31,18 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Frontend: mock `species.js` actualizado con las mismas 4 correcciones de comestibilidad
 
 ---
+## [5.0] - Plan moved: Auth moved to v5
+
+### Plan
+- Auth moved to v5.0: groundwork for authentication (JWT) and user management
+- Se mantienen otras piezas de backlog para 4.x y planean migraciones en 5.x
+
+---
+## [6.0] - Plan moved: Apps moved to v6
+
+### Plan
+- Apps moved to v6.0: mobile apps and frontend integration evolved
+- Siguientes fases (backlog) para 6.x
 
 ## [4.6.2] - 2026-03-07 — Confusiones en BD
 
