@@ -2,7 +2,7 @@
 
 Sistema inteligente de predicción micológica para Cataluña y España.
 
-**Versión**: v4.6.2 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
+**Versión**: v4.6.4 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 
@@ -92,9 +92,10 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v4.6 | ✅ | Taxonomía (sinónimos) + confusiones en BD |
 | v4.6.3 | ✅ | Mejoras UX: filtros comarca/CCAA, no_comestible, restyling |
 | v4.6.4 | ✅ | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) |
-| v4.7 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos |
-| v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) |
-| v5.1 | 🗂 Backlog | App móvil iOS |
+| v4.7 | 🗂 Backlog | i18n / Traducciones: frontend ES/CA/EN, posible impacto en BD |
+| v5 | 🗂 Backlog | Auth + favoritos en BD: JWT, registro/login, favoritos por usuario |
+| v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) |
+| v6.1 | 🗂 Backlog | App móvil iOS |
 
 Backlog detallado: `memory/pending.md`
 
