@@ -4,7 +4,7 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚧 En curso — v4.6.3 (rama `feat/v4-6-3`)
+## 🚧 En curso — v4.6.4 (rama `feat/v4-6-4`)
 
 Mejoras UX commitadas (pendiente push + PR):
 - [x] Filtros comarca + CCAA en página Zonas
