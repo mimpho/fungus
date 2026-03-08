@@ -265,7 +265,7 @@ export function EdibilityTag({ edibility, variant = 'glass', showDot = false, cl
     );
   }
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${cc.bg} ${cc.text} ${className}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 mt-1 py-1 rounded-full text-[11px] font-medium ${cc.bg} ${cc.text} ${className}`}>
       {showDot && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cc.dot}`} />}
       {cc.label}
     </span>
@@ -422,34 +422,34 @@ export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
   const confusions = species.confusions
   if (!confusions?.length) return null
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {confusions.map((c, i) => {
         const ref = allSpecies.find(s => s.id === c.with_species_id)
-        const { icon, borderColor, nameColor } = edibilityStyle(ref?.edibility)
         const canView = ref && onViewSpecies
-        const Wrapper = canView ? 'button' : 'div'
         return (
-          <Wrapper key={i}
+          <div key={i}
             onClick={canView ? () => onViewSpecies(ref) : undefined}
-            className={`w-full text-left bg-white/[0.03] rounded-xl p-4 border ${borderColor} ${canView ? 'cursor-pointer hover:bg-white/[0.07] hover-lift transition-all' : ''}`}>
-            <div className="flex items-start gap-3">
-              <span className="text-2xl shrink-0">{icon}</span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className={`font-medium text-sm ${nameColor}${canView ? ' underline underline-offset-2 decoration-dotted' : ''}`}>
-                    {ref?.scientificName ?? c.with_species_id}
-                  </span>
-                  {ref && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-cream/50">{ref.edibility}</span>
-                  )}
-                  {canView && (
-                    <span className="text-[10px] text-cream/30 ml-auto">Ver ficha →</span>
-                  )}
-                </div>
-                <p className="text-cream/60 text-sm leading-relaxed">{c.diff}</p>
-              </div>
+            className={`flex items-start gap-3 bg-white/[0.03] rounded-xl p-3 transition-all ${canView ? 'cursor-pointer hover:bg-white/[0.06] hover-lift' : ''}`}>
+            {/* Imagen — anclada a la izquierda */}
+            <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-white/[0.04]">
+              <img
+                src={resolveUrl(ref?.photo?.url)}
+                alt={ref?.scientificName ?? ''}
+                className="w-full h-full object-cover object-top opacity-80"
+                onError={ev => { ev.target.style.display = 'none' }}
+              />
             </div>
-          </Wrapper>
+            {/* Columna derecha: nombre+tag arriba, descripción debajo a ancho completo */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="font-display text-cream text-lg truncate">{ref?.scientificName ?? c.with_species_id}</div>
+                {ref && <EdibilityTag edibility={ref.edibility} variant="glass" className="shrink-0" />}
+              </div>
+              {c.diff && (
+                <p className="text-cream/55 text-xs leading-relaxed">{c.diff}</p>
+              )}
+            </div>
+          </div>
         )
       })}
       <p className="text-cream/30 text-xs text-center pt-1">
