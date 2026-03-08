@@ -4,7 +4,7 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v4.6.4 frontend+backend (v4.7 en backlog)
+**Versión actual**: v4.6.4 frontend/backend; v4.7 i18n MVP (translations) plan en backlog; v5.x Auth moved; v6.x Apps moved
 **Estado frontend**: Integrado con backend. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Bloque de confusiones solo visible si la API devuelve datos. Filtros comarca/CCAA, `no_comestible` category, restyling ConfusionesBlock.
 **Estado backend**: v4.6.4. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`. `description`/`synonyms`/`confusions` desde BD. Confusiones completas: Morchellaceae, Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
