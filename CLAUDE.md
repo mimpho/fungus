@@ -4,9 +4,9 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v4.6.3 frontend+backend (v4.6.4 en curso)
-**Estado frontend**: Integrado con backend. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Bloque de confusiones solo visible si la API devuelve datos.
-**Estado backend**: v4.6.2 en `main`. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`. `description`/`synonyms`/`confusions` solo en endpoint de detalle (no en listado). Confusiones iniciales (Morchellaceae + Boletaceae) en Supabase vía `005_confusions_data.sql`.
+**Versión actual**: v4.6.4 frontend+backend (v4.7 en backlog)
+**Estado frontend**: Integrado con backend. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Bloque de confusiones solo visible si la API devuelve datos. Filtros comarca/CCAA, `no_comestible` category, restyling ConfusionesBlock.
+**Estado backend**: v4.6.4. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`. `description`/`synonyms`/`confusions` desde BD. Confusiones completas: Morchellaceae, Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 **Backend spec**: `docs/backend_architecture.md` — FastAPI + PostgreSQL + PostGIS (v4.x)
@@ -415,10 +415,11 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v4.5 | ✅ Entregado | Auditoría mock → API: cierre de imports residuales en frontend |
 | v4.6 | ✅ Entregado | Taxonomía (sinónimos) + confusiones en BD — `ConfusionesBlock` desde API, datos iniciales Morchellaceae+Boletaceae |
 | v4.6.3 | ✅ Entregado | Mejoras UX: filtros comarca/CCAA, `no_comestible`, restyling ConfusionesBlock, comarca en ZoneModal hero |
-| v4.6.4 | 🚧 En curso | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) + gap fix Agaricus campestris — rama `feat/v4-6-4` |
-| v4.7 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos comunitarios |
-| v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
-| v5.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
+| v4.6.4 | ✅ Entregado | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) + gap fix Agaricus campestris |
+| v4.7 | 🗂 Backlog | i18n / Traducciones: traducción completa frontend (ES/CA/EN), posible impacto en BD |
+| v5 | 🗂 Backlog | Auth + favoritos en BD: JWT, registro/login, favoritos zonas y especies por usuario |
+| v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
+| v6.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
 
 Spec completa de v4.x: `docs/backend_architecture.md`
 

@@ -10,6 +10,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Añadido
+- (próximamente)
+
+---
+
+## [4.6.4] - 2026-03-08 — Confusiones familias restantes
+
+### Añadido
 - Migrations: `006_confusions_amanitaceae.sql` — 13 especies Amanitaceae + cross-familia (caesarea, muscaria, phalloides, verna, virosa, pantherina, rubescens, ovoidea, spissa, citrina, excelsa, Agaricus silvicola, Leucoagaricus leucothites); amatoxinas y retraso de síntomas en diffs
 - Migrations: `007_confusions_cantharellaceae.sql` — Cantharellus cibarius/pallens/aurora, Craterellus tubaeformis/cornucopioides + cross: Omphalotus olearius (confusión más frecuente del rebozuelo)
 - Migrations: `008_confusions_russulaceae.sql` — 14 especies Russula/Lactarius/Lactifluus: emetica vs comestibles, deliciosus vs torminosus/deterrimus/sanguifluus, vellereus vs piperatus; regla del sabor acre en diffs
