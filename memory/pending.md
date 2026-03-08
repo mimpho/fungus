@@ -4,10 +4,16 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🗂 Pendiente — v4.6.x Confusiones (datos restantes)
+## 🚧 En curso — v4.6.3 (rama `feat/v4-6-3`)
 
-PR #28 mergeada y desplegada en prod. Pendiente poblar más familias:
+Mejoras UX commitadas (pendiente push + PR):
+- [x] Filtros comarca + CCAA en página Zonas
+- [x] `no_comestible` en todos los selectores de comestibilidad
+- [x] Restyling `ConfusionesBlock` al estilo items de familia
+- [x] Comarca en hero del ZoneModal
+- [x] Padding mobile reducido en ZoneModal + SpeciesModal
 
+Datos de confusiones pendientes (continúan en esta misma rama):
 - [ ] **Datos: confusiones Amanitaceae** — *Amanita phalloides*, *A. muscaria*, *A. caesarea*, *A. vaginata* y similares
 - [ ] **Datos: confusiones Cantharellaceae** — *Cantharellus cibarius* vs *Omphalotus olearius*
 - [ ] **Datos: confusiones Russulaceae** — *Russula* spp., *Lactarius* spp.

@@ -414,6 +414,7 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v4.4 | ✅ Entregado | Weather cache BD server-side + deploy producción |
 | v4.5 | ✅ Entregado | Auditoría mock → API: cierre de imports residuales en frontend |
 | v4.6 | ✅ Entregado | Taxonomía (sinónimos) + confusiones en BD — `ConfusionesBlock` desde API, datos iniciales Morchellaceae+Boletaceae |
+| v4.6.3 | 🚧 En curso | Datos confusiones familias restantes + mejoras UX: filtros comarca/CCAA, no_comestible, restyling ConfusionesBlock — rama `feat/v4-6-3` |
 | v4.7 | 🗂 Backlog | Auth/social: JWT, favoritos en BD, avistamientos comunitarios |
 | v5.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
 | v5.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
