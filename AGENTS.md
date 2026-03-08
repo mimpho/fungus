@@ -4,9 +4,9 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v4.4.2 frontend / v4.4.2 backend
-**Estado frontend**: Integración completa con backend API — `/zonas` y `/especies` consumen endpoints del backend. Datos meteorológicos via backend (Open-Meteo cacheado). Catálogo de 200 zonas y 201 especies desde BD. Modales con URL slugs y navegación browser-native.
-**Estado backend**: v4.4.2. FastAPI + SQLAlchemy + Alembic + Outbreak Index + WeatherCache. Endpoints activos (`/zones`, `/species`, `/weather`). Weather cache con TTL 3h.
+**Versión actual**: v4.6.4 frontend / v4.6.4 backend
+**Estado frontend**: Taxonomía y confusiones desde API — sinónimos y confusiones (ConfusionesBlock)都是从 backend. Filtros comarca/CCAA, restyling UI, `no_comestible` category. Catálogo de 200 zonas y 201 especies desde BD.
+**Estado backend**: v4.6.4. FastAPI + SQLAlchemy + Alembic + Outbreak Index + WeatherCache + Species Taxonomy/Confusions. Endpoints activos (`/zones`, `/species`, `/weather`).
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 
@@ -200,7 +200,9 @@ GET /api/v1/weather/zones
 | v4.3 | ✅ Entregado |
 | v4.4 | ✅ Entregado |
 | v4.5 | ✅ Entregado |
-| v4.6 | 🗂 Backlog (Taxonomía sinónimos + confusiones en BD) |
+| v4.6 | ✅ Entregado (Taxonomía sinónimos + confusiones en BD) |
+| v4.6.3 | ✅ Entregado (Mejoras UX: filtros comarca/CCAA, no_comestible, restyling) |
+| v4.6.4 | 🚧 En curso (Datos confusiones familias restantes) |
 | v4.7 | 🗂 Backlog (Auth/social) |
 | v5.0 | 🗂 Backlog (App móvil Android) |
 | v5.1 | 🗂 Backlog (App móvil iOS) |
