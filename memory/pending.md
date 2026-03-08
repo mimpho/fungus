@@ -19,7 +19,7 @@ Datos de confusiones — migraciones escritas, pendiente ejecutar en Supabase:
 - [x] `008_confusions_russulaceae.sql` — 14 especies (Russula: virescens, cyanoxantha, delica, emetica, aurea, vesca, foetens, nigricans, laurocerasi + Lactarius: deliciosus, sanguifluus, deterrimus, volemus + Lactifluus: piperatus, vellereus)
 - [x] `009_confusions_cortinariaceae.sql` — 9 especies + cross: Inocybe erubescens
 - [x] `010_confusions_agaricus_campestris.sql` — gap fix: campestris ↔ phalloides/verna/xanthodermus + silvicola ↔ campestris/xanthodermus
-- [ ] **Ejecutar las 5 migraciones en Supabase** (orden indiferente — append pattern, pueden lanzarse en cualquier orden): `006` → `007` → `008` → `009` → `010`
+- [ ] **Ejecutar `010` en Supabase** (006–009 ya aplicadas con overwrite pattern — datos correctos, no requieren reejecutar)
 
 ---
 
