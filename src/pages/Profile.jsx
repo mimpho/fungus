@@ -69,7 +69,7 @@ export default function Profile() {
           ))}
           <button onClick={handleSave}
             className={`w-full py-3 rounded-xl text-sm font-medium transition-all ${saved ? 'bg-emerald-600 text-white' : 'bg-bar hover:bg-[#a0834d] text-white'}`}>
-            {saved ? '✓ Guardado' : t.handleSave}
+            {saved ? `✓ ${t.guardado}` : t.handleSave}
           </button>
         </div>
       </section>

@@ -7,12 +7,12 @@ import { LeafletMap } from '../map/LeafletMap'
 import { useApiZoneConditions } from '../../hooks/useWeatherConditions'
 
 const EDIBILITY_FILTERS = [
-  { id: 'todas',         label: 'Todas',           emoji: '🍄' },
-  { id: 'excelente',     label: 'Excelentes',       emoji: '⭐' },
-  { id: 'comestible',    label: 'Comestibles',      emoji: '✅' },
-  { id: 'no_comestible', label: 'No comestibles',   emoji: '🚫' },
-  { id: 'toxico',        label: 'Tóxicas',          emoji: '⚠️' },
-  { id: 'mortal',        label: 'Mortales',         emoji: '☠️' },
+  { id: 'todas',         tKey: 'filterTodas',       emoji: '🍄' },
+  { id: 'excelente',     tKey: 'filterExcelentes',  emoji: '⭐' },
+  { id: 'comestible',    tKey: 'filterComestibles', emoji: '✅' },
+  { id: 'no_comestible', tKey: 'filterNoComest',    emoji: '🚫' },
+  { id: 'toxico',        tKey: 'filterToxicas',     emoji: '⚠️' },
+  { id: 'mortal',        tKey: 'filterMortales',    emoji: '☠️' },
 ]
 
 export function ZoneModal({ zone, onClose }) {
@@ -158,12 +158,12 @@ export function ZoneModal({ zone, onClose }) {
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-1">{t.termometro}</h3>
             <p className="text-cream/40 text-xs mb-3 leading-relaxed">
-              El índice pondera datos meteorológicos en tiempo real junto al factor estacional del mes actual para calcular las condiciones de recolección.
+              {t.indiceMeteoDesc}
             </p>
             <div className="flex items-center gap-4 bg-white/[0.03] rounded-xl p-4">
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
-                  <span className={`text-sm font-semibold ${sc.text}`}>{sc.label}</span>
+                  <span className={`text-sm font-semibold ${sc.text}`}>{t[sc.tKey]}</span>
                   <span className="font-display text-xl font-bold text-cream">{conditions.overallScore}<span className="text-xs text-cream/40 font-sans">/100</span></span>
                 </div>
                 <div className="progress-bar h-[8px]">
@@ -174,16 +174,16 @@ export function ZoneModal({ zone, onClose }) {
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-3">
               {[
                 {
-                  icon: 'temperature', l: 'Temperatura',
+                  icon: 'temperature', l: t.meteoTemp,
                   v: conditions.tempMin != null && conditions.tempMax != null
                     ? `${conditions.tempMin}–${conditions.tempMax}°C`
                     : '–',
                 },
-                { icon: 'soil-moisture', l: 'T. Suelo', v: conditions.soilTemp != null ? `${conditions.soilTemp}°C` : '–' },
-                { icon: 'accumulated-precipitation', l: 'Precipit. 14d', v: conditions.rainfall14d != null ? `${conditions.rainfall14d}mm` : '–' },
-                { icon: 'humidity', l: 'Humedad', v: conditions.humidity != null ? `${conditions.humidity}%` : '–' },
-                { icon: 'wind', l: 'Viento', v: conditions.wind != null ? `${conditions.wind}km/h` : '–' },
-                { icon: 'sunny', l: 'Sin lluvia', v: conditions.dryDays != null ? `${conditions.dryDays}d` : '–' },
+                { icon: 'soil-moisture', l: t.meteoSuelo, v: conditions.soilTemp != null ? `${conditions.soilTemp}°C` : '–' },
+                { icon: 'accumulated-precipitation', l: t.meteoPrecip, v: conditions.rainfall14d != null ? `${conditions.rainfall14d}mm` : '–' },
+                { icon: 'humidity', l: t.meteoHumedad, v: conditions.humidity != null ? `${conditions.humidity}%` : '–' },
+                { icon: 'wind', l: t.meteoViento, v: conditions.wind != null ? `${conditions.wind}km/h` : '–' },
+                { icon: 'sunny', l: t.meteoDiasSeco, v: conditions.dryDays != null ? `${conditions.dryDays}d` : '–' },
               ].map((c, i) => (
                 <div key={i} className="bg-white/[0.03] rounded-xl p-3 text-center">
                   <img className="m-auto mb-1" src={`/assets/images/icons/${c.icon}.png`} alt={c.l} height="36" width="36" />
@@ -209,7 +209,7 @@ export function ZoneModal({ zone, onClose }) {
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
                   {EDIBILITY_FILTERS.map(f => (
                     <option key={f.id} value={f.id} style={{ background: 'var(--color-modal)' }}>
-                      {f.emoji} {f.label}
+                      {f.emoji} {t[f.tKey]}
                     </option>
                   ))}
                 </select>
@@ -219,7 +219,7 @@ export function ZoneModal({ zone, onClose }) {
               </div>
             </div>
             {available.length === 0 ? (
-              <div className="text-center py-8 text-cream/40 text-sm">No hay especies disponibles este mes.</div>
+              <div className="text-center py-8 text-cream/40 text-sm">{t.noEspeciesEsteMes}</div>
             ) : (
               <div className="space-y-2">
                 {available.map(e => {
@@ -275,7 +275,7 @@ export function ZoneModal({ zone, onClose }) {
               </div>
             </div>
             {filteredCalSpecies.length === 0 ? (
-              <div className="text-center py-8 text-cream/40 text-sm">No hay especies de este tipo en esta zona.</div>
+              <div className="text-center py-8 text-cream/40 text-sm">{t.noEspeciesTipoZona}</div>
             ) : (
               <div className="space-y-3">
                 {filteredCalSpecies.map(e => (

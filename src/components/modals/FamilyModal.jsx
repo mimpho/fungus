@@ -27,7 +27,7 @@ export function FamilyModal({ family, onClose, onViewSpecies }) {
         <div className="rounded-2xl max-w-2xl w-full anim-scale modal-inner" onClick={e => e.stopPropagation()} style={{ background: MODAL.bg, maxHeight: '85vh', overflowY: 'auto' }}>
           <div className="p-6 flex items-center justify-between">
             <div>
-              <p className="text-muted text-xs uppercase tracking-widest mb-1">Familia micológica</p>
+              <p className="text-muted text-xs uppercase tracking-widest mb-1">{t.familiaMicologica}</p>
               <h2 className="font-display text-3xl text-cream">{familyName}</h2>
             </div>
             <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-cream/60 transition-colors">{IC.close}</button>
@@ -41,7 +41,7 @@ export function FamilyModal({ family, onClose, onViewSpecies }) {
 
             {(family.caracteristicas || family.characteristics) && (
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">Características</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">{t.caracteristicas}</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {(family.caracteristicas || family.characteristics).map((c, i) => (
                     <div key={i} className="flex items-center gap-2 bg-white/[0.03] rounded-lg px-3 py-2">
@@ -69,7 +69,7 @@ export function FamilyModal({ family, onClose, onViewSpecies }) {
                   </div>
                 ))}
                 {familySpecies.length === 0 && (
-                  <p className="text-cream/40 text-sm text-center py-4">No hay especies en el catálogo para esta familia.</p>
+                  <p className="text-cream/40 text-sm text-center py-4">{t.noEspeciesEnFamilia}</p>
                 )}
               </div>
             </section>
