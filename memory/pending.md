@@ -4,30 +4,34 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚧 En curso — v4.6.4 (rama `feat/v4-6-4`)
+## ✅ Completado — v4.6.4
 
-Mejoras UX commitadas (pendiente push + PR):
-- [x] Filtros comarca + CCAA en página Zonas
-- [x] `no_comestible` en todos los selectores de comestibilidad
-- [x] Restyling `ConfusionesBlock` al estilo items de familia
-- [x] Comarca en hero del ZoneModal
-- [x] Padding mobile reducido en ZoneModal + SpeciesModal
-
-Datos de confusiones — migraciones escritas, pendiente ejecutar en Supabase:
-- [x] `006_confusions_amanitaceae.sql` — 13 especies (caesarea, muscaria, phalloides, verna, virosa, pantherina, rubescens, ovoidea, spissa, citrina, excelsa + cross: silvicola, leucothites)
-- [x] `007_confusions_cantharellaceae.sql` — 6 especies + cross: Omphalotus olearius
-- [x] `008_confusions_russulaceae.sql` — 14 especies (Russula: virescens, cyanoxantha, delica, emetica, aurea, vesca, foetens, nigricans, laurocerasi + Lactarius: deliciosus, sanguifluus, deterrimus, volemus + Lactifluus: piperatus, vellereus)
-- [x] `009_confusions_cortinariaceae.sql` — 9 especies + cross: Inocybe erubescens
-- [x] `010_confusions_agaricus_campestris.sql` — gap fix: campestris ↔ phalloides/verna/xanthodermus + silvicola ↔ campestris/xanthodermus
-- [ ] **Ejecutar `010` en Supabase** (006–009 ya aplicadas con overwrite pattern — datos correctos, no requieren reejecutar)
+- Filtros comarca + CCAA en página Zonas
+- `no_comestible` en todos los selectores de comestibilidad
+- Restyling `ConfusionesBlock` al estilo items de familia
+- Comarca en hero del ZoneModal
+- Padding mobile reducido en ZoneModal + SpeciesModal
+- Datos confusiones: Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae
+- Gap fix Agaricus campestris
 
 ---
 
-## 🗂 Próximo — v4.7 Auth/social
+## 🚧 En curso — v4.7 i18n translations
 
-JWT, favoritos reales en BD, avistamientos comunitarios. Sin rama activa todavía.
+Sin rama activa todavía. Enfocado en plan de i18n DB-backed y migraciones para 4.7.
 
-Alcance previsto:
+---
+
+## 🔜 En curso — v5.x Auth move
+- Migraciones y endpoints de Auth movidos a v5.x, MVP de login/register/me con JWT.
+- Seeds y pruebas para staging en v5.x.
+
+---
+## 🔜 En curso — v6.x Apps move
+- Planificar migración de apps a v6.x, con soporte para apps móviles y web.
+- Seeds y pruebas para staging en v6.x.
+
+**Alcance previsto:**
 - Auth: JWT (login/registro), middleware de protección de rutas
 - Favoritos: zonas y especies en BD por usuario (reemplaza localStorage)
 - Avistamientos: `POST /api/v1/sightings` — foto, zona, especie, fecha, usuario

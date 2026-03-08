@@ -10,6 +10,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Añadido
+- (próximamente)
+
+---
+
+## [4.6.4] - 2026-03-08 — Confusiones familias restantes
+
+### Añadido
 - Migrations: `006_confusions_amanitaceae.sql` — 13 especies Amanitaceae + cross-familia (caesarea, muscaria, phalloides, verna, virosa, pantherina, rubescens, ovoidea, spissa, citrina, excelsa, Agaricus silvicola, Leucoagaricus leucothites); amatoxinas y retraso de síntomas en diffs
 - Migrations: `007_confusions_cantharellaceae.sql` — Cantharellus cibarius/pallens/aurora, Craterellus tubaeformis/cornucopioides + cross: Omphalotus olearius (confusión más frecuente del rebozuelo)
 - Migrations: `008_confusions_russulaceae.sql` — 14 especies Russula/Lactarius/Lactifluus: emetica vs comestibles, deliciosus vs torminosus/deterrimus/sanguifluus, vellereus vs piperatus; regla del sabor acre en diffs
@@ -24,6 +31,18 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Frontend: mock `species.js` actualizado con las mismas 4 correcciones de comestibilidad
 
 ---
+## [5.0] - Plan moved: Auth moved to v5
+
+### Plan
+- Auth moved to v5.0: groundwork for authentication (JWT) and user management
+- Se mantienen otras piezas de backlog para 4.x y planean migraciones en 5.x
+
+---
+## [6.0] - Plan moved: Apps moved to v6
+
+### Plan
+- Apps moved to v6.0: mobile apps and frontend integration evolved
+- Siguientes fases (backlog) para 6.x
 
 ## [4.6.2] - 2026-03-07 — Confusiones en BD
 
