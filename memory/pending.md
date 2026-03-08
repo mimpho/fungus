@@ -13,11 +13,12 @@ Mejoras UX commitadas (pendiente push + PR):
 - [x] Comarca en hero del ZoneModal
 - [x] Padding mobile reducido en ZoneModal + SpeciesModal
 
-Datos de confusiones pendientes (continúan en esta misma rama):
-- [ ] **Datos: confusiones Amanitaceae** — *Amanita phalloides*, *A. muscaria*, *A. caesarea*, *A. vaginata* y similares
-- [ ] **Datos: confusiones Cantharellaceae** — *Cantharellus cibarius* vs *Omphalotus olearius*
-- [ ] **Datos: confusiones Russulaceae** — *Russula* spp., *Lactarius* spp.
-- [ ] **Datos: confusiones Cortinariaceae** — *Cortinarius* spp. (muchos tóxicos)
+Datos de confusiones — migraciones escritas, pendiente ejecutar en Supabase:
+- [x] `006_confusions_amanitaceae.sql` — 13 especies (caesarea, muscaria, phalloides, verna, virosa, pantherina, rubescens, ovoidea, spissa, citrina, excelsa + cross: silvicola, leucothites)
+- [x] `007_confusions_cantharellaceae.sql` — 6 especies + cross: Omphalotus olearius
+- [x] `008_confusions_russulaceae.sql` — 14 especies (Russula: virescens, cyanoxantha, delica, emetica, aurea, vesca, foetens, nigricans, laurocerasi + Lactarius: deliciosus, sanguifluus, deterrimus, volemus + Lactifluus: piperatus, vellereus)
+- [x] `009_confusions_cortinariaceae.sql` — 9 especies + cross: Inocybe erubescens
+- [ ] **Ejecutar las 4 migraciones en Supabase** (orden: 006 → 007 → 008 → 009)
 
 ---
 
