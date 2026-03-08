@@ -5074,7 +5074,7 @@ const SPECIES_SYNONYMS = {
   'Gyroporus cyanescens':       ['Boletus cyanescens Bull.', 'Leucobolites cyanescens (Bull.) Beck'],
   'Gyroporus castaneus':        ['Boletus castaneus Bull.', 'Leucobolites castaneus (Bull.) Beck'],
   'Chalciporus piperatus':      ['Boletus piperatus Bull.', 'Ixocomus piperatus (Bull.) Quél.'],
-  'Neoboletus luridiformis':    ['Boletus luridiformis Rostk.', 'Boletus erythropus auct. (en parte)', 'Boletus discolor Quél.'],
+  'Neoboletus luridiformis':    ['Neoboletus xanthopus (Fr.) Gelardi, Simonini & Vizzini', 'Boletus luridiformis Rostk.', 'Boletus erythropus auct. (en parte)', 'Boletus discolor Quél.'],
   'Paxillus involutus':         ['Agaricus involutus Batsch', 'Omphalia involuta (Batsch) Gray'],
   'Aureoboletus gentilis':      ['Boletus gentilis Quél.', 'Pulveroboletus gentilis (Quél.) Singer'],
   'Butyriboletus regius':       ['Boletus regius Krombh.', 'Tubiporus regius (Krombh.) Rauschert'],
@@ -5119,6 +5119,7 @@ const SPECIES_SYNONYMS = {
   'Amanita citrina':            ['Amanita mappa (Batsch) Bertillon', 'Agaricus citrinus Schaeff.'],
   'Amanita spissa':             ['Agaricus spissus Fr.', 'Amanita excelsa var. spissa (Fr.) Neville & Poumarat'],
   'Amanita excelsa':            ['Agaricus excelsus Fr.', 'Amanita excelsa var. valens (E.-J. Gilbert) Neville & Poumarat'],
+  'Amanita gemmata':            ['Amanita junquillea Quél.', 'Agaricus gemmatus Fr.', 'Amanita gemmata var. gemmata'],
   'Amanita strobiliformis':     ['Amanita solitaria (Bull.) Mérat', 'Agaricus solitarius Bull.'],
   'Amanita eliae':              ['Amanita eliae Quél.', 'Amanita ceciliae auct. (en parte)'],
   // — Pleurotaceae —

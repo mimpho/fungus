@@ -36,6 +36,14 @@ Alcance previsto:
 
 ## 🟡 Backlog — mejoras frontend (sin prioridad activa)
 
+### Imágenes placeholder pendientes de reemplazar
+
+Detectadas por hash MD5 idéntico — los archivos son literalmente copias:
+- **esp-066 *A. gemmata***: las 3 fotos (main, foto1, foto2) son copias de esp-056 *A. muscaria*
+- **esp-019 *N. luridiformis***: foto principal idéntica a esp-014 *N. erythropus*
+
+Solución: sustituir los archivos de imagen en `assets/images/content/species/` con fotos reales de cada especie.
+
 ### Revisión general del catálogo de especies
 - Verificar que `forestTypes` y `fruitingMonths` sean correctos para todas las especies
 - Añadir más especies representativas de cada tipo de bosque
