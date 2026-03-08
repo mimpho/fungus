@@ -5074,7 +5074,7 @@ const SPECIES_SYNONYMS = {
   'Gyroporus cyanescens':       ['Boletus cyanescens Bull.', 'Leucobolites cyanescens (Bull.) Beck'],
   'Gyroporus castaneus':        ['Boletus castaneus Bull.', 'Leucobolites castaneus (Bull.) Beck'],
   'Chalciporus piperatus':      ['Boletus piperatus Bull.', 'Ixocomus piperatus (Bull.) Quél.'],
-  'Neoboletus luridiformis':    ['Boletus luridiformis Rostk.', 'Boletus erythropus auct. (en parte)', 'Boletus discolor Quél.'],
+  'Neoboletus luridiformis':    ['Neoboletus xanthopus (Fr.) Gelardi, Simonini & Vizzini', 'Boletus luridiformis Rostk.', 'Boletus erythropus auct. (en parte)', 'Boletus discolor Quél.'],
   'Paxillus involutus':         ['Agaricus involutus Batsch', 'Omphalia involuta (Batsch) Gray'],
   'Aureoboletus gentilis':      ['Boletus gentilis Quél.', 'Pulveroboletus gentilis (Quél.) Singer'],
   'Butyriboletus regius':       ['Boletus regius Krombh.', 'Tubiporus regius (Krombh.) Rauschert'],

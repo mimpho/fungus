@@ -79,7 +79,7 @@ UPDATE species SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build
 ) WHERE scientific_name = 'Chalciporus piperatus';
 
 UPDATE species SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object('synonyms', 
-  ARRAY['Boletus luridiformis Rostk.', 'Boletus erythropus auct. (en parte)', 'Boletus discolor Quél.']
+  ARRAY['Neoboletus xanthopus (Fr.) Gelardi, Simonini & Vizzini', 'Boletus luridiformis Rostk.', 'Boletus erythropus auct. (en parte)', 'Boletus discolor Quél.']
 ) WHERE scientific_name = 'Neoboletus luridiformis';
 
 UPDATE species SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object('synonyms', 
