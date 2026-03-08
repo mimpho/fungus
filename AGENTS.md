@@ -203,9 +203,10 @@ GET /api/v1/weather/zones
 | v4.6 | ✅ Entregado (Taxonomía sinónimos + confusiones en BD) |
 | v4.6.3 | ✅ Entregado (Mejoras UX: filtros comarca/CCAA, no_comestible, restyling) |
 | v4.6.4 | ✅ Entregado (Datos confusiones familias restantes) |
-| v4.7 | 🗂 Backlog (Auth/social) |
-| v5.0 | 🗂 Backlog (App móvil Android) |
-| v5.1 | 🗂 Backlog (App móvil iOS) |
+| v4.7 | 🗂 Backlog (i18n / Traducciones: frontend ES/CA/EN) |
+| v5 | 🗂 Backlog (Auth + favoritos en BD: JWT, registro/login) |
+| v6.0 | 🗂 Backlog (App móvil Android) |
+| v6.1 | 🗂 Backlog (App móvil iOS) |
 
 ---
 

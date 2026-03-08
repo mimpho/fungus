@@ -16,14 +16,24 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚧 En curso — v4.7 Auth/social
+## 🔜 Próximo — v4.7 i18n / Traducciones
 
 Sin rama activa todavía.
 
 **Alcance previsto:**
-- Auth: JWT (login/registro), middleware de protección de rutas
+- Traducción completa del frontend: strings ES/CA/EN (la infraestructura i18n ya existe en `AppContext` y `src/data/i18n.js`)
+- Auditoría de strings hardcoded en componentes y páginas
+- Posible impacto en BD: campos de texto en zonas/especies que pueden necesitar variantes por idioma
+- Scope concreto a definir en tarea específica antes de arrancar
+
+---
+
+## 🗂 Backlog — v5 Auth + favoritos en BD
+
+**Alcance previsto:**
+- Auth: JWT (registro/login), middleware de protección de rutas
 - Favoritos: zonas y especies en BD por usuario (reemplaza localStorage)
-- Avistamientos: `POST /api/v1/sightings` — foto, zona, especie, fecha, usuario
+- Google login reservado para v5.1
 
 ---
 
