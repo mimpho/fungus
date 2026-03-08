@@ -83,13 +83,20 @@ export function ModalRenderer() {
   // no hace nada. En ese caso navegamos a la ruta padre del listing.
   // Usamos setTimeout(0) para asegurar que el state se limpia antes de navegar.
   const closeViaHistory = () => {
-    // Primero limpiamos el estado del modal
+    // Si el lightbox está en lo alto del stack, solo lo cerramos a él —
+    // el modal subyacente (SpeciesModal, ArticleModal…) debe seguir visible.
+    if (lightbox) {
+      setLightbox(null)
+      if (location.key !== 'default') navigate(-1)
+      return
+    }
+
+    // Cierre de modal normal: limpiamos estado y desapilamos historial
     if (selectedZone) setSelectedZone(null)
     if (selectedSpecies) setSelectedSpecies(null)
     if (selectedFamily) setSelectedFamily(null)
-    if (lightbox) setLightbox(null)
 
-    // Luego navegamos
+    // Navegamos
     if (location.key !== 'default') {
       navigate(-1)
       return
