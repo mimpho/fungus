@@ -6,12 +6,13 @@ import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
 import { useApiZoneConditions } from '../../hooks/useWeatherConditions'
 
-const CAL_FILTERS = [
-  { id: 'todas',      label: 'Todas',       emoji: '🍄' },
-  { id: 'excelente',  label: 'Excelentes',  emoji: '⭐' },
-  { id: 'comestible', label: 'Comestibles', emoji: '✅' },
-  { id: 'toxico',     label: 'Tóxicas',     emoji: '⚠️' },
-  { id: 'mortal',     label: 'Mortales',    emoji: '☠️' },
+const EDIBILITY_FILTERS = [
+  { id: 'todas',         label: 'Todas',           emoji: '🍄' },
+  { id: 'excelente',     label: 'Excelentes',       emoji: '⭐' },
+  { id: 'comestible',    label: 'Comestibles',      emoji: '✅' },
+  { id: 'no_comestible', label: 'No comestibles',   emoji: '🚫' },
+  { id: 'toxico',        label: 'Tóxicas',          emoji: '⚠️' },
+  { id: 'mortal',        label: 'Mortales',         emoji: '☠️' },
 ]
 
 export function ZoneModal({ zone, onClose }) {
@@ -28,28 +29,52 @@ export function ZoneModal({ zone, onClose }) {
     : 'Open-Meteo'
   const currentMonth = new Date().getMonth() + 1
   const sc = getScoreColor(conditions.overallScore)
-  const [calFilter, setCalFilter] = useState('todas')
+  const [availFilter, setAvailFilter] = useState('excelente')
+  const [calFilter, setCalFilter] = useState('excelente')
   const [scrolled, setScrolled] = useState(false)
   const modalRef = useRef(null)
   const heroRef = useRef(null)
 
-  const available = useMemo(() =>
-    zoneSpecies
-      .filter(e => e.fruitingMonths?.includes(currentMonth))
+  // Smart default: si no hay excelentes → comestibles → todas
+  // Solo actúa si el usuario no ha cambiado el filtro manualmente (sigue en 'excelente')
+  useEffect(() => {
+    if (!zoneSpecies.length) return
+    const availNow = zoneSpecies.filter(e => e.fruitingMonths?.includes(currentMonth))
+    setAvailFilter(prev => {
+      if (prev !== 'excelente') return prev
+      if (availNow.some(e => e.edibility === 'excelente')) return 'excelente'
+      if (availNow.some(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility))) return 'comestible'
+      return 'todas'
+    })
+    setCalFilter(prev => {
+      if (prev !== 'excelente') return prev
+      if (zoneSpecies.some(e => e.edibility === 'excelente')) return 'excelente'
+      if (zoneSpecies.some(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility))) return 'comestible'
+      return 'todas'
+    })
+  }, [zoneSpecies])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const available = useMemo(() => {
+    let r = zoneSpecies.filter(e => e.fruitingMonths?.includes(currentMonth))
+    if (availFilter === 'excelente')     r = r.filter(e => e.edibility === 'excelente')
+    else if (availFilter === 'comestible')    r = r.filter(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility))
+    else if (availFilter === 'no_comestible') r = r.filter(e => e.edibility === 'no_comestible')
+    else if (availFilter === 'toxico')        r = r.filter(e => e.edibility === 'toxico')
+    else if (availFilter === 'mortal')        r = r.filter(e => e.edibility === 'mortal')
+    return r
       .map(e => ({ ...e, score: Math.floor(60 + Math.random() * 35), dias: Math.floor(3 + Math.random() * 8) }))
-      .sort((a, b) => b.score - a.score),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [zone.id]
-  )
+      .sort((a, b) => b.score - a.score)
+  }, [zone.id, availFilter])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Imagen de paisaje por tipo de bosque (WebP, ~11 kB c/u)
   const ZONE_HERO = { pinar: '/assets/images/zones/pinar.webp', hayedo: '/assets/images/zones/hayedo.webp', robledal: '/assets/images/zones/robledal.webp', encinar: '/assets/images/zones/encinar.webp' }
 
   const filteredCalSpecies = useMemo(() => {
-    if (calFilter === 'excelente') return zoneSpecies.filter(e => e.edibility === 'excelente')
-    if (calFilter === 'comestible') return zoneSpecies.filter(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility))
-    if (calFilter === 'toxico') return zoneSpecies.filter(e => e.edibility === 'toxico')
-    if (calFilter === 'mortal') return zoneSpecies.filter(e => e.edibility === 'mortal')
+    if (calFilter === 'excelente')     return zoneSpecies.filter(e => e.edibility === 'excelente')
+    if (calFilter === 'comestible')    return zoneSpecies.filter(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility))
+    if (calFilter === 'no_comestible') return zoneSpecies.filter(e => e.edibility === 'no_comestible')
+    if (calFilter === 'toxico')        return zoneSpecies.filter(e => e.edibility === 'toxico')
+    if (calFilter === 'mortal')        return zoneSpecies.filter(e => e.edibility === 'mortal')
     return zoneSpecies
   }, [calFilter, zoneSpecies])
 
@@ -99,6 +124,7 @@ export function ZoneModal({ zone, onClose }) {
               <h2 className="font-display text-3xl font-semibold text-cream drop-shadow-lg">{zone.name}</h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-lg bg-green-f/30 text-green-300 text-xs font-medium">{zone.province}</span>
+                {zone.region && <span className="text-cream/50 text-xs">{zone.region}</span>}
                 <span className="flex items-center gap-1 text-cream/60 text-xs">
                   <img src={`/assets/images/icons/forest-type-${zone.forestType}.png`} alt={zone.forestType} height="14" width="14" />
                   {zone.forestType}
@@ -123,7 +149,7 @@ export function ZoneModal({ zone, onClose }) {
         </div>
 
         {/* Contenido */}
-        <div className="p-6 space-y-8" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+        <div className="px-4 py-6 sm:px-6 space-y-8" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
           {zone.description && (
             <p className="text-cream/60 text-sm leading-relaxed border-l-2 border-muted/40 pl-4">{zone.description}</p>
           )}
@@ -173,7 +199,25 @@ export function ZoneModal({ zone, onClose }) {
 
           {/* Disponibles ahora */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">{t.disponiblesAhora}</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">{t.disponiblesAhora}</h3>
+              <div className="relative">
+                <select
+                  value={availFilter}
+                  onChange={e => setAvailFilter(e.target.value)}
+                  className="appearance-none pl-3 pr-7 py-1.5 rounded-lg text-xs text-cream outline-none cursor-pointer"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                  {EDIBILITY_FILTERS.map(f => (
+                    <option key={f.id} value={f.id} style={{ background: 'var(--color-modal)' }}>
+                      {f.emoji} {f.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-cream/40">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </div>
+              </div>
+            </div>
             {available.length === 0 ? (
               <div className="text-center py-8 text-cream/40 text-sm">No hay especies disponibles este mes.</div>
             ) : (
@@ -206,20 +250,29 @@ export function ZoneModal({ zone, onClose }) {
 
           {/* Calendario */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">{t.calendarioFruct}</h3>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {CAL_FILTERS.map(f => {
-                const active = calFilter === f.id
-                return (
-                  <button key={f.id} onClick={() => setCalFilter(f.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${active ? 'bg-green-f/40 text-[#8fcc9a] border border-green-f/60' : 'bg-white/[0.04] text-cream/50 border border-white/[0.06] hover:bg-white/[0.08] hover:text-cream/80'}`}>
-                    <span>{f.emoji}</span>{f.label}
-                  </button>
-                )
-              })}
-              <span className="ml-auto self-center text-cream/30 text-[11px]">
-                {filteredCalSpecies.length} especie{filteredCalSpecies.length !== 1 ? 's' : ''}
-              </span>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">{t.calendarioFruct}</h3>
+              <div className="flex items-center gap-3">
+                <span className="text-cream/30 text-[11px]">
+                  {filteredCalSpecies.length} especie{filteredCalSpecies.length !== 1 ? 's' : ''}
+                </span>
+                <div className="relative">
+                  <select
+                    value={calFilter}
+                    onChange={e => setCalFilter(e.target.value)}
+                    className="appearance-none pl-3 pr-7 py-1.5 rounded-lg text-xs text-cream outline-none cursor-pointer"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                    {EDIBILITY_FILTERS.map(f => (
+                      <option key={f.id} value={f.id} style={{ background: 'var(--color-modal)' }}>
+                        {f.emoji} {f.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-cream/40">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+              </div>
             </div>
             {filteredCalSpecies.length === 0 ? (
               <div className="text-center py-8 text-cream/40 text-sm">No hay especies de este tipo en esta zona.</div>

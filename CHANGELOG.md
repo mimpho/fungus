@@ -9,6 +9,20 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Añadido
+- Migrations: `006_confusions_amanitaceae.sql` — 13 especies Amanitaceae + cross-familia (caesarea, muscaria, phalloides, verna, virosa, pantherina, rubescens, ovoidea, spissa, citrina, excelsa, Agaricus silvicola, Leucoagaricus leucothites); amatoxinas y retraso de síntomas en diffs
+- Migrations: `007_confusions_cantharellaceae.sql` — Cantharellus cibarius/pallens/aurora, Craterellus tubaeformis/cornucopioides + cross: Omphalotus olearius (confusión más frecuente del rebozuelo)
+- Migrations: `008_confusions_russulaceae.sql` — 14 especies Russula/Lactarius/Lactifluus: emetica vs comestibles, deliciosus vs torminosus/deterrimus/sanguifluus, vellereus vs piperatus; regla del sabor acre en diffs
+- Migrations: `009_confusions_cortinariaceae.sql` — 9 Cortinarius (orellanus/rubellus/splendens mortales vs caperatus/praestans/violaceus) + cross: Inocybe erubescens; orellanina y retraso 2–3 semanas en todos los diffs
+- Frontend: filtro de comarca en página Zonas — `<select>` contextual (se filtra por CCAA seleccionada), chip activo eliminable, reset automático al cambiar CCAA
+- Frontend: `comunidadAutonoma` añadido a todas las zonas del mock (`src/data/zones.js`, 200 zonas) — desbloquea el filtro de CCAA que ya existía en código
+- Frontend: filtro de comestibilidad (`availFilter`/`calFilter`) en secciones "Disponibles ahora" y "Calendario de fructificación" del ZoneModal; smart default excelente → comestible → todas
+- Frontend: opción `no_comestible` añadida a todos los selectores de comestibilidad (ZoneModal y catálogo de especies)
+- Frontend: `ConfusionesBlock` restyling — foto + nombre + `EdibilityTag` al estilo de items de familia; descripción full-width en columna derecha
+- Frontend: padding mobile reducido en ZoneModal y SpeciesModal (`px-4 py-6 sm:px-6`)
+- Migrations: `003_edibility_no_comestible_round2.sql` — correcciones de comestibilidad para *Pycnoporus cinnabarinus*, *Phlebia radiata*, *Hygrophorus pustulatus* (comestible → no_comestible) y *Lepista personata* (bueno → comestible); aplicar en Supabase
+- Frontend: mock `species.js` actualizado con las mismas 4 correcciones de comestibilidad
+
 ---
 
 ## [4.6.2] - 2026-03-07 — Confusiones en BD

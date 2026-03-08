@@ -2527,7 +2527,7 @@ export const mockSpecies = [
   {
     id: "esp-102", scientificName: "Lepista personata",
     commonNames: ["Lepista de pie violáceo", "Lepista de peu violat"],
-    family: "Tricholomataceae", edibility: "bueno",
+    family: "Tricholomataceae", edibility: "comestible",
     forestTypes: ["prados", "mixto", "encinar"],
     fruitingMonths: [10,11,12,1],
     description: "El pie violeta o blewit de campo, con sombrero marrón crema y pie llamativamente violáceo-lila. Buen comestible tardío, fructifica en otoño-invierno incluso con heladas ligeras. Muy común en pastizales y bordes de bosque mediterráneo de toda España. El contraste entre sombrero crema y pie lila es inconfundible. Fuente: https://es.wikipedia.org/wiki/Lepista_personata",
@@ -3377,7 +3377,7 @@ export const mockSpecies = [
   {
     id: "esp-136", scientificName: "Pycnoporus cinnabarinus",
     commonNames: ["Poliporo bermellón", "Polipor vermell"],
-    family: "Polyporaceae", edibility: "comestible",
+    family: "Polyporaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [1,2,3,4,5,6,7,8,9,10,11,12],
     description: "Políporo de color rojo-naranja a bermellón intensísimo, uno de los más vistosos de la fauna ibérica. Incomestible. Produce lacasas de interés biotecnológico para la degradación de lignina. Muy frecuente en toda España sobre madera muerta de frondosas, de color que no pasa desapercibido. Fuente: https://es.wikipedia.org/wiki/Pycnoporus_cinnabarinus",
@@ -3452,7 +3452,7 @@ export const mockSpecies = [
   {
     id: "esp-139", scientificName: "Phlebia radiata",
     commonNames: ["Flebea radiada"],
-    family: "Meruliaceae", edibility: "comestible",
+    family: "Meruliaceae", edibility: "no_comestible",
     forestTypes: ["mixto", "robledal", "hayedo"],
     fruitingMonths: [9,10,11,12,1,2,3],
     description: "Hongo resupinado naranja-salmón con superficie radiada que crece extendido sobre madera muerta de frondosas. Incomestible. Produce podredumbre blanca y es importante descomponedor de lignina en los bosques. Frecuente en toda España, especialmente visible en otoño e invierno sobre madera húmeda. Fuente: https://es.wikipedia.org/wiki/Phlebia_radiata",
@@ -3552,7 +3552,7 @@ export const mockSpecies = [
   {
     id: "esp-143", scientificName: "Hygrophorus pustulatus",
     commonNames: ["Higróforo pustuloso", "Higròfor pustulós"],
-    family: "Hygrophoraceae", edibility: "comestible",
+    family: "Hygrophoraceae", edibility: "no_comestible",
     forestTypes: ["pinar", "hayedo"],
     fruitingMonths: [9,10,11],
     description: "Higróforo gris oscuro con pequeñas pústulas negras en el sombrero viscoso. Comestible de calidad mediocre. Crece bajo coníferas y hayas en el norte peninsular en otoño. Las manchas negruzcas sobre la superficie viscosa son su principal carácter distintivo dentro de los higrófocos grises. Fuente: https://es.wikipedia.org/wiki/Hygrophorus_pustulatus",

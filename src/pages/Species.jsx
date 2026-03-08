@@ -10,12 +10,13 @@ import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
 const PER_PAGE = 24
 
 const SHOW_FILTERS = [
-  { id: 'todas',      label: 'Todas',       emoji: '🍄' },
-  { id: 'favoritas',  label: 'Favoritas',   emoji: '❤️' },
-  { id: 'excelente',  label: 'Excelentes',  emoji: '⭐' },
-  { id: 'comestible', label: 'Comestibles', emoji: '✅' },
-  { id: 'toxico',     label: 'Tóxicas',     emoji: '⚠️' },
-  { id: 'mortal',     label: 'Mortales',    emoji: '☠️' },
+  { id: 'todas',         label: 'Todas',           emoji: '🍄' },
+  { id: 'favoritas',     label: 'Favoritas',       emoji: '❤️' },
+  { id: 'excelente',     label: 'Excelentes',      emoji: '⭐' },
+  { id: 'comestible',    label: 'Comestibles',     emoji: '✅' },
+  { id: 'no_comestible', label: 'No comestibles',  emoji: '🚫' },
+  { id: 'toxico',        label: 'Tóxicas',         emoji: '⚠️' },
+  { id: 'mortal',        label: 'Mortales',        emoji: '☠️' },
 ]
 
 export default function Species() {
@@ -65,11 +66,12 @@ export default function Species() {
 
   const filteredSpecies = useMemo(() => {
     let r = [...species]
-    if (showFilter === 'favoritas')  r = r.filter(e => favoriteSpecies.some(f => f.id === e.id))
-    else if (showFilter === 'excelente')  r = r.filter(e => e.edibility === 'excelente')
-    else if (showFilter === 'comestible') r = r.filter(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility))
-    else if (showFilter === 'toxico')     r = r.filter(e => e.edibility === 'toxico')
-    else if (showFilter === 'mortal')     r = r.filter(e => e.edibility === 'mortal')
+    if (showFilter === 'favoritas')        r = r.filter(e => favoriteSpecies.some(f => f.id === e.id))
+    else if (showFilter === 'excelente')    r = r.filter(e => e.edibility === 'excelente')
+    else if (showFilter === 'comestible')   r = r.filter(e => ['bueno', 'comestible', 'precaucion'].includes(e.edibility))
+    else if (showFilter === 'no_comestible') r = r.filter(e => e.edibility === 'no_comestible')
+    else if (showFilter === 'toxico')       r = r.filter(e => e.edibility === 'toxico')
+    else if (showFilter === 'mortal')       r = r.filter(e => e.edibility === 'mortal')
     if (monthFilter) r = r.filter(e => e.fruitingMonths.includes(monthFilter))
     if (familyFilter) r = r.filter(e => e.family === familyFilter)
     if (searchQuery) {

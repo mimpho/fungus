@@ -36,6 +36,7 @@ export default function Zones() {
   const [onlyRained, setOnlyRained] = useState(false)
   const [forestFilter, setForestFilter] = useState('')
   const [ccaaFilter, setCcaaFilter] = useState('')
+  const [comarcaFilter, setComarcaFilter] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [pillOpen, setPillOpen]     = useState(false)
   const [mapMode, setMapMode]       = useState('markers')
@@ -47,6 +48,13 @@ export default function Zones() {
 
   const forestTypes = useMemo(() => [...new Set(zones.map(z => z.forestType))].sort(), [zones])
   const comunidades = useMemo(() => [...new Set(zones.map(z => z.comunidadAutonoma).filter(Boolean))].sort(), [zones])
+  const comarcas    = useMemo(() => {
+    const pool = ccaaFilter ? zones.filter(z => z.comunidadAutonoma === ccaaFilter) : zones
+    return [...new Set(pool.map(z => z.region).filter(Boolean))].sort()
+  }, [zones, ccaaFilter])
+
+  // Reset comarca when CCAA changes
+  useEffect(() => { setComarcaFilter('') }, [ccaaFilter])
 
   // Calcula la altura disponible para el mapa (viewport − cabecera layout − contenido superior)
   useEffect(() => {
@@ -75,6 +83,7 @@ export default function Zones() {
     if (onlyRained) r = r.filter(z => parseFloat(conditionsMap[z.id]?.rainfall14d ?? 0) >= RAIN_THRESHOLD)
     if (forestFilter) r = r.filter(z => z.forestType === forestFilter)
     if (ccaaFilter) r = r.filter(z => z.comunidadAutonoma === ccaaFilter)
+    if (comarcaFilter) r = r.filter(z => z.region === comarcaFilter)
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       r = r.filter(z => z.name.toLowerCase().includes(q) || z.province.toLowerCase().includes(q) || (z.region || '').toLowerCase().includes(q))
@@ -83,9 +92,9 @@ export default function Zones() {
     else if (zoneSort === 'alfa') r.sort((a, b) => a.name.localeCompare(b.name))
     else if (zoneSort === 'elevation') r.sort((a, b) => b.elevation - a.elevation)
     return r
-  }, [onlyFollowed, onlyRained, forestFilter, ccaaFilter, searchQuery, zoneSort, followedZones, conditionsMap, zones])
+  }, [onlyFollowed, onlyRained, forestFilter, ccaaFilter, comarcaFilter, searchQuery, zoneSort, followedZones, conditionsMap, zones])
 
-  const activeFilters = (onlyFollowed ? 1 : 0) + (onlyRained ? 1 : 0) + (forestFilter ? 1 : 0) + (ccaaFilter ? 1 : 0)
+  const activeFilters = (onlyFollowed ? 1 : 0) + (onlyRained ? 1 : 0) + (forestFilter ? 1 : 0) + (ccaaFilter ? 1 : 0) + (comarcaFilter ? 1 : 0)
 
   return (
     <div className="space-y-6 anim-up pb-6">
@@ -160,6 +169,22 @@ export default function Zones() {
             </div>
           </div>
         )}
+        {comarcas.length > 0 && (
+          <div className="mb-5">
+            <p className="text-muted text-xs uppercase tracking-wider mb-3">Comarca</p>
+            <div className="relative sm:inline-block sm:min-w-[220px]">
+              <select value={comarcaFilter} onChange={e => setComarcaFilter(e.target.value)}
+                className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-cream outline-none cursor-pointer appearance-none"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <option value="" style={{ background: 'var(--color-modal)' }}>Todas las comarcas</option>
+                {comarcas.map(c => <option key={c} value={c} style={{ background: 'var(--color-modal)' }}>{c}</option>)}
+              </select>
+              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cream/50">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="mb-5">
           <p className="text-muted text-xs uppercase tracking-wider mb-3">Tipo de bosque</p>
           <div className="flex flex-wrap gap-2">
@@ -206,13 +231,14 @@ export default function Zones() {
       </FilterPanel>
 
       {/* Chips filtros activos — visibles en mapa y listado */}
-      {(onlyFollowed || onlyRained || forestFilter || ccaaFilter || searchQuery) && (
+      {(onlyFollowed || onlyRained || forestFilter || ccaaFilter || comarcaFilter || searchQuery) && (
         <div className="flex flex-wrap gap-2 mt-3">
-          {onlyFollowed && <ActiveFilterChip emoji="⭐" label="Solo seguidas" color="yellow" onRemove={() => setOnlyFollowed(false)} />}
-          {onlyRained   && <ActiveFilterChip emoji="🌧️" label={`Lluvia ≥ ${RAIN_THRESHOLD}mm / 14d`} color="blue" onRemove={() => setOnlyRained(false)} />}
-          {forestFilter && <ActiveFilterChip emoji="🌲" label={forestFilter} color="emerald" onRemove={() => setForestFilter('')} />}
-          {ccaaFilter   && <ActiveFilterChip emoji="📍" label={ccaaFilter} color="amber" onRemove={() => setCcaaFilter('')} />}
-          {searchQuery  && <ActiveFilterChip emoji="🔍" label={`"${searchQuery}"`} color="amber" onRemove={() => setSearchQuery('')} />}
+          {onlyFollowed  && <ActiveFilterChip emoji="⭐" label="Solo seguidas" color="yellow" onRemove={() => setOnlyFollowed(false)} />}
+          {onlyRained    && <ActiveFilterChip emoji="🌧️" label={`Lluvia ≥ ${RAIN_THRESHOLD}mm / 14d`} color="blue" onRemove={() => setOnlyRained(false)} />}
+          {forestFilter  && <ActiveFilterChip emoji="🌲" label={forestFilter} color="emerald" onRemove={() => setForestFilter('')} />}
+          {ccaaFilter    && <ActiveFilterChip emoji="📍" label={ccaaFilter} color="amber" onRemove={() => setCcaaFilter('')} />}
+          {comarcaFilter && <ActiveFilterChip emoji="🗺️" label={comarcaFilter} color="amber" onRemove={() => setComarcaFilter('')} />}
+          {searchQuery   && <ActiveFilterChip emoji="🔍" label={`"${searchQuery}"`} color="amber" onRemove={() => setSearchQuery('')} />}
         </div>
       )}
 

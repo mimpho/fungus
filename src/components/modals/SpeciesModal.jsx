@@ -205,7 +205,7 @@ export function SpeciesModal({ species, onClose }) {
           </div>
         </div>
 
-        <div className="p-6 space-y-8" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+        <div className="px-4 py-6 sm:px-6 space-y-8" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
           {/* Comestibilidad + familia */}
           <div className="flex flex-wrap gap-3 items-center">
             <EdibilityTag edibility={detail.edibility} variant="glass" showDot={true} className="px-4 py-2 rounded-xl text-sm font-semibold" />
