@@ -284,7 +284,7 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {inSeasonSpecies.slice(0, 4).map((e, i) => (
-                <SpeciesCard key={e.id} species={e} onOpen={setSelectedSpecies} size="compact" animDelay={i * 0.06} />
+                <SpeciesCard key={e.id} species={e} onOpen={setSelectedSpecies} size="full" animDelay={i * 0.06} />
               ))}
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {favoriteSpecies.slice(0, 6).map((e, i) => (
-                <SpeciesCard key={e.id} species={e} onOpen={setSelectedSpecies} size="compact" animDelay={i * 0.06} enTemporada={e.fruitingMonths.includes(currentMonth)} />
+                <SpeciesCard key={e.id} species={e} onOpen={setSelectedSpecies} size="full" animDelay={i * 0.06} enTemporada={e.fruitingMonths.includes(currentMonth)} />
               ))}
             </div>
           </div>
