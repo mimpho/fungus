@@ -85,8 +85,8 @@ function EsporasContent() {
 
       {/* Referencias */}
       <div className="pt-2 border-t border-white/[0.06]">
-        <p className="text-cream/30 text-xs leading-relaxed">
-          <strong className="text-cream/45">Referencias:</strong><br />
+        <p className="text-cream/60 text-xs leading-relaxed">
+          <strong className="text-coffee-light/90">Referencias:</strong><br />
           · Moore, D., et al. (2020). <em>21st Century Guidebook to Fungi</em>.<br />
           · Pringle, A., et al. (2005). "The captured launch of a ballistospore". <em>Mycologia</em>.<br />
           · Money, N. P. (2016). <em>The Amoeba in the Room</em>. Oxford University Press.
