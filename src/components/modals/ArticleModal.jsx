@@ -133,11 +133,11 @@ export function ArticleModal({ slug, onClose }) {
         onClick={e => e.stopPropagation()}>
 
         {/* Mini-barra sticky */}
-        <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
+        <div className={`glass-olive sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
             <p className="font-display text-xl font-semibold text-cream truncate">{article.title}</p>
-            <p className="text-muted/60 text-xs truncate">{article.subtitle}</p>
+            <p className="text-muted/80 text-xs truncate">{article.subtitle}</p>
           </div>
           <button onClick={onClose}
             className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all shrink-0">
@@ -152,21 +152,21 @@ export function ArticleModal({ slug, onClose }) {
           <div className="absolute inset-0"
             style={{ background: 'linear-gradient(to top, rgb(48,55,42) 15%, rgba(48,55,42,0.25) 60%, transparent 100%)' }} />
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-8">
-            <p className="text-xs font-semibold uppercase tracking-widest mb-2 text-coffee">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-2 text-coffee-light">
               {tagsLabel}
             </p>
             <h1 className="font-display text-3xl sm:text-4xl text-cream leading-tight mb-2 drop-shadow-lg">
               {article.title}
             </h1>
             <p className="text-muted/80 text-sm leading-relaxed max-w-2xl">{article.subtitle}</p>
-            <div className="flex items-center gap-3 mt-4 text-xs" style={{ color: 'rgba(244,235,225,0.38)' }}>
+            <div className="flex items-center gap-3 mt-4 text-xs text-cream/60">
               {dateLabel && <span>{dateLabel}</span>}
               {dateLabel && <span>·</span>}
               <span>{article.readingTime} min de lectura</span>
             </div>
           </div>
           <button onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-xl bg-black/40 text-white/50 hover:text-white transition-all">
+            className="absolute top-4 right-4 p-2 rounded-xl bg-black/40 text-white/80 hover:text-white transition-all">
             {IC.close}
           </button>
         </div>

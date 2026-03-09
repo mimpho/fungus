@@ -39,7 +39,7 @@ function ZoneModal({ t, zone, onClose, isFollowed, onToggleFollow, onViewSpecies
         className="sm:my-8 rounded-2xl max-w-4xl w-full anim-scale modal-inner" style={{ background: MODAL.bg }} onClick={e => e.stopPropagation()}>
 
         {/* Mini-barra sticky — aparece al hacer scroll */}
-        <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
+        <div className={`glass-olive sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
             <p className="font-display text-xl font-semibold text-[#f4ebe1] truncate">{zone.name}</p>

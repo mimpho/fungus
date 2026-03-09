@@ -121,8 +121,8 @@ function VenenosContent() {
 
       {/* Referencias */}
       <div className="pt-2 border-t border-white/[0.06]">
-        <p className="text-cream/30 text-xs leading-relaxed">
-          <strong className="text-cream/45">Referencias:</strong><br />
+        <p className="text-cream/60 text-xs leading-relaxed">
+          <strong className="text-coffee-light/90">Referencias:</strong><br />
           · Bresinsky, A. &amp; Besl, H. (1990). <em>A Colour Atlas of Poisonous Fungi</em>. Wolfe Publishing.<br />
           · Enjalbert, F., et al. (2002). «Treatment of amatoxin poisoning». <em>J. Toxicology: Clinical Toxicology</em>.<br />
           · Servicio de Información Toxicológica de España — <em>sit.toxicologia.org</em>

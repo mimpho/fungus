@@ -74,7 +74,7 @@ Decisiones tomadas durante el desarrollo activo, con su razonamiento. Complement
 **Texto actual:**
 > "El índice pondera datos meteorológicos en tiempo real junto al factor estacional del mes actual para calcular las condiciones de recolección."
 
-Posición: entre el título `{t.termometro}` y la barra de score. Clase: `text-cream/40 text-xs mb-3 leading-relaxed`.
+Posición: entre el título `{t.termometro}` y la barra de score. Clase: `text-cream/50 text-xs mb-3 leading-relaxed`.
 
 ---
 

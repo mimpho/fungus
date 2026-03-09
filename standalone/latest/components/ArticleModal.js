@@ -92,7 +92,7 @@ function ArticleModal({ slug, onClose }) {
         onClick={e => e.stopPropagation()}>
 
         {/* Mini-barra sticky — igual que SpeciesModal, aparece al hacer scroll */}
-        <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
+        <div className={`glass-olive sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
             <p className="font-display text-xl font-semibold text-[#f4ebe1] truncate">{article.title}</p>
@@ -122,7 +122,7 @@ function ArticleModal({ slug, onClose }) {
             <p className="text-[#d9cda1]/80 text-sm leading-relaxed max-w-2xl">
               {article.subtitle}
             </p>
-            <div className="flex items-center gap-3 mt-4 text-xs" style={{ color: 'rgba(244,235,225,0.38)' }}>
+            <div className="flex items-center gap-3 mt-4 text-xs text-cream/60">
               {dateLabel && <span>{dateLabel}</span>}
               {dateLabel && <span>·</span>}
               <span>{article.readingTime} min de lectura</span>

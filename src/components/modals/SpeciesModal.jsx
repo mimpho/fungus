@@ -33,7 +33,7 @@ function GallerySection({ species, onOpenLightbox }) {
   return (
     <section>
       <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">
-        📷 Galería ({total} {total === 1 ? 'foto' : 'fotos'})
+        Galería ({total} {total === 1 ? 'foto' : 'fotos'})
       </h3>
       <div className={`grid gap-2 ${
         extraPhotos.length === 0 ? 'grid-cols-1'
@@ -89,7 +89,7 @@ function GallerySection({ species, onOpenLightbox }) {
           </div>
         ))}
       </div>
-      <p className="text-cream/30 text-[10px] mt-2 text-center">
+      <p className="text-cream/30 text-[11px] mt-2 text-center">
         Haz clic en cualquier imagen para verla a pantalla completa · ← → para navegar
       </p>
     </section>
@@ -173,15 +173,15 @@ export function SpeciesModal({ species, onClose }) {
         onClick={e => e.stopPropagation()}>
 
         {/* Mini-barra sticky */}
-        <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
+        <div className={`glass-olive sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
             <p className="font-display text-xl font-semibold text-cream truncate">{detail.scientificName}</p>
-            <p className="text-muted/60 text-xs truncate">{detail.commonNames?.[0]}</p>
+            <p className="text-muted/80 text-xs truncate">{detail.commonNames?.[0]}</p>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button onClick={() => toggleFavorite(species)}
-              className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-white/50 hover:text-red-400 hover:bg-white/10'}`}>
+              className={`p-2 rounded-xl transition-all ${isFav ? 'text-red-400' : 'text-cream/50 hover:text-red-400'}`}>
               {IC.heart(isFav)}
             </button>
             <button onClick={onClose} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all">{IC.close}</button>
@@ -201,7 +201,7 @@ export function SpeciesModal({ species, onClose }) {
               className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400' : 'bg-black/40 text-white/50 hover:text-red-400'}`}>
               {IC.heart(isFav)}
             </button>
-            <button onClick={onClose} className="p-2 rounded-xl bg-black/40 text-white/50 hover:text-white transition-all">{IC.close}</button>
+            <button onClick={onClose} className="p-2 rounded-xl bg-black/40 text-white/80 hover:text-white transition-all">{IC.close}</button>
           </div>
         </div>
 
@@ -259,7 +259,7 @@ export function SpeciesModal({ species, onClose }) {
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">{t.habitat}</h3>
             <div className="flex flex-wrap gap-2 mb-3">
               {detail.forestTypes?.map((b, i) => (
-                <span key={i} className="px-3 py-1 rounded-full bg-green-f/15 text-green-f text-sm">🌲 {b}</span>
+                <span key={i} className="px-3 py-1 rounded-full bg-green-f/15 text-green-400/80 text-sm">🌲 {b}</span>
               ))}
             </div>
             {detail.elevationMin != null && (
@@ -272,7 +272,7 @@ export function SpeciesModal({ species, onClose }) {
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">{t.fructificacion}</h3>
             <div className="grid grid-cols-12 gap-1.5">
               {MONTHS.map((m, i) => (
-                <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${detail.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-cream/20'}`}>{m}</div>
+                <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${detail.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-cream/50'}`}>{m}</div>
               ))}
             </div>
           </section>
@@ -451,7 +451,7 @@ export function SpeciesModal({ species, onClose }) {
           {compatZones.length > 0 && (
             <section>
               <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-1">{t.dondeEncontrar}</h3>
-              <p className="text-cream/35 text-xs mb-3">{compatZones.length} zonas compatibles · Pulsa un marcador para ver su ficha</p>
+              <p className="text-cream/50 text-xs mb-3">{compatZones.length} zonas compatibles · Pulsa un marcador para ver su ficha</p>
               <LeafletMap
                 zonas={compatZones}
                 onZoneClick={setSelectedZone}

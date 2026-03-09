@@ -27,10 +27,11 @@
   --color-modal:         #30372a;
 
   /* Efectos glass */
-  --glass-white:         rgba(255, 255, 255, 0.04);
+  --glass-white:         rgba(255, 255, 255, 0.05);
   --glass-warm:          rgba(139, 111, 71, 0.08);
   --glass-warm-border:   rgba(139, 111, 71, 0.20);
   --glass-warm-thumb:    rgba(139, 111, 71, 0.40);
+  --glass-olive:         rgba(63, 73, 59, 0.50);
 
   /* Overlay modal */
   --modal-overlay:       #232522d9;
@@ -68,6 +69,12 @@ body::after {
 /* ── Glass morphism ─────────────────────────────── */
 .glass {
   background: var(--glass-white);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-olive {
+  background: var(--glass-olive);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }

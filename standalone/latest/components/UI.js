@@ -143,7 +143,7 @@ function SearchFilterBar({ value, onChange, onClear, placeholder, onFilterClick,
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onKeyDown={e => { if (e.key === 'Escape') { onClear(); inputRef.current?.blur(); } }}
-          className="w-full glass text-[#f4ebe1] text-sm outline-none placeholder-[#f4ebe1]/30 pl-12 pr-12 transition-all duration-200"
+          className="w-full glass text-[#f4ebe1] text-sm outline-none placeholder-[#f4ebe1]/50 pl-12 pr-12 transition-all duration-200"
           style={{ height: H, borderRadius: inputRadius }}
         />
 

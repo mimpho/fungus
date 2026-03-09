@@ -51,7 +51,7 @@ function App() {
   return (
     <div className="min-h-screen">
       {/* HEADER */}
-      <header className="glass sticky top-0 z-40">
+      <header className="glass-olive sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3 anim-right cursor-pointer" onClick={() => setView('dashboard')}>
             <img src="assets/images/logoFungus.png" alt="Fungus" className="h-16 w-auto object-contain" />

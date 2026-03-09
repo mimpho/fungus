@@ -92,8 +92,8 @@ function RecicladoresContent() {
 
       {/* Referencias */}
       <div className="pt-2 border-t border-white/[0.06]">
-        <p className="text-cream/30 text-xs leading-relaxed">
-          <strong className="text-cream/45">Referencias:</strong><br />
+        <p className="text-cream/60 text-xs leading-relaxed">
+          <strong className="text-coffee-light/90">Referencias:</strong><br />
           · Agencia SINC (2012). <em>Unos hongos marcaron el final del Carbonífero</em>. Science.<br />
           · Frontiers in Microbiology (2024). <em>Variation of carbon and nitrogen content in fungi</em>.<br />
           · Wikipedia — <em>Saprotrophic fungi &amp; Lignin-modifying enzymes</em>

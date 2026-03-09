@@ -45,7 +45,7 @@ export default function Profile() {
               <span className="text-muted mt-0.5">{IC.pin}</span>
               <div>
                 <p className="text-cream text-sm">{n.msg}</p>
-                <p className="text-cream/40 text-xs mt-0.5">{n.hora}</p>
+                <p className="text-cream/60 text-xs mt-0.5">{n.hora}</p>
               </div>
             </div>
           ))}
@@ -80,7 +80,7 @@ export default function Profile() {
         <div className="grid grid-cols-3 gap-3">
           {[['es', '🇪🇸 Castellano'], ['ca', '🏴 Català'], ['en', '🇬🇧 English']].map(([code, label]) => (
             <button key={code} onClick={() => setLang(code)}
-              className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/60 hover:text-cream'}`}>
+              className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/80 hover:text-cream'}`}>
               {label}
             </button>
           ))}
@@ -91,7 +91,7 @@ export default function Profile() {
       <div className="grid grid-cols-2 gap-4">
         <div className="glass rounded-2xl p-5 text-center">
           <div className="font-display text-4xl font-bold text-yellow-400">{followedZones.length}</div>
-          <div className="text-cream/50 text-sm mt-1">{t.followedZones}</div>
+          <div className="text-cream/60 text-sm mt-1">{t.followedZones}</div>
         </div>
         <div className="glass rounded-2xl p-5 text-center">
           <div className="font-display text-4xl font-bold text-red-400">{favoriteSpecies.length}</div>

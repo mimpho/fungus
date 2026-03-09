@@ -63,7 +63,7 @@ export function FamilyModal({ family, onClose, onViewSpecies }) {
                       onError={ev => { ev.target.style.display = 'none' }} />
                     <div className="flex-1 min-w-0">
                       <div className="font-display text-cream text-lg truncate">{e.scientificName}</div>
-                      <div className="text-cream/40 text-xs truncate">{e.commonNames.join(', ')}</div>
+                      <div className="text-cream/60 text-xs truncate">{e.commonNames.join(', ')}</div>
                     </div>
                     <EdibilityTag edibility={e.edibility} variant="glass" />
                   </div>
