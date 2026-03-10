@@ -32,20 +32,19 @@ fungus/
 │   ├── deploy.md
 │   ├── local_dev.md
 │   └── environments.md
-├── frontend/              ← DESARROLLO PRINCIPAL (Vite 6 + React Router)
-│   ├── vite.config.js
-│   ├── index.html
-│   └── src/
-│       ├── App.jsx
-│       ├── styles.css
-│       ├── contexts/AppContext.jsx
-│       ├── data/              ← Datos mock
-│       ├── services/weatherService.js
-│       ├── hooks/useWeatherConditions.js
-│       ├── lib/helpers.jsx, constants.js
-│       ├── pages/Dashboard.jsx, Zones.jsx, Species.jsx, etc.
-│       ├── components/
-│       └── articles/
+├── vite.config.js         ← DESARROLLO PRINCIPAL (Vite 6 + React Router)
+├── index.html
+├── src/                   ← Códigos frontend (React)
+│   ├── App.jsx
+│   ├── styles.css
+│   ├── contexts/AppContext.jsx
+│   ├── data/              ← Datos mock
+│   ├── services/weatherService.js
+│   ├── hooks/useWeatherConditions.js
+│   ├── lib/helpers.jsx, constants.js
+│   ├── pages/Dashboard.jsx, Zones.jsx, Species.jsx, etc.
+│   ├── components/
+│   └── articles/
 └── backend/               ← FastAPI (v4.x)
 ```
 
