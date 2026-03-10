@@ -44,7 +44,6 @@ export function Lightbox({ photos, initialIndex = 0, onClose }) {
 
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4 z-10"
-        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)' }}
         onClick={e => e.stopPropagation()}>
         <span className="text-cream/60 text-sm font-medium">{idx + 1} / {photos.length}</span>
         <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-cream/70 hover:text-cream transition-colors">
@@ -60,7 +59,7 @@ export function Lightbox({ photos, initialIndex = 0, onClose }) {
           </button>
         )}
         <img key={idx} src={imgUrl} alt={photo.caption || ''}
-          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '56px 0 80px' }} />
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         {photos.length > 1 && (
           <button onClick={next} className="hidden sm:flex absolute right-4 z-10 w-12 h-12 rounded-full glass items-center justify-center text-cream/70 hover:text-cream hover:bg-white/10 transition-all">
             {IC.chevron('right')}
@@ -68,31 +67,7 @@ export function Lightbox({ photos, initialIndex = 0, onClose }) {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center pb-5 pt-12 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }}>
-        <div className="pointer-events-auto flex flex-col items-center gap-3 w-full px-4" onClick={e => e.stopPropagation()}>
-          {photo.caption && <p className="text-cream/80 text-sm text-center">{photo.caption}</p>}
-          {photos.length > 1 && (
-            <>
-              <div className="hidden sm:flex gap-2">
-                {photos.map((f, i) => (
-                  <button key={i} onClick={() => setIdx(i)}
-                    className={`w-12 h-12 rounded-lg overflow-hidden transition-all flex-shrink-0 ${i === idx ? 'scale-110 ring-2 ring-white/50' : 'opacity-40 hover:opacity-75'}`}>
-                    <img src={resolveUrl(f.largeUrl || f.url)} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-              <div className="flex sm:hidden gap-2 items-center">
-                {photos.map((_, i) => (
-                  <button key={i} onClick={() => setIdx(i)}
-                    className={`rounded-full transition-all duration-200 ${i === idx ? 'w-5 h-[7px] bg-white' : 'w-[7px] h-[7px] bg-white/35 hover:bg-white/60'}`} />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      {/* Removed thumbnails footer to maximize height and remove extra padding on large image */}
     </div>,
     document.body
   )
