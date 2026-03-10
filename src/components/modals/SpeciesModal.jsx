@@ -189,8 +189,8 @@ export function SpeciesModal({ species, onClose }) {
         </div>
 
         {/* Hero foto */}
-        <div ref={heroRef} className="relative overflow-hidden sm:rounded-t-2xl modal-header" style={{ minHeight: '224px', height: '50vh' }}>
-          <SpeciesImg localSrc={detail.photo?.url} scientificName={detail.scientificName} className="w-full h-full" objectFit="cover" objectPosition="top" />
+        <div ref={heroRef} className="relative min-h-[50vh] aspect-video w-full overflow-hidden sm:rounded-t-2xl modal-header">
+          <SpeciesImg localSrc={detail.photo?.largeUrl || detail.photo?.url} scientificName={detail.scientificName} className="w-full h-full" objectFit="cover" objectPosition="top" />
           <div className="absolute inset-0 bg-gradient-to-t from-modal via-modal/0 to-transparent" />
           <div className="absolute bottom-0 left-6 right-6">
             <h2 className="font-display text-4xl font-semibold text-cream drop-shadow-lg">{detail.scientificName}</h2>
