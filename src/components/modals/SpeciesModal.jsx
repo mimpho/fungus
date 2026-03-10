@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { mockFamilies } from '../../data/families' // MOCK PERMANENTE — sin endpoint de familias planificado (v4.5)
 import { IC, EdibilityTag, SpeciesImg, getScoreColor, TaxonomyBlock, ConfusionesBlock, resolveUrl } from '../../lib/helpers'
+import { jsPDF } from 'jspdf'
 import { useZones } from '../../hooks/useZones'
 import { useSpecies } from '../../hooks/useSpecies'
 import { fetchSpeciesDetail } from '../../services/apiService'
@@ -101,6 +102,7 @@ export function SpeciesModal({ species, onClose }) {
   const isFav = favoriteSpecies.some(f => f.id === species.id)
   const family = mockFamilies[species.family]
   const [scrolled, setScrolled] = useState(false)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const modalRef = useRef(null)
   const heroRef = useRef(null)
 
@@ -124,6 +126,272 @@ export function SpeciesModal({ species, onClose }) {
   // Hooks de datos
   const { zones } = useZones()
   const { species: allSpecies } = useSpecies()
+  const [showTaxonomy, setShowTaxonomy] = useState(false)
+
+  const loadImageDataURL = (src) => new Promise((resolve) => {
+    if (!src) return resolve(null)
+    const img = new Image()
+    img.crossOrigin = 'Anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0)
+      const dataURL = canvas.toDataURL('image/jpeg', 1)
+      resolve(dataURL)
+    }
+    img.onerror = () => resolve(null)
+    img.src = src
+  })
+
+  const downloadFichaPdf = async () => {
+    setIsGeneratingPdf(true)
+    try {
+      // Build metadata
+      const s = detail
+      const slug = (s.scientificName || s.scientific_name || s.name || 'species').toString().toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    // Create PDF
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' })
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    let y = 40
+
+    const addPage = () => {
+      pdf.addPage()
+      y = 40
+    }
+
+    const checkPageBreak = (height) => {
+      if (y + height > pageHeight - 40) {
+        addPage()
+      }
+    }
+
+    // Header band
+    pdf.setFillColor(48, 55, 42) // Dark olive background
+    pdf.rect(0, 0, pageWidth, 60, 'F')
+    pdf.setTextColor(244, 235, 225) // Cream text
+    pdf.setFontSize(18)
+    pdf.text(`Ficha de especie: ${s.scientificName}`, 40, 38)
+
+    // Info box: Familia + Edibilidad
+    pdf.setFillColor(255, 255, 255)
+    pdf.roundedRect(40, 70, pageWidth - 80, 40, 6, 6, 'F')
+    pdf.setFontSize(12)
+    pdf.setTextColor(0)
+    pdf.text(`Familia: ${s.family}    Edibilidad: ${s.edibility}`, 50, 95)
+    y = 120
+
+    // Descripción
+    if (s.description) {
+      checkPageBreak(30)
+      pdf.setFontSize(11)
+      pdf.setTextColor(139, 111, 71) // Coffee color
+      pdf.text(`Descripción:`, 40, y)
+      y += 14
+      pdf.setFontSize(10)
+      pdf.setTextColor(0)
+      const desc = s.description
+      const lines = pdf.splitTextToSize(desc, pageWidth - 80)
+      pdf.text(lines, 40, y)
+      y += lines.length * 12 + 10
+    }
+
+    // Sinónimos
+    const synonyms = s.synonyms || (s.extra_data?.synonyms ?? [])
+    if (synonyms && synonyms.length) {
+      checkPageBreak(30)
+      pdf.setFontSize(11)
+      pdf.setTextColor(139, 111, 71)
+      pdf.text(`Sinónimos:`, 40, y)
+      y += 14
+      pdf.setFontSize(10)
+      pdf.setTextColor(0)
+      pdf.text(synonyms.join(', '), 40, y, { maxWidth: pageWidth - 80 })
+      y += 24
+    }
+
+    // Imágenes (Galería)
+    const mainUrl = detail.photo?.largeUrl || detail.photo?.url
+    const extraPhotos = detail.photos || []
+    
+    // Load images
+    const images = []
+    if (mainUrl) {
+      const img = await loadImageDataURL(mainUrl)
+      if (img) images.push(img)
+    }
+    for (const p of extraPhotos) {
+      const img = await loadImageDataURL(p.url)
+      if (img) images.push(img)
+    }
+
+    if (images.length > 0) {
+      checkPageBreak(200)
+      pdf.setFontSize(11)
+      pdf.setTextColor(139, 111, 71)
+      pdf.text(`Galería de fotos:`, 40, y)
+      y += 14
+      
+      const imgW = (pageWidth - 100) / 2
+      const imgH = 120
+      let currentX = 40
+      let rowCount = 0
+      
+      images.forEach((imgData, i) => {
+        if (i > 0 && i % 2 === 0) {
+          y += imgH + 10
+          checkPageBreak(imgH + 20)
+          rowCount = 0
+          currentX = 40
+        }
+        pdf.addImage(imgData, 'JPEG', currentX, y, imgW, imgH)
+        currentX += imgW + 20
+        rowCount++
+      })
+      y += imgH + 20
+    }
+
+    // Habitat
+    if (s.forestTypes?.length > 0 || s.elevationMin != null) {
+      checkPageBreak(50)
+      pdf.setFontSize(11)
+      pdf.setTextColor(139, 111, 71)
+      pdf.text(`Hábitat:`, 40, y)
+      y += 14
+      pdf.setFontSize(10)
+      pdf.setTextColor(0)
+      
+      if (s.forestTypes?.length > 0) {
+        pdf.text(`Bosques: ${s.forestTypes.join(', ')}`, 40, y)
+        y += 14
+      }
+      if (s.elevationMin != null) {
+        pdf.text(`Altitud: ${s.elevationMin}–${s.elevationMax}m s.n.m.`, 40, y)
+        y += 14
+      }
+      y += 10
+    }
+
+    // Fructificación
+    if (s.fruitingMonths?.length > 0) {
+      checkPageBreak(30)
+      pdf.setFontSize(11)
+      pdf.setTextColor(139, 111, 71)
+      pdf.text(`Fructificación:`, 40, y)
+      y += 14
+      pdf.setFontSize(10)
+      pdf.setTextColor(0)
+      const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+      const activeMonths = months.filter((_, i) => s.fruitingMonths.includes(i + 1))
+      pdf.text(`Meses: ${activeMonths.join(', ')}`, 40, y)
+      y += 24
+    }
+
+    // Condiciones de fructificación
+    checkPageBreak(100)
+    pdf.setFontSize(11)
+    pdf.setTextColor(139, 111, 71)
+    pdf.text(`Condiciones de fructificación:`, 40, y)
+    y += 14
+    pdf.setFontSize(10)
+    pdf.setTextColor(0)
+    
+    // Temperature logic (simplified from component)
+    let tempText = 'Temperaturas frescas a moderadas (8–18°C).'
+    if (s.family === 'Amanitaceae' && s.edibility === 'excelente') tempText = 'Noches frescas (8–14°C) con días cálidos.'
+    else if (s.family === 'Morchellaceae') tempText = 'Primavera temprana, 10–18°C.'
+    else if (s.family === 'Pleurotaceae') tempText = 'Temperaturas bajas (2–15°C).'
+    
+    pdf.text(`• Temperatura: ${tempText}`, 40, y)
+    y += 14
+    
+    // Precipitation logic
+    let precipText = '25–60mm en los 10–14 días previos.'
+    if (s.family === 'Cantharellaceae') precipText = 'Mínimo 30–50mm en los 14 días previos.'
+    else if (s.family === 'Morchellaceae') precipText = 'Suelos húmedos por deshielo.'
+    
+    pdf.text(`• Precipitación: ${precipText}`, 40, y)
+    y += 14
+    
+    // Soil logic
+    let soilText = 'Suelos forestales húmedos con buena materia orgánica.'
+    if (s.family === 'Boletaceae') soilText = 'Suelos ácidos a neutros, bien drenados.'
+    else if (s.family === 'Russulaceae') soilText = 'Suelos forestales con horizonte orgánico.'
+    else if (s.family === 'Amanitaceae') soilText = 'Suelos calcáreos o silíceos.'
+    
+    pdf.text(`• Suelo: ${soilText}`, 40, y)
+    y += 24
+
+    // Morfología
+    if (s.cap || s.stem || s.flesh) {
+      checkPageBreak(80)
+      pdf.setFontSize(11)
+      pdf.setTextColor(139, 111, 71)
+      pdf.text(`Morfología:`, 40, y)
+      y += 14
+      pdf.setFontSize(10)
+      pdf.setTextColor(0)
+      
+      if (s.cap) {
+        pdf.text(`Sombrero: ${s.cap.forma}, ${s.cap.color}, ${s.cap.diametro}`, 40, y)
+        y += 14
+      }
+      if (s.stem) {
+        pdf.text(`Pie: ${s.stem.forma}, ${s.stem.color}, ${s.stem.altura}`, 40, y)
+        y += 14
+      }
+      if (s.flesh) {
+        pdf.text(`Carne: ${s.flesh.color}, ${s.flesh.textura}`, 40, y)
+        y += 14
+      }
+      y += 10
+    }
+
+    // Confusiones
+    if (s.confusions?.length > 0) {
+      checkPageBreak(50)
+      pdf.setFontSize(11)
+      pdf.setTextColor(139, 111, 71)
+      pdf.text(`Posibles confusiones:`, 40, y)
+      y += 14
+      pdf.setFontSize(10)
+      pdf.setTextColor(0)
+      const confNames = s.confusions.map(c => c.scientificName || c.name).join(', ')
+      const lines = pdf.splitTextToSize(confNames, pageWidth - 80)
+      pdf.text(lines, 40, y)
+      y += lines.length * 12 + 10
+    }
+
+    // Taxonomy (if available)
+    if (s.taxonomy) {
+      checkPageBreak(60)
+      pdf.setFontSize(11)
+      pdf.setTextColor(139, 111, 71)
+      pdf.text(`Taxonomía:`, 40, y)
+      y += 14
+      pdf.setFontSize(10)
+      pdf.setTextColor(0)
+      const t = s.taxonomy
+      const taxoLines = [
+        t.order ? `Orden: ${t.order}` : null,
+        t.family ? `Familia: ${t.family}` : null,
+        t.genus ? `Género: ${t.genus}` : null,
+      ].filter(Boolean)
+      taxoLines.forEach(line => {
+        pdf.text(line, 40, y)
+        y += 14
+      })
+      y += 10
+    }
+
+    // Save
+    pdf.save(`Ficha_${slug}.pdf`)
+    } finally {
+      setIsGeneratingPdf(false)
+    }
+  }
 
   // Referencia estable a onClose para usarla en el listener de teclado
   const onCloseRef = useRef(onClose)
@@ -173,20 +441,31 @@ export function SpeciesModal({ species, onClose }) {
         onClick={e => e.stopPropagation()}>
 
         {/* Mini-barra sticky */}
-        <div className={`glass-olive sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
+        <div className={`glass-olive sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`} 
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
             <p className="font-display text-xl font-semibold text-cream truncate">{detail.scientificName}</p>
             <p className="text-muted/80 text-xs truncate">{detail.commonNames?.[0]}</p>
           </div>
-          <div className="flex gap-1.5 shrink-0">
-            <button onClick={() => toggleFavorite(species)}
-              className={`p-2 rounded-xl transition-all ${isFav ? 'text-red-400' : 'text-cream/50 hover:text-red-400'}`}>
-              {IC.heart(isFav)}
+          <div className="flex items-center gap-2" style={{ marginLeft: 'auto' }}>
+            <button onClick={() => {
+              // Ver Familia as a navigation action (preserve modal state)
+              setSelectedSpecies(null)
+              setSelectedFamily(family)
+            }} className="p-2 rounded-xl bg-white/10 text-cream/70 hover:bg-white/20" aria-label="Ver Familia">
+              🔬 {t.ver_familia}: {detail.family}
             </button>
-            <button onClick={onClose} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all">{IC.close}</button>
+            <button onClick={downloadFichaPdf} disabled={isGeneratingPdf} className="p-2 rounded-xl bg-white/10 text-cream/70 hover:bg-white/20 disabled:opacity-50" aria-label="Download ficha">
+               📘 {isGeneratingPdf ? 'Generando...' : 'Descargar ficha'}
+             </button>
+            <button onClick={() => toggleFavorite(species)} className="p-2 rounded-xl bg-white/10 text-cream/70 hover:bg-white/20" aria-label="Toggle like">{IC.heart(isFav)}</button>
+            <button onClick={onClose} className="p-2 rounded-xl bg-black/40 text-white/80 hover:text-white transition-all" aria-label="Close">{IC.close}</button>
           </div>
         </div>
+
+        {showTaxonomy && (
+          <section className="px-4 py-2 sm:px-6"><TaxonomyBlock species={detail} /></section>
+        )}
 
         {/* Hero foto */}
         <div ref={heroRef} className="relative min-h-[50vh] aspect-video w-full overflow-hidden sm:rounded-t-2xl modal-header">
@@ -196,13 +475,7 @@ export function SpeciesModal({ species, onClose }) {
             <h2 className="font-display text-4xl font-semibold text-cream drop-shadow-lg">{detail.scientificName}</h2>
             <p className="text-muted text-sm mt-1">{detail.family} · {detail.commonNames?.[0]}</p>
           </div>
-          <div className="absolute top-4 right-4 flex gap-2">
-            <button onClick={() => toggleFavorite(species)}
-              className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400' : 'bg-black/40 text-white/50 hover:text-red-400'}`}>
-              {IC.heart(isFav)}
-            </button>
-            <button onClick={onClose} className="p-2 rounded-xl bg-black/40 text-white/80 hover:text-white transition-all">{IC.close}</button>
-          </div>
+          <div className="absolute top-4 right-4 flex gap-2" aria-label="taxonomy-area"></div>
         </div>
 
         <div className="px-4 py-6 sm:px-6 space-y-8" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
