@@ -1,6 +1,8 @@
 import { IC, getScoreColor } from '../../lib/helpers'
+import { useApp } from '../../contexts/AppContext'
 
 export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) {
+  const { t } = useApp()
   const cond    = condOverride ?? null
   const loading = cond === null
   const sc      = getScoreColor(loading ? 0 : cond.overallScore)
@@ -46,8 +48,8 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
           ) : (
             <>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-cream/70 text-xs">Cond. de recolección</span>
-                <span className={`text-xs font-semibold ${sc.text}`}>{sc.label}</span>
+                <span className="text-cream/70 text-xs">{t.condRecoleccion}</span>
+                <span className={`text-xs font-semibold ${sc.text}`}>{t[sc.tKey]}</span>
               </div>
               <div className="progress-bar">
                 <div className={`progress-fill ${sc.bar}`} style={{ width: `${cond.overallScore}%` }} />

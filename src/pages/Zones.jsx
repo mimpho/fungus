@@ -108,12 +108,12 @@ export default function Zones() {
             <p className="text-muted text-sm mt-1">
               {filteredZones.length} zona{filteredZones.length !== 1 ? 's' : ''}
               {weatherLoading && (
-                <span className="ml-2 text-bar text-xs">· cargando datos…</span>
+                <span className="ml-2 text-bar text-xs">{t.datosLoading}</span>
               )}
             </p>
           </div>
           <div className="md:hidden shrink-0 ml-4">
-            <Tabs options={[{ id: 'mapa', label: t.mapa }, { id: 'listado', label: 'Listado' }]} selected={tab} onChange={setTab} size="md" />
+            <Tabs options={[{ id: 'mapa', label: t.mapa }, { id: 'listado', label: t.listado }]} selected={tab} onChange={setTab} size="md" />
           </div>
         </div>
         <div className="flex justify-center">
@@ -129,36 +129,36 @@ export default function Zones() {
           />
         </div>
         <div className="hidden md:flex justify-end">
-          <Tabs options={[{ id: 'mapa', label: t.mapa }, { id: 'listado', label: 'Listado' }]} selected={tab} onChange={setTab} size="md" />
+          <Tabs options={[{ id: 'mapa', label: t.mapa }, { id: 'listado', label: t.listado }]} selected={tab} onChange={setTab} size="md" />
         </div>
       </div>
 
       {/* Panel filtros — visible en mapa y listado */}
       <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)}>
         <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">Mostrar</p>
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.mostrar}</p>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setOnlyFollowed(false)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${!onlyFollowed ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-              Todas las zonas
+              {t.todasZonas}
             </button>
             <button onClick={() => setOnlyFollowed(true)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyFollowed ? 'bg-yellow-400/20 text-yellow-400' : 'glass text-cream/60'}`}>
-              ⭐ Mis zonas
+              ⭐ {t.misZonas}
             </button>
             <button onClick={() => setOnlyRained(v => !v)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyRained ? 'bg-sky-400/20 text-sky-400' : 'glass text-cream/60'}`}>
-              🌧️ Ha llovido
+              {t.haLlovido}
             </button>
           </div>
         </div>
         {comunidades.length > 0 && (
           <div className="mb-5">
-            <p className="text-muted text-xs uppercase tracking-wider mb-3">Comunidad autónoma</p>
+            <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.comunidadAutonoma}</p>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setCcaaFilter('')}
                 className={`px-4 py-2 rounded-xl text-sm transition-all ${!ccaaFilter ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-                Todas
+                {t.todos}
               </button>
               {comunidades.map(ca => (
                 <button key={ca} onClick={() => setCcaaFilter(ca)}
@@ -171,12 +171,12 @@ export default function Zones() {
         )}
         {comarcas.length > 0 && (
           <div className="mb-5">
-            <p className="text-muted text-xs uppercase tracking-wider mb-3">Comarca</p>
+            <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.comarca}</p>
             <div className="relative sm:inline-block sm:min-w-[220px]">
               <select value={comarcaFilter} onChange={e => setComarcaFilter(e.target.value)}
                 className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-cream outline-none cursor-pointer appearance-none"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <option value="" style={{ background: 'var(--color-modal)' }}>Todas las comarcas</option>
+                <option value="" style={{ background: 'var(--color-modal)' }}>{t.todasLasComarcas}</option>
                 {comarcas.map(c => <option key={c} value={c} style={{ background: 'var(--color-modal)' }}>{c}</option>)}
               </select>
               <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cream/50">
@@ -186,11 +186,11 @@ export default function Zones() {
           </div>
         )}
         <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">Tipo de bosque</p>
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.tipoBosque}</p>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setForestFilter('')}
               className={`px-4 py-2 rounded-xl text-sm transition-all ${!forestFilter ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-              Todos
+              {t.todos}
             </button>
             {forestTypes.map(tb => {
               const emoji = { pinar: '🌲', hayedo: '🌳', robledal: '🌿', encinar: '🫒' }
@@ -205,19 +205,19 @@ export default function Zones() {
         </div>
         {tab === 'listado' && (
           <div className="mb-5">
-            <p className="text-muted text-xs uppercase tracking-wider mb-3">Ordenar por</p>
+            <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.ordenarPor}</p>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setZoneSort('score')}
                 className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'score' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-                🌡️ Mejor condición
+                {t.mejorCondicion}
               </button>
               <button onClick={() => setZoneSort('alfa')}
                 className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'alfa' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-                A–Z Nombre
+                {t.azNombre}
               </button>
               <button onClick={() => setZoneSort('elevation')}
                 className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'elevation' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-                🏔️ Altitud
+                {t.altitud}
               </button>
             </div>
           </div>
@@ -233,7 +233,7 @@ export default function Zones() {
       {/* Chips filtros activos — visibles en mapa y listado */}
       {(onlyFollowed || onlyRained || forestFilter || ccaaFilter || comarcaFilter || searchQuery) && (
         <div className="flex flex-wrap gap-2 mt-3">
-          {onlyFollowed  && <ActiveFilterChip emoji="⭐" label="Solo seguidas" color="yellow" onRemove={() => setOnlyFollowed(false)} />}
+          {onlyFollowed  && <ActiveFilterChip emoji="⭐" label={t.soloSeguidas} color="yellow" onRemove={() => setOnlyFollowed(false)} />}
           {onlyRained    && <ActiveFilterChip emoji="🌧️" label={`Lluvia ≥ ${RAIN_THRESHOLD}mm / 14d`} color="blue" onRemove={() => setOnlyRained(false)} />}
           {forestFilter  && <ActiveFilterChip emoji="🌲" label={forestFilter} color="emerald" onRemove={() => setForestFilter('')} />}
           {ccaaFilter    && <ActiveFilterChip emoji="📍" label={ccaaFilter} color="amber" onRemove={() => setCcaaFilter('')} />}
@@ -263,8 +263,8 @@ export default function Zones() {
           {filteredZones.length === 0 ? (
             <div className="glass rounded-2xl p-12 text-center">
               <div className="text-5xl mb-4">⭐</div>
-              <h3 className="font-display text-xl text-cream mb-2">Sin zonas</h3>
-              <p className="text-cream/70 text-sm">Ajusta los filtros para ver más zonas.</p>
+              <h3 className="font-display text-xl text-cream mb-2">{t.sinZonas}</h3>
+              <p className="text-cream/70 text-sm">{t.ajustaFiltros}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

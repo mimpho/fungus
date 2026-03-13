@@ -7,11 +7,14 @@ export default function Profile() {
   const [form, setForm] = useState(profile)
   const [saved, setSaved] = useState(false)
 
-  const notifications = followedZones.map(z => ({
-    id: z.id,
-    msg: `Condiciones ${getScoreColor(Math.floor(60 + Math.random() * 35)).label.toLowerCase()} en ${z.name}`,
-    hora: `Hace ${Math.floor(1 + Math.random() * 5)}h`,
-  }))
+  const notifications = followedZones.map(z => {
+    const sc = getScoreColor(Math.floor(60 + Math.random() * 35))
+    return {
+      id: z.id,
+      msg: `Condiciones ${(t[sc.tKey] ?? sc.tKey).toLowerCase()} en ${z.name}`,
+      hora: `Hace ${Math.floor(1 + Math.random() * 5)}h`,
+    }
+  })
 
   const handleSave = () => {
     setProfile(form)
@@ -69,7 +72,7 @@ export default function Profile() {
           ))}
           <button onClick={handleSave}
             className={`w-full py-3 rounded-xl text-sm font-medium transition-all ${saved ? 'bg-emerald-600 text-white' : 'bg-bar hover:bg-[#a0834d] text-white'}`}>
-            {saved ? '✓ Guardado' : t.handleSave}
+            {saved ? `✓ ${t.guardado}` : t.handleSave}
           </button>
         </div>
       </section>

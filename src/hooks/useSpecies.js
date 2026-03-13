@@ -6,63 +6,68 @@
 //
 // Diseño:
 //   - Inicializa con mockSpecies para render inmediato sin flash
-//   - Carga del API en background (cursor pagination, 201 especies en 2 páginas)
-//   - Cache en memoria compartida entre todas las instancias del hook
+//   - Carga del API en background (cursor pagination)
+//   - Cache en memoria por idioma: { es: [...], ca: [...], en: [...] }
+//   - Reactivo al cambio de lang (useApp) — cambia idioma sin recargar la página
 //   - Fallback automático a mockSpecies si el API no responde
-//   - Los campos de detalle (cap, stem, photos...) solo están en list items
-//     parcialmente — se cargan bajo demanda en SpeciesModal via fetchSpeciesDetail
 // =====================================================
 import { useState, useEffect } from 'react'
 import { fetchAllSpecies } from '../services/apiService'
 import { mockSpecies } from '../data/species'
+import { useApp } from '../contexts/AppContext'
 
-// Cache en memoria: evita dobles fetches en React StrictMode y entre componentes
-let _speciesCache = null      // array de especies ya cargadas
-let _speciesPromise = null    // promesa en vuelo compartida
+// Cache por idioma: evita re-fetches entre componentes y al montar dos veces (StrictMode)
+const _speciesCache = {}    // { es: Species[], ca: Species[], en: Species[] }
+const _speciesPromises = {} // { es: Promise, ca: Promise, en: Promise }
 
 export function useSpecies() {
-  const [species, setSpecies] = useState(_speciesCache ?? mockSpecies)
-  const [loading, setLoading] = useState(_speciesCache === null)
+  const { lang } = useApp()
+  const [species, setSpecies] = useState(_speciesCache[lang] ?? mockSpecies)
+  const [loading, setLoading] = useState(!_speciesCache[lang])
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    // Si la cache ya está lista, no hacer nada
-    if (_speciesCache !== null) {
-      setSpecies(_speciesCache)
+    // Si ya hay cache para este idioma, usarla directamente
+    if (_speciesCache[lang]) {
+      setSpecies(_speciesCache[lang])
       setLoading(false)
       return
     }
 
+    // Mostrar mock mientras carga
+    setSpecies(mockSpecies)
+    setLoading(true)
+    setError(null)
+
     let cancelled = false
 
     const load = async () => {
-      if (!_speciesPromise) {
-        _speciesPromise = fetchAllSpecies()
+      if (!_speciesPromises[lang]) {
+        _speciesPromises[lang] = fetchAllSpecies(lang)
       }
 
       try {
-        const apiSpecies = await _speciesPromise
+        const apiSpecies = await _speciesPromises[lang]
 
         if (cancelled) return
 
-        _speciesCache = apiSpecies
-        _speciesPromise = null
+        _speciesCache[lang] = apiSpecies
+        delete _speciesPromises[lang]
         setSpecies(apiSpecies)
         setLoading(false)
       } catch (err) {
         if (cancelled) return
 
-        console.warn('[useSpecies] API no disponible, usando mock data:', err)
+        console.warn(`[useSpecies] API no disponible (lang=${lang}), usando mock data:`, err)
         setError('No se pudieron cargar especies en tiempo real.')
-        _speciesPromise = null
-        // mockSpecies ya está en el estado inicial — no hay que cambiar nada
+        delete _speciesPromises[lang]
         setLoading(false)
       }
     }
 
     load()
     return () => { cancelled = true }
-  }, []) // Solo al montar — el catálogo es estable (TTL 1h en el backend)
+  }, [lang]) // Re-ejecutar cuando cambia el idioma
 
   return { species, loading, error }
 }

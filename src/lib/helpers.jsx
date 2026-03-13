@@ -5,6 +5,7 @@
 // =====================================================
 import { useState, useEffect } from 'react';
 import { MODAL, COLORS } from './constants';
+import { useApp } from '../contexts/AppContext';
 
 export { MODAL, COLORS };
 
@@ -147,19 +148,19 @@ export const IC = {
 // =====================================================
 export function getEdibilityColor(com) {
   const m = {
-    excelente:     { bg: 'bg-emerald-500/15', text: 'text-emerald-400', dot: 'bg-emerald-400', label: 'Excelente',
+    excelente:     { bg: 'bg-emerald-500/15', text: 'text-emerald-400', dot: 'bg-emerald-400', tKey: 'edib_excelente',
                      solidBg: 'bg-emerald-600', solidText: 'text-white' },
-    bueno:         { bg: 'bg-teal-500/15',    text: 'text-teal-400',    dot: 'bg-teal-400',    label: 'Comestible',
+    bueno:         { bg: 'bg-teal-500/15',    text: 'text-teal-400',    dot: 'bg-teal-400',    tKey: 'edib_comestible',
                      solidBg: 'bg-teal-600',    solidText: 'text-white' },
-    comestible:    { bg: 'bg-teal-500/15',    text: 'text-teal-400',    dot: 'bg-teal-400',    label: 'Comestible',
+    comestible:    { bg: 'bg-teal-500/15',    text: 'text-teal-400',    dot: 'bg-teal-400',    tKey: 'edib_comestible',
                      solidBg: 'bg-teal-600',    solidText: 'text-white' },
-    precaucion:    { bg: 'bg-amber-500/15',   text: 'text-amber-400',   dot: 'bg-amber-400',   label: 'Precaución',
+    precaucion:    { bg: 'bg-amber-500/15',   text: 'text-amber-400',   dot: 'bg-amber-400',   tKey: 'edib_precaucion',
                      solidBg: 'bg-amber-600',   solidText: 'text-white' },
-    no_comestible: { bg: 'bg-slate-500/15',   text: 'text-slate-400',   dot: 'bg-slate-400',   label: 'No comestible',
+    no_comestible: { bg: 'bg-slate-500/15',   text: 'text-slate-400',   dot: 'bg-slate-400',   tKey: 'edib_no_comestible',
                      solidBg: 'bg-slate-600',   solidText: 'text-white' },
-    toxico:        { bg: 'bg-orange-500/15',  text: 'text-orange-400',  dot: 'bg-orange-400',  label: 'Tóxica',
+    toxico:        { bg: 'bg-orange-500/15',  text: 'text-orange-400',  dot: 'bg-orange-400',  tKey: 'edib_toxico',
                      solidBg: 'bg-orange-600',  solidText: 'text-white' },
-    mortal:        { bg: 'bg-red-600/15',     text: 'text-red-400',     dot: 'bg-red-500',     label: '⚠ MORTAL',
+    mortal:        { bg: 'bg-red-600/15',     text: 'text-red-400',     dot: 'bg-red-500',     tKey: 'edib_mortal',
                      solidBg: 'bg-red-700',     solidText: 'text-white' },
   };
   return m[com] || m.no_comestible;
@@ -169,10 +170,10 @@ export function getEdibilityColor(com) {
 // getScoreColor — colores del termómetro de score
 // =====================================================
 export function getScoreColor(s) {
-  if (s >= 85) return { bar: 'bg-emerald-400', text: 'text-emerald-400', label: 'Excelente' };
-  if (s >= 70) return { bar: 'bg-bar',   text: 'text-coffee-light',   label: 'Muy bueno' };
-  if (s >= 55) return { bar: 'bg-amber-500',   text: 'text-amber-400',   label: 'Bueno' };
-  return             { bar: 'bg-red-500',       text: 'text-red-400',     label: 'Regular' };
+  if (s >= 85) return { bar: 'bg-emerald-400', text: 'text-emerald-400', tKey: 'excelente' };
+  if (s >= 70) return { bar: 'bg-bar',         text: 'text-coffee-light', tKey: 'muyBueno' };
+  if (s >= 55) return { bar: 'bg-amber-500',   text: 'text-amber-400',   tKey: 'bueno' };
+  return             { bar: 'bg-red-500',       text: 'text-red-400',     tKey: 'regular' };
 }
 
 // =====================================================
@@ -256,18 +257,20 @@ export function fakeConditions() {
 // variant="onImage" → fondo sólido (sobre fotos)
 // =====================================================
 export function EdibilityTag({ edibility, variant = 'glass', showDot = false, className = '' }) {
+  const { t } = useApp();
   const cc = getEdibilityColor(edibility);
+  const label = t[cc.tKey] || cc.tKey;
   if (variant === 'onImage') {
     return (
       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide shadow-md backdrop-blur-sm ${cc.solidBg} ${cc.solidText} bg-opacity-85 ${className}`}>
-        {cc.label}
+        {label}
       </span>
     );
   }
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 mt-1 py-1 rounded-full text-[11px] font-medium ${cc.bg} ${cc.text} ${className}`}>
       {showDot && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cc.dot}`} />}
-      {cc.label}
+      {label}
     </span>
   );
 }
@@ -299,10 +302,11 @@ export function SpeciesImg({ localSrc, scientificName, className, style, objectF
 
   const imgStyle = { ...style, objectFit: objectFit || 'cover', ...(objectPosition ? { objectPosition } : {}) };
 
+  const { t } = useApp();
   const Placeholder = ({ loading }) => (
     <div className={className} style={{ ...style, background: 'rgba(74,124,89,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {loading
-        ? <span style={{ fontSize: '0.65rem', color: 'rgba(244,235,225,0.3)' }}>cargando…</span>
+        ? <span style={{ fontSize: '0.65rem', color: 'rgba(244,235,225,0.3)' }}>{t.cargando}</span>
         : <img src="/assets/images/placeholder.png" alt="mushroom" height="150" width="150" style={{ opacity: 0.15 }} />
       }
     </div>
@@ -316,12 +320,11 @@ export function SpeciesImg({ localSrc, scientificName, className, style, objectF
   return <img src={wikiSrc} alt={scientificName} className={className} style={imgStyle} />;
 }
 
-// ============================================================
+// =====================================================
 // SpeciesCard — tarjeta de especie reutilizable
 // size="full"    → imagen alta (h-64), botón favorito
 // size="compact" → imagen corta (h-28), sin favorito
-// enTemporada → true si la especie fructifica en el mes actual
-// ============================================================
+// =====================================================
 export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full', animDelay, enTemporada }) {
   const isCompact = size === 'compact';
   return (
@@ -396,6 +399,7 @@ function edibilityStyle(edibility) {
 // TaxonomyBlock — acordeón de sinónimos
 // =====================================================
 export function TaxonomyBlock({ species }) {
+  const { t } = useApp()
   const [open, setOpen] = useState(false)
   const syns = species.synonyms || []
   if (syns.length === 0) return null
@@ -406,7 +410,7 @@ export function TaxonomyBlock({ species }) {
         <svg className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        🔬 {open ? 'Ocultar taxonomía' : `Ver taxonomía (${syns.length} sinónimo${syns.length > 1 ? 's' : ''})`}
+        🔬 {open ? t.ocultarTaxonomia : `${t.verTaxonomia} (${syns.length} ${syns.length > 1 ? t.sinonimos : t.sinonimo})`}
       </button>
       {open && (
         <div className="mt-2 ml-1 pl-3 border-l-2 border-bar/20 space-y-1">
@@ -423,6 +427,7 @@ export function TaxonomyBlock({ species }) {
 // icon/borderColor/nameColor se derivan de edibility via edibilityStyle()
 // =====================================================
 export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
+  const { t } = useApp()
   const confusions = species.confusions
   if (!confusions?.length) return null
   return (
@@ -457,7 +462,7 @@ export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
         )
       })}
       <p className="text-cream/50 text-xs text-center pt-1">
-        ⚠️ Datos orientativos. Consulta siempre con un micólogo experto antes de consumir cualquier seta silvestre.
+        {t.avisoMicologo}
       </p>
     </div>
   )

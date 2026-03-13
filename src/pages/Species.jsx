@@ -10,13 +10,13 @@ import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
 const PER_PAGE = 24
 
 const SHOW_FILTERS = [
-  { id: 'todas',         label: 'Todas',           emoji: '🍄' },
-  { id: 'favoritas',     label: 'Favoritas',       emoji: '❤️' },
-  { id: 'excelente',     label: 'Excelentes',      emoji: '⭐' },
-  { id: 'comestible',    label: 'Comestibles',     emoji: '✅' },
-  { id: 'no_comestible', label: 'No comestibles',  emoji: '🚫' },
-  { id: 'toxico',        label: 'Tóxicas',         emoji: '⚠️' },
-  { id: 'mortal',        label: 'Mortales',        emoji: '☠️' },
+  { id: 'todas',         tKey: 'showTodas',       emoji: '🍄' },
+  { id: 'favoritas',     tKey: 'showFavoritas',   emoji: '❤️' },
+  { id: 'excelente',     tKey: 'showExcelentes',  emoji: '⭐' },
+  { id: 'comestible',    tKey: 'showComestibles', emoji: '✅' },
+  { id: 'no_comestible', tKey: 'showNoComest',    emoji: '🚫' },
+  { id: 'toxico',        tKey: 'showToxicas',     emoji: '⚠️' },
+  { id: 'mortal',        tKey: 'showMortales',    emoji: '☠️' },
 ]
 
 export default function Species() {
@@ -143,7 +143,7 @@ export default function Species() {
       <div className="flex flex-col md:grid md:grid-cols-[auto_1fr] md:items-center gap-4">
         <div>
           <h2 className="font-display text-4xl font-semibold text-cream">{t.especies}</h2>
-          <p className="text-muted text-sm mt-1">{filteredSpecies.length} especies encontradas</p>
+          <p className="text-muted text-sm mt-1">{filteredSpecies.length} {t.especiesEncontradas}</p>
         </div>
         <div className="flex justify-center">
           <SearchFilterBar
@@ -162,23 +162,23 @@ export default function Species() {
       {/* Panel filtros */}
       <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)}>
         <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">Mostrar</p>
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.mostrar}</p>
           <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
             {SHOW_FILTERS.map(f => (
               <button key={f.id} onClick={() => setShowFilter(f.id)}
                 className={`py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col sm:flex-row items-center gap-1 sm:px-3.5 ${showFilter === f.id ? 'bg-bar text-white' : 'glass text-cream/60 hover:text-cream'}`}>
-                <span className="text-base sm:text-sm">{f.emoji}</span>{f.label}
+                <span className="text-base sm:text-sm">{f.emoji}</span>{t[f.tKey]}
               </button>
             ))}
           </div>
         </div>
         <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">Familia</p>
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.familiaLabel}</p>
           <div className="relative sm:inline-block sm:min-w-[220px]">
             <select value={familyFilter} onChange={e => setFamilyFilter(e.target.value)}
               className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-cream outline-none cursor-pointer appearance-none"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <option value="" style={{ background: 'var(--color-modal)' }}>Todas las familias</option>
+              <option value="" style={{ background: 'var(--color-modal)' }}>{t.todasLasFamilias}</option>
               {uniqueFamilies.map(f => <option key={f} value={f} style={{ background: 'var(--color-modal)' }}>{f}</option>)}
             </select>
             <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cream/50">
@@ -187,12 +187,12 @@ export default function Species() {
           </div>
         </div>
         <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">Ordenar por</p>
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.ordenarPor}</p>
           <div className="flex flex-col sm:flex-row gap-2">
             {[
-              { id: 'alfa',   label: '🔤 Nombre (A–Z)' },
-              { id: 'family', label: '🍄 Familia' },
-              { id: 'comest', label: '⭐ Comestibilidad' },
+              { id: 'alfa',   label: t.sortNombreAZ },
+              { id: 'family', label: t.sortFamilia },
+              { id: 'comest', label: t.sortComestibilidad },
             ].map(op => (
               <button key={op.id} onClick={() => setOrden(op.id)}
                 className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm text-left transition-all ${orden === op.id ? 'bg-bar/20 text-coffee-light' : 'glass text-cream/70 hover:text-cream'}`}>
@@ -216,11 +216,11 @@ export default function Species() {
       {(showFilter !== 'todas' || familyFilter || monthFilter > 0) && (
         <div className="flex flex-wrap gap-2">
           {monthFilter > 0 && monthLabel && (
-            <ActiveFilterChip key="mf" emoji="🌱" label={`Fructifica en ${monthLabel}`} onRemove={clearMonthFilter} />
+            <ActiveFilterChip key="mf" emoji="🌱" label={`${t.fructificaEn} ${monthLabel}`} onRemove={clearMonthFilter} />
           )}
           {showFilter !== 'todas' && (() => {
             const f = SHOW_FILTERS.find(f => f.id === showFilter)
-            return <ActiveFilterChip key="sf" emoji={f?.emoji} label={f?.label} onRemove={() => setShowFilter('todas')} />
+            return <ActiveFilterChip key="sf" emoji={f?.emoji} label={t[f?.tKey]} onRemove={() => setShowFilter('todas')} />
           })()}
           {familyFilter && <ActiveFilterChip key="ff" emoji="🔬" label={familyFilter} onRemove={() => setFamilyFilter('')} />}
         </div>
@@ -230,7 +230,7 @@ export default function Species() {
       {pageItems.length === 0 ? (
         <div className="text-center py-16 text-cream/70">
           <div className="text-4xl mb-3">🔍</div>
-          <p>Sin resultados para tu búsqueda.</p>
+          <p>{t.sinResultados}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
