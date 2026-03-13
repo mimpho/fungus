@@ -7,12 +7,12 @@ import { LeafletMap } from '../map/LeafletMap'
 import { useApiZoneConditions } from '../../hooks/useWeatherConditions'
 
 const EDIBILITY_FILTERS = [
-  { id: 'todas',         label: 'Todas',           emoji: '🍄' },
-  { id: 'excelente',     label: 'Excelentes',       emoji: '⭐' },
-  { id: 'comestible',    label: 'Comestibles',      emoji: '✅' },
-  { id: 'no_comestible', label: 'No comestibles',   emoji: '🚫' },
-  { id: 'toxico',        label: 'Tóxicas',          emoji: '⚠️' },
-  { id: 'mortal',        label: 'Mortales',         emoji: '☠️' },
+  { id: 'todas',         tKey: 'filterTodas',       emoji: '🍄' },
+  { id: 'excelente',     tKey: 'filterExcelentes',  emoji: '⭐' },
+  { id: 'comestible',    tKey: 'filterComestibles', emoji: '✅' },
+  { id: 'no_comestible', tKey: 'filterNoComest',    emoji: '🚫' },
+  { id: 'toxico',        tKey: 'filterToxicas',     emoji: '⚠️' },
+  { id: 'mortal',        tKey: 'filterMortales',    emoji: '☠️' },
 ]
 
 export function ZoneModal({ zone, onClose }) {
@@ -96,11 +96,11 @@ export function ZoneModal({ zone, onClose }) {
         onClick={e => e.stopPropagation()}>
 
         {/* Mini-barra sticky */}
-        <div className={`glass-olive sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
+        <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
             <p className="font-display text-xl font-semibold text-cream truncate">{zone.name}</p>
-            <p className="text-muted/80 text-xs truncate">{zone.province} · {zone.forestType}</p>
+            <p className="text-muted/60 text-xs truncate">{zone.province} · {zone.forestType}</p>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button onClick={() => toggleFollow(zone)}
@@ -124,12 +124,12 @@ export function ZoneModal({ zone, onClose }) {
               <h2 className="font-display text-3xl font-semibold text-cream drop-shadow-lg">{zone.name}</h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-lg bg-green-f/30 text-green-300 text-xs font-medium">{zone.province}</span>
-                {zone.region && <span className="text-cream/80 text-xs">{zone.region}</span>}
-                <span className="flex items-center gap-1 text-cream/80 text-xs">
+                {zone.region && <span className="text-cream/50 text-xs">{zone.region}</span>}
+                <span className="flex items-center gap-1 text-cream/60 text-xs">
                   <img src={`/assets/images/icons/forest-type-${zone.forestType}.png`} alt={zone.forestType} height="14" width="14" />
                   {zone.forestType}
                 </span>
-                <span className="flex items-center gap-1 text-cream/80 text-xs">
+                <span className="flex items-center gap-1 text-cream/60 text-xs">
                   <img src="/assets/images/icons/mountain.png" alt="elevation" height="14" width="14" />
                   {zone.elevation}m
                 </span>
@@ -151,19 +151,19 @@ export function ZoneModal({ zone, onClose }) {
         {/* Contenido */}
         <div className="px-4 py-6 sm:px-6 space-y-8" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
           {zone.description && (
-            <p className="text-cream/80 text-sm leading-relaxed border-l-2 border-muted/40 pl-4">{zone.description}</p>
+            <p className="text-cream/60 text-sm leading-relaxed border-l-2 border-muted/40 pl-4">{zone.description}</p>
           )}
 
           {/* Termómetro */}
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-1">{t.termometro}</h3>
-            <p className="text-cream/50 text-xs mb-3 leading-relaxed">
-              El índice pondera datos meteorológicos en tiempo real junto al factor estacional del mes actual para calcular las condiciones de recolección.
+            <p className="text-cream/40 text-xs mb-3 leading-relaxed">
+              {t.indiceMeteoDesc}
             </p>
             <div className="flex items-center gap-4 bg-white/[0.03] rounded-xl p-4">
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
-                  <span className={`text-sm font-semibold ${sc.text}`}>{sc.label}</span>
+                  <span className={`text-sm font-semibold ${sc.text}`}>{t[sc.tKey]}</span>
                   <span className="font-display text-xl font-bold text-cream">{conditions.overallScore}<span className="text-xs text-cream/40 font-sans">/100</span></span>
                 </div>
                 <div className="progress-bar h-[8px]">
@@ -174,16 +174,16 @@ export function ZoneModal({ zone, onClose }) {
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-3">
               {[
                 {
-                  icon: 'temperature', l: 'Temperatura',
+                  icon: 'temperature', l: t.meteoTemp,
                   v: conditions.tempMin != null && conditions.tempMax != null
                     ? `${conditions.tempMin}–${conditions.tempMax}°C`
                     : '–',
                 },
-                { icon: 'soil-moisture', l: 'T. Suelo', v: conditions.soilTemp != null ? `${conditions.soilTemp}°C` : '–' },
-                { icon: 'accumulated-precipitation', l: 'Precipit. 14d', v: conditions.rainfall14d != null ? `${conditions.rainfall14d}mm` : '–' },
-                { icon: 'humidity', l: 'Humedad', v: conditions.humidity != null ? `${conditions.humidity}%` : '–' },
-                { icon: 'wind', l: 'Viento', v: conditions.wind != null ? `${conditions.wind}km/h` : '–' },
-                { icon: 'sunny', l: 'Sin lluvia', v: conditions.dryDays != null ? `${conditions.dryDays}d` : '–' },
+                { icon: 'soil-moisture', l: t.meteoSuelo, v: conditions.soilTemp != null ? `${conditions.soilTemp}°C` : '–' },
+                { icon: 'accumulated-precipitation', l: t.meteoPrecip, v: conditions.rainfall14d != null ? `${conditions.rainfall14d}mm` : '–' },
+                { icon: 'humidity', l: t.meteoHumedad, v: conditions.humidity != null ? `${conditions.humidity}%` : '–' },
+                { icon: 'wind', l: t.meteoViento, v: conditions.wind != null ? `${conditions.wind}km/h` : '–' },
+                { icon: 'sunny', l: t.meteoDiasSeco, v: conditions.dryDays != null ? `${conditions.dryDays}d` : '–' },
               ].map((c, i) => (
                 <div key={i} className="bg-white/[0.03] rounded-xl p-3 text-center">
                   <img className="m-auto mb-1" src={`/assets/images/icons/${c.icon}.png`} alt={c.l} height="36" width="36" />
@@ -193,7 +193,7 @@ export function ZoneModal({ zone, onClose }) {
               ))}
             </div>
             {!weatherLoading && (
-              <p className="text-cream/60 text-[11px] mt-2 text-right">{updatedLabel}</p>
+              <p className="text-cream/25 text-[11px] mt-2 text-right">{updatedLabel}</p>
             )}
           </section>
 
@@ -205,10 +205,11 @@ export function ZoneModal({ zone, onClose }) {
                 <select
                   value={availFilter}
                   onChange={e => setAvailFilter(e.target.value)}
-                  className="appearance-none pl-3 pr-7 py-1.5 rounded-lg glass text-xs text-cream outline-none cursor-pointer">
+                  className="appearance-none pl-3 pr-7 py-1.5 rounded-lg text-xs text-cream outline-none cursor-pointer"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
                   {EDIBILITY_FILTERS.map(f => (
                     <option key={f.id} value={f.id} style={{ background: 'var(--color-modal)' }}>
-                      {f.emoji} {f.label}
+                      {f.emoji} {t[f.tKey]}
                     </option>
                   ))}
                 </select>
@@ -218,7 +219,7 @@ export function ZoneModal({ zone, onClose }) {
               </div>
             </div>
             {available.length === 0 ? (
-              <div className="text-center py-8 text-cream/40 text-sm">No hay especies disponibles este mes.</div>
+              <div className="text-center py-8 text-cream/40 text-sm">{t.noEspeciesEsteMes}</div>
             ) : (
               <div className="space-y-2">
                 {available.map(e => {
@@ -238,7 +239,7 @@ export function ZoneModal({ zone, onClose }) {
                       <div className="text-right flex-shrink-0">
                         <div className={`font-semibold text-sm ${ss.text}`}>{e.score}</div>
                         <div className="text-cream/40 text-[10px]">~{e.dias} días</div>
-                        <svg className="w-3 h-3 text-cream/50 group-hover:text-muted transition-colors ml-auto mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <svg className="w-3 h-3 text-cream/20 group-hover:text-muted transition-colors ml-auto mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       </div>
                     </div>
                   )
@@ -252,14 +253,15 @@ export function ZoneModal({ zone, onClose }) {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">{t.calendarioFruct}</h3>
               <div className="flex items-center gap-3">
-                <span className="text-cream/60 text-[11px]">
+                <span className="text-cream/30 text-[11px]">
                   {filteredCalSpecies.length} especie{filteredCalSpecies.length !== 1 ? 's' : ''}
                 </span>
                 <div className="relative">
                   <select
                     value={calFilter}
                     onChange={e => setCalFilter(e.target.value)}
-                    className="appearance-none pl-3 pr-7 py-1.5 rounded-lg glass text-xs text-cream outline-none cursor-pointer">
+                    className="appearance-none pl-3 pr-7 py-1.5 rounded-lg text-xs text-cream outline-none cursor-pointer"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
                     {EDIBILITY_FILTERS.map(f => (
                       <option key={f.id} value={f.id} style={{ background: 'var(--color-modal)' }}>
                         {f.emoji} {f.label}
@@ -273,7 +275,7 @@ export function ZoneModal({ zone, onClose }) {
               </div>
             </div>
             {filteredCalSpecies.length === 0 ? (
-              <div className="text-center py-8 text-cream/40 text-sm">No hay especies de este tipo en esta zona.</div>
+              <div className="text-center py-8 text-cream/40 text-sm">{t.noEspeciesTipoZona}</div>
             ) : (
               <div className="space-y-3">
                 {filteredCalSpecies.map(e => (
@@ -282,11 +284,11 @@ export function ZoneModal({ zone, onClose }) {
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-display text-lg text-cream group-hover:text-coffee-light transition-colors">{e.scientificName}</span>
                       <EdibilityTag edibility={e.edibility} variant="glass" className="ml-auto" />
-                      <svg className="w-3 h-3 text-cream/50 group-hover:text-muted transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      <svg className="w-3 h-3 text-cream/20 group-hover:text-muted transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                     </div>
                     <div className="grid grid-cols-12 gap-1">
                       {MONTHS.map((m, i) => (
-                        <div key={i} className={`text-center py-1.5 rounded text-[9px] font-medium ${e.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-cream/50'}`}>{m}</div>
+                        <div key={i} className={`text-center py-1.5 rounded text-[9px] font-medium ${e.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-cream/20'}`}>{m}</div>
                       ))}
                     </div>
                   </div>

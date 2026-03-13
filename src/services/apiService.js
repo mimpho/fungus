@@ -215,12 +215,24 @@ export function normalizeSpeciesListItem(s) {
 /**
  * Normaliza el detalle completo de una especie (GET /species/{id}).
  * Desempaqueta extra_data para reconstruir el shape del frontend.
+ *
+ * @param {object} s    - Raw API response from GET /species/{id}
+ * @param {string} lang - Locale ('es' | 'ca' | 'en'). Picks translated fields
+ *                        from extra_data (e.g. description_ca) with ES fallback.
  */
-export function normalizeSpeciesDetail(s) {
+export function normalizeSpeciesDetail(s, lang = 'es') {
   const base = normalizeSpeciesListItem(s)
   const ex = s.extra_data ?? {}
+
+  // i18n helper: prefers {key}_{lang} from extra_data, falls back to top-level field
+  const i18n = (key, fallback = null) =>
+    (lang !== 'es' && ex[`${key}_${lang}`]) ? ex[`${key}_${lang}`] : fallback
+
   return {
     ...base,
+    // Translated fields — backend already returns right commonNames via lang param,
+    // but description comes from extra_data (detail endpoint returns full blob)
+    description: i18n('description', s.description ?? null),
     // Sobrescribir con datos de extra_data que son más completos
     photo:       ex.photo  ?? base.photo,
     photos:      ex.photos ?? [],
@@ -250,12 +262,12 @@ const _SPECIES_PAGE_SIZE = 500  // max permitido por la API
  *
  * @returns {Promise<Array>}  array de especies normalizadas al shape del frontend
  */
-export async function fetchAllSpecies() {
+export async function fetchAllSpecies(lang = 'es') {
   const all = []
   let cursor = null
 
   while (true) {
-    const params = new URLSearchParams({ limit: _SPECIES_PAGE_SIZE })
+    const params = new URLSearchParams({ limit: _SPECIES_PAGE_SIZE, lang })
     if (cursor) params.set('cursor', cursor)
 
     const res = await fetch(`${API_BASE}/species?${params}`)
@@ -283,23 +295,27 @@ export async function fetchAllSpecies() {
  * @param {string} speciesId
  * @returns {Promise<object>}  especie normalizada con todos los campos (cap, stem, photos…)
  */
-const _detailCache = new Map()    // speciesId → detalle normalizado
-const _detailPromises = new Map() // speciesId → promesa en vuelo
+// Raw cache (lang-independent): fetches once, normalizes per lang on demand
+const _detailRawCache = new Map()  // speciesId → raw API JSON
+const _detailPromises = new Map()  // speciesId → in-flight Promise<raw JSON>
 
-export async function fetchSpeciesDetail(speciesId) {
-  if (_detailCache.has(speciesId)) return _detailCache.get(speciesId)
+export async function fetchSpeciesDetail(speciesId, lang = 'es') {
+  // If raw JSON already cached, just re-normalize with the requested lang
+  if (_detailRawCache.has(speciesId)) {
+    return normalizeSpeciesDetail(_detailRawCache.get(speciesId), lang)
+  }
 
+  // Share in-flight promise to avoid duplicate requests (React StrictMode)
   if (!_detailPromises.has(speciesId)) {
     const promise = fetch(`${API_BASE}/species/${speciesId}`)
       .then(res => {
         if (!res.ok) throw new Error(`API /species/${speciesId} error ${res.status}`)
         return res.json()
       })
-      .then(data => {
-        const detail = normalizeSpeciesDetail(data)
-        _detailCache.set(speciesId, detail)
+      .then(raw => {
+        _detailRawCache.set(speciesId, raw)
         _detailPromises.delete(speciesId)
-        return detail
+        return raw
       })
       .catch(err => {
         _detailPromises.delete(speciesId)
@@ -308,5 +324,6 @@ export async function fetchSpeciesDetail(speciesId) {
     _detailPromises.set(speciesId, promise)
   }
 
-  return _detailPromises.get(speciesId)
+  const raw = await _detailPromises.get(speciesId)
+  return normalizeSpeciesDetail(raw, lang)
 }

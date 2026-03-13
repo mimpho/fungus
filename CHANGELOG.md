@@ -10,7 +10,20 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Añadido
-- (próximamente)
+- i18n v4.7: expansión de `src/data/i18n.js` de ~25 a ~110 claves por idioma (ES/CA/EN), cubriendo todos los componentes del frontend
+- i18n v4.7: `helpers.jsx` — `getEdibilityColor` y `getScoreColor` pasan a usar `tKey` en lugar de `label` hardcoded; `EdibilityTag`, `TaxonomyBlock`, `ConfusionesBlock` y `SpeciesImg` traducidos con `useApp()`
+- i18n v4.7: `Dashboard.jsx` — todos los strings hardcoded reemplazados; fechas con locale dinámico (`es-ES` / `ca-ES` / `en-GB`)
+- i18n v4.7: `Zones.jsx` — filtros comarca/CCAA/bosque, tabs, estados vacíos y chips de filtro traducidos
+- i18n v4.7: `Species.jsx` — filtros de comestibilidad, familia, ordenación y chips de filtro activo traducidos; patrón `tKey` en `SHOW_FILTERS`
+- i18n v4.7: `ZoneModal.jsx` — filtros de comestibilidad, métricas meteorológicas, OI description y estados vacíos traducidos; patrón `tKey` en `EDIBILITY_FILTERS`
+- i18n v4.7: `SpeciesModal.jsx` — galería, aviso mortal, condiciones fructificación, barras de progreso, morfología completa (sombrero/pie/carne/esporada), confusiones, zonas compatibles y altitud traducidos
+- i18n v4.7: `FamilyModal.jsx` — cabecera "Familia micológica", "Características" y estado vacío traducidos
+- i18n v4.7: `ZoneCard.jsx` — "Cond. de recolección" y etiqueta de score traducidos; `useApp()` añadido
+- i18n v4.7: `Profile.jsx` — "✓ Guardado" traducido
+- i18n v4.7 DB: backend `/species` acepta `?lang=es|ca|en` — helpers `_extra_str`/`_extra_list` con fallback automático a ES
+- i18n v4.7 DB: `fetchAllSpecies(lang)` y `fetchSpeciesDetail(id, lang)` pasan el idioma a la API; raw cache lang-independiente en detail
+- i18n v4.7 DB: `useSpecies` con cache por idioma — reactivo al cambio de lang sin re-fetch innecesario
+- i18n v4.7 DB: migración `013_common_names_i18n.sql` — `commonNames_ca` y `commonNames_en` para las 202 especies del catálogo
 
 ---
 
