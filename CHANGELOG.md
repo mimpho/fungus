@@ -9,6 +9,10 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+---
+
+## [4.7.0] - 2026-03-13 — i18n completo (UI + DB)
+
 ### Añadido
 - i18n v4.7: expansión de `src/data/i18n.js` de ~25 a ~110 claves por idioma (ES/CA/EN), cubriendo todos los componentes del frontend
 - i18n v4.7: `helpers.jsx` — `getEdibilityColor` y `getScoreColor` pasan a usar `tKey` en lugar de `label` hardcoded; `EdibilityTag`, `TaxonomyBlock`, `ConfusionesBlock` y `SpeciesImg` traducidos con `useApp()`
