@@ -444,12 +444,24 @@ Todo lo anterior, más:
 
 | Archivo | Qué actualizar |
 |---|---|
-| `CLAUDE.md` → Roadmap | Marcar la fase como ✅, actualizar la que pasa a "En curso" |
-| `CLAUDE.md` → Overview | Versión y estado del backend |
-| `README.md` | Versión, stack activo, instrucciones de arranque, deploy URLs |
+| `CLAUDE.md` → Roadmap | Marcar la fase como ✅, añadir siguiente fase si procede |
+| `CLAUDE.md` → Overview | Versión actual y estado del backend |
+| `README.md` | Versión en cabecera, roadmap, endpoints de API si han cambiado |
+| `memory/pending.md` | Eliminar todos los ítems completados de la fase; dejar solo backlog activo |
+| `CHANGELOG.md` | Entrada consolidada de la fase completa |
 | `docs/conventions.md` | Phase map si se añaden fases nuevas |
 | `docs/backend_architecture.md` | Si el spec cambió durante la implementación |
-| Git | `git tag -a vX.Y.0` en `main` tras el merge del epic |
+| `AGENTS.md` / `.claude` / `.opencode` | Si existen y tienen roadmap o versión — sincronizar con README |
+
+**Proceso Git al cerrar una fase:**
+1. Commits de documentación en la feature branch (pending, CLAUDE.md, README, CHANGELOG)
+2. Push de la feature branch: `git push origin <rama>`
+3. Abrir PR en GitHub: title en Conventional Commits (≤72 chars), body con resumen + pasos manuales + checklist de testing
+4. Esperar status checks (Vercel preview deploy, etc.) y mergear
+5. Tras el merge: `git pull origin main && git tag -a vX.Y.0 -m "..." && git push origin vX.Y.0`
+6. Aplicar migraciones SQL en Supabase si las hay
+
+**Nota:** `main` tiene branch protection — nunca push directo. Siempre via PR.
 
 ### Al tomar una decisión arquitectónica relevante
 
