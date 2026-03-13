@@ -416,7 +416,8 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v4.6 | ✅ Entregado | Taxonomía (sinónimos) + confusiones en BD — `ConfusionesBlock` desde API, datos iniciales Morchellaceae+Boletaceae |
 | v4.6.3 | ✅ Entregado | Mejoras UX: filtros comarca/CCAA, `no_comestible`, restyling ConfusionesBlock, comarca en ZoneModal hero |
 | v4.6.4 | ✅ Entregado | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) + gap fix Agaricus campestris |
-| v4.7 | 🗂 Backlog | i18n / Traducciones: auditoría de strings hardcoded, completar ES/CA/EN en frontend; contenido BD con patrón extra_data |
+| v4.7 | ✅ Entregado | i18n completo: UI strings ES/CA/EN (~110 claves), DB layer con `?lang=` en `/species`, commonNames_ca/en para 202 especies |
+| v4.7.1 | 🗂 Backlog | i18n contenido editorial: `description_ca/en`, morfología — arquitectura lista, falta contenido |
 | v5 | 🗂 Backlog | Auth + favoritos en BD: JWT, registro/login, favoritos zonas y especies por usuario |
 | v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
 | v6.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
