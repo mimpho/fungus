@@ -98,7 +98,7 @@ function GallerySection({ species, onOpenLightbox }) {
 }
 
 export function SpeciesModal({ species, onClose }) {
-  const { t, favoriteSpecies, toggleFavorite, setSelectedFamily, setSelectedSpecies, setSelectedZone, setLightbox, lightbox } = useApp()
+  const { t, lang, favoriteSpecies, toggleFavorite, setSelectedFamily, setSelectedSpecies, setSelectedZone, setLightbox, lightbox } = useApp()
   const isFav = favoriteSpecies.some(f => f.id === species.id)
   const family = mockFamilies[species.family]
   const [scrolled, setScrolled] = useState(false)
@@ -116,11 +116,11 @@ export function SpeciesModal({ species, onClose }) {
     let cancelled = false
     setDetail(species)
     setDetailLoading(true)
-    fetchSpeciesDetail(species.id)
+    fetchSpeciesDetail(species.id, lang)
       .then(full => { if (!cancelled) { setDetail(full); setDetailLoading(false) } })
       .catch(() => { if (!cancelled) setDetailLoading(false) }) // fallback: usar lo que hay
     return () => { cancelled = true }
-  }, [species.id])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [species.id, lang])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hooks de datos
   const { zones } = useZones()
@@ -443,7 +443,7 @@ export function SpeciesModal({ species, onClose }) {
           {/* Posibles Confusiones — solo si la API devuelve datos */}
           {detail.confusions?.length > 0 && (
             <section>
-              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">⚠️ {t.posiblesConfusiones}</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">{t.posiblesConfusiones}</h3>
               <ConfusionesBlock species={detail} onViewSpecies={setSelectedSpecies} allSpecies={allSpecies} />
             </section>
           )}

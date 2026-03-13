@@ -19,20 +19,39 @@ router = APIRouter(prefix="/species", tags=["Species"])
 # Max items per page — keeps response size predictable
 _PAGE_SIZE = 50
 
+# Supported i18n locales
+_LANGS = {"es", "ca", "en"}
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-def _extra_str(species: Species, key: str) -> str | None:
-    """Safely extract a string field from the JSONB extra_data blob."""
+def _extra_str(species: Species, key: str, lang: str = "es") -> str | None:
+    """Safely extract a string field from extra_data, with i18n fallback.
+
+    Looks for ``{key}_{lang}`` first (e.g. ``description_ca``), then falls
+    back to the canonical Spanish ``{key}``.  Always returns None if extra_data
+    is absent.
+    """
     if not species.extra_data:
         return None
+    if lang != "es":
+        val = species.extra_data.get(f"{key}_{lang}")
+        if val:
+            return val
     return species.extra_data.get(key)
 
 
-def _extra_list(species: Species, key: str) -> list | None:
-    """Safely extract a list field from the JSONB extra_data blob."""
+def _extra_list(species: Species, key: str, lang: str = "es") -> list | None:
+    """Safely extract a list field from extra_data, with i18n fallback.
+
+    Same lookup order as _extra_str: ``{key}_{lang}`` → ``{key}``.
+    """
     if not species.extra_data:
         return None
+    if lang != "es":
+        val = species.extra_data.get(f"{key}_{lang}")
+        if val:
+            return val
     return species.extra_data.get(key)
 
 
@@ -60,7 +79,7 @@ def _confusions(species: Species) -> list[dict] | None:
     return species.extra_data.get("confusions")
 
 
-def _to_list_item(s: Species) -> SpeciesListItem:
+def _to_list_item(s: Species, lang: str = "es") -> SpeciesListItem:
     return SpeciesListItem(
         id=s.id,
         scientific_name=s.scientific_name,
@@ -70,13 +89,13 @@ def _to_list_item(s: Species) -> SpeciesListItem:
         fruiting_months=s.fruiting_months,
         elevation_min_m=s.elevation_min_m,
         elevation_max_m=s.elevation_max_m,
-        common_names=_extra_list(s, "commonNames"),
+        common_names=_extra_list(s, "commonNames", lang),
         photo_url=_photo_url(s),
         # description, synonyms, confusions excluded from list — see _to_detail()
     )
 
 
-def _to_detail(s: Species) -> SpeciesDetail:
+def _to_detail(s: Species, lang: str = "es") -> SpeciesDetail:
     return SpeciesDetail(
         id=s.id,
         scientific_name=s.scientific_name,
@@ -86,9 +105,9 @@ def _to_detail(s: Species) -> SpeciesDetail:
         fruiting_months=s.fruiting_months,
         elevation_min_m=s.elevation_min_m,
         elevation_max_m=s.elevation_max_m,
-        common_names=_extra_list(s, "commonNames"),
+        common_names=_extra_list(s, "commonNames", lang),
         photo_url=_photo_url(s),
-        description=_extra_str(s, "description"),
+        description=_extra_str(s, "description", lang),
         synonyms=_synonyms(s),
         confusions=_confusions(s),
         oi_params=SpeciesOIParams(
@@ -107,6 +126,7 @@ def _to_detail(s: Species) -> SpeciesDetail:
 
 @router.get("", response_model=list[SpeciesListItem])
 async def list_species(
+    lang: str = Query("es", pattern="^(es|ca|en)$", description="Response language (es/ca/en)"),
     family: str | None = Query(None, description="Filter by family name"),
     edibility: str | None = Query(None, description="Filter by edibility level"),
     forest_type: str | None = Query(
@@ -153,12 +173,14 @@ async def list_species(
 
     result = await db.execute(stmt)
     rows = result.scalars().all()
-    return [_to_list_item(s) for s in rows]
+    return [_to_list_item(s, lang) for s in rows]
 
 
 @router.get("/{species_id}", response_model=SpeciesDetail)
 async def get_species(
-    species_id: str, db: AsyncSession = Depends(get_db)
+    species_id: str,
+    lang: str = Query("es", pattern="^(es|ca|en)$", description="Response language (es/ca/en)"),
+    db: AsyncSession = Depends(get_db),
 ) -> SpeciesDetail:
     """
     Full species detail: biological parameters, morphology, confusions, photos.
@@ -172,4 +194,4 @@ async def get_species(
     if species is None:
         raise HTTPException(status_code=404, detail=f"Species '{species_id}' not found")
 
-    return _to_detail(species)
+    return _to_detail(species, lang)
