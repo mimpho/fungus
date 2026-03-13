@@ -4,9 +4,9 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v4.6.4 frontend/backend; v4.7 i18n en backlog; v5.x Auth; v6.x Apps
-**Estado frontend**: Integrado con backend. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Bloque de confusiones solo visible si la API devuelve datos. Filtros comarca/CCAA, `no_comestible` category, restyling ConfusionesBlock.
-**Estado backend**: v4.6.4. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`. `description`/`synonyms`/`confusions` desde BD. Confusiones completas: Morchellaceae, Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae.
+**Versión actual**: v4.7 frontend/backend; v4.7.1 i18n editorial en backlog; v5.x Auth; v6.x Apps
+**Estado frontend**: Integrado con backend. i18n completo ES/CA/EN (~110 claves). Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Bloque de confusiones solo visible si la API devuelve datos. Filtros comarca/CCAA, `no_comestible` category, restyling ConfusionesBlock.
+**Estado backend**: v4.7. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`. `description`/`synonyms`/`confusions` desde BD. Confusiones completas: Morchellaceae, Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae. Endpoints `/species` con `?lang=es|ca|en`. `commonNames_ca/en` para 202 especies en `extra_data`.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 **Backend spec**: `docs/backend_architecture.md` — FastAPI + PostgreSQL + PostGIS (v4.x)
@@ -416,7 +416,8 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v4.6 | ✅ Entregado | Taxonomía (sinónimos) + confusiones en BD — `ConfusionesBlock` desde API, datos iniciales Morchellaceae+Boletaceae |
 | v4.6.3 | ✅ Entregado | Mejoras UX: filtros comarca/CCAA, `no_comestible`, restyling ConfusionesBlock, comarca en ZoneModal hero |
 | v4.6.4 | ✅ Entregado | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) + gap fix Agaricus campestris |
-| v4.7 | 🗂 Backlog | i18n / Traducciones: auditoría de strings hardcoded, completar ES/CA/EN en frontend; contenido BD con patrón extra_data |
+| v4.7 | ✅ Entregado | i18n completo: UI strings ES/CA/EN (~110 claves), DB layer con `?lang=` en `/species`, commonNames_ca/en para 202 especies |
+| v4.7.1 | 🗂 Backlog | i18n contenido editorial: `description_ca/en`, morfología — arquitectura lista, falta contenido |
 | v5 | 🗂 Backlog | Auth + favoritos en BD: JWT, registro/login, favoritos zonas y especies por usuario |
 | v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
 | v6.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
@@ -443,12 +444,24 @@ Todo lo anterior, más:
 
 | Archivo | Qué actualizar |
 |---|---|
-| `CLAUDE.md` → Roadmap | Marcar la fase como ✅, actualizar la que pasa a "En curso" |
-| `CLAUDE.md` → Overview | Versión y estado del backend |
-| `README.md` | Versión, stack activo, instrucciones de arranque, deploy URLs |
+| `CLAUDE.md` → Roadmap | Marcar la fase como ✅, añadir siguiente fase si procede |
+| `CLAUDE.md` → Overview | Versión actual y estado del backend |
+| `README.md` | Versión en cabecera, roadmap, endpoints de API si han cambiado |
+| `memory/pending.md` | Eliminar todos los ítems completados de la fase; dejar solo backlog activo |
+| `CHANGELOG.md` | Entrada consolidada de la fase completa |
 | `docs/conventions.md` | Phase map si se añaden fases nuevas |
 | `docs/backend_architecture.md` | Si el spec cambió durante la implementación |
-| Git | `git tag -a vX.Y.0` en `main` tras el merge del epic |
+| `AGENTS.md` / `.claude` / `.opencode` | Si existen y tienen roadmap o versión — sincronizar con README |
+
+**Proceso Git al cerrar una fase:**
+1. Commits de documentación en la feature branch (pending, CLAUDE.md, README, CHANGELOG)
+2. Push de la feature branch: `git push origin <rama>`
+3. Abrir PR en GitHub: title en Conventional Commits (≤72 chars), body con resumen + pasos manuales + checklist de testing
+4. Esperar status checks (Vercel preview deploy, etc.) y mergear
+5. Tras el merge: `git pull origin main && git tag -a vX.Y.0 -m "..." && git push origin vX.Y.0`
+6. Aplicar migraciones SQL en Supabase si las hay
+
+**Nota:** `main` tiene branch protection — nunca push directo. Siempre via PR.
 
 ### Al tomar una decisión arquitectónica relevante
 

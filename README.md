@@ -2,7 +2,7 @@
 
 Sistema inteligente de predicción micológica para Cataluña y España.
 
-**Versión**: v4.6.4 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
+**Versión**: v4.7 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 
@@ -72,8 +72,8 @@ GET /api/v1/zones/{id}
 GET /api/v1/zones/map-scores
 GET /api/v1/weather/zones
 GET /api/v1/weather/zones/{id}
-GET /api/v1/species
-GET /api/v1/species/{id}
+GET /api/v1/species?lang=es|ca|en
+GET /api/v1/species/{id}?lang=es|ca|en
 GET /api/v1/admin/trigger-backfill?days=N
 ```
 
@@ -92,7 +92,8 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v4.6 | ✅ | Taxonomía (sinónimos) + confusiones en BD |
 | v4.6.3 | ✅ | Mejoras UX: filtros comarca/CCAA, no_comestible, restyling |
 | v4.6.4 | ✅ | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) |
-| v4.7 | 🗂 Backlog | i18n / Traducciones: frontend ES/CA/EN, posible impacto en BD |
+| v4.7 | ✅ | i18n completo: UI strings ES/CA/EN, DB layer `?lang=` en `/species`, commonNames para 202 especies |
+| v4.7.1 | 🗂 Backlog | i18n contenido editorial: `description_ca/en`, morfología |
 | v5 | 🗂 Backlog | Auth + favoritos en BD: JWT, registro/login, favoritos por usuario |
 | v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) |
 | v6.1 | 🗂 Backlog | App móvil iOS |

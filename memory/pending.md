@@ -16,26 +16,14 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🔜 En curso — v4.7 i18n / Traducciones
+## 🗂 Backlog — v4.7.1 i18n contenido editorial
 
-Rama activa: `feat/v4-7-i18n-sync`
+Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo falta contenido.
 
-**Completado:**
-- Auditoría completa de strings hardcoded en todos los componentes
-- `i18n.js` expandido (~110 claves por idioma, ES/CA/EN)
-- Todos los componentes UI traducidos: Dashboard, Zones, Species, ZoneModal, SpeciesModal, FamilyModal, ZoneCard, Profile, helpers (EdibilityTag, TaxonomyBlock, ConfusionesBlock)
-- Build verificado: 0 errores
-
-**Completado (DB layer):**
-- Backend `/species` con `?lang=es|ca|en`, fallback automático a ES
-- `useSpecies` cache por idioma, reactivo al cambio de lang
-- Migración `013_common_names_i18n.sql` — `commonNames_ca` + `commonNames_en` para 202 especies
-
-**Pendiente para cerrar v4.7:**
-- Aplicar `013_common_names_i18n.sql` en Supabase (producción)
-- Testing manual en los tres idiomas — verificar que los nombres comunes cambian al cambiar lang en Perfil
-- Commit + merge a main + tag v4.7.0
-- `description_ca/en` y morfología → v4.7.1 (contenido editorial, no arquitectura)
+- `description_ca` / `description_en` para las 202 especies — texto largo por especie
+- Morfología (`cap`, `stem`, `flesh`) en CA/EN
+- Artículos (`Micorrizas.jsx`, `Esporas.jsx`, `Venenos.jsx`) en CA/EN — estrategia decidida: extraer todo el texto a claves en `i18n.js` (mismo patrón que UI), JSX queda como plantilla de estructura. NO replicar JSX por idioma (insostenible ante cambios de maqueta). Gemini puede generar las claves igual que genera SQL para especies.
+- Sinónimos y confusiones (`diff`) ya están en ES; traducción opcional según prioridad editorial
 
 ---
 
