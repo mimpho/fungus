@@ -90,7 +90,7 @@ function GallerySection({ species, onOpenLightbox }) {
           </div>
         ))}
       </div>
-      <p className="text-cream/30 text-[10px] mt-2 text-center">
+      <p className="text-cream/30 text-[11px] mt-2 text-center">
         {t.hazClicImagen}
       </p>
     </section>
@@ -174,11 +174,11 @@ export function SpeciesModal({ species, onClose }) {
         onClick={e => e.stopPropagation()}>
 
         {/* Mini-barra sticky */}
-        <div className={`glass sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
+        <div className={`glass-olive sticky top-0 z-20 flex items-center gap-3 px-4 overflow-hidden transition-all duration-200 sm:rounded-t-2xl ${scrolled ? 'max-h-20 py-3 opacity-100' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}
           style={{ borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
           <div className="flex-1 min-w-0">
             <p className="font-display text-xl font-semibold text-cream truncate">{detail.scientificName}</p>
-            <p className="text-muted/60 text-xs truncate">{detail.commonNames?.[0]}</p>
+            <p className="text-muted/80 text-xs truncate">{detail.commonNames?.[0]}</p>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button onClick={() => toggleFavorite(species)}
@@ -190,8 +190,8 @@ export function SpeciesModal({ species, onClose }) {
         </div>
 
         {/* Hero foto */}
-        <div ref={heroRef} className="relative overflow-hidden sm:rounded-t-2xl modal-header" style={{ minHeight: '224px', height: '50vh' }}>
-          <SpeciesImg localSrc={detail.photo?.url} scientificName={detail.scientificName} className="w-full h-full" objectFit="cover" objectPosition="top" />
+        <div ref={heroRef} className="relative min-h-[50vh] aspect-video w-full overflow-hidden sm:rounded-t-2xl modal-header">
+          <SpeciesImg localSrc={detail.photo?.largeUrl || detail.photo?.url} scientificName={detail.scientificName} className="w-full h-full" objectFit="cover" objectPosition="top" />
           <div className="absolute inset-0 bg-gradient-to-t from-modal via-modal/0 to-transparent" />
           <div className="absolute bottom-0 left-6 right-6">
             <h2 className="font-display text-4xl font-semibold text-cream drop-shadow-lg">{detail.scientificName}</h2>
@@ -202,7 +202,7 @@ export function SpeciesModal({ species, onClose }) {
               className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400' : 'bg-black/40 text-white/50 hover:text-red-400'}`}>
               {IC.heart(isFav)}
             </button>
-            <button onClick={onClose} className="p-2 rounded-xl bg-black/40 text-white/50 hover:text-white transition-all">{IC.close}</button>
+            <button onClick={onClose} className="p-2 rounded-xl bg-black/40 text-white/80 hover:text-white transition-all">{IC.close}</button>
           </div>
         </div>
 
@@ -273,7 +273,7 @@ export function SpeciesModal({ species, onClose }) {
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">{t.fructificacion}</h3>
             <div className="grid grid-cols-12 gap-1.5">
               {MONTHS.map((m, i) => (
-                <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${detail.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-cream/20'}`}>{m}</div>
+                <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${detail.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-cream/50'}`}>{m}</div>
               ))}
             </div>
           </section>
@@ -452,7 +452,7 @@ export function SpeciesModal({ species, onClose }) {
           {compatZones.length > 0 && (
             <section>
               <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-1">{t.dondeEncontrar}</h3>
-              <p className="text-cream/35 text-xs mb-3">{compatZones.length} {t.zonasCompatiblesLabel}</p>
+              <p className="text-cream/50 text-xs mb-3">{compatZones.length} {t.zonasCompatiblesLabel}</p>
               <LeafletMap
                 zonas={compatZones}
                 onZoneClick={setSelectedZone}

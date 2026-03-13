@@ -33,10 +33,10 @@ function ArticleCard({ article, onSelect }) {
       </div>
       <div className="px-4 pb-4 pt-3">
         <h4 className="font-display text-base text-cream leading-snug mb-1">{article.title}</h4>
-        <p className="text-xs text-muted/60 leading-relaxed line-clamp-2">{article.summary}</p>
+        <p className="text-xs text-muted/80 leading-relaxed line-clamp-2">{article.summary}</p>
         <div className="flex items-center gap-2 mt-3">
           {article.tags.slice(0, 2).map(tag => (
-            <span key={tag} className="text-[10px] text-emerald-400 bg-emerald-400/5 px-2 py-0.5 rounded-full">{tag}</span>
+            <span key={tag} className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">{tag}</span>
           ))}
           {article.readingTime && (
             <span className="text-[10px] text-cream/25 ml-auto">{article.readingTime} min</span>
@@ -110,7 +110,7 @@ export default function Dashboard() {
               </div>
               <div className="text-cream/70 text-xs mt-1">{t.promedioZonasTop}</div>
             </div>
-            <img src="/assets/images/icons/temperature.png" alt="temperature" className="w-10 h-10 opacity-70" />
+            <img src="/assets/images/icons/temperature.png" alt="temperature" className="w-10 h-10 opacity-90" />
           </div>
           <div className="space-y-2 text-xs">
             {[
@@ -162,7 +162,7 @@ export default function Dashboard() {
               <div className="font-display text-4xl font-bold text-cream">{inSeasonSpecies.length}</div>
               <div className="text-cream/70 text-xs mt-1">{t.fructificandoMes}</div>
             </div>
-            <img src="/assets/images/icons/mushroom.png" alt="season" className="w-10 h-10 opacity-70" />
+            <img src="/assets/images/icons/mushroom.png" alt="season" className="w-10 h-10 opacity-90" />
           </div>
           <div className="space-y-2">
             {inSeasonSpecies.slice(0, 3).map(e => (
@@ -170,7 +170,7 @@ export default function Dashboard() {
                 className="flex items-center gap-2 bg-white/[0.03] rounded-lg p-2 cursor-pointer hover:bg-white/[0.06] transition-colors"
                 onClick={() => setSelectedSpecies(e)}>
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${getEdibilityColor(e.edibility).dot}`} />
-                <div className="font-display text-xs text-cream truncate">{e.scientificName}</div>
+                <div className="font-display text-sm text-cream truncate">{e.scientificName}</div>
               </div>
             ))}
             {inSeasonSpecies.length > 3 && (
@@ -230,7 +230,7 @@ export default function Dashboard() {
                     </div>
                     <div className={`text-right ${sc.text} shrink-0`}>
                       <div className="text-sm font-semibold">{cond.overallScore}<span className="text-xs font-normal opacity-60">/100</span></div>
-                      <div className="text-[10px] opacity-70 mt-0.5">{t[sc.tKey]}</div>
+                      <div className="text-[10px] opacity-90 mt-0.5">{t[sc.tKey]}</div>
                     </div>
                   </div>
                 )
@@ -286,7 +286,7 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {inSeasonSpecies.slice(0, 4).map((e, i) => (
-                <SpeciesCard key={e.id} species={e} onOpen={setSelectedSpecies} size="compact" animDelay={i * 0.06} />
+                <SpeciesCard key={e.id} species={e} onOpen={setSelectedSpecies} size="full" animDelay={i * 0.06} />
               ))}
             </div>
           </div>
@@ -298,25 +298,10 @@ export default function Dashboard() {
               <p className="text-muted text-sm font-medium uppercase tracking-wider">❤️ {t.favoriteSpecies}</p>
               <button onClick={() => navigate('/especies')} className="text-muted hover:text-coffee-light text-xs transition-colors">{t.verTodas}</button>
             </div>
-            <div className="flex flex-wrap gap-3">
-              {favoriteSpecies.slice(0, 6).map(e => {
-                const enTemporada = e.fruitingMonths.includes(currentMonth)
-                return (
-                  <div key={e.id} onClick={() => setSelectedSpecies(e)}
-                    className="flex items-center gap-3 glass rounded-xl px-3 py-2.5 cursor-pointer hover-lift transition-all">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
-                      <SpeciesImg localSrc={e.photo?.url} scientificName={e.scientificName} className="w-full h-full opacity-80" objectFit="cover" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-display text-sm text-cream truncate max-w-[120px]">{e.scientificName}</div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <EdibilityTag edibility={e.edibility} variant="glass" showDot className="text-[9px] px-0 bg-transparent" />
-                        {enTemporada && <span className="text-emerald-400 text-[9px] font-medium">{t.enTemporada}</span>}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {favoriteSpecies.slice(0, 6).map((e, i) => (
+                <SpeciesCard key={e.id} species={e} onOpen={setSelectedSpecies} size="full" animDelay={i * 0.06} enTemporada={e.fruitingMonths.includes(currentMonth)} />
+              ))}
             </div>
           </div>
         )}

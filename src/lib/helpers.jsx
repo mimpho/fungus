@@ -325,7 +325,7 @@ export function SpeciesImg({ localSrc, scientificName, className, style, objectF
 // size="full"    → imagen alta (h-64), botón favorito
 // size="compact" → imagen corta (h-28), sin favorito
 // =====================================================
-export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full', animDelay }) {
+export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full', animDelay, enTemporada }) {
   const isCompact = size === 'compact';
   return (
     <div
@@ -343,7 +343,7 @@ export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full'
         {!isCompact && onToggleFav && (
           <button
             onClick={ev => { ev.stopPropagation(); onToggleFav(species); }}
-            className={`absolute top-2 right-2 p-1.5 rounded-lg transition-all ${isFav ? 'text-red-400' : 'text-white/50 hover:text-red-400'}`}
+            className={`absolute top-2 right-2 p-1.5 rounded-lg transition-all ${isFav ? 'text-red-400' : 'text-white/70 hover:text-red-400'}`}
           >
             {IC.heart(!!isFav)}
           </button>
@@ -351,11 +351,14 @@ export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full'
         <div className="absolute bottom-2 left-2">
           <EdibilityTag edibility={species.edibility} variant="onImage" />
         </div>
+        {enTemporada && (
+          <span className="absolute bottom-3 right-3 text-emerald-400 text-[9px] font-medium">EN TEMPORADA</span>
+        )}
       </div>
       {isCompact ? (
         <div className="p-3">
           <h4 className="font-display text-sm font-semibold text-cream leading-snug truncate">{species.scientificName}</h4>
-          <p className="text-muted text-[10px] mt-0.5 truncate">{species.commonNames[0]}</p>
+          <p className="text-muted text-[11px] mt-0.5 truncate">{species.commonNames[0]}</p>
         </div>
       ) : (
         <div className="p-4 pt-2">
@@ -403,7 +406,7 @@ export function TaxonomyBlock({ species }) {
   return (
     <div className="mt-5">
       <button onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 text-sm text-muted/60 hover:text-coffee-light transition-colors">
+        className="flex items-center gap-1.5 glass px-4 py-2 rounded-xl text-sm text-muted hover:text-coffee-light transition-colors">
         <svg className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
@@ -411,7 +414,7 @@ export function TaxonomyBlock({ species }) {
       </button>
       {open && (
         <div className="mt-2 ml-1 pl-3 border-l-2 border-bar/20 space-y-1">
-          {syns.map((s, i) => <p key={i} className="text-sm text-cream/45 italic">{s}</p>)}
+          {syns.map((s, i) => <p key={i} className="text-sm text-cream/60 italic">{s}</p>)}
         </div>
       )}
     </div>
@@ -452,13 +455,13 @@ export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
                 {ref && <EdibilityTag edibility={ref.edibility} variant="glass" className="shrink-0" />}
               </div>
               {c.diff && (
-                <p className="text-cream/55 text-xs leading-relaxed">{c.diff}</p>
+                <p className="text-cream/60 text-[.8rem] leading-relaxed">{c.diff}</p>
               )}
             </div>
           </div>
         )
       })}
-      <p className="text-cream/30 text-xs text-center pt-1">
+      <p className="text-cream/50 text-xs text-center pt-1">
         {t.avisoMicologo}
       </p>
     </div>
