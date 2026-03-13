@@ -22,7 +22,7 @@ Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo
 
 - `description_ca` / `description_en` para las 202 especies — texto largo por especie
 - Morfología (`cap`, `stem`, `flesh`) en CA/EN
-- Artículos (`Micorrizas.jsx`, `Esporas.jsx`, `Venenos.jsx`) en CA/EN — estrategia: ficheros `.ca.jsx` / `.en.jsx` o prop `lang` con conditional render
+- Artículos (`Micorrizas.jsx`, `Esporas.jsx`, `Venenos.jsx`) en CA/EN — estrategia decidida: extraer todo el texto a claves en `i18n.js` (mismo patrón que UI), JSX queda como plantilla de estructura. NO replicar JSX por idioma (insostenible ante cambios de maqueta). Gemini puede generar las claves igual que genera SQL para especies.
 - Sinónimos y confusiones (`diff`) ya están en ES; traducción opcional según prioridad editorial
 
 ---
