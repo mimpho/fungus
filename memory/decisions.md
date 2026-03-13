@@ -241,6 +241,30 @@ En el modelo nuevo, el nivel familia desaparece del dato. `ConfusionesBlock` lee
 
 ---
 
+## Condiciones de fructificación — texto en BD, no en JSX (v4.7.1)
+
+**Decisión:** Los textos de "Condiciones de fructificación" (`cond_temp`, `cond_precip`, `cond_suelo`, `cond_req`) pasan a `extra_data` en BD, con sufijos `_es/ca/en`. Se eliminan los `if/else` hardcodeados por familia en `SpeciesModal.jsx`.
+
+**Problema actual:** Los 4 bloques de texto en `SpeciesModal` usan cadenas hardcodeadas con ramificación por `detail.family` y en algunos casos por `detail.scientificName`. No son datos de BD y no son traducibles sin duplicar código.
+
+**Campos nuevos en `extra_data`:**
+```
+cond_temp_es / cond_temp_ca / cond_temp_en
+cond_precip_es / cond_precip_ca / cond_precip_en
+cond_suelo_es / cond_suelo_ca / cond_suelo_en
+cond_req_es / cond_req_ca / cond_req_en
+```
+
+**Flujo de generación (Gemini):** Para cada especie se pasan los campos numéricos (`temp_optima_min/max`, `precip_14dias_min/max`, `requiere_helada`, `requiere_choque_termico`, `dias_hasta_fructificacion`, `family`, `forestTypes`) y Gemini genera texto específico por especie en los 3 idiomas. No es traducción de texto existente — es generación a partir de datos.
+
+**En JSX (tras migración):** `SpeciesModal` lee `detail.cond_temp_es` (o `_ca/en` según lang) en lugar del bloque `if/else`.
+
+**Alternativas descartadas:**
+- Mantener `if/else` en JSX + añadir claves i18n: insostenible, el texto no es por especie sino por familia, pierde especificidad.
+- Tabla separada `fruiting_conditions`: innecesario, `extra_data` JSONB es suficiente y consistente con el resto de campos de contenido.
+
+---
+
 ## Paginador con URL (?pagina=N)
 
 **Decisión:** El paginador de Species usa `useSearchParams` en vez de `useState`. La página actual vive en `?pagina=N`.

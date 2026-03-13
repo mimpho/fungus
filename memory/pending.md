@@ -20,10 +20,16 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo falta contenido.
 
-- `description_ca` / `description_en` para las 202 especies — texto largo por especie
-- Morfología (`cap`, `stem`, `flesh`) en CA/EN
-- Artículos (`Micorrizas.jsx`, `Esporas.jsx`, `Venenos.jsx`) en CA/EN — estrategia decidida: extraer todo el texto a claves en `i18n.js` (mismo patrón que UI), JSX queda como plantilla de estructura. NO replicar JSX por idioma (insostenible ante cambios de maqueta). Gemini puede generar las claves igual que genera SQL para especies.
-- Sinónimos y confusiones (`diff`) ya están en ES; traducción opcional según prioridad editorial
+### Migraciones SQL (via Gemini, por familias)
+
+- `description_ca/en` — **en curso**: Boletaceae aplicado, resto de familias pendiente
+- `cond_temp/precip/suelo/req` en ES/CA/EN — **primero** (antes de seguir con descriptions). Ver decisión en `decisions.md`. Campos nuevos en `extra_data` generados a partir de datos numéricos por especie. Requiere también simplificar `SpeciesModal.jsx` (eliminar `if/else` por familia).
+- Morfología (`cap`, `stem`, `flesh`) en CA/EN — después de descriptions
+- Confusiones (`diff`) en CA/EN — traducción opcional, después de morfología
+
+### Código (sesión Cowork)
+
+- Artículos (`Micorrizas.jsx`, `Esporas.jsx`, `Venenos.jsx`) en CA/EN — extraer texto a claves `i18n.js` (Option A). JSX queda como plantilla estructural. Gemini traduce los valores de las claves.
 
 ---
 

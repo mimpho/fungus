@@ -1,0 +1,193 @@
+Eres un experto en micología y hablas catalán (ca) e inglés (en) con fluidez.
+
+A continuación tienes la descripción en castellano de 22 especies de la familia Russulaceae.
+Para cada especie traduce `description_es` al catalán (`description_ca`) y al inglés (`description_en`).
+Mantén el estilo: frases directas, tono divulgativo, longitud similar al original.
+Preserva los términos técnicos micológicos.
+
+## Datos de entrada
+
+[
+  {"scientific_name": "Russula virescens", "description_es": "Una de las mejores rússulas comestibles. Su sombrero verde agrietado la hace muy reconocible. Sin látex. Excelente en crudo en ensaladas o cocinada. Una de las pocas rússulas claramente comestibles para principiantes."},
+  {"scientific_name": "Russula cyanoxantha", "description_es": "Rúsula de colores variables (verde, violeta, gris o mezcla), una de las mejores comestibles. Sus láminas son flexibles y no quebradizas, rasgo único en el género. Muy común en hayedos y robledales atlánticos."},
+  {"scientific_name": "Russula delica", "description_es": "Gran rúsula de color blanco sucio con laminillas apretadas y decurrentes, frecuente en hayedos y robledales de toda España. Comestible de calidad mediocre, puede confundirse peligrosamente con Amanita verna si no se observa la ausencia de pie con volva. Prefiere enterrarse parcialmente en la hojarasca."},
+  {"scientific_name": "Russula emetica", "description_es": "Rúsula de sombrero rojo brillante, pie blanco y sabor extremadamente picante que causa vómitos, de ahí su nombre. Especie tóxica frecuente en pinares húmedos del norte peninsular. Se diferencia de otras rúsulas rojas por crecer en pinar, el sabor intensamente picante y el olor frutal."},
+  {"scientific_name": "Russula aurea", "description_es": "Rúsula elegante con sombrero naranja-rojo a dorado y laminillas amarillas. Comestible de buena calidad, una de las rúsulas más atractivas por su coloración. Crece en robledales y bosques mixtos del norte y centro peninsular, aunque no es muy abundante."},
+  {"scientific_name": "Russula parazurea", "description_es": "Rúsula de sombrero gris-azulado a verde grisáceo con aspecto pruinoso característico. Comestible de calidad moderada, crece en hayedos y bosques mixtos del norte de España. La coloración gris-azulada la distingue de otras rúsulas del grupo, aunque es variable."},
+  {"scientific_name": "Russula olivacea", "description_es": "Una de las rúsulas de mayor tamaño, con sombrero heterogéneo verde-oliva a marrón-rojizo y esporas ocre amarillo. Comestible apreciado en hayedos y robledales de montaña del norte peninsular. Se reconoce por su gran tamaño, coloración irregular y carne muy firme."},
+  {"scientific_name": "Russula vesca", "description_es": "Rúsula comestible muy apreciada con sombrero marrón-rosado y la particularidad de que la piel se retrae dejando visible el borde de las laminillas. Olor y sabor agradables. Frecuente en bosques caducifolios de toda España, una de las mejores rúsulas comestibles."},
+  {"scientific_name": "Russula foetens", "description_es": "Rúsula grande de olor muy fétido y rancio, con sombrero amarillo-ocre viscoso y margen marcadamente tuberculado-estriado. Tóxica, causa gastroenteritis. Muy común en hayedos y bosques mixtos de toda España. Su olor desagradable y margen estriado la identifican fácilmente."},
+  {"scientific_name": "Russula nigricans", "description_es": "Rúsula grande que en la madurez o al corte vira primero a rojizo y luego a negro, proceso que puede durar horas. Comestible de calidad mediocre cuando joven. Muy común en hayedos y robledales. Sirve de sustrato para el parásito Asterophora parasitica y Asterophora lycoperdoides."},
+  {"scientific_name": "Russula xerampelina", "description_es": "Rúsula de sombrero rojo-púrpura a carmín y olor característico a cangrejo cocido en los ejemplares maduros. Comestible de buena calidad. Crece en pinares y hayedos del norte y centro peninsular. El olor a marisco la hace inconfundible entre las rúsulas de color rojo."},
+  {"scientific_name": "Russula mustelina", "description_es": "Rúsula robusta de alta montaña con sombrero ocre-pardo uniforme y carne muy firme y compacta. Comestible apreciado en pinares subalpinos de Pirineos y Cantábrica. Su gran consistencia y el hábitat de alta montaña bajo pinos de montaña la diferencian de otras rúsulas similares."},
+  {"scientific_name": "Lactarius deliciosus", "description_es": "La seta más recolectada en España. Exuda un látex anaranjado característico al cortarla. Crece exclusivamente en pinares, formando micorriza con pinos. Su color zanahoria y olor a fruta la hacen inconfundible."},
+  {"scientific_name": "Lactarius sanguifluus", "description_es": "Mízcalo o robellón con látex de color rojo sangre intenso, sombrero naranja-salmón con zonas concéntricas y pie con fosetas oscuras. Excelente comestible, muy apreciado en la cocina mediterránea española. Crece exclusivamente bajo pinos en zonas mediterráneas del sur y este peninsular."},
+  {"scientific_name": "Lactarius deterrimus", "description_es": "Especie afín al níscalo pero con látex que vira de naranja a verde al contacto con el aire. Comestible de calidad inferior al L. deliciosus, crece bajo abetos en pinares de montaña del Pirineo y norte peninsular. El viraje verde del látex y la presencia de abetos son clave para identificarlo."},
+  {"scientific_name": "Lactifluus piperatus", "description_es": "Lactario grande de color blanco sucio con pie corto y laminillas muy apretadas. El látex blanco abundante tiene sabor extremadamente picante. Incomestible en crudo; en algunas regiones se consume tras secado o preparaciones especiales. Frecuente en hayedos y robledales del norte peninsular."},
+  {"scientific_name": "Lactarius torminosus", "description_es": "Lactario rosado con margen velloso enrollado y látex blanco de sabor muy picante y amargo que causa fuertes cólicos intestinales. Tóxico en crudo, aunque en países nórdicos se consume tras preparaciones especiales. Crece asociado a abedules en el norte de España."},
+  {"scientific_name": "Lactarius indigo", "description_es": "Especie inconfundible por su color azul índigo intenso en todas sus partes, incluyendo el látex de color azul brillante. Comestible apreciado, aunque escaso en España. Crece bajo pinos y robles en el norte y este peninsular. Uno de los hongos más coloridos y llamativos de la micología ibérica."},
+  {"scientific_name": "Lactarius volemus", "description_es": "Lactario naranja con látex blanco muy abundante y olor característico a pescado o arenque. Comestible apreciado a pesar del olor, que desaparece con la cocción. Crece en robledales y hayedos del norte y centro peninsular. Se reconoce por el látex blancuzco copioso y el olor a marisco."},
+  {"scientific_name": "Lactifluus vellereus", "description_es": "Gran lactario blanco con superficie aterciopelada y látex blanco copioso de sabor muy picante. Incomestible por su sabor acre. Muy frecuente en hayedos y bosques caducifolios de toda España. Puede confundirse con Russula delica, de la que se distingue por el látex abundante."},
+  {"scientific_name": "Russula laurocerasi", "description_es": "Rúsula de sombrero ocre-miel con olor característico a almendras amargas (cerezos). Tóxica. Frecuente en hayedos y robledales del norte peninsular. El olor intenso a almendras amargas junto con el margen estriado-tuberculado son sus principales características identificativas."},
+  {"scientific_name": "Russula pseudointegra", "description_es": "Rúsula de sombrero rojo carmín vivo con esporas ocre, comestible apreciado en robledales y encinares. Puede confundirse con otras rúsulas rojas, pero se diferencia por su hábitat bajo encinas y robles en terrenos más secos y cálidos. Distribuida por el centro y norte peninsular."},
+]
+
+## Formato de salida
+
+Devuelve ÚNICAMENTE el bloque SQL, sin explicaciones ni markdown extra.
+Las traducciones van dentro del campo extra_data (JSONB). Usa exactamente esta estructura:
+
+-- Russulaceae: description CA/EN
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula virescens';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula cyanoxantha';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula delica';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula emetica';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula aurea';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula parazurea';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula olivacea';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula vesca';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula foetens';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula nigricans';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula xerampelina';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula mustelina';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Lactarius deliciosus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Lactarius sanguifluus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Lactarius deterrimus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Lactifluus piperatus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Lactarius torminosus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Lactarius indigo';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Lactarius volemus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Lactifluus vellereus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula laurocerasi';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Russula pseudointegra';
