@@ -16,6 +16,15 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
+## 🗂 Backlog — v4.7.1 i18n contenido editorial
+
+Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo falta contenido.
+
+- `description_ca` / `description_en` para las 202 especies — texto largo por especie
+- Morfología (`cap`, `stem`, `flesh`) en CA/EN
+- Artículos (`Micorrizas.jsx`, `Esporas.jsx`, `Venenos.jsx`) en CA/EN — estrategia: ficheros `.ca.jsx` / `.en.jsx` o prop `lang` con conditional render
+- Sinónimos y confusiones (`diff`) ya están en ES; traducción opcional según prioridad editorial
+
 ---
 
 ## 🗂 Backlog — v5 Auth + favoritos en BD
