@@ -9,6 +9,14 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Añadido
+- `cond_temp`, `cond_precip`, `cond_suelo`, `cond_req` como campos propios en `SpeciesDetail` schema — resueltos por idioma vía `_extra_str`
+- `_to_detail()` en `routers/species.py` expone los 4 campos `cond_*` al frontend (migración `004_cond_fruct_boletaceae.sql` ya aplicada)
+- `_extra_str`/`_extra_list` buscan ahora `{key}_es` antes del fallback unsuffixed, soportando el formato de claves generado por Gemini (`cond_temp_es`, etc.)
+
+### Cambiado
+- `SpeciesModal.jsx` — bloque condiciones fructificación reemplaza los `if/else` hardcodeados por familia con `detail.cond_temp || fallback`; el fallback garantiza compatibilidad para familias aún no migradas
+
 ---
 
 ## [4.7.0] - 2026-03-13 — i18n completo (UI + DB)

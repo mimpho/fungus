@@ -42,5 +42,10 @@ class SpeciesDetail(SpeciesListItem):
     description: str | None = None
     synonyms: list[str] | None = None
     confusions: list[SpeciesConfusion] | None = None
+    # Fruiting conditions — language-resolved by _extra_str (cond_*_es/ca/en in extra_data)
+    cond_temp: str | None = None
+    cond_precip: str | None = None
+    cond_suelo: str | None = None
+    cond_req: str | None = None
     # Full extra_data blob: morphology, all photos, etc.
     extra_data: dict | None = None
