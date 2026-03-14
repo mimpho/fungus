@@ -248,7 +248,14 @@ export function normalizeSpeciesDetail(s, lang = 'es') {
     distribucion: ex.distribucion ?? [],
     // Campos solo disponibles en el endpoint de detalle
     synonyms:    s.synonyms    ?? null,
-    confusions:  s.confusions  ?? null,
+    // Confusions: map diff field to the requested language using extra_data blob
+    // (ex.confusions has diff/diff_ca/diff_en; s.confusions only has diff)
+    confusions: (ex.confusions ?? s.confusions)
+      ? (ex.confusions ?? s.confusions).map(c => ({
+          with_species_id: c.with_species_id,
+          diff: (lang !== 'es' && c[`diff_${lang}`]) ? c[`diff_${lang}`] : (c.diff ?? ''),
+        }))
+      : null,
     // OI params (útil para debugging futuro)
     _oiParams: s.oi_params ?? null,
     _partial:  false,
