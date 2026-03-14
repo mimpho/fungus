@@ -28,7 +28,7 @@ Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo
 
 - `description_ca/en` — ✅ **COMPLETO**. Migraciones `019`–`029` generadas para las 181 especies restantes. Pendiente aplicar en Supabase.
 
-- `confusions` (`diff_ca/en`) — 🔲 Traducción del campo `diff` (texto diferenciación de confusiones). Actualmente solo ES. Hacer después de `description_ca/en`.
+- `confusions` (`diff_ca/en`) — ✅ **COMPLETO**. Migraciones `030`–`037` generadas. Pendiente aplicar en Supabase.
 
 - Morfología (`cap_ca/en`, `stem_ca/en`, `flesh_ca/en`) — 🔲 Opcional, baja prioridad. Después de descriptions y confusiones.
 
