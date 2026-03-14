@@ -164,10 +164,11 @@ WHERE family = 'Boletaceae'   -- ← cambiar por la familia a procesar
 ORDER BY id;
 ```
 
-Copia el resultado (tabla o JSON), sustitúyelo en la sección `## INPUT` y envía el prompt.
+En Supabase SQL Editor usa el botón **Download CSV** (arriba a la derecha de los resultados).
+**CSV es ~4x más compacto que JSON** — permite batches de 50+ especies sin truncados.
+Pega el CSV directamente en la sección `## INPUT`.
 
-> ⚠️ **Límite de contexto**: el JSON de Supabase es verboso. Mantener cada sesión
-> por debajo de ~20 especies para evitar truncados. Ver tabla de sesiones abajo.
+> ⚠️ Si solo tienes opción JSON, limitar a ~20 especies por sesión.
 
 ### Sesiones completadas y pendientes
 
@@ -179,26 +180,23 @@ Copia el resultado (tabla o JSON), sustitúyelo en la sección `## INPUT` y env�
 | 4 | Cantharellaceae | 7 | `family = 'Cantharellaceae'` | ✅ |
 | 5 | Morchellaceae | 4 | `family = 'Morchellaceae'` | ✅ |
 | 6 | Pleurotaceae | 5 | `family = 'Pleurotaceae'` | ✅ |
-| A1 | Agaricaceae + Tricholomataceae | 23 | `family IN ('Agaricaceae','Tricholomataceae')` | 🔲 |
-| A2 | Strophariaceae + Polyporaceae + Cortinariaceae | 27 | `family IN ('Strophariaceae','Polyporaceae','Cortinariaceae')` | 🔲 |
-| A3 | Hygrophoraceae + Physalacriaceae + Psathyrellaceae | 20 | `family IN ('Hygrophoraceae','Physalacriaceae','Psathyrellaceae')` | 🔲 |
-| B1 | Entolomataceae + Hymenogastraceae + Bankeraceae | 15 | `family IN ('Entolomataceae','Hymenogastraceae','Bankeraceae')` | 🔲 |
-| B2 | Phallaceae + Helvellaceae + Tuberaceae + Mycenaceae | 14 | `family IN ('Phallaceae','Helvellaceae','Tuberaceae','Mycenaceae')` | 🔲 |
-| C | Resto (familias de 1–2 sp, ~20 familias) | ~43 | ver query C abajo | 🔲 |
+| A | Agaricaceae + Tricholomataceae + Strophariaceae + Polyporaceae + Cortinariaceae | 50 | `family IN ('Agaricaceae','Tricholomataceae','Strophariaceae','Polyporaceae','Cortinariaceae')` | 🔲 |
+| B | Hygrophoraceae + Physalacriaceae + Psathyrellaceae + Entolomataceae + Hymenogastraceae + Bankeraceae | 35 | `family IN ('Hygrophoraceae','Physalacriaceae','Psathyrellaceae','Entolomataceae','Hymenogastraceae','Bankeraceae')` | 🔲 |
+| C | Phallaceae + Helvellaceae + Tuberaceae + Mycenaceae + resto (familias 1–2 sp) | ~57 | ver query C abajo | 🔲 |
 
-**Query C** (familias pequeñas):
+**Query C** (familias pequeñas + últimas medianas):
 ```sql
 WHERE family NOT IN (
   'Boletaceae','Amanitaceae','Russulaceae','Cantharellaceae',
   'Morchellaceae','Pleurotaceae','Agaricaceae','Tricholomataceae',
   'Strophariaceae','Polyporaceae','Cortinariaceae','Hygrophoraceae',
   'Physalacriaceae','Psathyrellaceae','Entolomataceae',
-  'Hymenogastraceae','Bankeraceae','Phallaceae','Helvellaceae',
-  'Tuberaceae','Mycenaceae'
+  'Hymenogastraceae','Bankeraceae'
 )
 ```
 
-> ⚠️ La sesión C tiene ~43 especies. Si Gemini se trunca, dividir en C1/C2 por tamaño.
+> ⚠️ Si la sesión C sigue siendo demasiado grande en CSV, dividir quitando las familias
+> de 1 sp del WHERE y procesarlas aparte.
 
 ### Tras recibir el SQL de Gemini
 
