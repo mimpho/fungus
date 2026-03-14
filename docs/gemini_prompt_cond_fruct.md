@@ -166,19 +166,43 @@ ORDER BY id;
 
 Copia el resultado (tabla o JSON), sustitúyelo en la sección `## INPUT` y envía el prompt.
 
-### Familias pendientes (procesar en este orden)
+> ⚠️ **Límite de contexto**: el JSON de Supabase es verboso. Mantener cada sesión
+> por debajo de ~20 especies para evitar truncados. Ver tabla de sesiones abajo.
 
-1. `Boletaceae` — primer lote, referencia de tono
-2. `Amanitaceae`
-3. `Russulaceae`
-4. `Cantharellaceae`
-5. `Morchellaceae`
-6. `Pleurotaceae`
-7. Resto (Tricholomataceae, Cortinariaceae, Hygrophoraceae, etc.)
+### Sesiones completadas y pendientes
+
+| Sesión | Familias | Especies | WHERE clause | Estado |
+|--------|----------|----------|--------------|--------|
+| 1 | Boletaceae | 21 | `family = 'Boletaceae'` | ✅ `004_cond_fruct_boletaceae.sql` |
+| 2 | Amanitaceae | 15 | `family = 'Amanitaceae'` | ✅ |
+| 3 | Russulaceae | 22 | `family = 'Russulaceae'` | ✅ |
+| 4 | Cantharellaceae | 7 | `family = 'Cantharellaceae'` | ✅ |
+| 5 | Morchellaceae | 4 | `family = 'Morchellaceae'` | ✅ |
+| 6 | Pleurotaceae | 5 | `family = 'Pleurotaceae'` | ✅ |
+| A1 | Agaricaceae + Tricholomataceae | 23 | `family IN ('Agaricaceae','Tricholomataceae')` | 🔲 |
+| A2 | Strophariaceae + Polyporaceae + Cortinariaceae | 27 | `family IN ('Strophariaceae','Polyporaceae','Cortinariaceae')` | 🔲 |
+| A3 | Hygrophoraceae + Physalacriaceae + Psathyrellaceae | 20 | `family IN ('Hygrophoraceae','Physalacriaceae','Psathyrellaceae')` | 🔲 |
+| B1 | Entolomataceae + Hymenogastraceae + Bankeraceae | 15 | `family IN ('Entolomataceae','Hymenogastraceae','Bankeraceae')` | 🔲 |
+| B2 | Phallaceae + Helvellaceae + Tuberaceae + Mycenaceae | 14 | `family IN ('Phallaceae','Helvellaceae','Tuberaceae','Mycenaceae')` | 🔲 |
+| C | Resto (familias de 1–2 sp, ~20 familias) | ~43 | ver query C abajo | 🔲 |
+
+**Query C** (familias pequeñas):
+```sql
+WHERE family NOT IN (
+  'Boletaceae','Amanitaceae','Russulaceae','Cantharellaceae',
+  'Morchellaceae','Pleurotaceae','Agaricaceae','Tricholomataceae',
+  'Strophariaceae','Polyporaceae','Cortinariaceae','Hygrophoraceae',
+  'Physalacriaceae','Psathyrellaceae','Entolomataceae',
+  'Hymenogastraceae','Bankeraceae','Phallaceae','Helvellaceae',
+  'Tuberaceae','Mycenaceae'
+)
+```
+
+> ⚠️ La sesión C tiene ~43 especies. Si Gemini se trunca, dividir en C1/C2 por tamaño.
 
 ### Tras recibir el SQL de Gemini
 
 1. Revisar una muestra (2–3 especies) para verificar tono y datos numéricos
-2. Guardar el SQL como `migrations/004_cond_fruct_[familia].sql`
-3. Ejecutar en Supabase SQL Editor
+2. Acumular el SQL en `migrations/005_cond_fruct_resto.sql` (un bloque por sesión, separados por comentario `-- Sesión A1`, `-- Sesión A2`, etc.)
+3. Ejecutar en Supabase SQL Editor al completar todas las sesiones (o por bloques si se prefiere ir validando)
 4. Actualizar `migrations/README.md` con el nuevo fichero
