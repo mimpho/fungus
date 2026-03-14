@@ -200,7 +200,27 @@ WHERE family NOT IN (
 
 ### Tras recibir el SQL de Gemini
 
-1. Revisar una muestra (2–3 especies) para verificar tono y datos numéricos
-2. Acumular el SQL en `migrations/005_cond_fruct_resto.sql` (un bloque por sesión, separados por comentario `-- Sesión A1`, `-- Sesión A2`, etc.)
-3. Ejecutar en Supabase SQL Editor al completar todas las sesiones (o por bloques si se prefiere ir validando)
-4. Actualizar `migrations/README.md` con el nuevo fichero
+> ⚠️ **Gemini puede alucinar IDs** — genera bloques UPDATE para especies que no existen
+> o que tienen un ID incorrecto. Siempre validar antes de ejecutar.
+
+**Paso 1 — Validar IDs** en Supabase SQL Editor:
+
+```sql
+-- Sustituir la lista por todos los IDs del SQL recibido
+SELECT id, scientific_name, family
+FROM species
+WHERE id IN ('esp-082', 'esp-083', ...) -- pegar todos los IDs
+ORDER BY id;
+```
+
+Comparar cada fila con el comentario `-- esp-XXX NombreEspecie` del SQL.
+Si el nombre o la familia no coinciden → **eliminar ese bloque UPDATE** antes de continuar.
+
+**Paso 2 — Revisar tono** en 2–3 especies para verificar que los datos numéricos son correctos.
+
+**Paso 3 — Acumular el SQL** (ya validado y limpio) en `migrations/005_cond_fruct_resto.sql`,
+separando sesiones con `-- === Sesión A ===`, `-- === Sesión B ===`, etc.
+
+**Paso 4 — Ejecutar** en Supabase SQL Editor (por bloques o al final, según preferencia).
+
+**Paso 5 — Actualizar** `migrations/README.md` con el nuevo fichero.
