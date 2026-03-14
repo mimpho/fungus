@@ -292,13 +292,15 @@ export function SpeciesModal({ species, onClose }) {
                 <div>
                   <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-1">{t.meteoTemp}</h4>
                   <p className="text-cream/70 text-sm leading-relaxed">
-                    {detail.family === 'Amanitaceae' && detail.edibility === 'excelente'
-                      ? 'Noches frescas (8–14°C) con días cálidos. Requiere oscilación térmica diaria mínima de 15°C para estimular la fructificación.'
-                      : detail.family === 'Morchellaceae'
-                        ? 'Primavera temprana, entre 10–18°C de temperatura diurna. Tolerante a heladas nocturnas.'
-                        : detail.family === 'Pleurotaceae'
-                          ? 'Temperaturas bajas de otoño-invierno (2–15°C). Alta resistencia al frío.'
-                          : 'Temperaturas frescas a moderadas (8–18°C). Mejor tras el primer frío otoñal.'}
+                    {detail.cond_temp || (
+                      detail.family === 'Amanitaceae' && detail.edibility === 'excelente'
+                        ? 'Noches frescas (8–14°C) con días cálidos. Requiere oscilación térmica diaria mínima de 15°C para estimular la fructificación.'
+                        : detail.family === 'Morchellaceae'
+                          ? 'Primavera temprana, entre 10–18°C de temperatura diurna. Tolerante a heladas nocturnas.'
+                          : detail.family === 'Pleurotaceae'
+                            ? 'Temperaturas bajas de otoño-invierno (2–15°C). Alta resistencia al frío.'
+                            : 'Temperaturas frescas a moderadas (8–18°C). Mejor tras el primer frío otoñal.'
+                    )}
                   </p>
                 </div>
               </div>
@@ -310,11 +312,13 @@ export function SpeciesModal({ species, onClose }) {
                 <div>
                   <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-1">{t.precipitacion}</h4>
                   <p className="text-cream/70 text-sm leading-relaxed">
-                    {detail.family === 'Cantharellaceae'
-                      ? 'Mínimo 30–50mm en los 14 días previos. Prefiere periodos húmedos prolongados con buena infiltración.'
-                      : detail.family === 'Morchellaceae'
-                        ? 'Suelos húmedos por deshielo o lluvias primaverales. Evita encharcamientos.'
-                        : '25–60mm en los 10–14 días previos. Fructificación óptima 5–10 días tras lluvia significativa.'}
+                    {detail.cond_precip || (
+                      detail.family === 'Cantharellaceae'
+                        ? 'Mínimo 30–50mm en los 14 días previos. Prefiere periodos húmedos prolongados con buena infiltración.'
+                        : detail.family === 'Morchellaceae'
+                          ? 'Suelos húmedos por deshielo o lluvias primaverales. Evita encharcamientos.'
+                          : '25–60mm en los 10–14 días previos. Fructificación óptima 5–10 días tras lluvia significativa.'
+                    )}
                   </p>
                 </div>
               </div>
@@ -324,13 +328,15 @@ export function SpeciesModal({ species, onClose }) {
                 <div>
                   <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-1">{t.suelo}</h4>
                   <p className="text-cream/70 text-sm leading-relaxed">
-                    {detail.family === 'Boletaceae'
-                      ? 'Suelos ácidos a neutros, bien drenados. Prefiere substrato orgánico rico con pH 5–6.5. Micorriza con coníferas y caducifolios.'
-                      : detail.family === 'Russulaceae'
-                        ? 'Suelos forestales con horizonte orgánico bien desarrollado. pH ligeramente ácido (5–6).'
-                        : detail.family === 'Amanitaceae'
-                          ? 'Suelos calcáreos o silíceos según la especie. Requiere horizonte orgánico maduro y presencia de árboles huésped.'
-                          : 'Suelos forestales húmedos con buena materia orgánica y drenaje moderado.'}
+                    {detail.cond_suelo || (
+                      detail.family === 'Boletaceae'
+                        ? 'Suelos ácidos a neutros, bien drenados. Prefiere substrato orgánico rico con pH 5–6.5. Micorriza con coníferas y caducifolios.'
+                        : detail.family === 'Russulaceae'
+                          ? 'Suelos forestales con horizonte orgánico bien desarrollado. pH ligeramente ácido (5–6).'
+                          : detail.family === 'Amanitaceae'
+                            ? 'Suelos calcáreos o silíceos según la especie. Requiere horizonte orgánico maduro y presencia de árboles huésped.'
+                            : 'Suelos forestales húmedos con buena materia orgánica y drenaje moderado.'
+                    )}
                   </p>
                 </div>
               </div>
@@ -342,15 +348,17 @@ export function SpeciesModal({ species, onClose }) {
                 <div>
                   <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-1">{t.reqEspeciales}</h4>
                   <p className="text-cream/70 text-sm leading-relaxed">
-                    {detail.scientificName === 'Amanita caesarea'
-                      ? 'Requiere choque térmico pronunciado. Sensible a heladas. Aparece tras tormentas de verano en zonas templadas mediterráneas.'
-                      : detail.scientificName === 'Morchella esculenta'
-                        ? 'Choque térmico primaveral esencial. Favorecida por incendios previos o zonas de remoción del suelo. Cocinar siempre.'
-                        : detail.scientificName === 'Pleurotus ostreatus'
-                          ? 'Especie lignícola saprófita. No requiere árboles vivos. Tolera heladas. Mayor producción con días cortos (otoño-invierno).'
-                          : detail.family === 'Cantharellaceae'
-                            ? 'Imposibles de cultivar. Requieren micorriza con árboles vivos. Indicadoras de bosques maduros con buena salud ecológica.'
-                            : 'Especie micorrizógena. Requiere presencia de árboles huésped adultos. Las condiciones óptimas varían por elevación y orientación.'}
+                    {detail.cond_req || (
+                      detail.scientificName === 'Amanita caesarea'
+                        ? 'Requiere choque térmico pronunciado. Sensible a heladas. Aparece tras tormentas de verano en zonas templadas mediterráneas.'
+                        : detail.scientificName === 'Morchella esculenta'
+                          ? 'Choque térmico primaveral esencial. Favorecida por incendios previos o zonas de remoción del suelo. Cocinar siempre.'
+                          : detail.scientificName === 'Pleurotus ostreatus'
+                            ? 'Especie lignícola saprófita. No requiere árboles vivos. Tolera heladas. Mayor producción con días cortos (otoño-invierno).'
+                            : detail.family === 'Cantharellaceae'
+                              ? 'Imposibles de cultivar. Requieren micorriza con árboles vivos. Indicadoras de bosques maduros con buena salud ecológica.'
+                              : 'Especie micorrizógena. Requiere presencia de árboles huésped adultos. Las condiciones óptimas varían por elevación y orientación.'
+                    )}
                   </p>
                 </div>
               </div>

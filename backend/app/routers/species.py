@@ -28,9 +28,10 @@ _LANGS = {"es", "ca", "en"}
 def _extra_str(species: Species, key: str, lang: str = "es") -> str | None:
     """Safely extract a string field from extra_data, with i18n fallback.
 
-    Looks for ``{key}_{lang}`` first (e.g. ``description_ca``), then falls
-    back to the canonical Spanish ``{key}``.  Always returns None if extra_data
-    is absent.
+    Lookup order:
+    - Non-ES: ``{key}_{lang}`` (e.g. ``cond_temp_ca``) → ``{key}_es`` → ``{key}``
+    - ES:     ``{key}_es`` (explicit suffix, used by Gemini migrations) → ``{key}``
+    Always returns None if extra_data is absent.
     """
     if not species.extra_data:
         return None
@@ -38,13 +39,15 @@ def _extra_str(species: Species, key: str, lang: str = "es") -> str | None:
         val = species.extra_data.get(f"{key}_{lang}")
         if val:
             return val
-    return species.extra_data.get(key)
+    # Try explicit _es key (Gemini migrations store cond_*_es, not cond_*)
+    # then fall back to the canonical unsuffixed key (description, commonNames…)
+    return species.extra_data.get(f"{key}_es") or species.extra_data.get(key)
 
 
 def _extra_list(species: Species, key: str, lang: str = "es") -> list | None:
     """Safely extract a list field from extra_data, with i18n fallback.
 
-    Same lookup order as _extra_str: ``{key}_{lang}`` → ``{key}``.
+    Same lookup order as _extra_str: ``{key}_{lang}`` → ``{key}_es`` → ``{key}``.
     """
     if not species.extra_data:
         return None
@@ -52,7 +55,7 @@ def _extra_list(species: Species, key: str, lang: str = "es") -> list | None:
         val = species.extra_data.get(f"{key}_{lang}")
         if val:
             return val
-    return species.extra_data.get(key)
+    return species.extra_data.get(f"{key}_es") or species.extra_data.get(key)
 
 
 def _photo_url(species: Species) -> str | None:
@@ -110,6 +113,10 @@ def _to_detail(s: Species, lang: str = "es") -> SpeciesDetail:
         description=_extra_str(s, "description", lang),
         synonyms=_synonyms(s),
         confusions=_confusions(s),
+        cond_temp=_extra_str(s, "cond_temp", lang),
+        cond_precip=_extra_str(s, "cond_precip", lang),
+        cond_suelo=_extra_str(s, "cond_suelo", lang),
+        cond_req=_extra_str(s, "cond_req", lang),
         oi_params=SpeciesOIParams(
             temp_min_c=float(s.temp_min_c) if s.temp_min_c is not None else None,
             temp_opt_c=float(s.temp_opt_c) if s.temp_opt_c is not None else None,
