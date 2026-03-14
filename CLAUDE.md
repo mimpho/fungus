@@ -4,9 +4,9 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v4.7 frontend/backend; v4.7.1 i18n editorial en backlog; v5.x Auth; v6.x Apps
-**Estado frontend**: Integrado con backend. i18n completo ES/CA/EN (~110 claves). Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Bloque de confusiones solo visible si la API devuelve datos. Filtros comarca/CCAA, `no_comestible` category, restyling ConfusionesBlock.
-**Estado backend**: v4.7. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`. `description`/`synonyms`/`confusions` desde BD. Confusiones completas: Morchellaceae, Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae. Endpoints `/species` con `?lang=es|ca|en`. `commonNames_ca/en` para 202 especies en `extra_data`.
+**Versión actual**: v4.7 frontend/backend; v4.7.1 i18n editorial en curso; v5.x Auth; v6.x Apps
+**Estado frontend**: Integrado con backend. i18n completo ES/CA/EN (~110 claves). Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Bloque de confusiones solo visible si la API devuelve datos. Filtros comarca/CCAA, `no_comestible` category, restyling ConfusionesBlock. `SpeciesModal` muestra `cond_fruct` (temp/precip/suelo/req) desde API para las 202 especies en ES/CA/EN.
+**Estado backend**: v4.7. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`. `description`/`synonyms`/`confusions` desde BD. Confusiones completas: Morchellaceae, Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae. Endpoints `/species` con `?lang=es|ca|en`. `commonNames_ca/en` para 202 especies en `extra_data`. `cond_temp/precip/suelo/req` en ES/CA/EN para 202 especies (migraciones 004–018).
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 **Backend spec**: `docs/backend_architecture.md` — FastAPI + PostgreSQL + PostGIS (v4.x)
@@ -417,7 +417,7 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 | v4.6.3 | ✅ Entregado | Mejoras UX: filtros comarca/CCAA, `no_comestible`, restyling ConfusionesBlock, comarca en ZoneModal hero |
 | v4.6.4 | ✅ Entregado | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) + gap fix Agaricus campestris |
 | v4.7 | ✅ Entregado | i18n completo: UI strings ES/CA/EN (~110 claves), DB layer con `?lang=` en `/species`, commonNames_ca/en para 202 especies |
-| v4.7.1 | 🗂 Backlog | i18n contenido editorial: `description_ca/en`, morfología — arquitectura lista, falta contenido |
+| v4.7.1 | 🚧 En curso | i18n contenido editorial: `cond_fruct` ✅ 202/202 sp · `description_ca/en` 🔲 ~180 sp pendientes · `confusions diff_ca/en` 🔲 |
 | v5 | 🗂 Backlog | Auth + favoritos en BD: JWT, registro/login, favoritos zonas y especies por usuario |
 | v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
 | v6.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
@@ -436,7 +436,9 @@ Cuando Claude complete trabajo en este proyecto, debe actualizar los siguientes 
 |---|---|
 | `CHANGELOG.md` | Añadir entrada en sección `[Unreleased]` (arriba del todo), bajo el tipo apropiado (### Añadido/Cambiado/Eliminado) |
 | `backend/pyproject.toml` | Bump de versión patch |
-| `CLAUDE.md` → Overview | Versión actual si ha cambiado |
+| `CLAUDE.md` → Overview | Versión actual y estado si han cambiado |
+| `AGENTS.md` | Sincronizar Overview (versión, estado frontend/backend) con `CLAUDE.md` |
+| `README.md` | Versión en cabecera si ha cambiado |
 
 ### Al cerrar una fase/milestone (MINOR: vX.Y → vX.Y+1)
 
@@ -445,13 +447,12 @@ Todo lo anterior, más:
 | Archivo | Qué actualizar |
 |---|---|
 | `CLAUDE.md` → Roadmap | Marcar la fase como ✅, añadir siguiente fase si procede |
-| `CLAUDE.md` → Overview | Versión actual y estado del backend |
-| `README.md` | Versión en cabecera, roadmap, endpoints de API si han cambiado |
+| `README.md` | Roadmap, endpoints de API si han cambiado |
+| `AGENTS.md` → Roadmap | Sincronizar con `README.md` |
 | `memory/pending.md` | Eliminar todos los ítems completados de la fase; dejar solo backlog activo |
 | `CHANGELOG.md` | Entrada consolidada de la fase completa |
 | `docs/conventions.md` | Phase map si se añaden fases nuevas |
 | `docs/backend_architecture.md` | Si el spec cambió durante la implementación |
-| `AGENTS.md` / `.claude` / `.opencode` | Si existen y tienen roadmap o versión — sincronizar con README |
 
 **Proceso Git al cerrar una fase:**
 1. Commits de documentación en la feature branch (pending, CLAUDE.md, README, CHANGELOG)
