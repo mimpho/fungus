@@ -10,6 +10,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Añadido
+- Migraciones `019`–`029`: `description_ca/en` para las 181 especies restantes (todas las familias excepto Boletaceae, ya completada en `014`). Cierra la cobertura completa de 202/202 especies con descripción trilingüe ES/CA/EN.
+
+---
+
+## [4.7.1-cond-fruct] - 2026-03-14 — Condiciones de fructificación trilingüe (202 especies)
+
+### Añadido
 - `cond_temp`, `cond_precip`, `cond_suelo`, `cond_req` como campos propios en `SpeciesDetail` schema — resueltos por idioma vía `_extra_str`
 - `_to_detail()` en `routers/species.py` expone los 4 campos `cond_*` al frontend
 - `_extra_str`/`_extra_list` buscan `{key}_es` antes del fallback unsuffixed, soportando claves con sufijo Gemini (`cond_temp_es`, etc.)

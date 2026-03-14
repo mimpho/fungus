@@ -26,7 +26,7 @@ Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo
 
 - `cond_temp/precip/suelo/req` en ES/CA/EN — **✅ COMPLETO** (202/202 especies, migraciones 004–018). Frontend y backend actualizados.
 
-- `description_ca/en` — 🔲 **PRÓXIMO BLOQUE**. Arquitectura lista (`_extra_str`). Boletaceae ya aplicado (migración anterior). Resto de familias pendiente (~180 especies). Hacerlo directamente en Claude por familias (~40sp/sesión).
+- `description_ca/en` — ✅ **COMPLETO**. Migraciones `019`–`029` generadas para las 181 especies restantes. Pendiente aplicar en Supabase.
 
 - `confusions` (`diff_ca/en`) — 🔲 Traducción del campo `diff` (texto diferenciación de confusiones). Actualmente solo ES. Hacer después de `description_ca/en`.
 
