@@ -233,6 +233,11 @@ export function normalizeSpeciesDetail(s, lang = 'es') {
     // Translated fields — backend already returns right commonNames via lang param,
     // but description comes from extra_data (detail endpoint returns full blob)
     description: i18n('description', s.description ?? null),
+    // Fruiting conditions — top-level from API (ES), i18n reads _ca/_en from extra_data blob
+    cond_temp:   i18n('cond_temp',   s.cond_temp   ?? null),
+    cond_precip: i18n('cond_precip', s.cond_precip ?? null),
+    cond_suelo:  i18n('cond_suelo',  s.cond_suelo  ?? null),
+    cond_req:    i18n('cond_req',    s.cond_req     ?? null),
     // Sobrescribir con datos de extra_data que son más completos
     photo:       ex.photo  ?? base.photo,
     photos:      ex.photos ?? [],
