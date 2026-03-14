@@ -436,7 +436,9 @@ Cuando Claude complete trabajo en este proyecto, debe actualizar los siguientes 
 |---|---|
 | `CHANGELOG.md` | Añadir entrada en sección `[Unreleased]` (arriba del todo), bajo el tipo apropiado (### Añadido/Cambiado/Eliminado) |
 | `backend/pyproject.toml` | Bump de versión patch |
-| `CLAUDE.md` → Overview | Versión actual si ha cambiado |
+| `CLAUDE.md` → Overview | Versión actual y estado si han cambiado |
+| `AGENTS.md` | Sincronizar Overview (versión, estado frontend/backend) con `CLAUDE.md` |
+| `README.md` | Versión en cabecera si ha cambiado |
 
 ### Al cerrar una fase/milestone (MINOR: vX.Y → vX.Y+1)
 
@@ -445,13 +447,12 @@ Todo lo anterior, más:
 | Archivo | Qué actualizar |
 |---|---|
 | `CLAUDE.md` → Roadmap | Marcar la fase como ✅, añadir siguiente fase si procede |
-| `CLAUDE.md` → Overview | Versión actual y estado del backend |
-| `README.md` | Versión en cabecera, roadmap, endpoints de API si han cambiado |
+| `README.md` | Roadmap, endpoints de API si han cambiado |
+| `AGENTS.md` → Roadmap | Sincronizar con `README.md` |
 | `memory/pending.md` | Eliminar todos los ítems completados de la fase; dejar solo backlog activo |
 | `CHANGELOG.md` | Entrada consolidada de la fase completa |
 | `docs/conventions.md` | Phase map si se añaden fases nuevas |
 | `docs/backend_architecture.md` | Si el spec cambió durante la implementación |
-| `AGENTS.md` / `.claude` / `.opencode` | Si existen y tienen roadmap o versión — sincronizar con README |
 
 **Proceso Git al cerrar una fase:**
 1. Commits de documentación en la feature branch (pending, CLAUDE.md, README, CHANGELOG)
