@@ -24,7 +24,10 @@ NNN_short_description.sql
 | File | Description | Status |
 |------|-------------|--------|
 | `001_esp202_chroogomphus_rutilus.sql` | Add Chroogomphus rutilus to species table | ✅ Run 2026-03-07 |
-| `002_edibility_audit_and_commonnames.sql` | 16 species → no_comestible; Catalan commonNames corrected | ⏳ Pending |
+| `002_edibility_audit_and_commonnames.sql` | 16 species → no_comestible; Catalan commonNames corrected | ✅ Run 2026-03-07 |
+| `003_edibility_no_comestible_round_2.sql` | 16 species → no_comestible; Catalan commonNames corrected | ✅ Run 2026-03-14 |
+| `004_cond_fruct_bolitaceae.sql` | Add fruiting conditions for Bolitaceae species | ✅ Run 2026-03-14 |
+| `005_cond_fruct_amanitaceae.sql` | Add fruiting conditions for Amanita species | ✅ Run 2026-03-14 |
 
 ## Adding a new migration
 

@@ -164,21 +164,111 @@ WHERE family = 'Boletaceae'   -- ← cambiar por la familia a procesar
 ORDER BY id;
 ```
 
-Copia el resultado (tabla o JSON), sustitúyelo en la sección `## INPUT` y envía el prompt.
+En Supabase SQL Editor usa el botón **Download CSV** (arriba a la derecha de los resultados).
+**CSV es ~4x más compacto que JSON** — permite batches de 50+ especies sin truncados.
+Pega el CSV directamente en la sección `## INPUT`.
 
-### Familias pendientes (procesar en este orden)
+> ⚠️ Si solo tienes opción JSON, limitar a ~20 especies por sesión.
 
-1. `Boletaceae` — primer lote, referencia de tono
-2. `Amanitaceae`
-3. `Russulaceae`
-4. `Cantharellaceae`
-5. `Morchellaceae`
-6. `Pleurotaceae`
-7. Resto (Tricholomataceae, Cortinariaceae, Hygrophoraceae, etc.)
+### Sesiones completadas y pendientes
+
+| Sesión | Familias | Especies | WHERE clause | Estado |
+|--------|----------|----------|--------------|--------|
+| 1 | Boletaceae | 21 | `family = 'Boletaceae'` | ✅ `004_cond_fruct_boletaceae.sql` |
+| 2 | Amanitaceae | 15 | `family = 'Amanitaceae'` | ✅ |
+| 3 | Russulaceae | 22 | `family = 'Russulaceae'` | ✅ |
+| 4 | Cantharellaceae | 7 | `family = 'Cantharellaceae'` | ✅ |
+| 5 | Morchellaceae | 4 | `family = 'Morchellaceae'` | ✅ |
+| 6 | Pleurotaceae | 5 | `family = 'Pleurotaceae'` | ✅ |
+| A | Agaricaceae + Tricholomataceae + Strophariaceae + Polyporaceae + Cortinariaceae | 50 | `family IN ('Agaricaceae','Tricholomataceae','Strophariaceae','Polyporaceae','Cortinariaceae')` | ✅ `010–014_cond_fruct_*.sql` |
+| B | Hygrophoraceae + Physalacriaceae + Psathyrellaceae + Entolomataceae + Hymenogastraceae + Bankeraceae | 35 | `family IN ('Hygrophoraceae','Physalacriaceae','Psathyrellaceae','Entolomataceae','Hymenogastraceae','Bankeraceae')` | ✅ `015_cond_fruct_sesion_b*.sql` |
+| C | Phallaceae + Helvellaceae + Tuberaceae + Mycenaceae + resto (familias 1–2 sp) | ~57 | ver query C abajo | ✅ `016_cond_fruct_sesion_c_clean.sql` + `017_cond_fruct_manual.sql` |
+| D (fix) | Strophariaceae + Polyporaceae + Tricholomataceae parcial + Agaricaceae parcial + Pleurotaceae parcial | ~27 | ver lista abajo | 🔲 — `cond_req` contiene texto morfológico, no ecológico |
+
+**Query C** (familias pequeñas + últimas medianas):
+```sql
+WHERE family NOT IN (
+  'Boletaceae','Amanitaceae','Russulaceae','Cantharellaceae',
+  'Morchellaceae','Pleurotaceae','Agaricaceae','Tricholomataceae',
+  'Strophariaceae','Polyporaceae','Cortinariaceae','Hygrophoraceae',
+  'Physalacriaceae','Psathyrellaceae','Entolomataceae',
+  'Hymenogastraceae','Bankeraceae'
+)
+```
+
+> ⚠️ Si la sesión C sigue siendo demasiado grande en CSV, dividir quitando las familias
+> de 1 sp del WHERE y procesarlas aparte.
+
+**Sesión D — especies con `cond_req` morfológico (regenerar):**
+
+Gemini generó texto de identificación en lugar de requisitos ecológicos para ~27 especies.
+Patrón incorrecto: `"Edibilidad; ciclo de N días; rasgo morfológico"` — falta trófica, huésped, choque térmico.
+
+IDs a regenerar:
+```
+-- Strophariaceae (todas):
+esp-148, esp-149, esp-150, esp-151, esp-152, esp-153, esp-154, esp-156, esp-157
+
+-- Polyporaceae (mayoritariamente morfológico):
+esp-077, esp-128, esp-129, esp-130, esp-131, esp-135, esp-136, esp-137, esp-199
+
+-- Tricholomataceae (parcial):
+esp-091, esp-093, esp-094, esp-097, esp-099, esp-100
+
+-- Agaricaceae (parcial):
+esp-160, esp-162, esp-165
+
+-- Pleurotaceae (parcial):
+esp-071
+```
+
+Query para extraer sus datos:
+```sql
+SELECT id, scientific_name, family, edibility,
+  temp_min_c, temp_opt_c, temp_max_c,
+  rain_min_mm, rain_opt_mm, cycle_days,
+  forest_types, fruiting_months,
+  elevation_min_m, elevation_max_m,
+  extra_data->>'requiere_helada'        AS requiere_helada,
+  extra_data->>'requiere_choque_termico' AS requiere_choque_termico,
+  extra_data->>'humedad_min'            AS humedad_min,
+  extra_data->>'humedad_optima'         AS humedad_optima,
+  extra_data->>'ph_suelo_min'           AS ph_suelo_min,
+  extra_data->>'ph_suelo_max'           AS ph_suelo_max
+FROM species
+WHERE id IN (
+  'esp-148','esp-149','esp-150','esp-151','esp-152','esp-153','esp-154','esp-156','esp-157',
+  'esp-077','esp-128','esp-129','esp-130','esp-131','esp-135','esp-136','esp-137','esp-199',
+  'esp-091','esp-093','esp-094','esp-097','esp-099','esp-100',
+  'esp-160','esp-162','esp-165',
+  'esp-071'
+)
+ORDER BY family, id;
+```
 
 ### Tras recibir el SQL de Gemini
 
-1. Revisar una muestra (2–3 especies) para verificar tono y datos numéricos
-2. Guardar el SQL como `migrations/004_cond_fruct_[familia].sql`
-3. Ejecutar en Supabase SQL Editor
-4. Actualizar `migrations/README.md` con el nuevo fichero
+> ⚠️ **Gemini puede alucinar IDs** — genera bloques UPDATE para especies que no existen
+> o que tienen un ID incorrecto. Siempre validar antes de ejecutar.
+
+**Paso 1 — Validar IDs** en Supabase SQL Editor:
+
+```sql
+-- Sustituir la lista por todos los IDs del SQL recibido
+SELECT id, scientific_name, family
+FROM species
+WHERE id IN ('esp-082', 'esp-083', ...) -- pegar todos los IDs
+ORDER BY id;
+```
+
+Comparar cada fila con el comentario `-- esp-XXX NombreEspecie` del SQL.
+Si el nombre o la familia no coinciden → **eliminar ese bloque UPDATE** antes de continuar.
+
+**Paso 2 — Revisar tono** en 2–3 especies para verificar que los datos numéricos son correctos.
+
+**Paso 3 — Acumular el SQL** (ya validado y limpio) en `migrations/005_cond_fruct_resto.sql`,
+separando sesiones con `-- === Sesión A ===`, `-- === Sesión B ===`, etc.
+
+**Paso 4 — Ejecutar** en Supabase SQL Editor (por bloques o al final, según preferencia).
+
+**Paso 5 — Actualizar** `migrations/README.md` con el nuevo fichero.

@@ -20,12 +20,17 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo falta contenido.
 
-### Migraciones SQL (via Gemini, por familias)
+### Migraciones SQL — estado y próximos pasos
 
-- `description_ca/en` — **en curso**: Boletaceae aplicado, resto de familias pendiente
-- `cond_temp/precip/suelo/req` en ES/CA/EN — **primero** (antes de seguir con descriptions). Ver decisión en `decisions.md`. Campos nuevos en `extra_data` generados a partir de datos numéricos por especie. Requiere también simplificar `SpeciesModal.jsx` (eliminar `if/else` por familia).
-- Morfología (`cap`, `stem`, `flesh`) en CA/EN — después de descriptions
-- Confusiones (`diff`) en CA/EN — traducción opcional, después de morfología
+> ⚠️ Lección aprendida: delegar a Gemini SQL con IDs de BD es arriesgado (alucinación de IDs, contenido morfológico en lugar de ecológico). Para el contenido restante, **generarlo directamente en Claude** a partir de queries a la BD. Ver retrospectiva en `decisions.md`.
+
+- `cond_temp/precip/suelo/req` en ES/CA/EN — **✅ COMPLETO** (202/202 especies, migraciones 004–018). Frontend y backend actualizados.
+
+- `description_ca/en` — 🔲 **PRÓXIMO BLOQUE**. Arquitectura lista (`_extra_str`). Boletaceae ya aplicado (migración anterior). Resto de familias pendiente (~180 especies). Hacerlo directamente en Claude por familias (~40sp/sesión).
+
+- `confusions` (`diff_ca/en`) — 🔲 Traducción del campo `diff` (texto diferenciación de confusiones). Actualmente solo ES. Hacer después de `description_ca/en`.
+
+- Morfología (`cap_ca/en`, `stem_ca/en`, `flesh_ca/en`) — 🔲 Opcional, baja prioridad. Después de descriptions y confusiones.
 
 ### Código (sesión Cowork)
 
