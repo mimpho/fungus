@@ -1,0 +1,185 @@
+Eres un experto en micología y hablas catalán (ca) e inglés (en) con fluidez.
+
+A continuación tienes la descripción en castellano de 21 especies de la familia Boletaceae.
+Para cada especie traduce `description_es` al catalán (`description_ca`) y al inglés (`description_en`).
+Mantén el estilo: frases directas, tono divulgativo, longitud similar al original.
+Preserva los términos técnicos micológicos.
+
+## Datos de entrada
+
+[
+  {"scientific_name": "Boletus edulis", "description_es": "El rey de las setas. Uno de los hongos más apreciados gastronómicamente en todo el mundo. Su carne firme y sabor intenso lo hacen insustituible en la cocina. Forma micorriza con pinos, abetos, hayas y robles."},
+  {"scientific_name": "Boletus aereus", "description_es": "Boleto muy apreciado de sombrero oscuro casi negro. Típico de la zona mediterránea bajo encinas y robles. Más escaso que B. edulis pero igualmente excelente. El más estival de los boletos nobles."},
+  {"scientific_name": "Boletus pinophilus", "description_es": "Pariente del Boletus edulis, específico de pinares. Su sombrero color chocolate oscuro a castaño lo diferencia del cep común. De excelente calidad, muy apreciado. Suele aparecer antes que el B. edulis en verano."},
+  {"scientific_name": "Boletus reticulatus", "description_es": "El boleto de verano, muy similar al B. edulis pero con sombrero más seco y mate. Primera especie del género en aparecer cada año. Excelente comestible, muy apreciado en verano cuando escasean las setas."},
+  {"scientific_name": "Imleria badia", "description_es": "Seta de pino de tamaño mediano con sombrero marrón castaño y poros blanquecinos que azulean ligeramente al corte. Especie comestible muy apreciada, frecuente en pinares y hayedos del norte y centro peninsular. Puede confundirse con el Boletus edulis, del que se distingue por los poros que azulean y la ausencia de reticulado en el pie."},
+  {"scientific_name": "Leccinum scabrum", "description_es": "Boleto de pie esbelto con escamas negras características. Crece exclusivamente asociado a abedules. La carne ennegrece o enrojece al cortarla. Comestible mediocre que mejora con cocción prolongada."},
+  {"scientific_name": "Leccinum versipelle", "description_es": "Boleto robusto con sombrero naranja herrumbre y pie blanco salpicado de escamas oscuras, asociado principalmente a abedules. La carne blanca vira a violáceo-negro al corte, lo que facilita su identificación. Comestible apreciado en el norte de España y Pirineos, aunque requiere cocción completa."},
+  {"scientific_name": "Suillus luteus", "description_es": "Boleto resbaladizo y mucilaginoso con anillo membranoso. Exclusivo de pinares. Hay que pelar la cutícula viscosa antes de cocinar. Comestible mediocre pero abundante."},
+  {"scientific_name": "Suillus granulatus", "description_es": "Boleto viscoso de sombrero amarillo-ocre muy común en pinares de toda España. Se reconoce por la ausencia de anillo y los gránulos blanquecinos en el ápice del pie que exudan gotitas lechosas en ejemplares jóvenes. Comestible de calidad moderada, hay que retirar la cutícula viscosa antes de cocinarlo."},
+  {"scientific_name": "Suillus bellini", "description_es": "Boleto viscoso mediterráneo exclusivo de pinares litorales y sublitorales. Sus poros blanquecinos viran a rojizos con la edad. Sin anillo. Especie tardía que fructifica de otoño a principios de invierno en la costa mediterránea."},
+  {"scientific_name": "Xerocomus subtomentosus", "description_es": "Boleto de sombrero aterciopelado marrón-oliva con poros angulosos amarillos que azulean débilmente al corte. Especie muy común en bosques mixtos y caducifolios de toda la península. Comestible pero de calidad mediocre, frecuentemente parasitado por el hongo Hypomyces chrysospermus."},
+  {"scientific_name": "Caloboletus calopus", "description_es": "Boleto de gran tamaño con sombrero gris-oliva y pie con llamativo reticulado rojo sobre fondo amarillo. La carne amarilla azulea intensamente al corte y tiene sabor muy amargo, lo que lo hace incomestible. Especie de montaña que crece en hayedos y pinares del norte y centro peninsular."},
+  {"scientific_name": "Suillellus luridus", "description_es": "Boleto de pie rojo con reticulado rojo sobre fondo amarillo y sombrero marrón-grisáceo. La carne azulea muy intensamente al corte. Comestible únicamente bien cocinado; consumido crudo o mal cocinado puede causar intoxicaciones. Frecuente en robledales y encinares calizos del centro y sur de España."},
+  {"scientific_name": "Neoboletus erythropus", "description_es": "Boleto con sombrero marrón oscuro, pie rojo con puntos rojos sin reticulado y carne amarilla que azulea instantáneamente al corte. Comestible solo bien cocinado, se confunde con Rubroboletus satanas por el color del pie aunque carece de reticulado. Especie de montaña frecuente en pinares y hayedos."},
+  {"scientific_name": "Rubroboletus satanas", "description_es": "Uno de los boletos más tóxicos de Europa, con gran sombrero blancuzco, pie rojo con reticulado rojo prominente y olor desagradable en la madurez. La carne azulea instantáneamente al corte. Crece en suelos calizos bajo encinas y robles en el centro y sur peninsular. Causa graves gastroenteritis."},
+  {"scientific_name": "Gyroporus cyanescens", "description_es": "Boleto frágil y quebradizo con pie hueco que azulea de forma espectacular e instantánea al corte, uno de los más llamativos del género. Sombrero amarillo pálido a ocre, de tamaño mediano. Comestible apreciado, poco frecuente en pinares y robledales del norte peninsular."},
+  {"scientific_name": "Gyroporus castaneus", "description_es": "Boleto pequeño de color castaño uniforme con pie pronto hueco y carne blanca que no cambia de color al corte. Crece bajo robles y encinas en el centro y sur de España. Comestible de buena calidad, se distingue de otros boletos por su pie hueco y ausencia de reacción al corte."},
+  {"scientific_name": "Chalciporus piperatus", "description_es": "Boleto pequeño de color canela-marrón con poros angulosos rojizos y sabor muy picante que lo hace incomestible. Crece en simbiosis con Amanita muscaria bajo pinos, por lo que algunos autores consideran que es parásito de dicha micorriza. Ampliamente distribuido en pinares de toda España."},
+  {"scientific_name": "Neoboletus luridiformis", "description_es": "Boleto de montaña con sombrero marrón oscuro, pie rojo con puntos (sin reticulado) y carne que azulea intensamente al corte. Comestible solo muy bien cocinado; puede confundirse con Rubroboletus satanas aunque su sombrero es más oscuro y crece en altitudes mayores. Frecuente en Pirineos y Cantábrica."},
+  {"scientific_name": "Aureoboletus gentilis", "description_es": "Boleto pequeño y llamativo con sombrero rojo-anaranjado a dorado brillante y pie con reticulado dorado. Especie poco frecuente asociada a robles y castaños en el norte peninsular. Comestible, pero su escasez aconseja respetarlo. Se distingue fácilmente por su coloración dorada."},
+  {"scientific_name": "Butyriboletus regius", "description_es": "Boleto de gran tamaño y sombrero rosado-violáceo inconfundible. Los poros son amarillos brillantes. No azulea al corte, la carne permanece firme y amarilla. Especie micorrizógena de frondosas, menos frecuente que B. edulis."},
+]
+
+## Formato de salida
+
+Devuelve ÚNICAMENTE el bloque SQL, sin explicaciones ni markdown extra.
+Las traducciones van dentro del campo extra_data (JSONB). Usa exactamente esta estructura:
+
+-- Boletaceae: description CA/EN
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Boletus edulis';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Boletus aereus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Boletus pinophilus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Boletus reticulatus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Imleria badia';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Leccinum scabrum';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Leccinum versipelle';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Suillus luteus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Suillus granulatus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Suillus bellini';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Xerocomus subtomentosus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Caloboletus calopus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Suillellus luridus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Neoboletus erythropus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Rubroboletus satanas';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Gyroporus cyanescens';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Gyroporus castaneus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Chalciporus piperatus';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Neoboletus luridiformis';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Aureoboletus gentilis';
+
+UPDATE species
+    SET extra_data = COALESCE(extra_data, '{}'::jsonb) || jsonb_build_object(
+        'description_ca', '<traducción al catalán>',
+        'description_en', '<translation to english>'
+    )
+    WHERE scientific_name = 'Butyriboletus regius';
