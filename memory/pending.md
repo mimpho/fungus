@@ -23,7 +23,7 @@ Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo
 ### Migraciones SQL (via Gemini, por familias)
 
 - `description_ca/en` — **en curso**: Boletaceae aplicado, resto de familias pendiente
-- `cond_temp/precip/suelo/req` en ES/CA/EN — **primero** (antes de seguir con descriptions). Ver decisión en `decisions.md`. Campos nuevos en `extra_data` generados a partir de datos numéricos por especie. Requiere también simplificar `SpeciesModal.jsx` (eliminar `if/else` por familia).
+- `cond_temp/precip/suelo/req` en ES/CA/EN — **202/202 especies migradas, contenido verificado** ✅. Frontend actualizado (`SpeciesModal.jsx` sin `if/else`, backend `_extra_str` + schemas). Sesión D completada (`018`): corrección `cond_req` ecológico para 28 especies.
 - Morfología (`cap`, `stem`, `flesh`) en CA/EN — después de descriptions
 - Confusiones (`diff`) en CA/EN — traducción opcional, después de morfología
 

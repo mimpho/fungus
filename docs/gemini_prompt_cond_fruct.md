@@ -180,9 +180,10 @@ Pega el CSV directamente en la sección `## INPUT`.
 | 4 | Cantharellaceae | 7 | `family = 'Cantharellaceae'` | ✅ |
 | 5 | Morchellaceae | 4 | `family = 'Morchellaceae'` | ✅ |
 | 6 | Pleurotaceae | 5 | `family = 'Pleurotaceae'` | ✅ |
-| A | Agaricaceae + Tricholomataceae + Strophariaceae + Polyporaceae + Cortinariaceae | 50 | `family IN ('Agaricaceae','Tricholomataceae','Strophariaceae','Polyporaceae','Cortinariaceae')` | 🔲 |
-| B | Hygrophoraceae + Physalacriaceae + Psathyrellaceae + Entolomataceae + Hymenogastraceae + Bankeraceae | 35 | `family IN ('Hygrophoraceae','Physalacriaceae','Psathyrellaceae','Entolomataceae','Hymenogastraceae','Bankeraceae')` | 🔲 |
-| C | Phallaceae + Helvellaceae + Tuberaceae + Mycenaceae + resto (familias 1–2 sp) | ~57 | ver query C abajo | 🔲 |
+| A | Agaricaceae + Tricholomataceae + Strophariaceae + Polyporaceae + Cortinariaceae | 50 | `family IN ('Agaricaceae','Tricholomataceae','Strophariaceae','Polyporaceae','Cortinariaceae')` | ✅ `010–014_cond_fruct_*.sql` |
+| B | Hygrophoraceae + Physalacriaceae + Psathyrellaceae + Entolomataceae + Hymenogastraceae + Bankeraceae | 35 | `family IN ('Hygrophoraceae','Physalacriaceae','Psathyrellaceae','Entolomataceae','Hymenogastraceae','Bankeraceae')` | ✅ `015_cond_fruct_sesion_b*.sql` |
+| C | Phallaceae + Helvellaceae + Tuberaceae + Mycenaceae + resto (familias 1–2 sp) | ~57 | ver query C abajo | ✅ `016_cond_fruct_sesion_c_clean.sql` + `017_cond_fruct_manual.sql` |
+| D (fix) | Strophariaceae + Polyporaceae + Tricholomataceae parcial + Agaricaceae parcial + Pleurotaceae parcial | ~27 | ver lista abajo | 🔲 — `cond_req` contiene texto morfológico, no ecológico |
 
 **Query C** (familias pequeñas + últimas medianas):
 ```sql
@@ -197,6 +198,53 @@ WHERE family NOT IN (
 
 > ⚠️ Si la sesión C sigue siendo demasiado grande en CSV, dividir quitando las familias
 > de 1 sp del WHERE y procesarlas aparte.
+
+**Sesión D — especies con `cond_req` morfológico (regenerar):**
+
+Gemini generó texto de identificación en lugar de requisitos ecológicos para ~27 especies.
+Patrón incorrecto: `"Edibilidad; ciclo de N días; rasgo morfológico"` — falta trófica, huésped, choque térmico.
+
+IDs a regenerar:
+```
+-- Strophariaceae (todas):
+esp-148, esp-149, esp-150, esp-151, esp-152, esp-153, esp-154, esp-156, esp-157
+
+-- Polyporaceae (mayoritariamente morfológico):
+esp-077, esp-128, esp-129, esp-130, esp-131, esp-135, esp-136, esp-137, esp-199
+
+-- Tricholomataceae (parcial):
+esp-091, esp-093, esp-094, esp-097, esp-099, esp-100
+
+-- Agaricaceae (parcial):
+esp-160, esp-162, esp-165
+
+-- Pleurotaceae (parcial):
+esp-071
+```
+
+Query para extraer sus datos:
+```sql
+SELECT id, scientific_name, family, edibility,
+  temp_min_c, temp_opt_c, temp_max_c,
+  rain_min_mm, rain_opt_mm, cycle_days,
+  forest_types, fruiting_months,
+  elevation_min_m, elevation_max_m,
+  extra_data->>'requiere_helada'        AS requiere_helada,
+  extra_data->>'requiere_choque_termico' AS requiere_choque_termico,
+  extra_data->>'humedad_min'            AS humedad_min,
+  extra_data->>'humedad_optima'         AS humedad_optima,
+  extra_data->>'ph_suelo_min'           AS ph_suelo_min,
+  extra_data->>'ph_suelo_max'           AS ph_suelo_max
+FROM species
+WHERE id IN (
+  'esp-148','esp-149','esp-150','esp-151','esp-152','esp-153','esp-154','esp-156','esp-157',
+  'esp-077','esp-128','esp-129','esp-130','esp-131','esp-135','esp-136','esp-137','esp-199',
+  'esp-091','esp-093','esp-094','esp-097','esp-099','esp-100',
+  'esp-160','esp-162','esp-165',
+  'esp-071'
+)
+ORDER BY family, id;
+```
 
 ### Tras recibir el SQL de Gemini
 

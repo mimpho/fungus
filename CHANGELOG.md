@@ -11,11 +11,14 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Añadido
 - `cond_temp`, `cond_precip`, `cond_suelo`, `cond_req` como campos propios en `SpeciesDetail` schema — resueltos por idioma vía `_extra_str`
-- `_to_detail()` en `routers/species.py` expone los 4 campos `cond_*` al frontend (migración `004_cond_fruct_boletaceae.sql` ya aplicada)
-- `_extra_str`/`_extra_list` buscan ahora `{key}_es` antes del fallback unsuffixed, soportando el formato de claves generado por Gemini (`cond_temp_es`, etc.)
+- `_to_detail()` en `routers/species.py` expone los 4 campos `cond_*` al frontend
+- `_extra_str`/`_extra_list` buscan `{key}_es` antes del fallback unsuffixed, soportando claves con sufijo Gemini (`cond_temp_es`, etc.)
+- Migraciones `cond_fruct` para las 202 especies del catálogo en ES/CA/EN (`004`–`018`): Boletaceae, Amanitaceae, Russulaceae, Cantharellaceae, Morchellaceae, Pleurotaceae, sesiones A–D + manual esp-086/esp-188
+- `normalizeSpeciesDetail` en `apiService.js` mapea los 4 campos `cond_*` con helper `i18n()` para resolución CA/EN client-side desde `extra_data`
+- `018_cond_fruct_sesion_d.sql` — corrección `cond_req` ecológico para 28 especies con contenido morfológico previo (Strophariaceae×9, Polyporaceae×9, Tricholomataceae×6, Agaricaceae×3, Pleurotaceae×1)
 
 ### Cambiado
-- `SpeciesModal.jsx` — bloque condiciones fructificación reemplaza los `if/else` hardcodeados por familia con `detail.cond_temp || fallback`; el fallback garantiza compatibilidad para familias aún no migradas
+- `SpeciesModal.jsx` — bloque condiciones fructificación reemplaza los `if/else` hardcodeados por familia con `detail.cond_*` desde API; sin datos hardcoded
 
 ---
 
