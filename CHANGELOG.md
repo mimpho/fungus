@@ -11,6 +11,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Añadido
 - Migraciones `019`–`029`: `description_ca/en` para las 181 especies restantes (todas las familias excepto Boletaceae, ya completada en `014`). Cierra la cobertura completa de 202/202 especies con descripción trilingüe ES/CA/EN.
+- Migraciones `030`–`037`: `diff_ca/diff_en` para todas las entradas de confusiones en BD. Cobertura completa de 8 bloques taxonómicos: Morchellaceae+Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae, Agaricus, Neoboletus y Amanita gemmata.
 
 ---
 
