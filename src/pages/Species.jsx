@@ -145,9 +145,10 @@ export default function Species() {
         <p className="text-muted text-xs mt-0.5">{filteredSpecies.length} {t.especiesEncontradas}</p>
       </div>
 
-      {/* Search & Filters Section (Sticky) */}
-      <div className="sticky z-30 transition-all duration-300"
+      {/* Search & Filters Section (Sticky) — centrado en desktop, full-width en mobile */}
+      <div className="sticky z-30 transition-all duration-300 flex justify-center"
            style={{ top: headerVisible ? '92px' : '4px' }}>
+        <div className="w-full md:max-w-[640px]">
         <SearchFilterBar
           variant="split"
           value={searchQuery}
@@ -161,7 +162,7 @@ export default function Species() {
 
         {/* Chips filtros activos (Inside sticky for visibility) */}
         {(showFilter !== 'todas' || familyFilter || monthFilter > 0) && (
-          <div className="flex flex-wrap gap-2 mt-3 max-w-7xl mx-auto">
+          <div className="flex flex-wrap gap-2 mt-3">
             {monthFilter > 0 && monthLabel && (
               <ActiveFilterChip key="mf" emoji="🌱" label={`${t.fructificaEn} ${monthLabel}`} onRemove={clearMonthFilter} />
             )}
@@ -224,6 +225,7 @@ export default function Species() {
             </button>
           </div>
         </FilterPanel>
+        </div>{/* end max-w-[640px] */}
       </div>
 
       {/* Grid */}

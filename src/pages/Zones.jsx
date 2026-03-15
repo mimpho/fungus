@@ -109,10 +109,11 @@ export default function Zones() {
       </div>
 
       {/* Search & Filters Section (Sticky) */}
+      {/* Search & Filters Section (Sticky) — centrado en desktop, full-width en mobile */}
       <div ref={aboveMapRef}
-           className="sticky z-30 transition-all duration-300"
+           className="sticky z-30 transition-all duration-300 flex justify-center"
            style={{ top: headerVisible ? '92px' : '4px' }}>
-        <div>
+        <div className="w-full md:max-w-[720px]">
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <SearchFilterBar
