@@ -110,9 +110,9 @@ export default function Zones() {
 
       {/* Search & Filters Section (Sticky) */}
       <div ref={aboveMapRef}
-           className={`sticky z-30 transition-all duration-300 -mx-4 px-4 py-3 glass-olive border-b border-white/5`}
-           style={{ top: headerVisible ? '88px' : '0' }}>
-        <div className="max-w-7xl mx-auto">
+           className="sticky z-30 transition-all duration-300"
+           style={{ top: headerVisible ? '92px' : '4px' }}>
+        <div>
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <SearchFilterBar

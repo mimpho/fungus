@@ -146,20 +146,18 @@ export default function Species() {
       </div>
 
       {/* Search & Filters Section (Sticky) */}
-      <div className={`sticky z-30 transition-all duration-300 -mx-4 px-4 py-3 glass-olive border-b border-white/5`}
-           style={{ top: headerVisible ? '88px' : '0' }}>
-        <div className="flex justify-center max-w-7xl mx-auto">
-          <SearchFilterBar
-            variant="split"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onClear={() => setSearchQuery('')}
-            placeholder={t.buscarEspecies}
-            onFilterClick={() => setPillOpen(p => !p)}
-            activeFilters={activeFilters}
-            className="w-full md:max-w-[70%]"
-          />
-        </div>
+      <div className="sticky z-30 transition-all duration-300"
+           style={{ top: headerVisible ? '92px' : '4px' }}>
+        <SearchFilterBar
+          variant="split"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onClear={() => setSearchQuery('')}
+          placeholder={t.buscarEspecies}
+          onFilterClick={() => setPillOpen(p => !p)}
+          activeFilters={activeFilters}
+          className="w-full"
+        />
 
         {/* Chips filtros activos (Inside sticky for visibility) */}
         {(showFilter !== 'todas' || familyFilter || monthFilter > 0) && (
