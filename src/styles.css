@@ -25,6 +25,7 @@
   /* Fondos */
   --color-bg-deep:       #0f1f18;
   --color-modal:         #30372a;
+  --color-search-bg:     #4c5240;   /* fondo del search bar (tema search-light) */
 
   /* Efectos glass */
   --glass-white:         rgba(255, 255, 255, 0.05);
@@ -87,33 +88,34 @@ body::after {
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* Tema crema para sticky bar y buscador: usa --color-cream como fondo */
+/* Tema search-light: fondo --color-search-bg (#4c5240) con texto crema.
+   Sin box-shadow aquí — la sombra se aplica en el wrapper sticky de cada página
+   para evitar que el overflow-hidden del botón Filtrar la corte. */
 .search-light {
-  background: var(--color-cream);
+  background: var(--color-search-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 0 12px 0 rgba(0, 0, 0, 0.35);
 }
 
-/* Color de texto para theme="light" en SearchFilterBar (input, botón Filtrar) */
-.search-light-text { color: var(--color-modal); }
+/* Color de texto/iconos para theme="light" en SearchFilterBar */
+.search-light-text { color: var(--color-cream); }
 
-/* Input: texto oscuro + placeholder sin opacidad */
-.search-light-input { color: var(--color-modal); }
-.search-light-input::placeholder { color: var(--color-modal); }
+/* Input: texto crema + placeholder crema con ligera opacidad */
+.search-light-input { color: var(--color-cream); }
+.search-light-input::placeholder { color: var(--color-cream); opacity: 0.55; }
 
 /* Dropdown de filtros en sticky light — clase separada para no interferir con el icono.
-   Cascada de color oscuro sobre fondo crema para todos los elementos internos.         */
-.filter-dropdown-light * { color: var(--color-modal); }
+   Cascada de color crema sobre fondo search-bg para todos los elementos internos.      */
+.filter-dropdown-light * { color: var(--color-cream); }
 .filter-dropdown-light select,
 .filter-dropdown-light input[type="text"] {
-  color: var(--color-modal);
-  background: rgba(48, 55, 42, 0.06);
-  border-color: rgba(48, 55, 42, 0.20);
+  color: var(--color-cream);
+  background: rgba(244, 235, 225, 0.08);
+  border-color: rgba(244, 235, 225, 0.20);
 }
 .filter-dropdown-light select option {
-  background: var(--color-cream);
-  color: var(--color-modal);
+  background: var(--color-search-bg);
+  color: var(--color-cream);
 }
 
 .glass-warm {
