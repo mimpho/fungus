@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { SpeciesCard, IC, slugify } from '../lib/helpers'
 import { useSpecies } from '../hooks/useSpecies'
+import { useScrollDir } from '../hooks/useScrollDir'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
@@ -43,6 +44,14 @@ export default function Species() {
   const [showFilter, setShowFilter]   = useState('todas')
   const [familyFilter, setFamilyFilter] = useState('')
   const [pillOpen, setPillOpen]       = useState(false)
+  const [searchBarInView, setSearchBarInView] = useState(true)
+  const [stickyFocused, setStickyFocused] = useState(false)  // input sticky con foco → no ocultar
+  const searchBarRef = useRef(null)
+  const barRef       = useRef(null)   // ref sobre el propio SearchFilterBar para medir posición exacta
+  const [barRect, setBarRect] = useState(null)
+  const scrolledDown  = useScrollDir(80)
+  // Anclar sticky si: filtro abierto, input con foco (evita que desaparezca al filtrar resultados)
+  const showStickyBar = !searchBarInView && (scrolledDown || pillOpen || stickyFocused)
 
   // Fruiting month filter — activated via ?mes=N from Dashboard
   const monthFilter = parseInt(searchParams.get('mes') || '0', 10)
@@ -95,6 +104,36 @@ export default function Species() {
   const pageItems  = filteredSpecies.slice((page - 1) * PER_PAGE, page * PER_PAGE)
   const activeFilters = (showFilter !== 'todas' ? 1 : 0) + (familyFilter ? 1 : 0) + (orden !== 'alfa' ? 1 : 0) + (monthFilter ? 1 : 0)
 
+  // ── Sticky search bar ────────────────────────────────────────────────────
+  // IntersectionObserver detecta cuando la barra original sale del viewport
+  // (descontando la altura del header sticky). scrolledDown (useScrollDir) controla
+  // si el usuario está bajando. Ambas condiciones activan showStickyBar.
+  useEffect(() => {
+    const el = searchBarRef.current
+    if (!el) return
+    const HEADER_H = document.querySelector('header')?.offsetHeight ?? 88
+    const observer = new IntersectionObserver(
+      ([entry]) => setSearchBarInView(entry.isIntersecting),
+      { threshold: 0, rootMargin: `-${HEADER_H}px 0px 0px 0px` }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  // Mide la posición exacta del SearchFilterBar para que el sticky se superponga exactamente
+  useEffect(() => {
+    const measure = () => {
+      if (!barRef.current) return
+      const r = barRef.current.getBoundingClientRect()
+      setBarRect({ left: r.left, width: r.width })
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    if (barRef.current) ro.observe(barRef.current)
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, [])
+
   // ── Reset de paginador al cambiar filtros ────────────────────────────────
   // Queremos disparar solo cuando los filtros CAMBIAN, nunca en el primer mount.
   //
@@ -137,79 +176,93 @@ export default function Species() {
     return items
   }
 
+  // ── Contenido del panel de filtros (reutilizado en inline y sticky dropdown) ──
+  const filterContent = (
+    <>
+      <div className="mb-5">
+        <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.mostrar}</p>
+        <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
+          {SHOW_FILTERS.map(f => (
+            <button key={f.id} onClick={() => setShowFilter(f.id)}
+              className={`py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col sm:flex-row items-center gap-1 sm:px-3.5 ${showFilter === f.id ? 'bg-bar text-white' : 'glass text-cream/60 hover:text-cream'}`}>
+              <span className="text-base sm:text-sm">{f.emoji}</span>{t[f.tKey]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mb-5">
+        <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.familiaLabel}</p>
+        <div className="relative sm:inline-block sm:min-w-[220px]">
+          <select value={familyFilter} onChange={e => setFamilyFilter(e.target.value)}
+            className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-cream outline-none cursor-pointer appearance-none"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <option value="" style={{ background: 'var(--color-modal)' }}>{t.todasLasFamilias}</option>
+            {uniqueFamilies.map(f => <option key={f} value={f} style={{ background: 'var(--color-modal)' }}>{f}</option>)}
+          </select>
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cream/50">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </div>
+        </div>
+      </div>
+      <div className="mb-5">
+        <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.ordenarPor}</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          {[
+            { id: 'alfa',   label: t.sortNombreAZ },
+            { id: 'family', label: t.sortFamilia },
+            { id: 'comest', label: t.sortComestibilidad },
+          ].map(op => (
+            <button key={op.id} onClick={() => setOrden(op.id)}
+              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm text-left transition-all ${orden === op.id ? 'bg-bar/20 text-coffee-light' : 'glass text-cream/70 hover:text-cream'}`}>
+              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${orden === op.id ? 'bg-bar' : 'bg-white/20'}`}>
+                {orden === op.id && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+              </span>
+              {op.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="sm:flex sm:justify-end">
+        <button onClick={() => setPillOpen(false)}
+          className="w-full sm:w-auto sm:px-6 py-3 bg-bar text-white rounded-xl font-medium hover:bg-[#a0855a] transition-colors">
+          Ver {filteredSpecies.length} especie{filteredSpecies.length !== 1 ? 's' : ''}
+        </button>
+      </div>
+    </>
+  )
+
   return (
+    <>
     <div className="space-y-6 anim-up pb-6">
-      {/* Header + barra búsqueda */}
-      <div className="flex flex-col md:grid md:grid-cols-[auto_1fr] md:items-center gap-4">
+      {/* Header + barra búsqueda: 3 columnas simétricas → barra siempre centrada */}
+      <div className="flex flex-col md:grid md:grid-cols-[1fr_minmax(0,600px)_1fr] md:items-center gap-4">
         <div>
           <h2 className="font-display text-4xl font-semibold text-cream">{t.especies}</h2>
           <p className="text-muted text-sm mt-1">{filteredSpecies.length} {t.especiesEncontradas}</p>
         </div>
-        <div className="flex justify-center">
-          <SearchFilterBar
-            variant="split"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onClear={() => setSearchQuery('')}
-            placeholder={t.buscarEspecies}
-            onFilterClick={() => setPillOpen(p => !p)}
-            activeFilters={activeFilters}
-            className="w-full md:max-w-[60%] sm:min-w-[350px]"
-          />
+        <div ref={searchBarRef}>
+          <div ref={barRef} className="w-full">
+            <SearchFilterBar
+              variant="split"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery('')}
+              placeholder={t.buscarEspecies}
+              onFilterClick={() => setPillOpen(p => !p)}
+              onSearchFocus={() => setPillOpen(false)}
+              activeFilters={activeFilters}
+              className="w-full"
+              theme="light"
+            />
+          </div>
         </div>
+        {/* Columna derecha vacía — mantiene simetría con la columna del título */}
+        <div className="hidden md:block" />
       </div>
 
-      {/* Panel filtros */}
-      <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)}>
-        <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.mostrar}</p>
-          <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
-            {SHOW_FILTERS.map(f => (
-              <button key={f.id} onClick={() => setShowFilter(f.id)}
-                className={`py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col sm:flex-row items-center gap-1 sm:px-3.5 ${showFilter === f.id ? 'bg-bar text-white' : 'glass text-cream/60 hover:text-cream'}`}>
-                <span className="text-base sm:text-sm">{f.emoji}</span>{t[f.tKey]}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.familiaLabel}</p>
-          <div className="relative sm:inline-block sm:min-w-[220px]">
-            <select value={familyFilter} onChange={e => setFamilyFilter(e.target.value)}
-              className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-cream outline-none cursor-pointer appearance-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <option value="" style={{ background: 'var(--color-modal)' }}>{t.todasLasFamilias}</option>
-              {uniqueFamilies.map(f => <option key={f} value={f} style={{ background: 'var(--color-modal)' }}>{f}</option>)}
-            </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cream/50">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-            </div>
-          </div>
-        </div>
-        <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.ordenarPor}</p>
-          <div className="flex flex-col sm:flex-row gap-2">
-            {[
-              { id: 'alfa',   label: t.sortNombreAZ },
-              { id: 'family', label: t.sortFamilia },
-              { id: 'comest', label: t.sortComestibilidad },
-            ].map(op => (
-              <button key={op.id} onClick={() => setOrden(op.id)}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm text-left transition-all ${orden === op.id ? 'bg-bar/20 text-coffee-light' : 'glass text-cream/70 hover:text-cream'}`}>
-                <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${orden === op.id ? 'bg-bar' : 'bg-white/20'}`}>
-                  {orden === op.id && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
-                </span>
-                {op.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="sm:flex sm:justify-end">
-          <button onClick={() => setPillOpen(false)}
-            className="w-full sm:w-auto sm:px-6 py-3 bg-bar text-white rounded-xl font-medium hover:bg-[#a0855a] transition-colors">
-            Ver {filteredSpecies.length} especie{filteredSpecies.length !== 1 ? 's' : ''}
-          </button>
-        </div>
+      {/* Panel filtros — en sticky mode: hideDesktop=true, mobile bottom-sheet sigue activo */}
+      <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)} hideDesktop={showStickyBar}>
+        {filterContent}
       </FilterPanel>
 
       {/* Chips filtros activos */}
@@ -270,5 +323,35 @@ export default function Species() {
         </div>
       )}
     </div>
+
+    {/* ── Sticky bar: siempre renderizada cuando barRect existe; CSS transition para entrada/salida ── */}
+    {barRect && (
+      <div
+        className={`fixed z-30 flex flex-col pt-2 transition-[opacity,transform] duration-200 ease-out ${
+          showStickyBar ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+        }`}
+        style={{ top: 0, left: barRect.left, width: barRect.width }}
+        onFocus={() => setStickyFocused(true)}
+        onBlur={() => setStickyFocused(false)}>
+        <SearchFilterBar
+          variant="split"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onClear={() => setSearchQuery('')}
+          placeholder={t.buscarEspecies}
+          onFilterClick={() => setPillOpen(p => !p)}
+          activeFilters={activeFilters}
+          className="w-full"
+          theme="light"
+        />
+        {/* Dropdown filtros flotante — solo desktop, estilo oscuro */}
+        <div className={`hidden sm:block glass-olive-80 w-full rounded-2xl overflow-hidden transition-all duration-300 ${pillOpen ? 'max-h-[700px] opacity-100 mt-1' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+          <div className="px-5 py-5">
+            {filterContent}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

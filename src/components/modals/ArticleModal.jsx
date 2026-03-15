@@ -92,11 +92,6 @@ export function ArticleModal({ slug, onClose }) {
   const onCloseRef = useRef(onClose)
   useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
-  // Bloquear scroll del body
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
 
   // ESC cierra el modal — desactivado mientras el lightbox esté abierto
   // (el lightbox tiene su propio listener; si ambos estuvieran activos

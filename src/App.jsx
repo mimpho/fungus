@@ -10,10 +10,17 @@ import Profile    from './pages/Profile'
 import Layout     from './components/Layout'
 import { ModalRenderer } from './components/modals/ModalRenderer'
 
-// Scroll to top on every route change
+// Scroll to top on page navigation — EXCEPTO rutas de modal.
+// Las rutas de modal (con segundo segmento) son /zonas/:id, /especies/:id,
+// /familia/:slug, /micologia/:slug. Abrir un modal no debe resetear el scroll:
+// la página de fondo debe mantenerse exactamente donde estaba.
 function ScrollToTop() {
   const { pathname } = useLocation()
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [pathname])
+  useEffect(() => {
+    const segments = pathname.split('/').filter(Boolean)
+    const isModalRoute = segments.length > 1  // tiene slug → es una ruta de detalle/modal
+    if (!isModalRoute) window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [pathname])
   return null
 }
 

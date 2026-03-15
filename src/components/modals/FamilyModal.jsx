@@ -14,10 +14,9 @@ export function FamilyModal({ family, onClose, onViewSpecies }) {
   useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden'
     const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current() }
     document.addEventListener('keydown', onKey)
-    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', onKey) }
+    return () => { document.removeEventListener('keydown', onKey) }
   }, [])
 
   return (

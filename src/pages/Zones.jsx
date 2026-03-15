@@ -4,6 +4,7 @@ import { useApp } from '../contexts/AppContext'
 import { slugify } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { useZones } from '../hooks/useZones'
+import { useScrollDir } from '../hooks/useScrollDir'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
@@ -31,7 +32,7 @@ export default function Zones() {
   }, [zoneSlug, zones])
 
   // Initialize tab and onlyFollowed from URL params (set by Dashboard links)
-  const [tab, setTab]               = useState(() => searchParams.get('vista') === 'listado' ? 'listado' : 'mapa')
+  const [tab, setTab]               = useState(() => searchParams.get('vista') === 'mapa' ? 'mapa' : 'listado')
   const [onlyFollowed, setOnlyFollowed] = useState(() => searchParams.get('seguidas') === '1')
   const [onlyRained, setOnlyRained] = useState(false)
   const [forestFilter, setForestFilter] = useState('')
@@ -39,6 +40,15 @@ export default function Zones() {
   const [comarcaFilter, setComarcaFilter] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [pillOpen, setPillOpen]     = useState(false)
+  const [searchBarInView, setSearchBarInView] = useState(true)
+  const [stickyFocused, setStickyFocused] = useState(false)  // input sticky con foco → no ocultar
+  const searchBarRef  = useRef(null)
+  const barRef        = useRef(null)   // ref sobre el propio SearchFilterBar para medir posición exacta
+  const [barRect, setBarRect] = useState(null)
+  const scrolledDown  = useScrollDir(80)
+  // Sticky solo en vista listado — en mapa no hay scroll vertical.
+  // Anclar visible si filtro abierto o input con foco (evita que desaparezca al filtrar resultados).
+  const showStickyBar = !searchBarInView && (scrolledDown || pillOpen || stickyFocused) && tab === 'listado'
   const [mapMode, setMapMode]       = useState('markers')
   const [mapHeight, setMapHeight]   = useState('500px')
   const [zoneSort, setZoneSort]     = useState('score')
@@ -55,6 +65,33 @@ export default function Zones() {
 
   // Reset comarca when CCAA changes
   useEffect(() => { setComarcaFilter('') }, [ccaaFilter])
+
+  // ── Sticky search bar ────────────────────────────────────────────────────
+  useEffect(() => {
+    const el = searchBarRef.current
+    if (!el) return
+    const HEADER_H = document.querySelector('header')?.offsetHeight ?? 88
+    const observer = new IntersectionObserver(
+      ([entry]) => setSearchBarInView(entry.isIntersecting),
+      { threshold: 0, rootMargin: `-${HEADER_H}px 0px 0px 0px` }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  // Mide la posición exacta del SearchFilterBar para que el sticky se superponga exactamente
+  useEffect(() => {
+    const measure = () => {
+      if (!barRef.current) return
+      const r = barRef.current.getBoundingClientRect()
+      setBarRect({ left: r.left, width: r.width })
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    if (barRef.current) ro.observe(barRef.current)
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, [])
 
   // Calcula la altura disponible para el mapa (viewport − cabecera layout − contenido superior)
   useEffect(() => {
@@ -96,12 +133,112 @@ export default function Zones() {
 
   const activeFilters = (onlyFollowed ? 1 : 0) + (onlyRained ? 1 : 0) + (forestFilter ? 1 : 0) + (ccaaFilter ? 1 : 0) + (comarcaFilter ? 1 : 0)
 
+  // ── Contenido del panel de filtros (reutilizado en inline y sticky dropdown) ──
+  const filterContent = (
+    <>
+      <div className="mb-5">
+        <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.mostrar}</p>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setOnlyFollowed(false)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${!onlyFollowed ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+            {t.todasZonas}
+          </button>
+          <button onClick={() => setOnlyFollowed(true)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyFollowed ? 'bg-yellow-400/20 text-yellow-400' : 'glass text-cream/60'}`}>
+            ⭐ {t.misZonas}
+          </button>
+          <button onClick={() => setOnlyRained(v => !v)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyRained ? 'bg-sky-400/20 text-sky-400' : 'glass text-cream/60'}`}>
+            {t.haLlovido}
+          </button>
+        </div>
+      </div>
+      {comunidades.length > 0 && (
+        <div className="mb-5">
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.comunidadAutonoma}</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setCcaaFilter('')}
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${!ccaaFilter ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              {t.todos}
+            </button>
+            {comunidades.map(ca => (
+              <button key={ca} onClick={() => setCcaaFilter(ca)}
+                className={`px-4 py-2 rounded-xl text-sm transition-all ${ccaaFilter === ca ? 'bg-green-f/30 text-emerald-400' : 'glass text-cream/60'}`}>
+                {ca}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {comarcas.length > 0 && (
+        <div className="mb-5">
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.comarca}</p>
+          <div className="relative sm:inline-block sm:min-w-[220px]">
+            <select value={comarcaFilter} onChange={e => setComarcaFilter(e.target.value)}
+              className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-cream outline-none cursor-pointer appearance-none"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <option value="" style={{ background: 'var(--color-modal)' }}>{t.todasLasComarcas}</option>
+              {comarcas.map(c => <option key={c} value={c} style={{ background: 'var(--color-modal)' }}>{c}</option>)}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cream/50">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="mb-5">
+        <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.tipoBosque}</p>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setForestFilter('')}
+            className={`px-4 py-2 rounded-xl text-sm transition-all ${!forestFilter ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+            {t.todos}
+          </button>
+          {forestTypes.map(tb => {
+            const emoji = { pinar: '🌲', hayedo: '🌳', robledal: '🌿', encinar: '🫒' }
+            return (
+              <button key={tb} onClick={() => setForestFilter(tb)}
+                className={`px-4 py-2 rounded-xl text-sm transition-all capitalize ${forestFilter === tb ? 'bg-green-f/30 text-emerald-400' : 'glass text-cream/60'}`}>
+                {emoji[tb] || '🌲'} {tb}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      {tab === 'listado' && (
+        <div className="mb-5">
+          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.ordenarPor}</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setZoneSort('score')}
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'score' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              {t.mejorCondicion}
+            </button>
+            <button onClick={() => setZoneSort('alfa')}
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'alfa' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              {t.azNombre}
+            </button>
+            <button onClick={() => setZoneSort('elevation')}
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'elevation' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              {t.altitud}
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="sm:flex sm:justify-end">
+        <button onClick={() => setPillOpen(false)}
+          className="w-full sm:w-auto sm:px-6 py-3 bg-bar text-white rounded-xl font-medium hover:bg-[#a0855a] transition-colors">
+          Ver {filteredZones.length} zona{filteredZones.length !== 1 ? 's' : ''}
+        </button>
+      </div>
+    </>
+  )
+
   return (
+    <>
     <div className="space-y-6 anim-up pb-6">
       {/* Bloque medido para calcular altura del mapa */}
       <div ref={aboveMapRef}>
-      {/* Header */}
-      <div className="flex flex-col md:grid md:grid-cols-[auto_1fr_auto] md:items-center gap-4">
+      {/* Header: 3 columnas simétricas → barra siempre centrada (igual que Species) */}
+      <div className="flex flex-col md:grid md:grid-cols-[1fr_minmax(0,600px)_1fr] md:items-center gap-4">
         <div className="flex items-center justify-between md:block">
           <div>
             <h2 className="font-display text-4xl font-semibold text-cream">{t.zonas}</h2>
@@ -113,121 +250,34 @@ export default function Zones() {
             </p>
           </div>
           <div className="md:hidden shrink-0 ml-4">
-            <Tabs options={[{ id: 'mapa', label: t.mapa }, { id: 'listado', label: t.listado }]} selected={tab} onChange={setTab} size="md" />
+            <Tabs options={[{ id: 'listado', label: t.listado }, { id: 'mapa', label: t.mapa }]} selected={tab} onChange={setTab} size="md" />
           </div>
         </div>
-        <div className="flex justify-center">
-          <SearchFilterBar
-            variant="split"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onClear={() => setSearchQuery('')}
-            placeholder={t.buscar}
-            onFilterClick={() => setPillOpen(p => !p)}
-            activeFilters={activeFilters}
-            className="w-full md:max-w-[50%] sm:min-w-[350px]"
-          />
+        <div ref={searchBarRef}>
+          <div ref={barRef} className="w-full">
+            <SearchFilterBar
+              variant="split"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery('')}
+              placeholder={t.buscar}
+              onFilterClick={() => setPillOpen(p => !p)}
+              onSearchFocus={() => setPillOpen(false)}
+              activeFilters={activeFilters}
+              className="w-full"
+              theme="light"
+            />
+          </div>
         </div>
+        {/* Columna derecha: tabs en desktop — misma col que Species (vacía allí) → simetría garantizada */}
         <div className="hidden md:flex justify-end">
-          <Tabs options={[{ id: 'mapa', label: t.mapa }, { id: 'listado', label: t.listado }]} selected={tab} onChange={setTab} size="md" />
+          <Tabs options={[{ id: 'listado', label: t.listado }, { id: 'mapa', label: t.mapa }]} selected={tab} onChange={setTab} size="md" />
         </div>
       </div>
 
-      {/* Panel filtros — visible en mapa y listado */}
-      <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)}>
-        <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.mostrar}</p>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setOnlyFollowed(false)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${!onlyFollowed ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-              {t.todasZonas}
-            </button>
-            <button onClick={() => setOnlyFollowed(true)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyFollowed ? 'bg-yellow-400/20 text-yellow-400' : 'glass text-cream/60'}`}>
-              ⭐ {t.misZonas}
-            </button>
-            <button onClick={() => setOnlyRained(v => !v)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyRained ? 'bg-sky-400/20 text-sky-400' : 'glass text-cream/60'}`}>
-              {t.haLlovido}
-            </button>
-          </div>
-        </div>
-        {comunidades.length > 0 && (
-          <div className="mb-5">
-            <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.comunidadAutonoma}</p>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setCcaaFilter('')}
-                className={`px-4 py-2 rounded-xl text-sm transition-all ${!ccaaFilter ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-                {t.todos}
-              </button>
-              {comunidades.map(ca => (
-                <button key={ca} onClick={() => setCcaaFilter(ca)}
-                  className={`px-4 py-2 rounded-xl text-sm transition-all ${ccaaFilter === ca ? 'bg-green-f/30 text-emerald-400' : 'glass text-cream/60'}`}>
-                  {ca}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {comarcas.length > 0 && (
-          <div className="mb-5">
-            <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.comarca}</p>
-            <div className="relative sm:inline-block sm:min-w-[220px]">
-              <select value={comarcaFilter} onChange={e => setComarcaFilter(e.target.value)}
-                className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-cream outline-none cursor-pointer appearance-none"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <option value="" style={{ background: 'var(--color-modal)' }}>{t.todasLasComarcas}</option>
-                {comarcas.map(c => <option key={c} value={c} style={{ background: 'var(--color-modal)' }}>{c}</option>)}
-              </select>
-              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-cream/50">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="mb-5">
-          <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.tipoBosque}</p>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setForestFilter('')}
-              className={`px-4 py-2 rounded-xl text-sm transition-all ${!forestFilter ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-              {t.todos}
-            </button>
-            {forestTypes.map(tb => {
-              const emoji = { pinar: '🌲', hayedo: '🌳', robledal: '🌿', encinar: '🫒' }
-              return (
-                <button key={tb} onClick={() => setForestFilter(tb)}
-                  className={`px-4 py-2 rounded-xl text-sm transition-all capitalize ${forestFilter === tb ? 'bg-green-f/30 text-emerald-400' : 'glass text-cream/60'}`}>
-                  {emoji[tb] || '🌲'} {tb}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-        {tab === 'listado' && (
-          <div className="mb-5">
-            <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.ordenarPor}</p>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setZoneSort('score')}
-                className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'score' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-                {t.mejorCondicion}
-              </button>
-              <button onClick={() => setZoneSort('alfa')}
-                className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'alfa' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-                {t.azNombre}
-              </button>
-              <button onClick={() => setZoneSort('elevation')}
-                className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'elevation' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
-                {t.altitud}
-              </button>
-            </div>
-          </div>
-        )}
-        <div className="sm:flex sm:justify-end">
-          <button onClick={() => setPillOpen(false)}
-            className="w-full sm:w-auto sm:px-6 py-3 bg-bar text-white rounded-xl font-medium hover:bg-[#a0855a] transition-colors">
-            Ver {filteredZones.length} zona{filteredZones.length !== 1 ? 's' : ''}
-          </button>
-        </div>
+      {/* Panel filtros — en sticky mode: hideDesktop=true, mobile bottom-sheet sigue activo */}
+      <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)} hideDesktop={showStickyBar}>
+        {filterContent}
       </FilterPanel>
 
       {/* Chips filtros activos — visibles en mapa y listado */}
@@ -282,5 +332,35 @@ export default function Zones() {
         </div>
       )}
     </div>
+
+    {/* ── Sticky bar: siempre renderizada cuando barRect existe; CSS transition para entrada/salida ── */}
+    {barRect && (
+      <div
+        className={`fixed z-30 flex flex-col pt-2 transition-[opacity,transform] duration-200 ease-out ${
+          showStickyBar ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+        }`}
+        style={{ top: 0, left: barRect.left, width: barRect.width }}
+        onFocus={() => setStickyFocused(true)}
+        onBlur={() => setStickyFocused(false)}>
+        <SearchFilterBar
+          variant="split"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onClear={() => setSearchQuery('')}
+          placeholder={t.buscar}
+          onFilterClick={() => setPillOpen(p => !p)}
+          activeFilters={activeFilters}
+          className="w-full"
+          theme="light"
+        />
+        {/* Dropdown filtros flotante — solo desktop, estilo oscuro */}
+        <div className={`hidden sm:block glass-olive-80 w-full rounded-2xl overflow-hidden transition-all duration-300 ${pillOpen ? 'max-h-[700px] opacity-100 mt-1' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+          <div className="px-5 py-5">
+            {filterContent}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
