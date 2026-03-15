@@ -43,6 +43,8 @@ export default function Species() {
   const [showFilter, setShowFilter]   = useState('todas')
   const [familyFilter, setFamilyFilter] = useState('')
   const [pillOpen, setPillOpen]       = useState(false)
+  const [searchSticky, setSearchSticky] = useState(false)
+  const titleRef = useRef(null)
 
   // Fruiting month filter — activated via ?mes=N from Dashboard
   const monthFilter = parseInt(searchParams.get('mes') || '0', 10)
@@ -123,6 +125,17 @@ export default function Species() {
   }, [searchQuery, orden, showFilter, familyFilter, monthFilter])
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [page])
 
+  // Sticky search: activa position:fixed cuando el título sale del viewport
+  useEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    const threshold = headerVisible ? 92 : 4
+    const check = () => setSearchSticky(el.getBoundingClientRect().bottom < threshold)
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    return () => window.removeEventListener('scroll', check)
+  }, [headerVisible])
+
   // Paginación con elipsis
   function pageItems2() {
     if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -137,44 +150,57 @@ export default function Species() {
     return items
   }
 
+  // Estilos del wrapper de búsqueda según estado sticky
+  const searchWrapperClass = searchSticky ? 'fixed z-30' : 'flex-1 min-w-0'
+  const searchWrapperStyle = searchSticky ? {
+    top: headerVisible ? 92 : 4,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 'min(640px, calc(100vw - 2rem))',
+  } : {}
+
   return (
     <div className="space-y-5 anim-up pb-6">
-      {/* Title — no sticky, scrolls away */}
-      <div>
-        <h2 className="font-display text-2xl md:text-3xl font-semibold text-cream leading-tight">{t.especies}</h2>
-        <p className="text-muted text-xs mt-0.5">{filteredSpecies.length} {t.especiesEncontradas}</p>
-      </div>
+      {/* ── Fila header: título izquierda + búsqueda derecha (misma línea en desktop) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
 
-      {/* Search & Filters Section (Sticky) — centrado en desktop, full-width en mobile */}
-      <div className="sticky z-30 transition-all duration-300 flex justify-center"
-           style={{ top: headerVisible ? '92px' : '4px' }}>
-        <div className="w-full md:max-w-[640px]">
-        <SearchFilterBar
-          variant="split"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          onClear={() => setSearchQuery('')}
-          placeholder={t.buscarEspecies}
-          onFilterClick={() => setPillOpen(p => !p)}
-          activeFilters={activeFilters}
-          className="w-full"
-        />
+        {/* Título — scrolls away */}
+        <div ref={titleRef} className="shrink-0">
+          <h2 className="font-display text-2xl md:text-3xl font-semibold text-cream leading-tight">{t.especies}</h2>
+          <p className="text-muted text-xs mt-0.5">{filteredSpecies.length} {t.especiesEncontradas}</p>
+        </div>
 
-        {/* Chips filtros activos (Inside sticky for visibility) */}
-        {(showFilter !== 'todas' || familyFilter || monthFilter > 0) && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {monthFilter > 0 && monthLabel && (
-              <ActiveFilterChip key="mf" emoji="🌱" label={`${t.fructificaEn} ${monthLabel}`} onRemove={clearMonthFilter} />
-            )}
-            {showFilter !== 'todas' && (() => {
-              const f = SHOW_FILTERS.find(f => f.id === showFilter)
-              return <ActiveFilterChip key="sf" emoji={f?.emoji} label={t[f?.tKey]} onRemove={() => setShowFilter('todas')} />
-            })()}
-            {familyFilter && <ActiveFilterChip key="ff" emoji="🔬" label={familyFilter} onRemove={() => setFamilyFilter('')} />}
-          </div>
-        )}
-        {/* Panel filtros (Inside sticky) */}
-        <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)}>
+        {/* Placeholder invisible cuando search está fixed (preserva el espacio en el flex) */}
+        {searchSticky && <div className="flex-1 h-[52px]" aria-hidden />}
+
+        {/* Search + chips + FilterPanel — fixed cuando sticky, inline otherwise */}
+        <div className={searchWrapperClass} style={searchWrapperStyle}>
+          <SearchFilterBar
+            variant="split"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
+            placeholder={t.buscarEspecies}
+            onFilterClick={() => setPillOpen(p => !p)}
+            activeFilters={activeFilters}
+            className="w-full"
+          />
+
+          {/* Chips filtros activos */}
+          {(showFilter !== 'todas' || familyFilter || monthFilter > 0) && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {monthFilter > 0 && monthLabel && (
+                <ActiveFilterChip key="mf" emoji="🌱" label={`${t.fructificaEn} ${monthLabel}`} onRemove={clearMonthFilter} />
+              )}
+              {showFilter !== 'todas' && (() => {
+                const f = SHOW_FILTERS.find(f => f.id === showFilter)
+                return <ActiveFilterChip key="sf" emoji={f?.emoji} label={t[f?.tKey]} onRemove={() => setShowFilter('todas')} />
+              })()}
+              {familyFilter && <ActiveFilterChip key="ff" emoji="🔬" label={familyFilter} onRemove={() => setFamilyFilter('')} />}
+            </div>
+          )}
+          {/* Panel filtros */}
+          <FilterPanel isOpen={pillOpen} onClose={() => setPillOpen(false)}>
           <div className="mb-5">
             <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.mostrar}</p>
             <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
@@ -224,9 +250,9 @@ export default function Species() {
               Ver {filteredSpecies.length} especie{filteredSpecies.length !== 1 ? 's' : ''}
             </button>
           </div>
-        </FilterPanel>
-        </div>{/* end max-w-[640px] */}
-      </div>
+          </FilterPanel>
+        </div>{/* end search wrapper */}
+      </div>{/* end header row */}
 
       {/* Grid */}
       {pageItems.length === 0 ? (

@@ -42,7 +42,9 @@ export default function Zones() {
   const [mapMode, setMapMode]       = useState('markers')
   const [mapHeight, setMapHeight]   = useState('500px')
   const [zoneSort, setZoneSort]     = useState('score')
+  const [searchSticky, setSearchSticky] = useState(false)
   const aboveMapRef = useRef(null)
+  const titleRef    = useRef(null)
 
   const isFollowed = id => followedZones.some(z => z.id === id)
 
@@ -55,6 +57,17 @@ export default function Zones() {
 
   // Reset comarca when CCAA changes
   useEffect(() => { setComarcaFilter('') }, [ccaaFilter])
+
+  // Sticky search: activa position:fixed cuando el título sale del viewport
+  useEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    const threshold = headerVisible ? 92 : 4
+    const check = () => setSearchSticky(el.getBoundingClientRect().bottom < threshold)
+    check()
+    window.addEventListener('scroll', check, { passive: true })
+    return () => window.removeEventListener('scroll', check)
+  }, [headerVisible])
 
   // Calcula la altura disponible para el mapa (viewport − cabecera layout − contenido superior)
   useEffect(() => {
@@ -95,42 +108,46 @@ export default function Zones() {
 
   const activeFilters = (onlyFollowed ? 1 : 0) + (onlyRained ? 1 : 0) + (forestFilter ? 1 : 0) + (ccaaFilter ? 1 : 0) + (comarcaFilter ? 1 : 0)
 
+  // Estilos del wrapper de búsqueda según estado sticky
+  const searchWrapperClass = searchSticky ? 'fixed z-30' : 'flex-1 min-w-0'
+  const searchWrapperStyle = searchSticky ? {
+    top: headerVisible ? 92 : 4,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 'min(640px, calc(100vw - 2rem))',
+  } : {}
+
   return (
     <div className="space-y-5 anim-up pb-6">
-      {/* Title — no sticky, scrolls away */}
-      <div>
-        <h2 className="font-display text-2xl md:text-3xl font-semibold text-cream leading-tight">{t.zonas}</h2>
-        <p className="text-muted text-xs mt-0.5">
-          {filteredZones.length} zona{filteredZones.length !== 1 ? 's' : ''}
-          {weatherLoading && (
-            <span className="ml-2 text-bar text-xs">{t.datosLoading}</span>
-          )}
-        </p>
-      </div>
+      {/* ── Fila header: título + búsqueda + tabs (misma línea en desktop) ── */}
+      <div ref={aboveMapRef} className="flex flex-col sm:flex-row sm:items-center gap-4">
 
-      {/* Search & Filters Section (Sticky) */}
-      {/* Search & Filters Section (Sticky) — centrado en desktop, full-width en mobile */}
-      <div ref={aboveMapRef}
-           className="sticky z-30 transition-all duration-300 flex justify-center"
-           style={{ top: headerVisible ? '92px' : '4px' }}>
-        <div className="w-full md:max-w-[720px]">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <SearchFilterBar
-                variant="split"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onClear={() => setSearchQuery('')}
-                placeholder={t.buscar}
-                onFilterClick={() => setPillOpen(p => !p)}
-                activeFilters={activeFilters}
-                className="w-full"
-              />
-            </div>
-            <div className="shrink-0">
-              <Tabs options={[{ id: 'mapa', label: t.mapa }, { id: 'listado', label: t.listado }]} selected={tab} onChange={setTab} size="md" />
-            </div>
-          </div>
+        {/* Título — scrolls away */}
+        <div ref={titleRef} className="shrink-0">
+          <h2 className="font-display text-2xl md:text-3xl font-semibold text-cream leading-tight">{t.zonas}</h2>
+          <p className="text-muted text-xs mt-0.5">
+            {filteredZones.length} zona{filteredZones.length !== 1 ? 's' : ''}
+            {weatherLoading && (
+              <span className="ml-2 text-bar text-xs">{t.datosLoading}</span>
+            )}
+          </p>
+        </div>
+
+        {/* Placeholder invisible cuando search está fixed */}
+        {searchSticky && <div className="flex-1 h-[52px]" aria-hidden />}
+
+        {/* Search + chips + FilterPanel — fixed cuando sticky, inline otherwise */}
+        <div className={searchWrapperClass} style={searchWrapperStyle}>
+          <SearchFilterBar
+            variant="split"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
+            placeholder={t.buscar}
+            onFilterClick={() => setPillOpen(p => !p)}
+            activeFilters={activeFilters}
+            className="w-full"
+          />
 
           {/* Chips filtros activos */}
           {(onlyFollowed || onlyRained || forestFilter || ccaaFilter || comarcaFilter || searchQuery) && (
@@ -239,8 +256,14 @@ export default function Zones() {
               </button>
             </div>
           </FilterPanel>
+        </div>{/* end search wrapper */}
+
+        {/* Tabs — scrolls away (derecha) */}
+        <div className="shrink-0">
+          <Tabs options={[{ id: 'mapa', label: t.mapa }, { id: 'listado', label: t.listado }]} selected={tab} onChange={setTab} size="md" />
         </div>
-      </div>
+
+      </div>{/* end header row */}
 
       {/* Tab: Mapa */}
       {tab === 'mapa' && (
