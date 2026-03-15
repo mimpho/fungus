@@ -10,12 +10,20 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Añadido
-- `useScrollDir` hook (`src/hooks/useScrollDir.js`): detecta dirección de scroll con dead-zone 4px y umbral `minScroll` configurable.
-- Header hide-on-scroll: el header se oculta con `translateY(-100%)` al bajar (>100px) y reaparece al subir; `sticky` conservado para evitar layout jumps de contenido.
-- Sticky search+filter bar en `/especies` y `/zonas` (solo vista listado): aparece a `top:0` cuando la barra original sale del viewport Y el usuario va hacia abajo; desaparece al subir restaurando el header. En desktop el botón Filtrar despliega un dropdown también sticky; en mobile usa el bottom-sheet portal existente de `FilterPanel`.
+- Header scroll de dos fases en `Layout.jsx`: Fase 1 (scroll ≤ headerH) — sube con el contenido de forma natural (`translateY(-scrollY)`, sin transición); Fase 2 — smart sticky: se pega al hacer scroll-up (snap animado), se oculta al bajar. Al volver a Fase 1 no hay salto brusco (`Math.max` evita el jump). Publica `--header-h` como CSS variable.
+- Sticky search+filter bar en `/especies` y `/zonas` (solo vista listado): aparece a `top:24px` cuando el inline bar sale del viewport; desaparece cuando el inline bar vuelve a la vista o cuando el header aparece. En desktop el botón Filtrar despliega un dropdown también sticky; en mobile usa el bottom-sheet portal existente de `FilterPanel`. Sombra `drop-shadow` solo en variante sticky.
 - Prop `hideDesktop` en `FilterPanel`: suprime el panel inline desktop cuando la sticky bar gestiona los filtros (evita doble apertura).
 - Migraciones `019`–`029`: `description_ca/en` para las 181 especies restantes (todas las familias excepto Boletaceae, ya completada en `014`). Cierra la cobertura completa de 202/202 especies con descripción trilingüe ES/CA/EN.
 - Migraciones `030`–`037`: `diff_ca/diff_en` para todas las entradas de confusiones en BD. Cobertura completa de 8 bloques taxonómicos: Morchellaceae+Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae, Agaricus, Neoboletus y Amanita gemmata.
+
+### Cambiado
+- Zonas: tab por defecto cambiado a `listado` (antes `mapa`).
+
+### Corregido
+- Sticky bar persistía cuando los resultados del filtro eran 0 o pocos y no había scroll en el body. Causa: el scroll listener no se dispara tras un scroll programático que termina sin evento adicional. Fix: `stickyUpdateRef` + `useEffect([filteredX.length])` re-evalúa la posición tras cada cambio de resultados.
+- Sticky bar persistía cuando el usuario tenía el input con foco (`stickyFocused` sobreponía `searchBarInView`). Fix: `searchBarInView` es ahora la única autoridad — si el inline bar está a la vista, el sticky se oculta siempre, sin excepciones.
+- Botón borrar (×) del input de búsqueda con `theme="light"` usaba un color distinto al del resto de iconos. Alineado a `search-light-text` con `opacity-60`.
+- Eliminado hook `useScrollDir.js` huérfano (nunca llegó a usarse en la implementación final).
 
 ---
 

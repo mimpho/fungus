@@ -21,7 +21,7 @@ export function SearchFilterBar({ value, onChange, onClear, placeholder, onFilte
   const iconCls    = iconClassName ?? (light ? 'search-light-text' : 'text-cream/85')
   const inputTxtCls = light ? 'search-light-input' : 'text-cream placeholder-cream/85'
   const clearCls    = light
-    ? 'text-modal/60 hover:text-modal hover:bg-black/10'
+    ? 'search-light-text opacity-60 hover:opacity-100 hover:bg-black/10'
     : 'text-cream/75 hover:text-cream hover:bg-white/10'
   const btnTxtCls   = light
     ? 'search-light-text hover:opacity-100'

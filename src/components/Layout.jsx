@@ -8,26 +8,36 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // ── Header fixed + spacer ──────────────────────────────────────────────────
-  // El header es siempre `position: fixed`. Un spacer en el flujo normal
-  // reserva su altura para que el contenido no quede tapado.
-  // En y≈0 el header coincide visualmente con el spacer → parece parte del flujo.
-  // Al scrollear down desaparece (translateY(-100%)), al subir reaparece.
-  const headerRef  = useRef(null)
-  const [headerH,  setHeaderH]  = useState(0)     // altura medida del header
-  const [headerVisible, setHeaderVisible] = useState(true)
+  // Fase 1 (scroll ≤ headerH): header sube con el contenido de forma natural
+  //   → translateY(-scrollY), sin transición CSS (sigue el scroll en tiempo real)
+  // Fase 2 (scroll > headerH):
+  //   - Scroll up  → se pone sticky: translateY(0) con transición suave
+  //   - Scroll down → permanece oculto (no se actualiza el transform)
+  // Al volver a Fase 1 haciendo scroll up: se mantiene visible hasta que
+  // el scroll natural lo recupere (Math.max evita el salto brusco).
+  const headerRef          = useRef(null)
+  const headerHRef         = useRef(88)        // altura del header (para el handler, sin stale closure)
+  const headerTransformRef = useRef(0)         // transform actual en px (idem)
+  const transitionRef      = useRef('none')    // 'none' en scroll natural, animado al snappear
+  const [headerH,         setHeaderH]         = useState(0)
+  const [headerTransform, setHeaderTransform] = useState(0)
 
-  // Medir altura del header con ResizeObserver (cambia si el menú mobile se abre)
+  // Medir altura del header con ResizeObserver.
+  // También publica --header-h como CSS variable (disponible para cualquier componente hijo).
   useEffect(() => {
     if (!headerRef.current) return
     const ro = new ResizeObserver(entries => {
-      setHeaderH(Math.ceil(entries[0].borderBoxSize?.[0]?.blockSize
-                           ?? entries[0].contentRect.height))
+      const h = Math.ceil(entries[0].borderBoxSize?.[0]?.blockSize
+                          ?? entries[0].contentRect.height)
+      setHeaderH(h)
+      headerHRef.current = h
+      document.documentElement.style.setProperty('--header-h', `${h}px`)
     })
     ro.observe(headerRef.current)
     return () => ro.disconnect()
   }, [])
 
-  // Scroll handler: hide on scroll down, show on scroll up, always visible near top.
+  // Scroll handler: dos fases
   useEffect(() => {
     let lastY       = window.scrollY
     let inputActive = false
@@ -35,31 +45,54 @@ export default function Layout() {
     const onFocusIn  = e => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') inputActive = true }
     const onFocusOut = e => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') inputActive = false }
 
-    const NEAR_TOP = 80  // px — dentro de este rango el header siempre es visible
-
     const handler = () => {
       const y = window.scrollY
+      const h = headerHRef.current
 
-      // Cerca del top: siempre visible, sin importar guards
-      if (y < NEAR_TOP) { lastY = y; setHeaderVisible(true); return }
+      // ── Fase 1: scroll dentro del rango del header ─────────────────────────
+      // El header sube con el contenido (translateY = -scrollY).
+      // Al bajar: posición natural. Al subir: se mantiene visible hasta que
+      // la posición natural lo alcance (evita salto al volver de Fase 2).
+      if (y <= h) {
+        const naturalT = -y
+        const delta1   = y - lastY
+        const newT     = delta1 >= 0
+          ? naturalT                                          // bajando → natural
+          : Math.max(naturalT, headerTransformRef.current)   // subiendo → mantener visible
+        transitionRef.current      = 'none'
+        headerTransformRef.current = newT
+        setHeaderTransform(newT)
+        lastY = y
+        return
+      }
 
-      // Guard: el usuario está escribiendo en un input → filtrar resultados
-      // puede acortar la página y generar un scroll event falso
-      if (inputActive) { lastY = y; return }
-
+      // ── Fase 2: más allá del header ─────────────────────────────────────────
       const delta = y - lastY
       if (Math.abs(delta) < 4) return
+      if (inputActive) { lastY = y; return }
       lastY = y
 
-      setHeaderVisible(delta < 0)  // scroll up → show, scroll down → hide
+      if (delta < 0) {
+        // Scroll up → snappear sticky con animación
+        transitionRef.current      = 'transform 0.25s ease'
+        headerTransformRef.current = 0
+        setHeaderTransform(0)
+      } else {
+        // Scroll down → ocultar (puede que estuviera visible por snap previo)
+        if (headerTransformRef.current !== -h) {
+          transitionRef.current      = 'transform 0.25s ease'
+          headerTransformRef.current = -h
+          setHeaderTransform(-h)
+        }
+      }
     }
 
-    window.addEventListener('scroll',     handler,    { passive: true })
-    document.addEventListener('focusin',  onFocusIn)
+    window.addEventListener('scroll',    handler,    { passive: true })
+    document.addEventListener('focusin', onFocusIn)
     document.addEventListener('focusout', onFocusOut)
     return () => {
-      window.removeEventListener('scroll',     handler)
-      document.removeEventListener('focusin',  onFocusIn)
+      window.removeEventListener('scroll',    handler)
+      document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('focusout', onFocusOut)
     }
   }, [])
@@ -137,13 +170,12 @@ export default function Layout() {
           se ajusta automáticamente si el menú mobile lo alarga. */}
       <div style={{ height: headerH }} aria-hidden="true" />
 
-      {/* Header fixed: siempre en el top del viewport.
-          translateY(-100%) lo saca de vista sin afectar el layout
-          (el spacer mantiene el espacio reservado). */}
+      {/* Header fixed: el transform lo gestiona el scroll handler.
+          En Fase 1 sube con el contenido (natural). En Fase 2 snappea arriba al subir. */}
       <header
         ref={headerRef}
         className="glass-olive fixed top-0 left-0 right-0 z-40"
-        style={{ transition: 'transform 0.25s ease', transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)' }}>
+        style={{ transition: transitionRef.current, transform: `translateY(${headerTransform}px)` }}>
         {headerContent}
       </header>
 

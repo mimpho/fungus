@@ -3,7 +3,6 @@ import { useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { SpeciesCard, IC, slugify } from '../lib/helpers'
 import { useSpecies } from '../hooks/useSpecies'
-import { useScrollDir } from '../hooks/useScrollDir'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
@@ -45,13 +44,12 @@ export default function Species() {
   const [familyFilter, setFamilyFilter] = useState('')
   const [pillOpen, setPillOpen]       = useState(false)
   const [searchBarInView, setSearchBarInView] = useState(true)
-  const [stickyFocused, setStickyFocused] = useState(false)  // input sticky con foco → no ocultar
-  const searchBarRef = useRef(null)
-  const barRef       = useRef(null)   // ref sobre el propio SearchFilterBar para medir posición exacta
+  const searchBarRef    = useRef(null)
+  const barRef          = useRef(null)   // ref sobre el propio SearchFilterBar para medir posición exacta
+  const stickyUpdateRef = useRef(null)   // guarda la fn update para llamarla fuera del scroll effect
   const [barRect, setBarRect] = useState(null)
-  const scrolledDown  = useScrollDir(80)
-  // Anclar sticky si: filtro abierto, input con foco (evita que desaparezca al filtrar resultados)
-  const showStickyBar = !searchBarInView && (scrolledDown || pillOpen || stickyFocused)
+  // showStickyBar: searchBarInView es la única autoridad. Si el inline bar está a la vista → sticky oculto.
+  const showStickyBar = !searchBarInView
 
   // Fruiting month filter — activated via ?mes=N from Dashboard
   const monthFilter = parseInt(searchParams.get('mes') || '0', 10)
@@ -105,20 +103,29 @@ export default function Species() {
   const activeFilters = (showFilter !== 'todas' ? 1 : 0) + (familyFilter ? 1 : 0) + (orden !== 'alfa' ? 1 : 0) + (monthFilter ? 1 : 0)
 
   // ── Sticky search bar ────────────────────────────────────────────────────
-  // IntersectionObserver detecta cuando la barra original sale del viewport
-  // (descontando la altura del header sticky). scrolledDown (useScrollDir) controla
-  // si el usuario está bajando. Ambas condiciones activan showStickyBar.
+  // Un único scroll listener actualiza searchBarInView
+  // del top real del bar en el viewport. Más fiable que IntersectionObserver
+  // con threshold:1 para detectar el retorno al scroll=0.
   useEffect(() => {
-    const el = searchBarRef.current
-    if (!el) return
-    const HEADER_H = document.querySelector('header')?.offsetHeight ?? 88
-    const observer = new IntersectionObserver(
-      ([entry]) => setSearchBarInView(entry.isIntersecting),
-      { threshold: 0, rootMargin: `-${HEADER_H}px 0px 0px 0px` }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
+    const update = () => {
+      if (!barRef.current) return
+      const top          = barRef.current.getBoundingClientRect().top
+      const headerBottom = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0
+      setSearchBarInView(top >= 24 || headerBottom > 24)
+    }
+    stickyUpdateRef.current = update
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
   }, [])
+
+  // Re-evaluar estado del sticky cuando cambia el nº de resultados (p.ej. filtro activo → 0 resultados).
+  // El scroll listener no se dispara tras un scroll programático (smooth) que termina sin evento,
+  // por lo que searchBarInView puede quedar obsoleto. Llamar update() aquí lo resuelve.
+  useEffect(() => { stickyUpdateRef.current?.() }, [filteredSpecies.length])
+
+  // Cerrar el panel de filtros cuando el sticky se oculta (header tapa) o volvemos arriba
+  useEffect(() => { if (!showStickyBar) setPillOpen(false) }, [showStickyBar])
 
   // Mide la posición exacta del SearchFilterBar para que el sticky se superponga exactamente
   useEffect(() => {
@@ -240,7 +247,8 @@ export default function Species() {
           <h2 className="font-display text-4xl font-semibold text-cream">{t.especies}</h2>
           <p className="text-muted text-sm mt-1">{filteredSpecies.length} {t.especiesEncontradas}</p>
         </div>
-        <div ref={searchBarRef}>
+        {/* opacity:0 cuando el sticky está activo → evita ver la barra inline de fondo */}
+        <div ref={searchBarRef} style={{ opacity: searchBarInView ? 1 : 0, transition: 'opacity 0.15s ease' }}>
           <div ref={barRef} className="w-full">
             <SearchFilterBar
               variant="split"
@@ -327,12 +335,10 @@ export default function Species() {
     {/* ── Sticky bar: siempre renderizada cuando barRect existe; CSS transition para entrada/salida ── */}
     {barRect && (
       <div
-        className={`fixed z-30 flex flex-col pt-2 transition-[opacity,transform] duration-200 ease-out ${
+        className={`fixed z-30 flex flex-col transition-[opacity,transform] duration-200 ease-out ${
           showStickyBar ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}
-        style={{ top: 0, left: barRect.left, width: barRect.width }}
-        onFocus={() => setStickyFocused(true)}
-        onBlur={() => setStickyFocused(false)}>
+        style={{ top: 24, left: barRect.left, width: barRect.width, filter: 'drop-shadow(0 6px 24px rgba(0,0,0,0.5))' }}>
         <SearchFilterBar
           variant="split"
           value={searchQuery}
@@ -340,6 +346,7 @@ export default function Species() {
           onClear={() => setSearchQuery('')}
           placeholder={t.buscarEspecies}
           onFilterClick={() => setPillOpen(p => !p)}
+          onSearchFocus={() => setPillOpen(false)}
           activeFilters={activeFilters}
           className="w-full"
           theme="light"

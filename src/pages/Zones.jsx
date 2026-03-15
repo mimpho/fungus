@@ -4,7 +4,6 @@ import { useApp } from '../contexts/AppContext'
 import { slugify } from '../lib/helpers'
 import { ZoneCard } from '../components/ui/ZoneCard'
 import { useZones } from '../hooks/useZones'
-import { useScrollDir } from '../hooks/useScrollDir'
 import { SearchFilterBar } from '../components/ui/SearchFilterBar'
 import { FilterPanel } from '../components/ui/FilterPanel'
 import { ActiveFilterChip } from '../components/ui/ActiveFilterChip'
@@ -41,14 +40,13 @@ export default function Zones() {
   const [searchQuery, setSearchQuery] = useState('')
   const [pillOpen, setPillOpen]     = useState(false)
   const [searchBarInView, setSearchBarInView] = useState(true)
-  const [stickyFocused, setStickyFocused] = useState(false)  // input sticky con foco → no ocultar
-  const searchBarRef  = useRef(null)
-  const barRef        = useRef(null)   // ref sobre el propio SearchFilterBar para medir posición exacta
+  const searchBarRef    = useRef(null)
+  const barRef          = useRef(null)   // ref sobre el propio SearchFilterBar para medir posición exacta
+  const stickyUpdateRef = useRef(null)   // guarda la fn update para llamarla fuera del scroll effect
   const [barRect, setBarRect] = useState(null)
-  const scrolledDown  = useScrollDir(80)
-  // Sticky solo en vista listado — en mapa no hay scroll vertical.
-  // Anclar visible si filtro abierto o input con foco (evita que desaparezca al filtrar resultados).
-  const showStickyBar = !searchBarInView && (scrolledDown || pillOpen || stickyFocused) && tab === 'listado'
+  // showStickyBar: searchBarInView es la única autoridad. Si el inline bar está a la vista → sticky oculto.
+  // Solo en vista listado — en mapa no hay scroll vertical.
+  const showStickyBar = !searchBarInView && tab === 'listado'
   const [mapMode, setMapMode]       = useState('markers')
   const [mapHeight, setMapHeight]   = useState('500px')
   const [zoneSort, setZoneSort]     = useState('score')
@@ -67,17 +65,24 @@ export default function Zones() {
   useEffect(() => { setComarcaFilter('') }, [ccaaFilter])
 
   // ── Sticky search bar ────────────────────────────────────────────────────
+  // Un único scroll listener actualiza searchBarInView
+  // del top real del bar en el viewport. Más fiable que IntersectionObserver
+  // con threshold:1 para detectar el retorno al scroll=0.
   useEffect(() => {
-    const el = searchBarRef.current
-    if (!el) return
-    const HEADER_H = document.querySelector('header')?.offsetHeight ?? 88
-    const observer = new IntersectionObserver(
-      ([entry]) => setSearchBarInView(entry.isIntersecting),
-      { threshold: 0, rootMargin: `-${HEADER_H}px 0px 0px 0px` }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
+    const update = () => {
+      if (!barRef.current) return
+      const top          = barRef.current.getBoundingClientRect().top
+      const headerBottom = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0
+      setSearchBarInView(top >= 24 || headerBottom > 24)
+    }
+    stickyUpdateRef.current = update
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
   }, [])
+
+  // Cerrar el panel de filtros cuando el sticky se oculta (header tapa) o volvemos arriba
+  useEffect(() => { if (!showStickyBar) setPillOpen(false) }, [showStickyBar])
 
   // Mide la posición exacta del SearchFilterBar para que el sticky se superponga exactamente
   useEffect(() => {
@@ -132,6 +137,11 @@ export default function Zones() {
   }, [onlyFollowed, onlyRained, forestFilter, ccaaFilter, comarcaFilter, searchQuery, zoneSort, followedZones, conditionsMap, zones])
 
   const activeFilters = (onlyFollowed ? 1 : 0) + (onlyRained ? 1 : 0) + (forestFilter ? 1 : 0) + (ccaaFilter ? 1 : 0) + (comarcaFilter ? 1 : 0)
+
+  // Re-evaluar estado del sticky cuando cambia el nº de resultados (p.ej. filtro activo → 0 resultados).
+  // El scroll listener no se dispara tras un scroll programático (smooth) que termina sin evento,
+  // por lo que searchBarInView puede quedar obsoleto. Llamar update() aquí lo resuelve.
+  useEffect(() => { stickyUpdateRef.current?.() }, [filteredZones.length])
 
   // ── Contenido del panel de filtros (reutilizado en inline y sticky dropdown) ──
   const filterContent = (
@@ -253,7 +263,8 @@ export default function Zones() {
             <Tabs options={[{ id: 'listado', label: t.listado }, { id: 'mapa', label: t.mapa }]} selected={tab} onChange={setTab} size="md" />
           </div>
         </div>
-        <div ref={searchBarRef}>
+        {/* opacity:0 cuando el sticky está activo → evita ver la barra inline de fondo */}
+        <div ref={searchBarRef} style={{ opacity: searchBarInView ? 1 : 0, transition: 'opacity 0.15s ease' }}>
           <div ref={barRef} className="w-full">
             <SearchFilterBar
               variant="split"
@@ -336,12 +347,10 @@ export default function Zones() {
     {/* ── Sticky bar: siempre renderizada cuando barRect existe; CSS transition para entrada/salida ── */}
     {barRect && (
       <div
-        className={`fixed z-30 flex flex-col pt-2 transition-[opacity,transform] duration-200 ease-out ${
+        className={`fixed z-30 flex flex-col transition-[opacity,transform] duration-200 ease-out ${
           showStickyBar ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}
-        style={{ top: 0, left: barRect.left, width: barRect.width }}
-        onFocus={() => setStickyFocused(true)}
-        onBlur={() => setStickyFocused(false)}>
+        style={{ top: 24, left: barRect.left, width: barRect.width, filter: 'drop-shadow(0 6px 24px rgba(0,0,0,0.5))' }}>
         <SearchFilterBar
           variant="split"
           value={searchQuery}
@@ -349,6 +358,7 @@ export default function Zones() {
           onClear={() => setSearchQuery('')}
           placeholder={t.buscar}
           onFilterClick={() => setPillOpen(p => !p)}
+          onSearchFocus={() => setPillOpen(false)}
           activeFilters={activeFilters}
           className="w-full"
           theme="light"
