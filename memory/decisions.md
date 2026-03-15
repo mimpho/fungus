@@ -265,6 +265,30 @@ cond_req_es / cond_req_ca / cond_req_en
 
 ---
 
+## Sticky search bar — patrón correcto (investigado en sesión, pendiente implementar)
+
+**Problema:** `position: fixed` dentro de un ancestor con `transform` (aunque sea `translateY(0)`) o `backdrop-filter` no se posiciona relativo al viewport sino al ancestor — rompe visualmente la barra sticky.
+
+**Causa raíz identificada:** La clase `.anim-up` usa `animation-fill-mode: both`, lo que mantiene `transform: translateY(0)` en el elemento *después* de que termina la animación de 300ms. Cualquier descendiente con `position: fixed` queda "contenido" por ese elemento.
+
+**Fix parcial aplicado:** `styles.css` — los tres keyframes (`animUp`, `animRight`, `animScale`) cambiados de `transform: translateX/Y(0) / scale(1)` a `transform: none` en el estado `to`. Esto elimina el containing block de `.anim-up` tras la animación.
+
+**Fix insuficiente:** `backdrop-filter` en `.glass` (búsqueda, cards, etc.) también crea containing block en Chrome/Safari. Aunque el elemento directamente padre no tenga backdrop-filter, un ancestor intermedio podría tenerlo. El `createPortal` to body es la única solución 100% fiable.
+
+**Solución correcta (pendiente implementar en nueva branch):**
+
+El buscador debe ser un **único componente** siempre ubicado en el DOM **fuera del ancestor `.anim-up`**. Patrón:
+
+1. En el flex row (título + search + tabs): un `<div ref={placeholderRef} className="flex-1 h-[52px]" />` **siempre** visible, reserva el espacio visual
+2. El `SearchFilterBar` + chips + `FilterPanel` viven en un div hermano del `.anim-up` (no descendiente), siempre en el DOM
+3. Cuando **no sticky**: JS lee `placeholderRef.getBoundingClientRect()` y posiciona el search bar encima del placeholder con `position: absolute` + top/left/width exactos del placeholder
+4. Cuando **sticky**: `position: fixed` + `top: headerOffset`
+5. Una única instancia del componente, sin duplicación, sin portal condicional
+
+**Branch:** implementar en `feat/sticky-search` desde `main` limpio (sin los commits de intentos anteriores de la rama `feat/v4-7-1-descriptions-i18n`).
+
+---
+
 ## Paginador con URL (?pagina=N)
 
 **Decisión:** El paginador de Species usa `useSearchParams` en vez de `useState`. La página actual vive en `?pagina=N`.

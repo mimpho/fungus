@@ -38,6 +38,27 @@ Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo
 
 ---
 
+## 🟡 UX — Sticky search bar (nueva branch)
+
+> Nueva sesión Cowork. Branch `feat/sticky-search` desde `main` limpio.
+
+**Comportamiento deseado:**
+- En desktop: título + buscador + (tabs en Zonas) en la misma línea horizontal al cargar
+- Al hacer scroll down: solo el `SearchFilterBar` + chips + `FilterPanel` queda fijo arriba, el título y las tabs desaparecen
+- Al hacer scroll up: el header de navegación reaparece, el buscador vuelve a su posición inline
+- **Un único componente en el DOM**, sin duplicación
+
+**Patrón correcto** (ver `decisions.md` — sección "Sticky search bar"):
+- Placeholder `flex-1 h-[52px]` siempre en el flex row
+- SearchWrapper fuera del ancestor `.anim-up` — posicionado por JS encima del placeholder (no sticky) o fijo (sticky)
+
+**Estado actual de la branch `feat/v4-7-1-descriptions-i18n`:**
+- Contiene commits buenos de i18n (confusiones, descriptions) + intentos fallidos de sticky
+- Los intentos de sticky de esa branch **no deben** mergearse — arrancar desde `main`
+- El fix `transform: none` en `styles.css` (keyframes animUp/animRight/animScale) sí es válido y está en esa branch
+
+---
+
 ## 🗂 Backlog — v5 Auth + favoritos en BD
 
 **Alcance previsto:**
