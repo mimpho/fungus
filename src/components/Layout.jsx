@@ -1,11 +1,41 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { IC } from '../lib/helpers'
 
 export default function Layout() {
-  const { followedZones, t } = useApp()
+  const { followedZones, t, headerVisible, setHeaderVisible } = useApp()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [lastScrollY, setLastScrollY] = useState(0)
+
+  // Controlar visibilidad del header al hacer scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      
+      // Mostrar siempre al principio para evitar saltos
+      if (currentScrollY < 40) {
+        setHeaderVisible(true)
+        setLastScrollY(currentScrollY)
+        return
+      }
+
+      // Threshold: ignorar scrolls muy pequeños
+      if (Math.abs(currentScrollY - lastScrollY) < 10) return
+
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        // Bajando → Ocultar
+        setHeaderVisible(false)
+      } else {
+        // Subiendo → Mostrar
+        setHeaderVisible(true)
+      }
+      setLastScrollY(currentScrollY)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [lastScrollY, setHeaderVisible])
 
   const navItems = [
     { to: '/',          label: t.dashboard,  icon: IC.chart,    end: true },
@@ -17,7 +47,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen">
-      <header className="glass-olive sticky top-0 z-40">
+      <header className={`glass-olive sticky top-0 z-40 transition-transform duration-300 ease-in-out ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logo */}
           <NavLink to="/" onClick={() => setMobileMenuOpen(false)}>

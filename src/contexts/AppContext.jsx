@@ -29,6 +29,7 @@ export function AppProvider({ children }) {
   const [selectedSpecies, setSelectedSpecies] = useState(null)
   const [selectedFamily, setSelectedFamily]   = useState(null)
   const [lightbox, setLightbox]               = useState(null)  // { photos, index }
+  const [headerVisible, setHeaderVisible]     = useState(true)
 
   // Persistir en localStorage cuando cambia algo relevante
   useEffect(() => {
@@ -70,6 +71,7 @@ export function AppProvider({ children }) {
       selectedSpecies, setSelectedSpecies,
       selectedFamily, setSelectedFamily,
       lightbox, setLightbox,
+      headerVisible, setHeaderVisible,
     }}>
       {children}
     </AppContext.Provider>
