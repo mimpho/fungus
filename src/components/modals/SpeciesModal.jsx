@@ -138,11 +138,6 @@ export function SpeciesModal({ species, onClose }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail.id, zones])
 
-  // Bloquear scroll del body
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
 
   // ESC cierra el modal — desactivado mientras el lightbox esté abierto
   // (el lightbox tiene su propio listener; si ambos estuvieran activos

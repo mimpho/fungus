@@ -10,6 +10,10 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Añadido
+- `useScrollDir` hook (`src/hooks/useScrollDir.js`): detecta dirección de scroll con dead-zone 4px y umbral `minScroll` configurable.
+- Header hide-on-scroll: el header se oculta con `translateY(-100%)` al bajar (>100px) y reaparece al subir; `sticky` conservado para evitar layout jumps de contenido.
+- Sticky search+filter bar en `/especies` y `/zonas` (solo vista listado): aparece a `top:0` cuando la barra original sale del viewport Y el usuario va hacia abajo; desaparece al subir restaurando el header. En desktop el botón Filtrar despliega un dropdown también sticky; en mobile usa el bottom-sheet portal existente de `FilterPanel`.
+- Prop `hideDesktop` en `FilterPanel`: suprime el panel inline desktop cuando la sticky bar gestiona los filtros (evita doble apertura).
 - Migraciones `019`–`029`: `description_ca/en` para las 181 especies restantes (todas las familias excepto Boletaceae, ya completada en `014`). Cierra la cobertura completa de 202/202 especies con descripción trilingüe ES/CA/EN.
 - Migraciones `030`–`037`: `diff_ca/diff_en` para todas las entradas de confusiones en BD. Cobertura completa de 8 bloques taxonómicos: Morchellaceae+Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae, Agaricus, Neoboletus y Amanita gemmata.
 

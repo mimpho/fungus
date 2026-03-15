@@ -2,20 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { IC, MODAL } from '../../lib/helpers'
 
-// Desktop: inline colapsable
-// Mobile: portal bottom-sheet con drag-to-close
-export function FilterPanel({ isOpen, onClose, children }) {
+// Desktop: inline colapsable  (hideDesktop=true para suprimir cuando la sticky bar tiene su propio dropdown)
+// Mobile: portal bottom-sheet con drag-to-close (siempre activo)
+export function FilterPanel({ isOpen, onClose, children, hideDesktop = false }) {
   const dragStartY  = useRef(0)
   const drawerRef   = useRef(null)
   const [dragY, setDragY]         = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
-  useEffect(() => {
-    const isMobile = window.innerWidth < 640
-    if (isOpen && isMobile) document.body.style.overflow = 'hidden'
-    else                    document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
-  }, [isOpen])
 
   const onTouchStart = e => { dragStartY.current = e.touches[0].clientY; setDragY(0); setIsDragging(true) }
   const onTouchMove  = e => { setDragY(Math.max(0, e.touches[0].clientY - dragStartY.current)) }
@@ -33,8 +27,8 @@ export function FilterPanel({ isOpen, onClose, children }) {
 
   return (
     <>
-      {/* Desktop inline */}
-      <div className={`hidden sm:block overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+      {/* Desktop inline — oculto cuando la sticky bar gestiona su propio dropdown */}
+      <div className={`hidden sm:block overflow-hidden transition-all duration-300 ${hideDesktop ? 'max-h-0 opacity-0 pointer-events-none' : isOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
         <div className="glass rounded-2xl p-5 mt-2">
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-display text-lg font-semibold text-cream">Filtrar y ordenar</h4>

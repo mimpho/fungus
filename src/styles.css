@@ -32,6 +32,7 @@
   --glass-warm-border:   rgba(139, 111, 71, 0.20);
   --glass-warm-thumb:    rgba(139, 111, 71, 0.40);
   --glass-olive:         rgba(63, 73, 59, 0.50);
+  --glass-olive-80:      rgba(63, 73, 59, 0.80);
 
   /* Overlay modal */
   --modal-overlay:       #232522d9;
@@ -40,7 +41,7 @@
 /* ── Google Fonts already loaded via index.html ── */
 
 /* ── Base ──────────────────────────────────────── */
-html { font-size: 18px; scroll-behavior: smooth; }
+html { font-size: 18px; scroll-behavior: smooth; scrollbar-gutter: stable; }
 * { box-sizing: border-box; }
 
 body {
@@ -77,6 +78,42 @@ body::after {
   background: var(--glass-olive);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+}
+
+/* Variante opaca para elementos flotantes sobre contenido (sticky bar) */
+.glass-olive-80 {
+  background: var(--glass-olive-80);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Tema crema para sticky bar y buscador: usa --color-cream como fondo */
+.search-light {
+  background: var(--color-cream);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 0 12px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Color de texto para theme="light" en SearchFilterBar (input, botón Filtrar) */
+.search-light-text { color: var(--color-modal); }
+
+/* Input: texto oscuro + placeholder sin opacidad */
+.search-light-input { color: var(--color-modal); }
+.search-light-input::placeholder { color: var(--color-modal); }
+
+/* Dropdown de filtros en sticky light — clase separada para no interferir con el icono.
+   Cascada de color oscuro sobre fondo crema para todos los elementos internos.         */
+.filter-dropdown-light * { color: var(--color-modal); }
+.filter-dropdown-light select,
+.filter-dropdown-light input[type="text"] {
+  color: var(--color-modal);
+  background: rgba(48, 55, 42, 0.06);
+  border-color: rgba(48, 55, 42, 0.20);
+}
+.filter-dropdown-light select option {
+  background: var(--color-cream);
+  color: var(--color-modal);
 }
 
 .glass-warm {

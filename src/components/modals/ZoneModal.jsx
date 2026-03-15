@@ -79,10 +79,9 @@ export function ZoneModal({ zone, onClose }) {
   }, [calFilter, zoneSpecies])
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden'
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
-    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', onKey) }
+    return () => { document.removeEventListener('keydown', onKey) }
   }, [])
 
   return (
