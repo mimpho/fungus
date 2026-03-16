@@ -158,7 +158,7 @@ export default function Zones() {
     if (comarcaFilter) r = r.filter(z => z.region === comarcaFilter)
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
-      r = r.filter(z => z.name.toLowerCase().includes(q) || z.province.toLowerCase().includes(q) || (z.region || '').toLowerCase().includes(q))
+      r = r.filter(z => z.name.toLowerCase().includes(q) || z.province.toLowerCase().includes(q) || (z.region || '').toLowerCase().includes(q) || (z.comunidadAutonoma || '').toLowerCase().includes(q))
     }
     if (zoneSort === 'score') r.sort((a, b) => (conditionsMap[b.id]?.overallScore ?? 0) - (conditionsMap[a.id]?.overallScore ?? 0))
     else if (zoneSort === 'alfa') r.sort((a, b) => a.name.localeCompare(b.name))
