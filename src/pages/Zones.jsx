@@ -15,7 +15,7 @@ const RAIN_THRESHOLD = 30
 export default function Zones() {
   const { t, followedZones, toggleFollow, setSelectedZone } = useApp()
   const { id: zoneSlug } = useParams()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const { zones, conditionsMap, loading: weatherLoading } = useZones()
 
@@ -32,7 +32,11 @@ export default function Zones() {
 
   // Initialize tab and onlyFollowed from URL params (set by Dashboard links)
   const [tab, setTab]               = useState(() => searchParams.get('vista') === 'mapa' ? 'mapa' : 'listado')
-  const [onlyFollowed, setOnlyFollowed] = useState(() => searchParams.get('seguidas') === '1')
+  const onlyFollowed = searchParams.get('seguidas') === '1'
+  const setOnlyFollowed = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (val) p.set('seguidas', '1'); else p.delete('seguidas'); return p },
+    { replace: true }
+  )
   const [onlyRained, setOnlyRained] = useState(false)
   const [forestFilter, setForestFilter] = useState('')
   const [ccaaFilter, setCcaaFilter] = useState('')
