@@ -241,10 +241,11 @@ export function normalizeSpeciesDetail(s, lang = 'es') {
     // Sobrescribir con datos de extra_data que son más completos
     photo:       ex.photo  ?? base.photo,
     photos:      ex.photos ?? [],
-    cap:         ex.cap    ?? null,
-    stem:        ex.stem   ?? null,
-    flesh:       ex.flesh  ?? null,
-    sporePrint:  ex.sporePrint ?? null,
+    // Morfología — i18n: busca cap_ca / cap_en en extra_data, fallback a ES
+    cap:         i18n('cap',        ex.cap         ?? null),
+    stem:        i18n('stem',       ex.stem        ?? null),
+    flesh:       i18n('flesh',      ex.flesh       ?? null),
+    sporePrint:  i18n('sporePrint', ex.sporePrint  ?? null),
     distribucion: ex.distribucion ?? [],
     // Campos solo disponibles en el endpoint de detalle
     synonyms:    s.synonyms    ?? null,
