@@ -18,8 +18,14 @@ class Settings(BaseSettings):
     # Base de datos
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/fungus"
 
-    # Seguridad
+    # Seguridad — legacy (mantener por compatibilidad)
     secret_key: str = "dev-secret-key-change-in-production"
+
+    # JWT Auth (v5)
+    jwt_secret_key: str = "dev-jwt-secret-change-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60        # 1 hour
+    refresh_token_expire_days: int = 30          # 30 days
 
     # APIs meteorológicas opcionales (P1)
     meteocat_api_key: str = ""

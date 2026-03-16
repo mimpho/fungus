@@ -32,7 +32,7 @@ from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
 from app.models.weather_cache import WeatherCache
 from app.models.zone import Zone
-from app.routers import health, species, weather, zones
+from app.routers import auth, health, me, species, weather, zones
 from app.services.ingest import run_backfill, run_daily_ingest
 from app.services.weather_cache import (
     DEFAULT_PROVIDER,
@@ -209,7 +209,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins_list,
     allow_origin_regex=r"https://fungus[^.]*\.vercel\.app",
     allow_credentials=True,
-    allow_methods=["GET"],   # read-only API for now (auth in Phase 3)
+    allow_methods=["GET", "POST", "DELETE"],  # POST/DELETE for auth + me endpoints
     allow_headers=["*"],
 )
 
@@ -230,6 +230,8 @@ app.include_router(health.router, prefix=API_PREFIX)
 app.include_router(zones.router, prefix=API_PREFIX)
 app.include_router(species.router, prefix=API_PREFIX)
 app.include_router(weather.router, prefix=API_PREFIX)
+app.include_router(auth.router, prefix=API_PREFIX)
+app.include_router(me.router, prefix=API_PREFIX)
 
 
 # ── Admin endpoints ────────────────────────────────────────────────────────────
