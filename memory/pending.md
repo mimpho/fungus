@@ -5,7 +5,7 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 ---
 
 
-## 🗂 Backlog — v5.1 Social login (Google + Apple)
+## 🚀 Próximo — v5.1 Social login (Google + Apple)
 
 **Alcance previsto:**
 - Google OAuth2 — mayor reducción de fricción, prioritario

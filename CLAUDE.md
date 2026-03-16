@@ -4,9 +4,9 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v4.7.1 frontend/backend; v5.x Auth en curso; v6.x Apps
-**Estado frontend**: Integrado con backend. i18n completo ES/CA/EN (~110 claves + ~180 claves editoriales `art_*`). Artículos ES/CA/EN completos. Morfología trilingüe 202 especies. Sticky search bar + header scroll inteligente. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Bloque de confusiones solo visible si la API devuelve datos. Filtros comarca/CCAA, `no_comestible` category, restyling ConfusionesBlock. `SpeciesModal` muestra `cond_fruct` (temp/precip/suelo/req) desde API para las 202 especies en ES/CA/EN.
-**Estado backend**: v4.7. Weather cache operativo (Open-Meteo, TTL 3h, warmup en startup). Auto-migrate al arrancar. Límite paginación especies: `le=500`. `description`/`synonyms`/`confusions` desde BD. Confusiones completas: Morchellaceae, Boletaceae, Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae. Endpoints `/species` con `?lang=es|ca|en`. `commonNames_ca/en` para 202 especies en `extra_data`. `cond_temp/precip/suelo/req` en ES/CA/EN para 202 especies (migraciones 004–018).
+**Versión actual**: v5.0 frontend/backend; v5.1 Social login backlog; v6.x Apps
+**Estado frontend**: Auth completo. AuthModal (login/registro), authService (token en memoria), AppContext con auth gate, Profile con 3 estados. i18n completo ES/CA/EN (~110 claves + ~180 claves editoriales `art_*`). Artículos ES/CA/EN completos. Morfología trilingüe 202 especies. Sticky search bar + header scroll inteligente. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. ConfusionesBlock lee `detail.confusions` de la API (sin datos hardcoded). Filtros comarca/CCAA, `no_comestible` category. `SpeciesModal` muestra `cond_fruct` desde API para 202 especies en ES/CA/EN.
+**Estado backend**: v5.0. Auth JWT: register/login/refresh/logout/me. Tabla `users` con campo `plan`. Tablas `user_followed_zones` y `user_fav_species`. Migración 006. bcrypt directo (sin passlib). Weather cache operativo (Open-Meteo, TTL 3h). Auto-migrate al arrancar (timeout 30s). Endpoints `/species` con `?lang=`. Confusiones completas para 8 familias.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 **Backend spec**: `docs/backend_architecture.md` — FastAPI + PostgreSQL + PostGIS (v4.x)
@@ -429,7 +429,7 @@ Este archivo es privado (`.gitignore`) y es la fuente de verdad para decisiones 
 | v4.6.4 | ✅ Entregado | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) + gap fix Agaricus campestris |
 | v4.7 | ✅ Entregado | i18n completo: UI strings ES/CA/EN (~110 claves), DB layer con `?lang=` en `/species`, commonNames_ca/en para 202 especies |
 | v4.7.1 | ✅ Entregado | i18n editorial completo: artículos ES/CA/EN, morfología 202 especies, sticky search bar, header scroll inteligente |
-| v5 | 🚧 En curso | Auth + favoritos en BD: JWT, registro/login, favoritos zonas y especies por usuario |
+| v5 | ✅ Entregado | Auth JWT + user accounts + followed zones & fav species en BD |
 | v5.1 | 🗂 Backlog | Social login: Google OAuth2 + Apple Sign In (obligatorio antes de iOS App Store) |
 | v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
 | v6.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
