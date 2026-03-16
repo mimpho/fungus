@@ -209,7 +209,7 @@ export function SpeciesModal({ species, onClose }) {
             <p className="text-muted text-sm mt-1">{detail.family} · {detail.commonNames?.[0]}</p>
           </div>
           <div className="absolute top-4 right-4 flex gap-2">
-            <button onClick={() => toggleFavorite(species)}
+            <button onClick={(e) => { e.stopPropagation(); toggleFavorite(species) }}
               className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400' : 'bg-black/40 text-white/50 hover:text-red-400'}`}>
               {IC.heart(isFav)}
             </button>
