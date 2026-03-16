@@ -164,7 +164,13 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     # 1. Apply pending DB migrations before serving any traffic.
     # Run in a worker thread so that env.py's asyncio.run() does not clash
     # with the already-running FastAPI event loop (would raise RuntimeError).
-    await asyncio.to_thread(_run_db_migrations)
+    log.info("Running DB migrations...")
+    try:
+        await asyncio.to_thread(_run_db_migrations)
+        log.info("DB migrations complete")
+    except Exception as exc:
+        log.exception("DB migrations FAILED — aborting startup: %s", exc)
+        raise
 
     # Register daily cron: 05:00 UTC → 07:00 Madrid
     scheduler.add_job(
