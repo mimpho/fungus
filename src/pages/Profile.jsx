@@ -55,7 +55,7 @@ export default function Profile() {
         </div>
 
         <section className="glass rounded-2xl p-8 text-center">
-          <div className="text-5xl mb-4">🍄</div>
+          <img src="/assets/images/placeholder.png" alt="" className="h-20 w-20 object-contain opacity-70 mx-auto mb-4" />
           <h3 className="font-display text-2xl text-cream mb-2">{t.bienvenido ?? 'Bienvenido a Fungus'}</h3>
           <p className="text-cream/60 text-sm mb-6 max-w-xs mx-auto">
             {t.authCta ?? 'Crea una cuenta gratuita para seguir zonas y guardar tus especies favoritas.'}

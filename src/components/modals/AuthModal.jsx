@@ -61,11 +61,13 @@ export function AuthModal({ initialTab = 'login', onClose }) {
       <div className="rounded-2xl w-full max-w-sm p-6 anim-scale" style={{ background: MODAL.bg }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <img src="/assets/images/logoFungus.png" alt="Fungus" className="h-8 w-auto object-contain" />
-          <button onClick={onClose} className="text-cream/40 hover:text-cream transition-colors p-1">
-            {IC.close}
-          </button>
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative w-full flex justify-end mb-2">
+            <button onClick={onClose} className="text-cream/40 hover:text-cream transition-colors p-1">
+              {IC.close}
+            </button>
+          </div>
+          <img src="/assets/images/placeholder.png" alt="" className="h-16 w-16 object-contain opacity-70" />
         </div>
 
         {/* Tabs */}
