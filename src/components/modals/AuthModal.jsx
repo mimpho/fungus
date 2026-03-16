@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { IC } from '../../lib/helpers'
+import { MODAL } from '../../lib/constants'
 
 export function AuthModal({ initialTab = 'login', onClose }) {
   const { t, login, register } = useApp()
@@ -53,11 +54,11 @@ export function AuthModal({ initialTab = 'login', onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 modal-outer"
+      style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="glass-warm rounded-2xl w-full max-w-sm p-6 anim-scale">
+      <div className="rounded-2xl w-full max-w-sm p-6 anim-scale" style={{ background: MODAL.bg }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
