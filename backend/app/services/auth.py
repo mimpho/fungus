@@ -1,15 +1,13 @@
 """Auth service — password hashing, JWT creation and verification."""
 from datetime import UTC, datetime, timedelta
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.user import User
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT token types
 _ACCESS_TYPE = "access"
@@ -19,11 +17,11 @@ _REFRESH_TYPE = "refresh"
 # ── Password helpers ───────────────────────────────────────────────────────────
 
 def hash_password(plain: str) -> str:
-    return _pwd_context.hash(plain)
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 # ── Token helpers ──────────────────────────────────────────────────────────────
