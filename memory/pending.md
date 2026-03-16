@@ -5,12 +5,17 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 ---
 
 
-## 🗂 Backlog — v5 Auth + favoritos en BD
+## 🗂 Backlog — v5.1 Social login (Google + Apple)
 
 **Alcance previsto:**
-- Auth: JWT (registro/login), middleware de protección de rutas
-- Favoritos: zonas y especies en BD por usuario (reemplaza localStorage)
-- Google login reservado para v5.1
+- Google OAuth2 — mayor reducción de fricción, prioritario
+- Apple Sign In — obligatorio para App Store (v6.1 iOS)
+- DB: `auth_provider` (`"local"` | `"google"` | `"apple"`) + `provider_id` en tabla `users`; `password_hash` pasa a nullable
+- Backend: verificación de token con API de Google/Apple → emite nuestro propio JWT (el sistema de sesiones no cambia)
+- Librería: `authlib` para FastAPI
+- Frontend: Google Identity Services (script oficial), Apple JS SDK
+
+**Decisión:** hacer antes de v6 para que las apps arranquen con social login desde el día 1.
 
 ---
 

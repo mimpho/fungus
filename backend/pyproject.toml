@@ -27,7 +27,7 @@ dependencies = [
     "tenacity>=9.0.0",       # reintentos con backoff en conectores
     # Auth
     "python-jose[cryptography]>=3.3.0",  # JWT encode/decode
-    "passlib[bcrypt]>=1.7.4",            # password hashing
+    "bcrypt>=4.0.0",                     # password hashing (direct, sin passlib)
     "python-multipart>=0.0.9",           # form data (OAuth2 login form)
 ]
 
