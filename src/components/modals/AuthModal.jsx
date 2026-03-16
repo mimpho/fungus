@@ -58,16 +58,16 @@ export function AuthModal({ initialTab = 'login', onClose }) {
       style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="rounded-2xl w-full max-w-sm p-6 anim-scale" style={{ background: MODAL.bg }}>
+      <div className="relative rounded-2xl w-full max-w-sm p-6 anim-scale" style={{ background: MODAL.bg }}>
+
+        {/* Close — absolute para no empujar la imagen */}
+        <button onClick={onClose} className="absolute top-4 right-4 text-cream/40 hover:text-cream transition-colors p-1">
+          {IC.close}
+        </button>
 
         {/* Header */}
         <div className="flex flex-col items-center mb-6">
-          <div className="relative w-full flex justify-end mb-2">
-            <button onClick={onClose} className="text-cream/40 hover:text-cream transition-colors p-1">
-              {IC.close}
-            </button>
-          </div>
-          <img src="/assets/images/placeholder.png" alt="" className="h-16 w-16 object-contain opacity-70" />
+          <img src="/assets/images/placeholder.png" alt="" className="h-20 w-20 object-contain opacity-70" />
         </div>
 
         {/* Tabs */}
