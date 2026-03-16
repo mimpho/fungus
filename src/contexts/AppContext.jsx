@@ -82,8 +82,8 @@ export function AppProvider({ children }) {
     return data.user
   }
 
-  async function register(email, password) {
-    const data = await apiRegister(email, password)  // throws on error
+  async function register(email, password, firstName, lastName, birthDate) {
+    const data = await apiRegister(email, password, firstName, lastName, birthDate)  // throws on error
     setUser(data.user)
     const local = loadStorage()
     await migrateLocalFavoritesToApi(local.zonas || [], local.favoritos || [])

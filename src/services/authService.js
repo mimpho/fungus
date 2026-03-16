@@ -78,8 +78,14 @@ export function translateApiError(detail, t) {
  * @returns {{ user, access_token }} on success
  * @throws Error with message from API on failure
  */
-export async function apiRegister(email, password) {
-  const res = await post('/auth/register', { email, password })
+export async function apiRegister(email, password, firstName, lastName, birthDate) {
+  const res = await post('/auth/register', {
+    email,
+    password,
+    first_name: firstName,
+    last_name: lastName,
+    ...(birthDate ? { birth_date: birthDate } : {}),
+  })
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail ?? 'Register failed')
   setAccessToken(data.access_token)

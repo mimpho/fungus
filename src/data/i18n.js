@@ -169,6 +169,7 @@ export const i18n = {
     errEmailRegistrado: 'Este correo ya tiene una cuenta. ¿Quieres iniciar sesión?',
     errCredenciales: 'Correo o contraseña incorrectos.',
     errRed: 'No se ha podido conectar. Comprueba tu conexión.',
+    nombre: 'Nombre', apellidos: 'Apellidos', fechaNacimiento: 'Fecha de nacimiento', opcional: 'Opcional',
 
     // ── Micología — página ────────────────────────────────────────────────────
     micologiaDesc: 'Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.',
@@ -462,6 +463,7 @@ export const i18n = {
     errEmailRegistrado: 'Aquest correu ja té un compte. Vols iniciar sessió?',
     errCredenciales: 'Correu o contrasenya incorrectes.',
     errRed: 'No s\'ha pogut connectar. Comprova la teva connexió.',
+    nombre: 'Nom', apellidos: 'Cognoms', fechaNacimiento: 'Data de naixement', opcional: 'Opcional',
 
     // ── Micologia — pàgina ────────────────────────────────────────────────────
     micologiaDesc: "Articles per entendre el regne fungi: ecologia, identificació, història i ciència.",
@@ -755,6 +757,7 @@ export const i18n = {
     errEmailRegistrado: 'This email already has an account. Want to sign in?',
     errCredenciales: 'Incorrect email or password.',
     errRed: 'Could not connect. Check your internet connection.',
+    nombre: 'First name', apellidos: 'Last name', fechaNacimiento: 'Date of birth', opcional: 'Optional',
 
     // ── Mycology — page ───────────────────────────────────────────────────────
     micologiaDesc: 'Articles to understand the fungi kingdom: ecology, identification, history and science.',
