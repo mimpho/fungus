@@ -19,6 +19,20 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
+## 🗂 Backlog — v5.2 Confirmación de email
+
+**Alcance previsto:**
+- Enviar email de verificación al registrar una cuenta nueva
+- Token de un solo uso (corta expiración, ej. 24h) almacenado en BD
+- Endpoint `GET /auth/verify-email?token=...` que activa la cuenta
+- Campo `email_verified: bool = False` en tabla `users`
+- Frontend: mostrar banner "Verifica tu email" en perfil si `!email_verified`
+- Proveedor: Resend o SendGrid (cheap/free tier suficiente para volumen inicial)
+
+**Decisión:** postergar a después de v5.1. Social login (especialmente Apple) es blocker duro para App Store y tiene más impacto en conversión.
+
+---
+
 ## 🗂 Backlog — v7 SEO
 
 - Prerendering estático en build time para rutas conocidas (`/especies/:id`, `/zonas/:id`, etc.)
