@@ -51,7 +51,10 @@ def do_run_migrations(connection):
 
 async def run_migrations_online() -> None:
     """Modo online: conecta a la DB y aplica las migraciones."""
-    connectable = create_async_engine(settings.database_url)
+    connectable = create_async_engine(
+        settings.database_url,
+        connect_args={"timeout": 30},   # asyncpg connect timeout en segundos
+    )
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()
