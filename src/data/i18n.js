@@ -170,6 +170,7 @@ export const i18n = {
     errCredenciales: 'Correo o contraseña incorrectos.',
     errRed: 'No se ha podido conectar. Comprueba tu conexión.',
     nombre: 'Nombre', apellidos: 'Apellidos', fechaNacimiento: 'Fecha de nacimiento', opcional: 'Opcional',
+    hola: 'Hola',
     editarPerfil: 'Editar perfil', datosCuenta: 'Datos de cuenta', cambioGuardado: 'Cambios guardados', guardar: 'Guardar',
 
     // ── Micología — página ────────────────────────────────────────────────────
@@ -465,6 +466,7 @@ export const i18n = {
     errCredenciales: 'Correu o contrasenya incorrectes.',
     errRed: 'No s\'ha pogut connectar. Comprova la teva connexió.',
     nombre: 'Nom', apellidos: 'Cognoms', fechaNacimiento: 'Data de naixement', opcional: 'Opcional',
+    hola: 'Hola',
     editarPerfil: 'Editar perfil', datosCuenta: 'Dades del compte', cambioGuardado: 'Canvis desats', guardar: 'Desa',
 
     // ── Micologia — pàgina ────────────────────────────────────────────────────
@@ -760,6 +762,7 @@ export const i18n = {
     errCredenciales: 'Incorrect email or password.',
     errRed: 'Could not connect. Check your internet connection.',
     nombre: 'First name', apellidos: 'Last name', fechaNacimiento: 'Date of birth', opcional: 'Optional',
+    hola: 'Hi',
     editarPerfil: 'Edit profile', datosCuenta: 'Account details', cambioGuardado: 'Changes saved', guardar: 'Save',
 
     // ── Mycology — page ───────────────────────────────────────────────────────

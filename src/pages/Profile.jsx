@@ -84,7 +84,7 @@ export default function Profile() {
         <section className="glass rounded-2xl p-5">
           <h3 className="font-medium text-cream mb-4">{t.idioma}</h3>
           <div className="grid grid-cols-3 gap-3">
-            {[['es', '🇪🇸 Castellano'], ['ca', '🏴 Català'], ['en', '🇬🇧 English']].map(([code, label]) => (
+            {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
               <button key={code} onClick={() => setLang(code)}
                 className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/80 hover:text-cream'}`}>
                 {label}
@@ -97,11 +97,21 @@ export default function Profile() {
   }
 
   // ── Authenticated ────────────────────────────────────────────────────────────
+  const initials = user.first_name && user.last_name
+    ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+    : user.first_name
+      ? user.first_name[0].toUpperCase()
+      : null
+
+  const greeting = user.first_name
+    ? `${t.hola ?? 'Hola'}, ${user.first_name}`
+    : (t.hola ?? 'Hola')
+
   return (
     <div className="space-y-8 anim-up max-w-2xl mx-auto pb-20">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="font-display text-4xl font-semibold text-cream">{t.profile}</h2>
+          <h2 className="font-display text-4xl font-semibold text-cream">{greeting}</h2>
           <p className="text-muted text-sm mt-1">
             {followedZones.length} {t.followedZones.toLowerCase()} · {favoriteSpecies.length} {t.favoriteSpecies.toLowerCase()}
           </p>
@@ -118,8 +128,8 @@ export default function Profile() {
 
       {/* User info */}
       <section className="glass rounded-2xl p-5 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-bar/20 flex items-center justify-center text-xl flex-shrink-0">
-          🍄
+        <div className={`w-12 h-12 rounded-full bg-bar/20 flex items-center justify-center flex-shrink-0 ${initials ? 'font-display font-semibold text-coffee-light text-lg' : 'text-xl'}`}>
+          {initials ?? '🍄'}
         </div>
         <div className="min-w-0 flex-1">
           {(user.first_name || user.last_name) && (
@@ -138,10 +148,10 @@ export default function Profile() {
         </div>
         <button
           onClick={() => setShowEditModal(true)}
-          className="flex-shrink-0 text-cream/40 hover:text-cream transition-colors p-2 rounded-xl hover:bg-white/[0.06]"
-          title={t.editarPerfil ?? 'Editar perfil'}
+          className="flex-shrink-0 flex items-center gap-1.5 text-cream/40 hover:text-cream transition-colors px-3 py-2 rounded-xl hover:bg-white/[0.06]"
         >
           {IC.pencil}
+          <span className="hidden md:inline text-sm">{t.editarPerfil ?? 'Editar perfil'}</span>
         </button>
       </section>
 
@@ -177,7 +187,7 @@ export default function Profile() {
       <section className="glass rounded-2xl p-5">
         <h3 className="font-medium text-cream mb-4">{t.idioma}</h3>
         <div className="grid grid-cols-3 gap-3">
-          {[['es', '🇪🇸 Castellano'], ['ca', '🏴 Català'], ['en', '🇬🇧 English']].map(([code, label]) => (
+          {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
             <button key={code} onClick={() => setLang(code)}
               className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/80 hover:text-cream'}`}>
               {label}
@@ -228,7 +238,7 @@ export default function Profile() {
       <section className="glass rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-medium text-cream flex items-center gap-2">
-            {IC.heart}
+            {IC.mushroom}
             {t.favoriteSpecies}
             <span className="text-cream/40 text-sm font-normal">({favoriteSpecies.length})</span>
           </h3>
