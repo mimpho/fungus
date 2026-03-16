@@ -4,40 +4,6 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## ✅ Completado — v4.6.4
-
-- Filtros comarca + CCAA en página Zonas
-- `no_comestible` en todos los selectores de comestibilidad
-- Restyling `ConfusionesBlock` al estilo items de familia
-- Comarca en hero del ZoneModal
-- Padding mobile reducido en ZoneModal + SpeciesModal
-- Datos confusiones: Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae
-- Gap fix Agaricus campestris
-
----
-
-## 🗂 Backlog — v4.7.1 i18n contenido editorial
-
-Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo falta contenido.
-
-### Migraciones SQL — estado y próximos pasos
-
-> ⚠️ Lección aprendida: delegar a Gemini SQL con IDs de BD es arriesgado (alucinación de IDs, contenido morfológico en lugar de ecológico). Para el contenido restante, **generarlo directamente en Claude** a partir de queries a la BD. Ver retrospectiva en `decisions.md`.
-
-- `cond_temp/precip/suelo/req` en ES/CA/EN — **✅ COMPLETO** (202/202 especies, migraciones 004–018). Frontend y backend actualizados.
-
-- `description_ca/en` — ✅ **COMPLETO**. Migraciones `019`–`029` generadas para las 181 especies restantes. Pendiente aplicar en Supabase.
-
-- `confusions` (`diff_ca/en`) — ✅ **COMPLETO**. Migraciones `030`–`037` generadas. Pendiente aplicar en Supabase.
-
-- Morfología (`cap_ca/en`, `stem_ca/en`, `flesh_ca/en`, `sporePrint_ca/en`) — ✅ **COMPLETO**. Migración `038_morphology_i18n.sql` generada (202 especies). Pendiente aplicar en Supabase.
-
-### Código (sesión Cowork)
-
-- ~~Artículos (`Micorrizas.jsx`, `Esporas.jsx`, `Venenos.jsx`) en CA/EN~~ — ✅ **COMPLETO** (sesión 2026-03-16)
-- ~~Página Micología + modal ArticleModal: metadata artículos, keys UI, rename `Articles.jsx`~~ — ✅ **COMPLETO** (sesión 2026-03-16)
-
----
 
 ## 🗂 Backlog — v5 Auth + favoritos en BD
 
@@ -45,6 +11,14 @@ Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo
 - Auth: JWT (registro/login), middleware de protección de rutas
 - Favoritos: zonas y especies en BD por usuario (reemplaza localStorage)
 - Google login reservado para v5.1
+
+---
+
+## 🗂 Backlog — v7 SEO
+
+- Prerendering estático en build time para rutas conocidas (`/especies/:id`, `/zonas/:id`, etc.)
+- `react-helmet-async`: meta tags dinámicos por ruta (título, description, Open Graph)
+- Revisión Core Web Vitals
 
 ---
 

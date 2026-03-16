@@ -26,3 +26,6 @@ dist/
 # Variables de entorno locales (nunca commitear)
 .env.local
 .env.*.local
+
+# Documentación privada de negocio (no publicar)
+memory/business.md
