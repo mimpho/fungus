@@ -1,12 +1,14 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
-import { IC, getScoreColor } from '../lib/helpers'
+import { IC, getScoreColor, resolveUrl } from '../lib/helpers'
 
 export default function Profile() {
   const {
     t, lang, setLang,
     profile, setProfile,
     followedZones, favoriteSpecies,
+    setSelectedZone, setSelectedSpecies,
     user, isAuthenticated, authLoading, logout,
     setAuthModal,
   } = useApp()
@@ -168,17 +170,85 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="glass rounded-2xl p-5 text-center">
-          <div className="font-display text-4xl font-bold text-yellow-400">{followedZones.length}</div>
-          <div className="text-cream/60 text-sm mt-1">{t.followedZones}</div>
+      {/* Zonas seguidas */}
+      <section className="glass rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-medium text-cream flex items-center gap-2">
+            {IC.pin}
+            {t.followedZones}
+            <span className="text-cream/40 text-sm font-normal">({followedZones.length})</span>
+          </h3>
+          {followedZones.length > 0 && (
+            <Link to="/zonas?seguidas=1" className="text-xs text-cream/50 hover:text-cream transition-colors">
+              {t.verTodas ?? 'Ver todas →'}
+            </Link>
+          )}
         </div>
-        <div className="glass rounded-2xl p-5 text-center">
-          <div className="font-display text-4xl font-bold text-red-400">{favoriteSpecies.length}</div>
-          <div className="text-cream/50 text-sm mt-1">{t.favoriteSpecies}</div>
+        {followedZones.length === 0 ? (
+          <p className="text-cream/40 text-sm">Aún no sigues ninguna zona.</p>
+        ) : (
+          <div className="space-y-2">
+            {followedZones.slice(0, 3).map(z => (
+              <button key={z.id} onClick={() => setSelectedZone(z)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] hover-lift text-left">
+                <span className="text-muted flex-shrink-0">{IC.pin}</span>
+                <div className="min-w-0">
+                  <p className="font-display text-base font-semibold text-cream truncate">{z.name}</p>
+                  <p className="text-cream/50 text-xs">{z.region || z.province}</p>
+                </div>
+                <span className="ml-auto text-cream/30 flex-shrink-0">{IC.chevron}</span>
+              </button>
+            ))}
+            {followedZones.length > 3 && (
+              <Link to="/zonas?seguidas=1" className="block text-center text-xs text-cream/40 hover:text-cream pt-1 transition-colors">
+                +{followedZones.length - 3} más
+              </Link>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Especies favoritas */}
+      <section className="glass rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-medium text-cream flex items-center gap-2">
+            {IC.heart}
+            {t.favoriteSpecies}
+            <span className="text-cream/40 text-sm font-normal">({favoriteSpecies.length})</span>
+          </h3>
+          {favoriteSpecies.length > 0 && (
+            <Link to="/especies?filtro=favoritas" className="text-xs text-cream/50 hover:text-cream transition-colors">
+              {t.verTodas ?? 'Ver todas →'}
+            </Link>
+          )}
         </div>
-      </div>
+        {favoriteSpecies.length === 0 ? (
+          <p className="text-cream/40 text-sm">Aún no tienes especies favoritas.</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              {favoriteSpecies.slice(0, 3).map(sp => (
+                <button key={sp.id} onClick={() => setSelectedSpecies(sp)}
+                  className="glass rounded-xl overflow-hidden hover:bg-white/[0.07] hover-lift text-left">
+                  <div className="aspect-square bg-white/[0.03]">
+                    <img src={resolveUrl(sp.photo?.url)} alt=""
+                      className="w-full h-full object-cover"
+                      onError={e => { e.target.style.display = 'none' }} />
+                  </div>
+                  <p className="font-display text-sm font-semibold text-cream px-2 py-1.5 truncate leading-tight">
+                    {sp.commonNames?.[0] || sp.scientificName}
+                  </p>
+                </button>
+              ))}
+            </div>
+            {favoriteSpecies.length > 3 && (
+              <Link to="/especies?filtro=favoritas" className="block text-center text-xs text-cream/40 hover:text-cream pt-3 transition-colors">
+                +{favoriteSpecies.length - 3} más
+              </Link>
+            )}
+          </>
+        )}
+      </section>
     </div>
   )
 }

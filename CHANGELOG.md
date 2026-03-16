@@ -11,6 +11,27 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [5.0.0] - 2026-03-16 — Auth JWT + user accounts + favoritos en BD
+
+### Añadido
+- **Backend Auth**: endpoints `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/me`. JWT clásico: access token (1h) + refresh token (30d, httpOnly cookie). `secure=settings.is_production` para compatibilidad local/producción.
+- **Tabla `users`**: email, password_hash (bcrypt), `plan` (`"free"`|`"premium"`), `plan_expires_at`, `created_at`. Campo `plan` preparado para monetización futura.
+- **Tablas `user_followed_zones` y `user_fav_species`**: FK a `users`, `zones` y `species` con CASCADE. Migración 006.
+- **Endpoints `/me`**: `GET/POST/DELETE /me/followed-zones` y `GET/POST/DELETE /me/fav-species`. Idempotentes (POST no falla si ya existe).
+- **`authService.js`**: token de acceso en memoria JS (XSS-safe), todas las llamadas auth/me/favoritos, migración de localStorage a API al hacer login.
+- **`AuthModal`**: tabs login/registro con underline activo, imagotipo centrado, colores MODAL.overlay+MODAL.bg consistentes con el resto de modales, close button absolute.
+- **`AppContext`**: estado auth (`user`, `authLoading`, `authModal`), `login`/`register`/`logout`, restauración silenciosa de sesión en mount, auth gate en `toggleFollow`/`toggleFavorite`.
+- **`Profile`**: 3 estados — cargando / unauthenticated CTA / perfil completo con badge de plan, stats y logout.
+- **i18n**: claves de auth para ES/CA/EN (`iniciarSesion`, `registrarse`, `cerrarSesion`, `contrasena`, `minPass`, `authHintLogin`, `authHintRegister`, `authCta`).
+
+### Corregido
+- `pydantic[email]` añadido a deps — `EmailStr` requería `email-validator` no incluido.
+- `passlib` sustituido por `bcrypt` directo — incompatibilidad con `bcrypt>=4.x` causaba 500 silencioso en `hash_password`.
+- Timeout de 30s en engine de migraciones alembic para evitar cuelgue de startup si Supabase tarda en responder.
+- Logging explícito en lifespan para que errores de migración aparezcan en Render logs.
+
+---
+
 ## [4.7.1] - 2026-03-16 — i18n editorial completo (artículos + morfología + UI)
 
 ### Añadido

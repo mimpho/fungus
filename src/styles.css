@@ -144,9 +144,13 @@ body::after {
 }
 
 /* ── Animations ─────────────────────────────────── */
-@keyframes animUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes animUpOpacity {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes animUpMove {
+  from { transform: translateY(16px); }
+  to   { transform: translateY(0); }
 }
 @keyframes animRight {
   from { opacity: 0; transform: translateX(-16px); }
@@ -157,7 +161,9 @@ body::after {
   to   { opacity: 1; transform: scale(1); }
 }
 
-.anim-up    { animation: animUp    0.3s ease both; }
+/* opacity usa both (evita flash al inicio); transform sin fill-mode
+   para que hover-lift pueda sobreescribir transform al terminar */
+.anim-up    { animation: animUpOpacity 0.3s ease both, animUpMove 0.3s ease; }
 .anim-right { animation: animRight 0.3s ease both; }
 .anim-scale { animation: animScale 0.25s ease both; }
 

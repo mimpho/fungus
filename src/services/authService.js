@@ -50,6 +50,27 @@ async function get(path) {
   })
 }
 
+// ── Error translation ──────────────────────────────────────────────────────────
+
+/**
+ * Map an API `detail` string to a translated user-facing message.
+ * Falls back to `detail` itself if no mapping found, or to `t.errRed` if detail is empty.
+ *
+ * @param {string} detail  — raw `data.detail` from the API response
+ * @param {object} t       — i18n translation object from useApp()
+ */
+export function translateApiError(detail, t) {
+  if (!detail) return t.errRed
+  const map = {
+    'Email already registered':         t.errEmailRegistrado,
+    'Invalid email or password':        t.errCredenciales,
+    'No refresh token':                 t.errCredenciales,
+    'Invalid or expired refresh token': t.errCredenciales,
+    'User not found':                   t.errCredenciales,
+  }
+  return map[detail] ?? detail
+}
+
 // ── Auth endpoints ─────────────────────────────────────────────────────────────
 
 /**

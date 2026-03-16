@@ -39,9 +39,24 @@ export default function Species() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
-  const [orden, setOrden]             = useState('alfa')
-  const [showFilter, setShowFilter]   = useState('todas')
-  const [familyFilter, setFamilyFilter] = useState('')
+
+  // ── URL-synced filters ────────────────────────────────────────────────────
+  const showFilter   = searchParams.get('filtro')  || 'todas'
+  const orden        = searchParams.get('orden')   || 'alfa'
+  const familyFilter = searchParams.get('familia') || ''
+
+  const setShowFilter = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (val === 'todas') p.delete('filtro'); else p.set('filtro', val); p.delete('pagina'); return p },
+    { replace: true }
+  )
+  const setOrden = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (val === 'alfa') p.delete('orden'); else p.set('orden', val); p.delete('pagina'); return p },
+    { replace: true }
+  )
+  const setFamilyFilter = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (!val) p.delete('familia'); else p.set('familia', val); p.delete('pagina'); return p },
+    { replace: true }
+  )
   const [pillOpen, setPillOpen]       = useState(false)
   const [searchBarInView, setSearchBarInView] = useState(true)
   const searchBarRef    = useRef(null)
@@ -54,7 +69,7 @@ export default function Species() {
   // Fruiting month filter — activated via ?mes=N from Dashboard
   const monthFilter = parseInt(searchParams.get('mes') || '0', 10)
   const clearMonthFilter = () => setSearchParams(
-    prev => { const p = new URLSearchParams(prev); p.delete('mes'); return p },
+    prev => { const p = new URLSearchParams(prev); p.delete('mes'); p.delete('pagina'); return p },
     { replace: true }
   )
   const monthLabel = monthFilter >= 1 && monthFilter <= 12
@@ -153,20 +168,17 @@ export default function Species() {
   //      StrictMode llama al cleanup entre mount y remount → el flag vuelve a false.
   //   2. Efecto "trabajo" comprueba el flag; si es false, lo activa y sale.
   //
-  // Ciclos:
-  //   Producción:  mount → false→true, skip  |  cambio filtro → true, ejecuta  ✓
-  //   StrictMode:  mount → skip  |  cleanup → reset a false  |  remount → skip  |  cambio filtro → ejecuta  ✓
-  //   Nueva instancia (nav entre rutas): ref empieza a false → skip en mount  ✓
+  // Reset pagina=1 when searchQuery changes (filter setters already reset page themselves)
   const filterResetReady = useRef(false)
   useEffect(() => {
-    return () => { filterResetReady.current = false }   // cleanup resetea el flag
+    return () => { filterResetReady.current = false }
   }, [])
   useEffect(() => {
     if (!filterResetReady.current) { filterResetReady.current = true; return }
-    if (!location.pathname.startsWith('/especies')) return  // no contaminar /familia/...
-    setSearchParams(prev => { const p = new URLSearchParams(prev); p.set('pagina', '1'); return p }, { replace: true })
+    if (!location.pathname.startsWith('/especies')) return
+    setSearchParams(prev => { const p = new URLSearchParams(prev); p.delete('pagina'); return p }, { replace: true })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, orden, showFilter, familyFilter, monthFilter])
+  }, [searchQuery])
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, [page])
 
   // Paginación con elipsis

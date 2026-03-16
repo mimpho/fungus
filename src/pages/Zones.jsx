@@ -15,7 +15,7 @@ const RAIN_THRESHOLD = 30
 export default function Zones() {
   const { t, followedZones, toggleFollow, setSelectedZone } = useApp()
   const { id: zoneSlug } = useParams()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const { zones, conditionsMap, loading: weatherLoading } = useZones()
 
@@ -30,13 +30,44 @@ export default function Zones() {
     return () => setSelectedZone(null)
   }, [zoneSlug, zones])
 
-  // Initialize tab and onlyFollowed from URL params (set by Dashboard links)
-  const [tab, setTab]               = useState(() => searchParams.get('vista') === 'mapa' ? 'mapa' : 'listado')
-  const [onlyFollowed, setOnlyFollowed] = useState(() => searchParams.get('seguidas') === '1')
-  const [onlyRained, setOnlyRained] = useState(false)
-  const [forestFilter, setForestFilter] = useState('')
-  const [ccaaFilter, setCcaaFilter] = useState('')
-  const [comarcaFilter, setComarcaFilter] = useState('')
+  // ── URL-synced filters ────────────────────────────────────────────────────
+  const tab          = searchParams.get('vista')    === 'mapa' ? 'mapa' : 'listado'
+  const onlyFollowed = searchParams.get('seguidas') === '1'
+  const onlyRained   = searchParams.get('lluvia')   === '1'
+  const forestFilter = searchParams.get('bosque')   || ''
+  const ccaaFilter   = searchParams.get('ccaa')     || ''
+  const comarcaFilter = searchParams.get('comarca') || ''
+  const zoneSort     = searchParams.get('orden')    || 'score'
+
+  const setTab = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (val === 'listado') p.delete('vista'); else p.set('vista', val); return p },
+    { replace: true }
+  )
+  const setOnlyFollowed = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (val) p.set('seguidas', '1'); else p.delete('seguidas'); return p },
+    { replace: true }
+  )
+  const setOnlyRained = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (val) p.set('lluvia', '1'); else p.delete('lluvia'); return p },
+    { replace: true }
+  )
+  const setForestFilter = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (!val) p.delete('bosque'); else p.set('bosque', val); return p },
+    { replace: true }
+  )
+  const setCcaaFilter = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (!val) p.delete('ccaa'); else p.set('ccaa', val); return p },
+    { replace: true }
+  )
+  const setComarcaFilter = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (!val) p.delete('comarca'); else p.set('comarca', val); return p },
+    { replace: true }
+  )
+  const setZoneSort = (val) => setSearchParams(
+    prev => { const p = new URLSearchParams(prev); if (val === 'score') p.delete('orden'); else p.set('orden', val); return p },
+    { replace: true }
+  )
+
   const [searchQuery, setSearchQuery] = useState('')
   const [pillOpen, setPillOpen]     = useState(false)
   const [searchBarInView, setSearchBarInView] = useState(true)
@@ -49,7 +80,6 @@ export default function Zones() {
   const showStickyBar = !searchBarInView && tab === 'listado'
   const [mapMode, setMapMode]       = useState('markers')
   const [mapHeight, setMapHeight]   = useState('500px')
-  const [zoneSort, setZoneSort]     = useState('score')
   const aboveMapRef = useRef(null)
 
   const isFollowed = id => followedZones.some(z => z.id === id)
@@ -128,7 +158,7 @@ export default function Zones() {
     if (comarcaFilter) r = r.filter(z => z.region === comarcaFilter)
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
-      r = r.filter(z => z.name.toLowerCase().includes(q) || z.province.toLowerCase().includes(q) || (z.region || '').toLowerCase().includes(q))
+      r = r.filter(z => z.name.toLowerCase().includes(q) || z.province.toLowerCase().includes(q) || (z.region || '').toLowerCase().includes(q) || (z.comunidadAutonoma || '').toLowerCase().includes(q))
     }
     if (zoneSort === 'score') r.sort((a, b) => (conditionsMap[b.id]?.overallScore ?? 0) - (conditionsMap[a.id]?.overallScore ?? 0))
     else if (zoneSort === 'alfa') r.sort((a, b) => a.name.localeCompare(b.name))

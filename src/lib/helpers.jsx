@@ -330,7 +330,7 @@ export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full'
   return (
     <div
       onClick={() => onOpen(species)}
-      className="glass rounded-2xl transition-all hover-lift anim-up overflow-hidden cursor-pointer"
+      className="glass rounded-2xl hover-lift anim-up overflow-hidden cursor-pointer"
       style={animDelay !== undefined ? { animationDelay: `${animDelay}s` } : {}}
     >
       <div className={`relative ${isCompact ? 'h-28' : 'h-[16rem]'} overflow-hidden`}>

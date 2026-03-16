@@ -166,6 +166,9 @@ export const i18n = {
     authHintLogin: 'Necesitas cuenta para guardar tus zonas y especies favoritas',
     authHintRegister: 'Registro gratuito · Sin tarjeta de crédito',
     authCta: 'Crea una cuenta gratuita para seguir zonas y guardar tus especies favoritas.',
+    errEmailRegistrado: 'Este correo ya tiene una cuenta. ¿Quieres iniciar sesión?',
+    errCredenciales: 'Correo o contraseña incorrectos.',
+    errRed: 'No se ha podido conectar. Comprueba tu conexión.',
 
     // ── Micología — página ────────────────────────────────────────────────────
     micologiaDesc: 'Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.',
@@ -456,6 +459,9 @@ export const i18n = {
     authHintLogin: 'Necessites compte per guardar les teves zones i espècies favorites',
     authHintRegister: 'Registre gratuït · Sense targeta de crèdit',
     authCta: 'Crea un compte gratuït per seguir zones i guardar les teves espècies favorites.',
+    errEmailRegistrado: 'Aquest correu ja té un compte. Vols iniciar sessió?',
+    errCredenciales: 'Correu o contrasenya incorrectes.',
+    errRed: 'No s\'ha pogut connectar. Comprova la teva connexió.',
 
     // ── Micologia — pàgina ────────────────────────────────────────────────────
     micologiaDesc: "Articles per entendre el regne fungi: ecologia, identificació, història i ciència.",
@@ -746,6 +752,9 @@ export const i18n = {
     authHintLogin: 'You need an account to save your favourite zones and species',
     authHintRegister: 'Free registration · No credit card required',
     authCta: 'Create a free account to follow zones and save your favourite species.',
+    errEmailRegistrado: 'This email already has an account. Want to sign in?',
+    errCredenciales: 'Incorrect email or password.',
+    errRed: 'Could not connect. Check your internet connection.',
 
     // ── Mycology — page ───────────────────────────────────────────────────────
     micologiaDesc: 'Articles to understand the fungi kingdom: ecology, identification, history and science.',
