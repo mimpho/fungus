@@ -30,12 +30,16 @@ _COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days in seconds
 
 
 def _set_refresh_cookie(response: Response, token: str) -> None:
+    # Production: SameSite=None + Secure so the browser sends the cookie in
+    # cross-site fetch requests (Vercel frontend → Render backend).
+    # Development: SameSite=Lax is fine because both run on localhost.
+    is_prod = settings.is_production
     response.set_cookie(
         key=_REFRESH_COOKIE,
         value=token,
         httponly=True,
-        secure=settings.is_production,  # False en local (http), True en Render (https)
-        samesite="lax",
+        secure=is_prod,
+        samesite="none" if is_prod else "lax",
         max_age=_COOKIE_MAX_AGE,
         path="/api/v1/auth",  # scoped — only sent to auth endpoints
     )
