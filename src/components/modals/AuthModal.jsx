@@ -63,20 +63,20 @@ export function AuthModal({ initialTab = 'login', onClose }) {
         <div className="flex items-center justify-between mb-6">
           <span className="text-2xl">🍄</span>
           <button onClick={onClose} className="text-cream/40 hover:text-cream transition-colors p-1">
-            {IC.x}
+            {IC.close}
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 bg-white/[0.04] rounded-xl p-1">
+        <div className="flex gap-6 mb-6 border-b border-white/[0.08]">
           {[['login', t.iniciarSesion ?? 'Iniciar sesión'], ['register', t.registrarse ?? 'Registrarse']].map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`pb-3 text-sm font-medium transition-all border-b-2 -mb-px ${
                 tab === key
-                  ? 'bg-bar text-white'
-                  : 'text-cream/60 hover:text-cream'
+                  ? 'text-cream border-bar'
+                  : 'text-cream/40 border-transparent hover:text-cream/70'
               }`}
             >
               {label}
