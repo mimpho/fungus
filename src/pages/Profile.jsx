@@ -179,7 +179,7 @@ export default function Profile() {
             <span className="text-cream/40 text-sm font-normal">({followedZones.length})</span>
           </h3>
           {followedZones.length > 0 && (
-            <Link to="/zonas" className="text-xs text-cream/50 hover:text-cream transition-colors">
+            <Link to="/zonas?seguidas=1" className="text-xs text-cream/50 hover:text-cream transition-colors">
               {t.verTodas ?? 'Ver todas →'}
             </Link>
           )}
@@ -200,7 +200,7 @@ export default function Profile() {
               </button>
             ))}
             {followedZones.length > 3 && (
-              <Link to="/zonas" className="block text-center text-xs text-cream/40 hover:text-cream pt-1 transition-colors">
+              <Link to="/zonas?seguidas=1" className="block text-center text-xs text-cream/40 hover:text-cream pt-1 transition-colors">
                 +{followedZones.length - 3} más
               </Link>
             )}
@@ -217,7 +217,7 @@ export default function Profile() {
             <span className="text-cream/40 text-sm font-normal">({favoriteSpecies.length})</span>
           </h3>
           {favoriteSpecies.length > 0 && (
-            <Link to="/especies" className="text-xs text-cream/50 hover:text-cream transition-colors">
+            <Link to="/especies?filtro=favoritas" className="text-xs text-cream/50 hover:text-cream transition-colors">
               {t.verTodas ?? 'Ver todas →'}
             </Link>
           )}
@@ -235,14 +235,14 @@ export default function Profile() {
                       className="w-full h-full object-cover"
                       onError={e => { e.target.style.display = 'none' }} />
                   </div>
-                  <p className="font-display text-xs font-semibold text-cream px-2 py-1.5 truncate leading-tight">
+                  <p className="font-display text-sm font-semibold text-cream px-2 py-1.5 truncate leading-tight">
                     {sp.commonNames?.[0] || sp.scientificName}
                   </p>
                 </button>
               ))}
             </div>
             {favoriteSpecies.length > 3 && (
-              <Link to="/especies" className="block text-center text-xs text-cream/40 hover:text-cream pt-3 transition-colors">
+              <Link to="/especies?filtro=favoritas" className="block text-center text-xs text-cream/40 hover:text-cream pt-3 transition-colors">
                 +{favoriteSpecies.length - 3} más
               </Link>
             )}

@@ -40,7 +40,7 @@ export default function Species() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
   const [orden, setOrden]             = useState('alfa')
-  const [showFilter, setShowFilter]   = useState('todas')
+  const [showFilter, setShowFilter]   = useState(() => searchParams.get('filtro') || 'todas')
   const [familyFilter, setFamilyFilter] = useState('')
   const [pillOpen, setPillOpen]       = useState(false)
   const [searchBarInView, setSearchBarInView] = useState(true)
