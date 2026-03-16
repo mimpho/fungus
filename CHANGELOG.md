@@ -10,6 +10,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Añadido
+- Morfología trilingüe (`cap_ca/en`, `stem_ca/en`, `flesh_ca/en`, `sporePrint_ca/en`) para 202 especies. Migración `038_morphology_i18n.sql` generada (153 KB, ~1.250 valores traducidos a CA+EN). Fix en `apiService.js`: campos `cap`/`stem`/`flesh`/`sporePrint` pasan por el helper `i18n()` en `normalizeSpeciesDetail`.
 - Header scroll de dos fases en `Layout.jsx`: Fase 1 (scroll ≤ headerH) — sube con el contenido de forma natural (`translateY(-scrollY)`, sin transición); Fase 2 — smart sticky: se pega al hacer scroll-up (snap animado), se oculta al bajar. Al volver a Fase 1 no hay salto brusco (`Math.max` evita el jump). Publica `--header-h` como CSS variable.
 - Sticky search+filter bar en `/especies` y `/zonas` (solo vista listado): aparece a `top:24px` cuando el inline bar sale del viewport; desaparece cuando el inline bar vuelve a la vista o cuando el header aparece. En desktop el botón Filtrar despliega un dropdown también sticky; en mobile usa el bottom-sheet portal existente de `FilterPanel`. Sombra `drop-shadow` solo en variante sticky.
 - Prop `hideDesktop` en `FilterPanel`: suprime el panel inline desktop cuando la sticky bar gestiona los filtros (evita doble apertura).

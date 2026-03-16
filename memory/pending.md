@@ -30,7 +30,7 @@ Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo
 
 - `confusions` (`diff_ca/en`) — ✅ **COMPLETO**. Migraciones `030`–`037` generadas. Pendiente aplicar en Supabase.
 
-- Morfología (`cap_ca/en`, `stem_ca/en`, `flesh_ca/en`) — 🔲 Opcional, baja prioridad. Después de descriptions y confusiones.
+- Morfología (`cap_ca/en`, `stem_ca/en`, `flesh_ca/en`, `sporePrint_ca/en`) — ✅ **COMPLETO**. Migración `038_morphology_i18n.sql` generada (202 especies). Pendiente aplicar en Supabase.
 
 ### Código (sesión Cowork)
 
