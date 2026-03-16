@@ -8,6 +8,7 @@ import {
   apiRegister,
   apiLogout,
   apiRefresh,
+  apiUpdateProfile,
   apiFollowZone,
   apiUnfollowZone,
   apiFavSpecies,
@@ -91,6 +92,12 @@ export function AppProvider({ children }) {
     return data.user
   }
 
+  async function updateUserProfile(firstName, lastName, birthDate) {
+    const updated = await apiUpdateProfile(firstName, lastName, birthDate)  // throws on error
+    setUser(updated)
+    return updated
+  }
+
   async function logout() {
     await apiLogout()
     setUser(null)
@@ -144,7 +151,7 @@ export function AppProvider({ children }) {
       profile, setProfile,
       // auth
       user, isAuthenticated, authLoading,
-      login, register, logout,
+      login, register, logout, updateUserProfile,
       authModal, setAuthModal,
       // modal stack
       selectedZone, setSelectedZone,

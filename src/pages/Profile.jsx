@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { IC, getScoreColor, resolveUrl } from '../lib/helpers'
+import { EditProfileModal } from '../components/modals/EditProfileModal'
 
 export default function Profile() {
   const {
@@ -16,6 +17,7 @@ export default function Profile() {
   const [form, setForm]           = useState(profile)
   const [saved, setSaved]         = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const notifications = followedZones.map(z => {
     const sc = getScoreColor(Math.floor(60 + Math.random() * 35))
@@ -119,8 +121,13 @@ export default function Profile() {
         <div className="w-12 h-12 rounded-full bg-bar/20 flex items-center justify-center text-xl flex-shrink-0">
           🍄
         </div>
-        <div className="min-w-0">
-          <p className="text-cream font-medium truncate">{user.email}</p>
+        <div className="min-w-0 flex-1">
+          {(user.first_name || user.last_name) && (
+            <p className="font-display text-lg font-semibold text-cream truncate leading-tight">
+              {[user.first_name, user.last_name].filter(Boolean).join(' ')}
+            </p>
+          )}
+          <p className="text-cream/60 text-sm truncate">{user.email}</p>
           <span className={`text-xs px-2 py-0.5 rounded-full ${
             user.plan === 'premium'
               ? 'bg-amber-500/20 text-amber-400'
@@ -129,7 +136,16 @@ export default function Profile() {
             {user.plan === 'premium' ? '⭐ Premium' : 'Free'}
           </span>
         </div>
+        <button
+          onClick={() => setShowEditModal(true)}
+          className="flex-shrink-0 text-cream/40 hover:text-cream transition-colors p-2 rounded-xl hover:bg-white/[0.06]"
+          title={t.editarPerfil ?? 'Editar perfil'}
+        >
+          {IC.pencil}
+        </button>
       </section>
+
+      {showEditModal && <EditProfileModal onClose={() => setShowEditModal(false)} />}
 
       {/* Notificaciones */}
       <section className="glass rounded-2xl overflow-hidden">

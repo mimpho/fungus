@@ -1,12 +1,16 @@
 """Me router — followed zones and favourite species for the authenticated user."""
+from datetime import date
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User, UserFavSpecies, UserFollowedZone
+from app.schemas.auth import UserOut
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -21,6 +25,19 @@ class SpeciesIdBody(BaseModel):
     species_id: str
 
 
+class UpdateProfileBody(BaseModel):
+    first_name: str
+    last_name: str
+    birth_date: Optional[date] = None
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Field cannot be empty")
+        return v.strip()
+
+
 class FollowedZoneOut(BaseModel):
     zone_id: str
     model_config = {"from_attributes": True}
@@ -29,6 +46,23 @@ class FollowedZoneOut(BaseModel):
 class FavSpeciesOut(BaseModel):
     species_id: str
     model_config = {"from_attributes": True}
+
+
+# ── Profile ────────────────────────────────────────────────────────────────────
+
+@router.patch("/profile", response_model=UserOut)
+async def update_profile(
+    body: UpdateProfileBody,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Update editable profile fields (name, birth date). Email is immutable."""
+    current_user.first_name = body.first_name
+    current_user.last_name  = body.last_name
+    current_user.birth_date = body.birth_date
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
 
 
 # ── Followed zones ─────────────────────────────────────────────────────────────
