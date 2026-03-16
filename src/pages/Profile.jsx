@@ -190,10 +190,10 @@ export default function Profile() {
           <div className="space-y-2">
             {followedZones.slice(0, 3).map(z => (
               <button key={z.id} onClick={() => setSelectedZone(z)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] transition-all text-left">
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] hover-lift text-left">
                 <span className="text-muted flex-shrink-0">{IC.pin}</span>
                 <div className="min-w-0">
-                  <p className="text-cream text-sm font-medium truncate">{z.name}</p>
+                  <p className="font-display text-base font-semibold text-cream truncate">{z.name}</p>
                   <p className="text-cream/50 text-xs">{z.region || z.province}</p>
                 </div>
                 <span className="ml-auto text-cream/30 flex-shrink-0">{IC.chevron}</span>
@@ -229,13 +229,13 @@ export default function Profile() {
             <div className="grid grid-cols-3 gap-2">
               {favoriteSpecies.slice(0, 3).map(sp => (
                 <button key={sp.id} onClick={() => setSelectedSpecies(sp)}
-                  className="glass rounded-xl overflow-hidden hover:bg-white/[0.07] transition-all text-left">
+                  className="glass rounded-xl overflow-hidden hover:bg-white/[0.07] hover-lift text-left">
                   <div className="aspect-square bg-white/[0.03]">
                     <img src={resolveUrl(sp.photo?.url)} alt=""
                       className="w-full h-full object-cover"
                       onError={e => { e.target.style.display = 'none' }} />
                   </div>
-                  <p className="text-xs text-cream/80 px-2 py-1.5 truncate leading-tight">
+                  <p className="font-display text-xs font-semibold text-cream px-2 py-1.5 truncate leading-tight">
                     {sp.commonNames?.[0] || sp.scientificName}
                   </p>
                 </button>
