@@ -2,7 +2,7 @@
 // Los artículos se registran en src/articles/*.jsx y se importan en Micologia.jsx
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { mockArticles } from '../../data/articles' // MOCK PERMANENTE — artículos son contenido JSX estático, sin backend (v4.5)
+import { mockArticles, getLocalizedArticle } from '../../data/articles' // MOCK PERMANENTE — artículos son contenido JSX estático, sin backend (v4.5)
 import { IC, getRGBAFromAsset } from '../../lib/helpers'
 import { MODAL } from '../../lib/constants'
 import { useApp } from '../../contexts/AppContext'
@@ -21,7 +21,11 @@ export function ArticleSection({ title, children }) {
   )
 }
 
-export function ArticleP({ children }) {
+export function ArticleP({ children, html }) {
+  if (html) return (
+    <p className="text-cream/80 leading-relaxed mb-4" style={{ fontSize: '15px' }}
+      dangerouslySetInnerHTML={{ __html: html }} />
+  )
   return (
     <p className="text-cream/80 leading-relaxed mb-4" style={{ fontSize: '15px' }}>
       {children}
@@ -30,21 +34,22 @@ export function ArticleP({ children }) {
 }
 
 // color debe ser hex — se usa para construir color+'18' y color+'35' como alpha
-export function ArticleCallout({ emoji, children, color = '#8b6f47' }) {
+export function ArticleCallout({ emoji, children, html, color = '#8b6f47' }) {
   return (
     <div className="rounded-xl p-4 mb-6" style={{ background: getRGBAFromAsset(color, 0.09)}}>
       <p className="leading-relaxed text-muted" style={{ fontSize: '14px' }}>
-        <span className="mr-2 text-base">{emoji}</span>{children}
+        {emoji && <span className="mr-2 text-base">{emoji}</span>}
+        {html ? <span dangerouslySetInnerHTML={{ __html: html }} /> : children}
       </p>
     </div>
   )
 }
 
-export function ArticleInfographic({ title, caption, children }) {
+export function ArticleInfographic({ title, caption, children, infografiaLabel = 'Infografía' }) {
   return (
     <div className="my-8 rounded-2xl overflow-hidden" style={{ background: '#0e1a0a', border: '1px solid #ffffff0a' }}>
       <div className="px-5 pt-4 pb-2">
-        <p className="text-xs font-semibold text-muted/40 uppercase tracking-widest mb-0.5">Infografía</p>
+        <p className="text-xs font-semibold text-muted/40 uppercase tracking-widest mb-0.5">{infografiaLabel}</p>
         <p className="text-cream/75 font-medium text-sm">{title}</p>
       </div>
       <div className="px-4 pb-4">
@@ -83,7 +88,7 @@ export const ARTICLE_REGISTRY = {}
 
 // ─── Modal wrapper ────────────────────────────────────────────────────────────
 export function ArticleModal({ slug, onClose }) {
-  const { lightbox } = useApp()
+  const { lightbox, t, lang } = useApp()
   const [scrolled, setScrolled] = useState(false)
   const modalRef = useRef(null)
   const heroRef  = useRef(null)
@@ -104,15 +109,17 @@ export function ArticleModal({ slug, onClose }) {
   }, [lightbox])  // se registra/desregistra cuando cambia el estado del lightbox
 
   if (!slug) return null
-  const article = mockArticles.find(a => a.slug === slug)
-  if (!article) return null
+  const raw = mockArticles.find(a => a.slug === slug)
+  if (!raw) return null
+  const article = getLocalizedArticle(raw, lang)
 
+  const locales = { es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }
   const tagsLabel = article.tags.slice(0, 3)
-    .map(t => t.charAt(0).toUpperCase() + t.slice(1))
+    .map(tag => tag.charAt(0).toUpperCase() + tag.slice(1))
     .join(' · ')
 
   const dateLabel = article.date
-    ? new Date(article.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+    ? new Date(article.date).toLocaleDateString(locales[lang] ?? 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
     : null
 
   const Body = ARTICLE_REGISTRY[slug]
@@ -157,7 +164,7 @@ export function ArticleModal({ slug, onClose }) {
             <div className="flex items-center gap-3 mt-4 text-xs text-cream/60">
               {dateLabel && <span>{dateLabel}</span>}
               {dateLabel && <span>·</span>}
-              <span>{article.readingTime} min de lectura</span>
+              <span>{article.readingTime} {t.minLectura}</span>
             </div>
           </div>
           <button onClick={onClose}
@@ -168,7 +175,7 @@ export function ArticleModal({ slug, onClose }) {
 
         {/* Cuerpo */}
         {Body ? <Body /> : (
-          <div className="p-8 text-center text-cream/40 text-sm">Contenido no disponible.</div>
+          <div className="p-8 text-center text-cream/40 text-sm">{t.contenidoNoDisp}</div>
         )}
       </div>
     </div>,
