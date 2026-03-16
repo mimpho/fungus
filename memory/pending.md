@@ -34,7 +34,8 @@ Arquitectura lista (backend `_extra_str(lang)` + frontend `i18n()` helper). Solo
 
 ### Código (sesión Cowork)
 
-- Artículos (`Micorrizas.jsx`, `Esporas.jsx`, `Venenos.jsx`) en CA/EN — extraer texto a claves `i18n.js` (Option A). JSX queda como plantilla estructural. Gemini traduce los valores de las claves.
+- ~~Artículos (`Micorrizas.jsx`, `Esporas.jsx`, `Venenos.jsx`) en CA/EN~~ — ✅ **COMPLETO** (sesión 2026-03-16)
+- ~~Página Micología + modal ArticleModal: metadata artículos, keys UI, rename `Articles.jsx`~~ — ✅ **COMPLETO** (sesión 2026-03-16)
 
 ---
 

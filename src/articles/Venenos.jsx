@@ -3,81 +3,56 @@
 import { ARTICLE_REGISTRY, ArticleSection, ArticleP, ArticleCallout, Fig } from '../components/modals/ArticleModal'
 import { useApp } from '../contexts/AppContext'
 
-// ─── Galería ──────────────────────────────────────────────────────────────────
-const FOTOS = [
-  { url: '/assets/images/content/articles/venenos-amanita.webp',    caption: 'Fig. 1 — Amanita phalloides («ángel de la muerte»): volva en la base, anillo membranoso y sombrero verde-oliva pálido. Causa el 90 % de las muertes por seta en el mundo.' },
-  { url: '/assets/images/content/articles/venenos-amatoxinas.webp', caption: 'Fig. 2 — Representación de la infiltración de amatoxinas en células hepáticas. La toxina bloquea la ARN-polimerasa II impidiendo la síntesis de proteínas.' },
-  { url: '/assets/images/content/articles/venenos-confusion.webp',  caption: 'Fig. 3 — Las confusiones más letales: Amanita phalloides (izq., verde pálido, volva) vs. Agaricus campestris (der., marrón, sin volva). La diferencia es de vida o muerte.' },
+// ─── URLs de la galería ───────────────────────────────────────────────────────
+const FOTO_URLS = [
+  '/assets/images/content/articles/venenos-amanita.webp',
+  '/assets/images/content/articles/venenos-amatoxinas.webp',
+  '/assets/images/content/articles/venenos-confusion.webp',
 ]
 
 // ─── Cuerpo ───────────────────────────────────────────────────────────────────
 function VenenosContent() {
-  const { setLightbox } = useApp()
+  const { t, setLightbox } = useApp()
+  const FOTOS = FOTO_URLS.map((url, i) => ({
+    url,
+    caption: t[`art_ven_fig${i + 1}_caption`],
+  }))
   const openLightbox = idx => setLightbox({ photos: FOTOS, index: idx })
 
   return (
     <div className="p-6 pt-0 space-y-2">
 
       {/* Intro */}
-      <ArticleP>
-        El reino Fungi ha perfeccionado durante millones de años un arsenal bioquímico de una sofisticación extraordinaria. Algunas de estas moléculas son tan eficaces que con tan solo medio sombrero de <em>Amanita phalloides</em> —unos 30 gramos— basta para causar un fallo hepático fulminante en un adulto. Entender estos mecanismos no es alarmismo: es la diferencia entre recolectar con seguridad o convertirse en una estadística.
-      </ArticleP>
+      <ArticleP html={t.art_ven_intro} />
 
       {/* Sección 1 */}
-      <ArticleSection title="El arsenal tóxico: una clasificación">
-        <ArticleP>
-          Las toxinas fúngicas no forman una familia química uniforme. Se agrupan por estructura molecular y mecanismo de acción:
-        </ArticleP>
+      <ArticleSection title={t.art_ven_s1_title}>
+        <ArticleP>{t.art_ven_s1_intro}</ArticleP>
         <ul className="space-y-2 mb-4 pl-1">
-          {[
-            { term: 'Amatoxinas',   desc: 'Péptidos cíclicos presentes en Amanita, Galerina y Lepiota. Inhiben la ARN-polimerasa II bloqueando la síntesis proteica celular. Termoestables: cocinar no las destruye.' },
-            { term: 'Falotoxinas',  desc: 'Coexisten con las amatoxinas en Amanita phalloides. Afectan la membrana intestinal produciendo gastroenteritis grave, aunque por sí solas no son letales sistémicamente.' },
-            { term: 'Muscarina',    desc: 'Alcaloide de Clitocybe y algunos Inocybe. Activa los receptores muscarínicos del sistema nervioso parasimpático: sudoración, salivación, bradicardia.' },
-            { term: 'Orellanina',   desc: 'Toxina nefrotóxica de Cortinarius orellanus. Único veneno fúngico con latencia de 2–3 semanas, lo que dificulta su diagnóstico.' },
-            { term: 'Giromitrina',  desc: 'Presente en Gyromitra esculenta. Se hidroliza en monometilhidrazina (MMH), un potente hepatotóxico y hemolítico. Parcialmente volátil al cocinar.' },
-          ].map(({ term, desc }) => (
+          {t.art_ven_toxins.map(({ term, desc }) => (
             <li key={term} className="flex gap-2 text-cream/75" style={{ fontSize: '15px' }}>
               <span className="text-coffee mt-0.5 shrink-0">›</span>
               <span><strong className="text-muted">{term}:</strong> {desc}</span>
             </li>
           ))}
         </ul>
-        <ArticleCallout emoji="⚠️" color="#dc2626">
-          <strong>Regla de oro:</strong> ninguna prueba popular (plata, ajo, ebullición, color del corte) detecta amatoxinas. La única prueba fiable es la identificación botánica rigurosa o el análisis de laboratorio.
-        </ArticleCallout>
+        <ArticleCallout emoji="⚠️" color="#dc2626" html={t.art_ven_callout1} />
       </ArticleSection>
 
       {/* Sección 2 */}
-      <ArticleSection title="Amatoxinas: el veneno más letal">
-        <ArticleP>
-          Las amatoxinas son bicíclicos octapéptidos con una estabilidad extraordinaria: resisten el calor, la congelación, el secado y los jugos gástricos. Se absorben íntegramente en el intestino delgado, circulan hasta el hígado y allí ejercen su acción bloqueando la ARN-polimerasa II, la enzima responsable de transcribir el ADN en ARNm. Sin síntesis de proteínas, la célula hepática muere.
-        </ArticleP>
-
+      <ArticleSection title={t.art_ven_s2_title}>
+        <ArticleP>{t.art_ven_s2_p1}</ArticleP>
         <Fig fotos={FOTOS} idx={0} openLightbox={openLightbox} />
-
-        <ArticleP>
-          La intoxicación evoluciona en tres fases. La primera (6–24 h) es un período de latencia silencioso —la toxina actúa sin síntomas—. La segunda (24–72 h) produce gastroenteritis violenta con diarrea sanguinolenta y vómitos. La tercera fase, la más temida, es la citólisis hepática que puede conducir al fallo multiorgánico entre el día 4 y el día 8.
-        </ArticleP>
-
+        <ArticleP>{t.art_ven_s2_p2}</ArticleP>
         <Fig fotos={FOTOS} idx={1} openLightbox={openLightbox} />
-
-        <ArticleCallout emoji="🏥" color="var(--color-coffee)">
-          <strong>Tratamiento:</strong> No existe antídoto específico. El protocolo incluye silibinina intravenosa (extracto de cardo mariano), N-acetilcisteína y, en casos graves, trasplante hepático. La supervivencia depende casi exclusivamente de la rapidez del diagnóstico.
-        </ArticleCallout>
+        <ArticleCallout emoji="🏥" color="var(--color-coffee)" html={t.art_ven_callout2} />
       </ArticleSection>
 
       {/* Sección 3 */}
-      <ArticleSection title="Otros síndromes: muscarina, orellanina y giromitrina">
-        <ArticleP>
-          Más allá de las amatoxinas, existen síndromes clínicos bien documentados con otras toxinas, cada uno con su ventana temporal característica:
-        </ArticleP>
+      <ArticleSection title={t.art_ven_s3_title}>
+        <ArticleP>{t.art_ven_s3_intro}</ArticleP>
         <ul className="space-y-2 mb-4 pl-1">
-          {[
-            { term: 'Síndrome muscarínico (30 min–2 h)',  desc: 'Provocado por especies de Clitocybe y Inocybe. Presenta el acrónimo SLUDE: salivación, lagrimeo, micción, diarrea y emesis. Responde bien a atropina.' },
-            { term: 'Síndrome orellánico (2–3 semanas)', desc: 'El más insidioso. Cortinarius orellanus provoca insuficiencia renal crónica semanas después de la ingesta. En el momento del diagnóstico el daño suele ser irreversible.' },
-            { term: 'Síndrome giromítrico (6–12 h)',     desc: 'Gyromitra esculenta («falsa colmenilla»). Hepatotóxico y hemolítico. Parte de la toxina puede eliminarse al hervir con ventilación, pero el riesgo nunca es cero.' },
-            { term: 'Síndrome panterínico (30 min–3 h)', desc: 'Amanita muscaria y A. pantherina contienen muscimol e ibotenic acid, agentes psicoactivos que causan delirio, alucinaciones y convulsiones en dosis altas.' },
-          ].map(({ term, desc }) => (
+          {t.art_ven_syndromes.map(({ term, desc }) => (
             <li key={term} className="flex gap-2 text-cream/75" style={{ fontSize: '15px' }}>
               <span className="text-coffee mt-0.5 shrink-0">›</span>
               <span><strong className="text-muted">{term}:</strong> {desc}</span>
@@ -87,45 +62,30 @@ function VenenosContent() {
       </ArticleSection>
 
       {/* Sección 4 */}
-      <ArticleSection title="Por qué nos confundimos: las especies gemelas">
-        <ArticleP>
-          La mayoría de intoxicaciones graves no ocurren por ignorancia total sino por una confusión concreta entre dos especies que se parecen. Los errores más frecuentes en España:
-        </ArticleP>
-
+      <ArticleSection title={t.art_ven_s4_title}>
+        <ArticleP>{t.art_ven_s4_intro}</ArticleP>
         <Fig fotos={FOTOS} idx={2} openLightbox={openLightbox} />
-
         <ul className="space-y-2 my-4 pl-1">
-          {[
-            { term: 'A. phalloides por A. campestris',   desc: 'El champiñón silvestre no tiene volva ni anillo tan marcado; sus láminas son rosadas (nunca blancas) y oscurecen con la madurez.' },
-            { term: 'A. phalloides por Volvariella',     desc: 'Volvariella speciosa también emerge de una volva, pero sus láminas son rosadas y carece de anillo.' },
-            { term: 'Gyromitra por Morchella',           desc: 'La falsa colmenilla tiene el sombrero cerebriforme e irregular; la colmenilla real muestra alvéolos regulares y el sombrero está unido al pie desde la base.' },
-            { term: 'Cortinarius por Boletus / Russula', desc: 'Los Cortinarius tóxicos suelen tener restos de cortina aracnoide en el pie y láminas de color óxido al madurar. Nunca comer Cortinarius de identificación dudosa.' },
-          ].map(({ term, desc }) => (
+          {t.art_ven_confusions.map(({ term, desc }) => (
             <li key={term} className="flex gap-2 text-cream/75" style={{ fontSize: '15px' }}>
               <span className="text-coffee mt-0.5 shrink-0">›</span>
               <span><strong className="text-muted">{term}:</strong> {desc}</span>
             </li>
           ))}
         </ul>
-        <ArticleCallout emoji="🍄" color="var(--color-green-f)">
-          <strong>Protocolo ante sospecha de intoxicación:</strong> llamar al 112 o al Servicio de Información Toxicológica (91 562 04 20 en España) inmediatamente, conservar restos de la seta —o una fotografía detallada— y no esperar a que aparezcan síntomas graves.
-        </ArticleCallout>
+        <ArticleCallout emoji="🍄" color="var(--color-green-f)" html={t.art_ven_callout3} />
       </ArticleSection>
 
       {/* Sabías que */}
-      <ArticleSection title="¿Sabías que…? La paradoja de la medicina">
-        <ArticleP>
-          La misma faloidina que hace letal a <em>Amanita phalloides</em> es hoy una herramienta fundamental en biología celular: conjugada con rodamina, se usa como marcador fluorescente de actina en microscopía confocal. Y la silibinina —extraída del cardo mariano y usada como antídoto— debe su eficacia a que compite con las amatoxinas por los mismos transportadores hepáticos. El veneno y la cura hablan el mismo idioma molecular.
-        </ArticleP>
+      <ArticleSection title={t.art_ven_s5_title}>
+        <ArticleP html={t.art_ven_s5_p1} />
       </ArticleSection>
 
       {/* Referencias */}
       <div className="pt-2 border-t border-white/[0.06]">
         <p className="text-cream/60 text-xs leading-relaxed">
-          <strong className="text-coffee-light/90">Referencias:</strong><br />
-          · Bresinsky, A. &amp; Besl, H. (1990). <em>A Colour Atlas of Poisonous Fungi</em>. Wolfe Publishing.<br />
-          · Enjalbert, F., et al. (2002). «Treatment of amatoxin poisoning». <em>J. Toxicology: Clinical Toxicology</em>.<br />
-          · Servicio de Información Toxicológica de España — <em>sit.toxicologia.org</em>
+          <strong className="text-coffee-light/90">{t.art_refs_label}:</strong><br />
+          <span dangerouslySetInnerHTML={{ __html: t.art_ven_refs }} />
         </p>
       </div>
 
