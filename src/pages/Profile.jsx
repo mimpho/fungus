@@ -14,8 +14,8 @@ export default function Profile() {
     setAuthModal,
   } = useApp()
 
-  const [form, setForm]           = useState(profile)
-  const [saved, setSaved]         = useState(false)
+  const [form, setForm] = useState(profile)
+  const [saved, setSaved] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
 
@@ -109,21 +109,11 @@ export default function Profile() {
 
   return (
     <div className="space-y-8 anim-up max-w-2xl mx-auto pb-20">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-display text-4xl font-semibold text-cream">{greeting}</h2>
-          <p className="text-muted text-sm mt-1">
-            {followedZones.length} {t.followedZones.toLowerCase()} · {favoriteSpecies.length} {t.favoriteSpecies.toLowerCase()}
-          </p>
-        </div>
-        <button
-          onClick={handleLogout}
-          disabled={signingOut}
-          className="flex items-center gap-1.5 text-cream/50 hover:text-red-400 text-sm transition-colors disabled:opacity-50 mt-1"
-        >
-          {IC.close}
-          <span>{signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}</span>
-        </button>
+      <div>
+        <h2 className="font-display text-4xl font-semibold text-cream">{greeting}</h2>
+        <p className="text-muted text-sm mt-1">
+          {followedZones.length} {t.followedZones.toLowerCase()} · {favoriteSpecies.length} {t.favoriteSpecies.toLowerCase()}
+        </p>
       </div>
 
       {/* User info */}
@@ -138,11 +128,10 @@ export default function Profile() {
             </p>
           )}
           <p className="text-cream/60 text-sm truncate">{user.email}</p>
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
-            user.plan === 'premium'
-              ? 'bg-amber-500/20 text-amber-400'
-              : 'bg-white/[0.06] text-cream/50'
-          }`}>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${user.plan === 'premium'
+            ? 'bg-amber-500/20 text-amber-400'
+            : 'bg-white/[0.06] text-cream/50'
+            }`}>
             {user.plan === 'premium' ? '⭐ Premium' : 'Free'}
           </span>
         </div>
@@ -274,6 +263,17 @@ export default function Profile() {
             )}
           </>
         )}
+      </section>
+
+      <section>
+        <button
+          onClick={handleLogout}
+          disabled={signingOut}
+          className="flex items-center gap-1.5 text-cream/50 hover:text-red-400 text-sm transition-colors disabled:opacity-50 mt-1"
+        >
+          {IC.close}
+          <span>{signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}</span>
+        </button>
       </section>
     </div>
   )
