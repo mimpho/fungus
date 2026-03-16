@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { IC } from '../../lib/helpers'
 import { MODAL } from '../../lib/constants'
+import { translateApiError } from '../../services/authService'
 
 export function AuthModal({ initialTab = 'login', onClose }) {
   const { t, login, register } = useApp()
@@ -44,7 +45,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
       }
       onClose()
     } catch (err) {
-      setError(err.message || (tab === 'login' ? 'Error al iniciar sesión' : 'Error al registrarse'))
+      setError(translateApiError(err.message, t))
     } finally {
       setLoading(false)
     }
