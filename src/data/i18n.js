@@ -160,6 +160,12 @@ export const i18n = {
     nombrePer: 'Nombre', emailPer: 'Email', handleSave: 'Guardar cambios',
     followedZones: 'Zonas seguidas', favoriteSpecies: 'Especies favoritas',
     alerta_zona: 'Alerta de zona', sin_notif: 'Sin notificaciones',
+    // auth
+    iniciarSesion: 'Iniciar sesión', registrarse: 'Registrarse', cerrarSesion: 'Cerrar sesión',
+    contrasena: 'Contraseña', minPass: 'Mínimo 8 caracteres',
+    authHintLogin: 'Necesitas cuenta para guardar tus zonas y especies favoritas',
+    authHintRegister: 'Registro gratuito · Sin tarjeta de crédito',
+    authCta: 'Crea una cuenta gratuita para seguir zonas y guardar tus especies favoritas.',
 
     // ── Micología — página ────────────────────────────────────────────────────
     micologiaDesc: 'Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.',
@@ -444,6 +450,12 @@ export const i18n = {
     nombrePer: 'Nom', emailPer: 'Correu', handleSave: 'Desa els canvis',
     followedZones: 'Zones seguides', favoriteSpecies: 'Espècies favorites',
     alerta_zona: 'Alerta de zona', sin_notif: 'Sense notificacions',
+    // auth
+    iniciarSesion: 'Inicia sessió', registrarse: 'Registra\'t', cerrarSesion: 'Tanca sessió',
+    contrasena: 'Contrasenya', minPass: 'Mínim 8 caràcters',
+    authHintLogin: 'Necessites compte per guardar les teves zones i espècies favorites',
+    authHintRegister: 'Registre gratuït · Sense targeta de crèdit',
+    authCta: 'Crea un compte gratuït per seguir zones i guardar les teves espècies favorites.',
 
     // ── Micologia — pàgina ────────────────────────────────────────────────────
     micologiaDesc: "Articles per entendre el regne fungi: ecologia, identificació, història i ciència.",
@@ -728,6 +740,12 @@ export const i18n = {
     nombrePer: 'Name', emailPer: 'Email', handleSave: 'Save changes',
     followedZones: 'Followed zones', favoriteSpecies: 'Favourite species',
     alerta_zona: 'Zone alert', sin_notif: 'No notifications',
+    // auth
+    iniciarSesion: 'Sign in', registrarse: 'Sign up', cerrarSesion: 'Sign out',
+    contrasena: 'Password', minPass: 'Minimum 8 characters',
+    authHintLogin: 'You need an account to save your favourite zones and species',
+    authHintRegister: 'Free registration · No credit card required',
+    authCta: 'Create a free account to follow zones and save your favourite species.',
 
     // ── Mycology — page ───────────────────────────────────────────────────────
     micologiaDesc: 'Articles to understand the fungi kingdom: ecology, identification, history and science.',

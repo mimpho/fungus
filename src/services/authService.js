@@ -1,0 +1,159 @@
+// =====================================================
+// authService.js — Auth API calls + in-memory token management
+//
+// Access token lives in a module-level variable (never localStorage).
+// This makes it immune to XSS attacks.
+//
+// Refresh token lives in an httpOnly cookie managed by the browser.
+// It is sent automatically on POST /auth/refresh.
+// =====================================================
+
+import { API_BASE } from './apiService'
+
+// ── In-memory token ────────────────────────────────────────────────────────────
+
+let _accessToken = null
+
+export function getAccessToken()        { return _accessToken }
+export function setAccessToken(token)   { _accessToken = token }
+export function clearAccessToken()      { _accessToken = null }
+
+/** Headers to include in authenticated requests. */
+export function authHeaders() {
+  return _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {}
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+async function post(path, body, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options.headers },
+    credentials: 'include',  // send/receive httpOnly cookies
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  return res
+}
+
+async function del(path) {
+  return fetch(`${API_BASE}${path}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+    credentials: 'include',
+  })
+}
+
+async function get(path) {
+  return fetch(`${API_BASE}${path}`, {
+    headers: authHeaders(),
+    credentials: 'include',
+  })
+}
+
+// ── Auth endpoints ─────────────────────────────────────────────────────────────
+
+/**
+ * Register a new user.
+ * @returns {{ user, access_token }} on success
+ * @throws Error with message from API on failure
+ */
+export async function apiRegister(email, password) {
+  const res = await post('/auth/register', { email, password })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail ?? 'Register failed')
+  setAccessToken(data.access_token)
+  return data
+}
+
+/**
+ * Log in with email + password.
+ * @returns {{ user, access_token }} on success
+ * @throws Error with message from API on failure
+ */
+export async function apiLogin(email, password) {
+  const res = await post('/auth/login', { email, password })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail ?? 'Login failed')
+  setAccessToken(data.access_token)
+  return data
+}
+
+/**
+ * Try to get a new access token using the httpOnly refresh cookie.
+ * Call this on app boot to silently restore a session.
+ * Returns the user object on success, null if no valid session.
+ */
+export async function apiRefresh() {
+  try {
+    const res = await post('/auth/refresh', null)
+    if (!res.ok) return null
+    const data = await res.json()
+    setAccessToken(data.access_token)
+    return data.user
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Log out — clears server-side refresh cookie + local token.
+ */
+export async function apiLogout() {
+  try {
+    await post('/auth/logout', null)
+  } finally {
+    clearAccessToken()
+  }
+}
+
+// ── /me endpoints ──────────────────────────────────────────────────────────────
+
+/** GET /me/followed-zones → array of { zone_id } */
+export async function apiGetFollowedZones() {
+  const res = await get('/me/followed-zones')
+  if (!res.ok) return []
+  return res.json()
+}
+
+/** POST /me/followed-zones */
+export async function apiFollowZone(zoneId) {
+  await post('/me/followed-zones', { zone_id: zoneId })
+}
+
+/** DELETE /me/followed-zones/{zoneId} */
+export async function apiUnfollowZone(zoneId) {
+  await del(`/me/followed-zones/${encodeURIComponent(zoneId)}`)
+}
+
+/** GET /me/fav-species → array of { species_id } */
+export async function apiGetFavSpecies() {
+  const res = await get('/me/fav-species')
+  if (!res.ok) return []
+  return res.json()
+}
+
+/** POST /me/fav-species */
+export async function apiFavSpecies(speciesId) {
+  await post('/me/fav-species', { species_id: speciesId })
+}
+
+/** DELETE /me/fav-species/{speciesId} */
+export async function apiUnfavSpecies(speciesId) {
+  await del(`/me/fav-species/${encodeURIComponent(speciesId)}`)
+}
+
+/**
+ * After login/register, migrate localStorage follows + favs to the API.
+ * Errors are silently ignored — the local state is always the source of truth
+ * for the current session.
+ *
+ * @param {Array} localZones    — array of zone objects from localStorage
+ * @param {Array} localSpecies  — array of species objects from localStorage
+ */
+export async function migrateLocalFavoritesToApi(localZones = [], localSpecies = []) {
+  const calls = [
+    ...localZones.map(z => apiFollowZone(z.id).catch(() => {})),
+    ...localSpecies.map(s => apiFavSpecies(s.id).catch(() => {})),
+  ]
+  await Promise.allSettled(calls)
+}

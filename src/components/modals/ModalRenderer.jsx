@@ -5,6 +5,7 @@ import { Lightbox } from './Lightbox'
 import { FamilyModal } from './FamilyModal'
 import { ZoneModal } from './ZoneModal'
 import { SpeciesModal } from './SpeciesModal'
+import { AuthModal } from './AuthModal'
 import { slugify } from '../../lib/helpers'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,6 +30,7 @@ export function ModalRenderer() {
     selectedSpecies, setSelectedSpecies,
     selectedFamily,  setSelectedFamily,
     lightbox,        setLightbox,
+    authModal,       setAuthModal,
   } = useApp()
 
   const navigate = useNavigate()
@@ -151,6 +153,13 @@ export function ModalRenderer() {
           photos={lightbox.photos}
           initialIndex={lightbox.index}
           onClose={closeViaHistory}
+        />
+      )}
+
+      {authModal && (
+        <AuthModal
+          initialTab={authModal}
+          onClose={() => setAuthModal(null)}
         />
       )}
     </>
