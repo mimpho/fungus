@@ -203,7 +203,7 @@ GET /api/v1/weather/zones
 | v4.6.3 | ✅ Entregado (Mejoras UX: filtros comarca/CCAA, no_comestible, restyling) |
 | v4.6.4 | ✅ Entregado (Datos confusiones familias restantes) |
 | v4.7 | ✅ Entregado (i18n completo: UI ES/CA/EN + DB layer `?lang=` + commonNames 202 especies) |
-| v4.7.1 | 🚧 En curso (i18n editorial: `cond_fruct` ✅ 202/202 sp · `description_ca/en` 🔲 · `diff_ca/en` 🔲) |
+| v4.7.1 | 🚧 En curso (i18n editorial: `cond_fruct` ✅ · `description_ca/en` ✅ · `diff_ca/en` ✅ · morfología ✅ · artículos ✅) |
 | v5 | 🗂 Backlog (Auth + favoritos en BD: JWT, registro/login) |
 | v6.0 | 🗂 Backlog (App móvil Android) |
 | v6.1 | 🗂 Backlog (App móvil iOS) |

@@ -93,7 +93,7 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v4.6.3 | ✅ | Mejoras UX: filtros comarca/CCAA, no_comestible, restyling |
 | v4.6.4 | ✅ | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) |
 | v4.7 | ✅ | i18n completo: UI strings ES/CA/EN, DB layer `?lang=` en `/species`, commonNames para 202 especies |
-| v4.7.1 | 🚧 En curso | i18n editorial: `cond_fruct` ✅ 202/202 sp · `description_ca/en` 🔲 · `diff_ca/en` 🔲 |
+| v4.7.1 | 🚧 En curso | i18n editorial: `cond_fruct` ✅ · `description_ca/en` ✅ · `diff_ca/en` ✅ · morfología ✅ · artículos completos ✅ (contenido + metadata + página Micología) |
 | v5 | 🗂 Backlog | Auth + favoritos en BD: JWT, registro/login, favoritos por usuario |
 | v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) |
 | v6.1 | 🗂 Backlog | App móvil iOS |

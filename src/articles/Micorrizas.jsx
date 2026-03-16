@@ -1,9 +1,10 @@
 // Micorrizas.jsx — contenido del artículo "Micorrizas: la alianza secreta entre hongos y árboles"
 // Se registra en ARTICLE_REGISTRY al importarse desde Micologia.jsx
 import { ARTICLE_REGISTRY, ArticleSection, ArticleP, ArticleCallout, ArticleInfographic } from '../components/modals/ArticleModal'
+import { useApp } from '../contexts/AppContext'
 
 // ─── Infografía 1: Intercambio de nutrientes ──────────────────────────────────
-function SvgExchange() {
+function SvgExchange({ t }) {
   return (
     <svg viewBox="0 0 600 290" xmlns="http://www.w3.org/2000/svg" className="w-full rounded-xl">
       <defs>
@@ -36,8 +37,8 @@ function SvgExchange() {
       <circle cx="555" cy="28" r="16" fill="#eab308" opacity="0.12" />
       <circle cx="555" cy="28" r="10" fill="#eab308" opacity="0.18" />
       <text x="555" y="32" fill="#eab308" fontSize="13" textAnchor="middle" opacity="0.7">☀</text>
-      <text x="192" y="28" fill="#84cc16" fontSize="10" fontWeight="600">Fotosíntesis</text>
-      <text x="192" y="41" fill="#f4ebe1" fontSize="9" opacity="0.45">CO₂ + H₂O → glucosa</text>
+      <text x="192" y="28" fill="#84cc16" fontSize="10" fontWeight="600">{t.art_mic_svg1_fotosintesis}</text>
+      <text x="192" y="41" fill="#f4ebe1" fontSize="9" opacity="0.45">{t.art_mic_svg1_formula}</text>
       <path d="M118,138 L118,208" stroke="#8a6230" strokeWidth="3.5" fill="none" strokeLinecap="round" />
       <path d="M118,168 Q92,188 76,222" stroke="#8a6230" strokeWidth="2.5" fill="none" strokeLinecap="round" />
       <path d="M118,176 Q145,198 160,230" stroke="#8a6230" strokeWidth="2.5" fill="none" strokeLinecap="round" />
@@ -56,21 +57,21 @@ function SvgExchange() {
       <path d="M100,89 L100,168" stroke="#84cc16" strokeWidth="2.5" fill="none" strokeDasharray="5,4" markerEnd="url(#ag)" opacity="0.95" />
       <path d="M215,244 L172,188" stroke="#c4a06b" strokeWidth="2.5" fill="none" strokeDasharray="5,4" markerEnd="url(#aa)" opacity="0.95" />
       <rect x="18" y="114" width="74" height="36" rx="8" fill="#0d1a0a" stroke="#84cc16" strokeWidth="1" opacity="0.95" />
-      <text x="55" y="127" fill="#84cc16" fontSize="9.5" fontWeight="700" textAnchor="middle">Azúcares</text>
-      <text x="55" y="141" fill="#84cc16" fontSize="8.5" textAnchor="middle" opacity="0.8">Carbono orgánico</text>
+      <text x="55" y="127" fill="#84cc16" fontSize="9.5" fontWeight="700" textAnchor="middle">{t.art_mic_svg1_sugars}</text>
+      <text x="55" y="141" fill="#84cc16" fontSize="8.5" textAnchor="middle" opacity="0.8">{t.art_mic_svg1_carbon}</text>
       <rect x="222" y="206" width="86" height="50" rx="8" fill="#120d06" stroke="#c4a06b" strokeWidth="1" opacity="0.95" />
-      <text x="265" y="220" fill="#c4a06b" fontSize="9.5" fontWeight="700" textAnchor="middle">Agua + Minerales</text>
-      <text x="265" y="233" fill="#c4a06b" fontSize="8.5" textAnchor="middle" opacity="0.8">Fósforo (P)</text>
-      <text x="265" y="246" fill="#c4a06b" fontSize="8.5" textAnchor="middle" opacity="0.8">Nitrógeno (N)</text>
+      <text x="265" y="220" fill="#c4a06b" fontSize="9.5" fontWeight="700" textAnchor="middle">{t.art_mic_svg1_minerals}</text>
+      <text x="265" y="233" fill="#c4a06b" fontSize="8.5" textAnchor="middle" opacity="0.8">{t.art_mic_svg1_phosphorus}</text>
+      <text x="265" y="246" fill="#c4a06b" fontSize="8.5" textAnchor="middle" opacity="0.8">{t.art_mic_svg1_nitrogen}</text>
       <circle cx="130" cy="205" r="48" fill="none" stroke="#c084fc" strokeWidth="1.5" strokeDasharray="4,3" opacity="0.45" />
-      <text x="185" y="172" fill="#c084fc" fontSize="9" opacity="0.6">Zona micorrícica</text>
-      <text x="390" y="284" fill="#4a7c59" fontSize="10" fontWeight="500" textAnchor="middle" opacity="0.7">Red micelial subterránea</text>
+      <text x="185" y="172" fill="#c084fc" fontSize="9" opacity="0.6">{t.art_mic_svg1_zone}</text>
+      <text x="390" y="284" fill="#4a7c59" fontSize="10" fontWeight="500" textAnchor="middle" opacity="0.7">{t.art_mic_svg1_network}</text>
     </svg>
   )
 }
 
 // ─── Infografía 2: Ecto vs Endo ───────────────────────────────────────────────
-function SvgEctoEndo() {
+function SvgEctoEndo({ t }) {
   const cellW = 38, cellH = 28, gap = 6
   const cells = (ox, oy, rows, cols, fill, stroke) =>
     Array.from({ length: rows }, (_, r) =>
@@ -87,33 +88,33 @@ function SvgEctoEndo() {
     <svg viewBox="0 0 600 260" xmlns="http://www.w3.org/2000/svg" className="w-full rounded-xl">
       <rect width="600" height="260" rx="12" fill="#111a0e" />
       <line x1="300" y1="20" x2="300" y2="240" stroke="#f4ebe1" strokeWidth="1" opacity="0.08" />
-      <text x="103" y="35" fill="#f4ebe1" fontSize="13" fontWeight="700" textAnchor="middle">Ectomicorriza</text>
-      <text x="103" y="50" fill="#f4ebe1" fontSize="9" textAnchor="middle" opacity="0.45">(ECM)</text>
+      <text x="103" y="35" fill="#f4ebe1" fontSize="13" fontWeight="700" textAnchor="middle">{t.art_mic_svg2_ecto}</text>
+      <text x="103" y="50" fill="#f4ebe1" fontSize="9" textAnchor="middle" opacity="0.45">{t.art_mic_svg2_ecto_abbr}</text>
       <rect x={ectoOx - 14} y={ectoOy - 14} width={panelW + 28} height={panelH + 28}
         rx="12" fill="none" stroke="#4a7c59" strokeWidth="12" opacity="0.25" />
       <rect x={ectoOx - 14} y={ectoOy - 14} width={panelW + 28} height={panelH + 28}
         rx="12" fill="none" stroke="#4a7c59" strokeWidth="4" opacity="0.6" />
       {cells(ectoOx, ectoOy, rows, cols, '#1e3a18', '#3a6030')}
-      <text x="497" y="35" fill="#f4ebe1" fontSize="13" fontWeight="700" textAnchor="middle">Endomicorriza</text>
-      <text x="497" y="50" fill="#f4ebe1" fontSize="9" textAnchor="middle" opacity="0.45">(AMF — Arbuscular)</text>
+      <text x="497" y="35" fill="#f4ebe1" fontSize="13" fontWeight="700" textAnchor="middle">{t.art_mic_svg2_endo}</text>
+      <text x="497" y="50" fill="#f4ebe1" fontSize="9" textAnchor="middle" opacity="0.45">{t.art_mic_svg2_endo_abbr}</text>
       {cells(endoOx, endoOy, rows, cols, '#1e3a18', '#3a6030')}
       <line x1={ectoOx + panelW/2} y1={ectoOy + cellH + gap/2} x2={ectoOx + panelW/2} y2={210}
         stroke="#6aaa7a" strokeWidth="1" opacity="0.5" />
-      <text x={ectoOx + panelW/2} y={222} fill="#6aaa7a" fontSize="8.5" textAnchor="middle">Red de Hartig</text>
-      <text x={ectoOx + panelW/2} y={234} fill="#6aaa7a" fontSize="7.5" textAnchor="middle" opacity="0.6">(entre células)</text>
+      <text x={ectoOx + panelW/2} y={222} fill="#6aaa7a" fontSize="8.5" textAnchor="middle">{t.art_mic_svg2_hartig}</text>
+      <text x={ectoOx + panelW/2} y={234} fill="#6aaa7a" fontSize="7.5" textAnchor="middle" opacity="0.6">{t.art_mic_svg2_hartig_sub}</text>
       <line x1={endoOx + panelW/2} y1={endoOy + cellH + gap/2} x2={endoOx + panelW/2} y2={210}
         stroke="#c4a06b" strokeWidth="1" opacity="0.5" />
-      <text x={endoOx + panelW/2} y={222} fill="#c4a06b" fontSize="8.5" textAnchor="middle">Arbúsculos</text>
-      <text x={endoOx + panelW/2} y={234} fill="#c4a06b" fontSize="7.5" textAnchor="middle" opacity="0.6">(intracelulares)</text>
+      <text x={endoOx + panelW/2} y={222} fill="#c4a06b" fontSize="8.5" textAnchor="middle">{t.art_mic_svg2_arbusculos}</text>
+      <text x={endoOx + panelW/2} y={234} fill="#c4a06b" fontSize="7.5" textAnchor="middle" opacity="0.6">{t.art_mic_svg2_arbusculos_sub}</text>
       <text x="300" y="252" fill="#f4ebe1" fontSize="8.5" textAnchor="middle" opacity="0.35">
-        Las hifas no penetran en las células (ECM) · Las hifas entran dentro de las células (AMF)
+        {t.art_mic_svg2_footer}
       </text>
     </svg>
   )
 }
 
 // ─── Infografía 3: Especie ↔ Árbol ───────────────────────────────────────────
-function SvgSpeciesTree() {
+function SvgSpeciesTree({ t }) {
   const species = [
     { name: 'Boletus edulis',        emoji: '🍄', trees: [1,1,1,0,1] },
     { name: 'Cantharellus cibarius', emoji: '🌼', trees: [0,1,1,1,0] },
@@ -121,7 +122,7 @@ function SvgSpeciesTree() {
     { name: 'Tuber melanosporum',    emoji: '⚫', trees: [0,1,0,1,0] },
     { name: 'Amanita caesarea',      emoji: '🔴', trees: [0,1,0,1,0] },
   ]
-  const trees      = ['Pino', 'Roble', 'Haya', 'Encina', 'Abeto']
+  const trees      = t.art_mic_svg3_trees
   const treeEmojis = ['🌲', '🌳', '🌲', '🌿', '🎄']
   const rowH = 36, headerH = 55, colW = 80, labelW = 170
   const totalH = headerH + species.length * rowH + 24
@@ -158,126 +159,64 @@ function SvgSpeciesTree() {
           </g>
         )
       })}
-      <text x="8" y={totalH - 6} fill="#f4ebe1" fontSize="8.5" opacity="0.3">✓ = asociación micorrícica conocida</text>
+      <text x="8" y={totalH - 6} fill="#f4ebe1" fontSize="8.5" opacity="0.3">{t.art_mic_svg3_footer}</text>
     </svg>
   )
 }
 
 // ─── Cuerpo del artículo ──────────────────────────────────────────────────────
 function MicorrizasContent() {
+  const { t } = useApp()
   return (
     <div className="p-6 pt-0 space-y-8">
-      <ArticleCallout emoji="🔬" color="#4a7c59">
-        El 90% de todas las plantas terrestres forman micorrizas. Los bosques que conocemos
-        —con sus pinos centenarios, sus robles majestuosos, sus hayas plateadas— solo son
-        posibles gracias a esta alianza subterránea entre raíces y hongos.
-      </ArticleCallout>
+      <ArticleCallout emoji="🔬" color="#4a7c59" html={t.art_mic_callout_intro} />
 
-      <ArticleSection title="¿Qué es exactamente una micorriza?">
-        <ArticleP>
-          El término viene del griego <em>mykos</em> (hongo) y <em>rhiza</em> (raíz). Una micorriza
-          es la asociación simbiótica entre las hifas de un hongo y las células de una raíz vegetal.
-          El resultado es una estructura híbrida —ni completamente hongo ni completamente planta—
-          que funciona como un órgano de intercambio metabólico extraordinariamente eficiente.
-        </ArticleP>
-        <ArticleP>
-          Las hifas fúngicas, de apenas 2 a 10 micrómetros de diámetro, son capaces de penetrar
-          en espacios del suelo completamente inaccesibles para las raíces. Esta red micelial puede
-          extenderse decenas de metros cuadrados bajo una sola planta, actuando como una
-          extensión radical de altísima superficie activa.
-        </ArticleP>
-        <ArticleP>
-          La simbiosis es mutuamente beneficiosa: ninguno de los dos organismos puede prescindir
-          del otro. En condiciones naturales, la mayoría de árboles forestales no sobreviven
-          sin sus hongos simbióticos, algo que complica enormemente los proyectos de reforestación.
-        </ArticleP>
+      <ArticleSection title={t.art_mic_s1_title}>
+        <ArticleP html={t.art_mic_s1_p1} />
+        <ArticleP>{t.art_mic_s1_p2}</ArticleP>
+        <ArticleP>{t.art_mic_s1_p3}</ArticleP>
       </ArticleSection>
 
       <ArticleInfographic
-        title="El intercambio de nutrientes entre árbol y micelio"
-        caption="El árbol aporta entre el 10–40% del carbono fijado. El hongo retribuye con agua, fósforo y nitrógeno del suelo.">
-        <SvgExchange />
+        title={t.art_mic_infog1_title}
+        caption={t.art_mic_infog1_caption}
+        infografiaLabel={t.infografia}>
+        <SvgExchange t={t} />
       </ArticleInfographic>
 
-      <ArticleSection title="El intercambio: azúcares por minerales">
-        <ArticleP>
-          La simbiosis funciona sobre un principio de trueque molecular. El árbol proporciona
-          al hongo entre el <strong style={{ color: '#a3b87a' }}>10% y el 40% del carbono</strong> que
-          fija mediante la fotosíntesis, fundamentalmente en forma de glucosa y sacarosa.
-          A cambio, el hongo transfiere a la planta agua y minerales del suelo.
-        </ArticleP>
-        <ArticleP>
-          Los minerales más importantes son el <strong style={{ color: '#c4a06b' }}>fósforo (P)</strong> y
-          el <strong style={{ color: '#c4a06b' }}>nitrógeno (N)</strong>, los principales nutrientes
-          limitantes del crecimiento vegetal. Estudios con trazadores radiactivos han demostrado
-          que el hongo puede multiplicar hasta 60 veces la capacidad de absorción fosfórica de la planta.
-        </ArticleP>
-        <ArticleP>
-          En condiciones de estrés hídrico, la red micelial también actúa como canal de agua,
-          permitiendo al árbol resistir periodos de sequía que, sin el hongo, serían letales.
-          Esta función cobra especial relevancia en el contexto del cambio climático.
-        </ArticleP>
+      <ArticleSection title={t.art_mic_s2_title}>
+        <ArticleP html={t.art_mic_s2_p1} />
+        <ArticleP html={t.art_mic_s2_p2} />
+        <ArticleP>{t.art_mic_s2_p3}</ArticleP>
       </ArticleSection>
 
-      <ArticleSection title="Ectomicorrizas y endomicorrizas: dos estrategias diferentes">
-        <ArticleP>
-          No todas las micorrizas funcionan de la misma manera. Existen dos grandes grupos
-          funcionales con estrategias radicalmente distintas de interacción con la célula vegetal.
-        </ArticleP>
-        <ArticleP>
-          Las <strong className="text-[#f4ebe1]/90">ectomicorrizas (ECM)</strong> son características de los
-          árboles forestales: pinos, robles, hayas, abetos, castaños. Las hifas forman un manto
-          compacto que envuelve la raíz y penetran <em>entre</em> las células corticales formando
-          la red de Hartig, pero <em>sin</em> introducirse dentro de ninguna célula. El 90% de
-          setas comestibles que buscamos son ECM.
-        </ArticleP>
-        <ArticleP>
-          Las <strong className="text-[#f4ebe1]/90">endomicorrizas arbusculares (AMF)</strong> están presentes
-          en el 80% de plantas terrestres pero los hongos AMF no forman setas visibles. Sus hifas
-          penetran <em>dentro</em> de las células y forman estructuras ramificadas llamadas arbúsculos,
-          el punto de intercambio metabólico.
-        </ArticleP>
+      <ArticleSection title={t.art_mic_s3_title}>
+        <ArticleP>{t.art_mic_s3_p1}</ArticleP>
+        <ArticleP html={t.art_mic_s3_p2} />
+        <ArticleP html={t.art_mic_s3_p3} />
         <ArticleInfographic
-          title="Ectomicorriza vs Endomicorriza: estructura microscópica"
-          caption="Izquierda: hifas forman manto exterior y red de Hartig entre células. Derecha: hifas intracelulares con arbúsculos ramificados.">
-          <SvgEctoEndo />
+          title={t.art_mic_infog2_title}
+          caption={t.art_mic_infog2_caption}
+          infografiaLabel={t.infografia}>
+          <SvgEctoEndo t={t} />
         </ArticleInfographic>
       </ArticleSection>
 
-      <ArticleSection title="Las grandes setas comestibles micorrícicas">
-        <ArticleP>
-          Las mejores setas comestibles son ECM obligadas: no pueden completar su ciclo de vida
-          sin el árbol huésped. Esta es la razón por la que no se cultivan en laboratorio con
-          facilidad, y explica por qué la trufa negra sigue valiendo más que el oro.
-        </ArticleP>
-        <ArticleP>
-          Cada especie tiene árboles huéspedes preferidos. El <em>Boletus edulis</em> aparece bajo
-          pinos, hayas y abetos; <em>Lactarius deliciosus</em> es casi exclusivo de pinares;
-          <em>Tuber melanosporum</em> prefiere encinas y robles en suelos calcáreos.
-        </ArticleP>
+      <ArticleSection title={t.art_mic_s4_title}>
+        <ArticleP>{t.art_mic_s4_p1}</ArticleP>
+        <ArticleP html={t.art_mic_s4_p2} />
         <ArticleInfographic
-          title="Asociaciones especie-árbol: ¿con qué árbol vive cada seta?"
-          caption="Las especies micorrícicas tienen preferencias específicas por sus árboles huéspedes.">
-          <SvgSpeciesTree />
+          title={t.art_mic_infog3_title}
+          caption={t.art_mic_infog3_caption}
+          infografiaLabel={t.infografia}>
+          <SvgSpeciesTree t={t} />
         </ArticleInfographic>
       </ArticleSection>
 
-      <ArticleSection title="Lo que todo recolector debería saber">
-        <ArticleP>
-          Entender las micorrizas no es solo fascinante: cambia la forma de buscar setas
-          y de cuidar los bosques.
-        </ArticleP>
+      <ArticleSection title={t.art_mic_s5_title}>
+        <ArticleP>{t.art_mic_s5_p1}</ArticleP>
         <div className="space-y-3">
-          {[
-            { icon: '🌲', title: 'Identifica los árboles antes que las setas',
-              text: 'Si quieres ceps (Boletus edulis), busca pinares, hayedos y abetales de altitud. El árbol y el hongo son inseparables.' },
-            { icon: '📏', title: 'Las setas pueden aparecer lejos del tronco',
-              text: 'El micelio se extiende hasta la gotera de las raíces, a veces 10–15 metros del árbol. Busca en el perímetro del dosel.' },
-            { icon: '🚫', title: 'Los suelos perturbados rinden menos',
-              text: 'La compactación y labranza rompen el micelio. Los bosques maduros sin pisoteo intenso tienen redes micorrícicas mucho más productivas.' },
-            { icon: '✂️', title: 'Corta, no arranques',
-              text: 'Cortar la seta por la base preserva el micelio mejor que arrancarla. Los hilos bajo tierra no son desecho: son parte viva del hongo.' },
-          ].map((item, i) => (
+          {t.art_mic_tips.map((item, i) => (
             <div key={i} className="flex gap-3 p-4 glass rounded-xl">
               <span className="text-xl flex-shrink-0 mt-0.5">{item.icon}</span>
               <div>
@@ -289,17 +228,12 @@ function MicorrizasContent() {
         </div>
       </ArticleSection>
 
-      <ArticleSection title="Para ir más lejos">
-        <ArticleCallout emoji="💡" color="#8b7a5a">
-          Las micorrizas son solo una pieza del llamado "Wood Wide Web", la red de comunicación
-          química que conecta árboles de un mismo bosque a través del micelio compartido.
-          Árboles madre, alertas ante patógenos, transferencia de nutrientes a plántulas en sombra...
-          el bosque como superorganismo es uno de los campos más activos de la ecología actual.
-        </ArticleCallout>
+      <ArticleSection title={t.art_mic_s6_title}>
+        <ArticleCallout emoji="💡" color="#8b7a5a" html={t.art_mic_s6_callout} />
       </ArticleSection>
 
       <div className="mt-10 pt-6" style={{ borderTop: '1px solid #ffffff10' }}>
-        <p className="text-xs font-semibold text-[#f4ebe1]/30 uppercase tracking-widest mb-4">Fuentes</p>
+        <p className="text-xs font-semibold text-[#f4ebe1]/30 uppercase tracking-widest mb-4">{t.art_sources}</p>
         <div className="space-y-2">
           {[
             { author: 'Sheldrake, M. (2020)', title: 'Entangled Life: How Fungi Make Our Worlds', pub: 'Random House' },

@@ -5,7 +5,7 @@ import Dashboard  from './pages/Dashboard'
 import Zones      from './pages/Zones'
 import Species    from './pages/Species'
 import Family     from './pages/Family'
-import Micologia  from './pages/Micologia'
+import Articles   from './pages/Articles'
 import Profile    from './pages/Profile'
 import Layout     from './components/Layout'
 import { ModalRenderer } from './components/modals/ModalRenderer'
@@ -37,8 +37,8 @@ export default function App() {
           <Route path="especies"        element={<Species />} />
           <Route path="especies/:id"    element={<Species />} />
           <Route path="familia/:slug"   element={<Family />} />
-          <Route path="micologia"       element={<Micologia />} />
-          <Route path="micologia/:slug" element={<Micologia />} />
+          <Route path="micologia"       element={<Articles />} />
+          <Route path="micologia/:slug" element={<Articles />} />
           <Route path="perfil"          element={<Profile />} />
           <Route path="*"               element={<Navigate to="/" replace />} />
         </Route>

@@ -1,14 +1,13 @@
-import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { mockArticles } from '../data/articles' // MOCK PERMANENTE — artículos son contenido JSX estático, sin backend (v4.5)
+import { mockArticles, getLocalizedArticle } from '../data/articles' // MOCK PERMANENTE — artículos son contenido JSX estático, sin backend (v4.5)
 import { ArticleModal } from '../components/modals/ArticleModal'
-import { slugify } from '../lib/helpers'
+import { useApp } from '../contexts/AppContext'
 // Importar artículos para que se registren en ARTICLE_REGISTRY
 import '../articles/Micorrizas'
 import '../articles/Esporas'
 import '../articles/Venenos'
 
-function ArticleCard({ article, onSelect }) {
+function ArticleCard({ article, onSelect, t }) {
   const isPublished = article.status === 'published'
   return (
     <div
@@ -18,12 +17,12 @@ function ArticleCard({ article, onSelect }) {
         <div className="absolute top-4 right-4">
           {!isPublished && (
             <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-white/10 text-cream/50">
-              Próximamente
+              {t.proximamente}
             </span>
           )}
           {isPublished && (
             <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-green-f/20 text-lime-400">
-              Nuevo
+              {t.nuevo}
             </span>
           )}
         </div>
@@ -53,21 +52,27 @@ function ArticleCard({ article, onSelect }) {
   )
 }
 
-export default function Micologia() {
+export default function Articles() {
   const { slug } = useParams()
   const navigate = useNavigate()
+  const { t, lang } = useApp()
 
-  // Artículo activo determinado por la URL
+  // Localizar todos los artículos según el idioma activo
+  const articles = mockArticles.map(a => getLocalizedArticle(a, lang))
+
+  // Artículo activo determinado por la URL (comparar contra slug estático, no localizado)
   const selectedArticle = slug
-    ? mockArticles.find(a => slugify(a.title) === slug) || null
+    ? mockArticles.find(a => a.slug === slug) || null
     : null
 
-  const featured = mockArticles.filter(a => a.featured)
-  const rest     = mockArticles.filter(a => !a.featured)
+  const featured = articles.filter(a => a.featured)
+  const rest     = articles.filter(a => !a.featured)
 
   const openArticle = (article) => {
-    if (article.status !== 'published') return
-    navigate(`/micologia/${slugify(article.title)}`)
+    // Recuperar el slug estático del artículo original (independiente de idioma)
+    const original = mockArticles.find(a => a.id === article.id)
+    if (!original || original.status !== 'published') return
+    navigate(`/micologia/${original.slug}`)
   }
 
   const closeArticle = () => navigate(-1)
@@ -81,8 +86,8 @@ export default function Micologia() {
       <div className="max-w-5xl mx-auto anim-up">
         {/* Header */}
         <div className="mb-8">
-          <h2 className="font-display text-4xl font-semibold text-cream mb-1">Micología</h2>
-          <p className="text-muted text-sm">Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.</p>
+          <h2 className="font-display text-4xl font-semibold text-cream mb-1">{t.micologia}</h2>
+          <p className="text-muted text-sm">{t.micologiaDesc}</p>
         </div>
 
         {/* Artículo destacado */}
@@ -109,7 +114,7 @@ export default function Micologia() {
                   ))}
                 </div>
                 <span className="hidden md:block text-xs text-cream/30">
-                  {article.readingTime} min de lectura
+                  {article.readingTime} {t.minLectura}
                 </span>
               </div>
             </div>
@@ -118,20 +123,21 @@ export default function Micologia() {
 
         {/* Resto de artículos */}
         <div className="mb-4">
-          <h3 className="text-muted text-sm font-medium uppercase mb-4">Más artículos</h3>
+          <h3 className="text-muted text-sm font-medium uppercase mb-4">{t.masArticulos}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {rest.map(article => (
               <ArticleCard
                 key={article.id}
                 article={article}
-                onSelect={openArticle} />
+                onSelect={openArticle}
+                t={t} />
             ))}
           </div>
         </div>
 
         <div className="mt-8 text-center py-8">
           <p className="text-xs text-cream/25">
-            Nuevos artículos cada mes · Basados en fuentes científicas
+            {t.articulosCadaMes}
           </p>
         </div>
       </div>
