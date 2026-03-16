@@ -62,7 +62,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <span className="text-2xl">🍄</span>
+          <img src="/assets/images/logoFungus.png" alt="Fungus" className="h-8 w-auto object-contain" />
           <button onClick={onClose} className="text-cream/40 hover:text-cream transition-colors p-1">
             {IC.close}
           </button>
