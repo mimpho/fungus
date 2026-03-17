@@ -67,8 +67,11 @@ export function translateApiError(detail, t) {
     'No refresh token':                 t.errCredenciales,
     'Invalid or expired refresh token': t.errCredenciales,
     'User not found':                   t.errCredenciales,
+    'Failed to fetch':                  t.errRed,
+    'NetworkError when attempting to fetch resource': t.errRed,
+    'Load failed':                      t.errRed,  // Safari
   }
-  return map[detail] ?? detail
+  return map[detail] ?? t.errRed ?? detail
 }
 
 // ── Auth endpoints ─────────────────────────────────────────────────────────────

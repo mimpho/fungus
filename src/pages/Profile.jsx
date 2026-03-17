@@ -208,7 +208,7 @@ export default function Profile() {
           )}
         </div>
         {followedZones.length === 0 ? (
-          <p className="text-cream/40 text-sm">Aún no sigues ninguna zona.</p>
+          <p className="text-cream/40 text-sm">{t.sinZonasSeguidas ?? 'Aún no sigues ninguna zona.'}</p>
         ) : (
           <div className="space-y-2">
             {followedZones.slice(0, 3).map(z => (
@@ -224,7 +224,7 @@ export default function Profile() {
             ))}
             {followedZones.length > 3 && (
               <Link to="/zonas?seguidas=1" className="block text-center text-xs text-cream/40 hover:text-cream pt-1 transition-colors">
-                +{followedZones.length - 3} más
+                +{followedZones.length - 3} {t.mas ?? 'más'}
               </Link>
             )}
           </div>
@@ -246,7 +246,7 @@ export default function Profile() {
           )}
         </div>
         {favoriteSpecies.length === 0 ? (
-          <p className="text-cream/40 text-sm">Aún no tienes especies favoritas.</p>
+          <p className="text-cream/40 text-sm">{t.sinEspeciesFavoritas ?? 'Aún no tienes especies favoritas.'}</p>
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2">
@@ -266,7 +266,7 @@ export default function Profile() {
             </div>
             {favoriteSpecies.length > 3 && (
               <Link to="/especies?filtro=favoritas" className="block text-center text-xs text-cream/40 hover:text-cream pt-3 transition-colors">
-                +{favoriteSpecies.length - 3} más
+                +{favoriteSpecies.length - 3} {t.mas ?? 'más'}
               </Link>
             )}
           </>
