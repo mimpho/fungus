@@ -68,7 +68,12 @@ async def register(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered",
         )
-    user = await create_user(db, body.email, body.password)
+    user = await create_user(
+        db, body.email, body.password,
+        first_name=body.first_name,
+        last_name=body.last_name,
+        birth_date=body.birth_date,
+    )
     access_token, refresh_token = _build_auth_response(user)
     _set_refresh_cookie(response, refresh_token)
     log.info("New user registered: id=%d email=%s", user.id, user.email)

@@ -78,8 +78,14 @@ export function translateApiError(detail, t) {
  * @returns {{ user, access_token }} on success
  * @throws Error with message from API on failure
  */
-export async function apiRegister(email, password) {
-  const res = await post('/auth/register', { email, password })
+export async function apiRegister(email, password, firstName, lastName, birthDate) {
+  const res = await post('/auth/register', {
+    email,
+    password,
+    first_name: firstName,
+    last_name: lastName,
+    ...(birthDate ? { birth_date: birthDate } : {}),
+  })
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail ?? 'Register failed')
   setAccessToken(data.access_token)
@@ -128,6 +134,27 @@ export async function apiLogout() {
 }
 
 // ── /me endpoints ──────────────────────────────────────────────────────────────
+
+/**
+ * PATCH /me/profile — update first_name, last_name, birth_date.
+ * @returns updated UserOut on success
+ * @throws Error with message from API on failure
+ */
+export async function apiUpdateProfile(firstName, lastName, birthDate) {
+  const res = await fetch(`${API_BASE}/me/profile`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    credentials: 'include',
+    body: JSON.stringify({
+      first_name: firstName,
+      last_name: lastName,
+      ...(birthDate ? { birth_date: birthDate } : { birth_date: null }),
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail ?? 'Update failed')
+  return data
+}
 
 /** GET /me/followed-zones → array of { zone_id } */
 export async function apiGetFollowedZones() {

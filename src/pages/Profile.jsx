@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { IC, getScoreColor, resolveUrl } from '../lib/helpers'
+import { EditProfileModal } from '../components/modals/EditProfileModal'
 
 export default function Profile() {
   const {
@@ -13,9 +14,10 @@ export default function Profile() {
     setAuthModal,
   } = useApp()
 
-  const [form, setForm]           = useState(profile)
-  const [saved, setSaved]         = useState(false)
+  const [form, setForm] = useState(profile)
+  const [saved, setSaved] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const notifications = followedZones.map(z => {
     const sc = getScoreColor(Math.floor(60 + Math.random() * 35))
@@ -82,7 +84,7 @@ export default function Profile() {
         <section className="glass rounded-2xl p-5">
           <h3 className="font-medium text-cream mb-4">{t.idioma}</h3>
           <div className="grid grid-cols-3 gap-3">
-            {[['es', '🇪🇸 Castellano'], ['ca', '🏴 Català'], ['en', '🇬🇧 English']].map(([code, label]) => (
+            {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
               <button key={code} onClick={() => setLang(code)}
                 className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/80 hover:text-cream'}`}>
                 {label}
@@ -95,41 +97,54 @@ export default function Profile() {
   }
 
   // ── Authenticated ────────────────────────────────────────────────────────────
+  const initials = user.first_name && user.last_name
+    ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+    : user.first_name
+      ? user.first_name[0].toUpperCase()
+      : null
+
+  const greeting = user.first_name
+    ? `${t.hola ?? 'Hola'}, ${user.first_name}`
+    : (t.hola ?? 'Hola')
+
   return (
     <div className="space-y-8 anim-up max-w-2xl mx-auto pb-20">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-display text-4xl font-semibold text-cream">{t.profile}</h2>
-          <p className="text-muted text-sm mt-1">
-            {followedZones.length} {t.followedZones.toLowerCase()} · {favoriteSpecies.length} {t.favoriteSpecies.toLowerCase()}
-          </p>
-        </div>
-        <button
-          onClick={handleLogout}
-          disabled={signingOut}
-          className="flex items-center gap-1.5 text-cream/50 hover:text-red-400 text-sm transition-colors disabled:opacity-50 mt-1"
-        >
-          {IC.close}
-          <span>{signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}</span>
-        </button>
+      <div>
+        <h2 className="font-display text-4xl font-semibold text-cream">{greeting}</h2>
+        <p className="text-muted text-sm mt-1">
+          {followedZones.length} {t.followedZones.toLowerCase()} · {favoriteSpecies.length} {t.favoriteSpecies.toLowerCase()}
+        </p>
       </div>
 
       {/* User info */}
       <section className="glass rounded-2xl p-5 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-bar/20 flex items-center justify-center text-xl flex-shrink-0">
-          🍄
+        <div className={`w-12 h-12 rounded-full bg-bar/20 flex items-center justify-center flex-shrink-0 ${initials ? 'font-display font-semibold text-coffee-light text-lg' : 'text-xl'}`}>
+          {initials ?? '🍄'}
         </div>
-        <div className="min-w-0">
-          <p className="text-cream font-medium truncate">{user.email}</p>
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
-            user.plan === 'premium'
-              ? 'bg-amber-500/20 text-amber-400'
-              : 'bg-white/[0.06] text-cream/50'
-          }`}>
+        <div className="min-w-0 flex-1">
+          {(user.first_name || user.last_name) && (
+            <p className="font-display text-lg font-semibold text-cream truncate leading-tight">
+              {[user.first_name, user.last_name].filter(Boolean).join(' ')}
+            </p>
+          )}
+          <p className="text-cream/60 text-sm truncate">{user.email}</p>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${user.plan === 'premium'
+            ? 'bg-amber-500/20 text-amber-400'
+            : 'bg-white/[0.06] text-cream/50'
+            }`}>
             {user.plan === 'premium' ? '⭐ Premium' : 'Free'}
           </span>
         </div>
+        <button
+          onClick={() => setShowEditModal(true)}
+          className="flex-shrink-0 flex items-center gap-1.5 text-cream/40 hover:text-cream transition-colors px-3 py-2 rounded-xl hover:bg-white/[0.06]"
+        >
+          {IC.pencil}
+          <span className="hidden md:inline text-sm">{t.editarPerfil ?? 'Editar perfil'}</span>
+        </button>
       </section>
+
+      {showEditModal && <EditProfileModal onClose={() => setShowEditModal(false)} />}
 
       {/* Notificaciones */}
       <section className="glass rounded-2xl overflow-hidden">
@@ -161,7 +176,7 @@ export default function Profile() {
       <section className="glass rounded-2xl p-5">
         <h3 className="font-medium text-cream mb-4">{t.idioma}</h3>
         <div className="grid grid-cols-3 gap-3">
-          {[['es', '🇪🇸 Castellano'], ['ca', '🏴 Català'], ['en', '🇬🇧 English']].map(([code, label]) => (
+          {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
             <button key={code} onClick={() => setLang(code)}
               className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/80 hover:text-cream'}`}>
               {label}
@@ -212,7 +227,7 @@ export default function Profile() {
       <section className="glass rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-medium text-cream flex items-center gap-2">
-            {IC.heart}
+            {IC.mushroom}
             {t.favoriteSpecies}
             <span className="text-cream/40 text-sm font-normal">({favoriteSpecies.length})</span>
           </h3>
@@ -248,6 +263,17 @@ export default function Profile() {
             )}
           </>
         )}
+      </section>
+
+      <section>
+        <button
+          onClick={handleLogout}
+          disabled={signingOut}
+          className="flex items-center gap-1.5 text-cream/50 hover:text-red-400 text-sm transition-colors disabled:opacity-50 mt-1"
+        >
+          {IC.close}
+          <span>{signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}</span>
+        </button>
       </section>
     </div>
   )

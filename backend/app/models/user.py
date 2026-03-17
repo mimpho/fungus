@@ -1,7 +1,7 @@
 """User model — auth + favorites + followed zones."""
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -13,6 +13,11 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(Text, nullable=False, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Profile fields
+    first_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # Monetization tier — "free" | "premium"
     plan: Mapped[str] = mapped_column(String(20), nullable=False, default="free")

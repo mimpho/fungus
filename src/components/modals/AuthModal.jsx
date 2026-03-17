@@ -15,6 +15,9 @@ export function AuthModal({ initialTab = 'login', onClose }) {
   const [tab, setTab]           = useState(initialTab)  // 'login' | 'register'
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName]   = useState('')
+  const [birthDate, setBirthDate] = useState('')
   const [error, setError]       = useState(null)
   const [loading, setLoading]   = useState(false)
 
@@ -24,7 +27,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
   useEffect(() => { emailRef.current?.focus() }, [])
 
   // Reset error when switching tabs or typing
-  useEffect(() => { setError(null) }, [tab, email, password])
+  useEffect(() => { setError(null) }, [tab, email, password, firstName, lastName])
 
   // Close on ESC
   useEffect(() => {
@@ -41,7 +44,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
       if (tab === 'login') {
         await login(email, password)
       } else {
-        await register(email, password)
+        await register(email, password, firstName, lastName, birthDate || undefined)
       }
       onClose()
     } catch (err) {
@@ -120,6 +123,56 @@ export function AuthModal({ initialTab = 'login', onClose }) {
               className="w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
             />
           </div>
+
+          {/* Extra fields — registro only */}
+          {!isLogin && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-muted text-xs uppercase tracking-wide block mb-1.5">
+                    {t.nombre ?? 'Nombre'}
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    required
+                    autoComplete="given-name"
+                    placeholder="Maria"
+                    className="w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-muted text-xs uppercase tracking-wide block mb-1.5">
+                    {t.apellidos ?? 'Apellidos'}
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    required
+                    autoComplete="family-name"
+                    placeholder="García"
+                    className="w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-muted text-xs uppercase tracking-wide block mb-1.5">
+                  {t.fechaNacimiento ?? 'Fecha de nacimiento'}
+                  <span className="normal-case ml-1 opacity-50">({t.opcional ?? 'Opcional'})</span>
+                </label>
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={e => setBirthDate(e.target.value)}
+                  autoComplete="bday"
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
+                />
+              </div>
+            </>
+          )}
 
           {/* Error */}
           {error && (

@@ -87,8 +87,21 @@ async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
     return result.scalar_one_or_none()
 
 
-async def create_user(db: AsyncSession, email: str, password: str) -> User:
-    user = User(email=email, password_hash=hash_password(password))
+async def create_user(
+    db: AsyncSession,
+    email: str,
+    password: str,
+    first_name: str = "",
+    last_name: str = "",
+    birth_date=None,
+) -> User:
+    user = User(
+        email=email,
+        password_hash=hash_password(password),
+        first_name=first_name or None,
+        last_name=last_name or None,
+        birth_date=birth_date,
+    )
     db.add(user)
     await db.commit()
     await db.refresh(user)
