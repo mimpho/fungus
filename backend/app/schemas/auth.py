@@ -1,6 +1,5 @@
 """Pydantic schemas for auth endpoints."""
 from datetime import date, datetime
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, field_validator
 
@@ -10,7 +9,7 @@ class RegisterRequest(BaseModel):
     password: str
     first_name: str
     last_name: str
-    birth_date: Optional[date] = None
+    birth_date: date | None = None
 
     @field_validator("password")
     @classmethod
@@ -40,9 +39,9 @@ class TokenResponse(BaseModel):
 class UserOut(BaseModel):
     id: int
     email: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    birth_date: Optional[date] = None
+    first_name: str | None = None
+    last_name: str | None = None
+    birth_date: date | None = None
     plan: str
     plan_expires_at: datetime | None
     created_at: datetime

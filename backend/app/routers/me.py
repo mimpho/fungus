@@ -1,6 +1,5 @@
 """Me router — followed zones and favourite species for the authenticated user."""
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, field_validator
@@ -28,7 +27,7 @@ class SpeciesIdBody(BaseModel):
 class UpdateProfileBody(BaseModel):
     first_name: str
     last_name: str
-    birth_date: Optional[date] = None
+    birth_date: date | None = None
 
     @field_validator("first_name", "last_name")
     @classmethod
