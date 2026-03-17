@@ -190,6 +190,18 @@ export async function apiUnfavSpecies(speciesId) {
   await del(`/me/fav-species/${encodeURIComponent(speciesId)}`)
 }
 
+export async function apiDeleteAccount() {
+  const res = await fetch(`${API_BASE}/me/account`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+    credentials: 'include',
+  })
+  if (!res.ok && res.status !== 204) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail ?? 'Delete failed')
+  }
+}
+
 /**
  * After login/register, migrate localStorage follows + favs to the API.
  * Errors are silently ignored — the local state is always the source of truth

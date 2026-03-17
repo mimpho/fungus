@@ -13,6 +13,7 @@ import {
   apiUnfollowZone,
   apiFavSpecies,
   apiUnfavSpecies,
+  apiDeleteAccount,
   migrateLocalFavoritesToApi,
 } from '../services/authService'
 
@@ -107,6 +108,14 @@ export function AppProvider({ children }) {
     saveStorage({ lang, zonas: [], favoritos: [], profile })
   }
 
+  async function deleteAccount() {
+    await apiDeleteAccount()
+    setUser(null)
+    setFollowedZones([])
+    setFavoriteSpecies([])
+    saveStorage({ lang, zonas: [], favoritos: [], profile })
+  }
+
   // ── Follow / Favorite toggles ────────────────────────────────────────────────
   // Auth gate: if not logged in, show login modal instead of acting.
   // When authenticated, updates both local state (instant UI) + API.
@@ -151,7 +160,7 @@ export function AppProvider({ children }) {
       profile, setProfile,
       // auth
       user, isAuthenticated, authLoading,
-      login, register, logout, updateUserProfile,
+      login, register, logout, updateUserProfile, deleteAccount,
       authModal, setAuthModal,
       // modal stack
       selectedZone, setSelectedZone,

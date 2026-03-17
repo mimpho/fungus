@@ -10,7 +10,7 @@ export default function Profile() {
     profile, setProfile,
     followedZones, favoriteSpecies,
     setSelectedZone, setSelectedSpecies,
-    user, isAuthenticated, authLoading, logout,
+    user, isAuthenticated, authLoading, logout, deleteAccount,
     setAuthModal,
   } = useApp()
 
@@ -18,6 +18,8 @@ export default function Profile() {
   const [saved, setSaved] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const notifications = followedZones.map(z => {
     const sc = getScoreColor(Math.floor(60 + Math.random() * 35))
@@ -38,6 +40,12 @@ export default function Profile() {
     setSigningOut(true)
     await logout()
     setSigningOut(false)
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    await deleteAccount()
+    setDeleting(false)
   }
 
   // ── Loading (initial session restore) ───────────────────────────────────────
@@ -265,15 +273,48 @@ export default function Profile() {
         )}
       </section>
 
-      <section>
-        <button
-          onClick={handleLogout}
-          disabled={signingOut}
-          className="flex items-center gap-1.5 text-cream/50 hover:text-red-400 text-sm transition-colors disabled:opacity-50 mt-1"
-        >
-          {IC.close}
-          <span>{signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}</span>
-        </button>
+      {/* Sesión */}
+      <section className="pt-2 pb-4">
+        {!confirmDelete ? (
+          <div className="flex items-center gap-3 text-sm text-cream/40">
+            <button
+              onClick={handleLogout}
+              disabled={signingOut || deleting}
+              className="hover:text-cream/70 transition-colors disabled:opacity-40"
+            >
+              {signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}
+            </button>
+            <span className="select-none">|</span>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={signingOut || deleting}
+              className="hover:text-red-400 transition-colors disabled:opacity-40"
+            >
+              {t.eliminarCuenta ?? 'Eliminar cuenta'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-red-400">{t.confirmarEliminar ?? '¿Seguro? Esta acción es irreversible.'}</p>
+            <div className="flex items-center gap-3 text-sm">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-40"
+              >
+                {deleting ? '...' : (t.siEliminar ?? 'Sí, eliminar')}
+              </button>
+              <span className="text-cream/40 select-none">|</span>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="text-cream/40 hover:text-cream/70 transition-colors disabled:opacity-40"
+              >
+                {t.cancelar ?? 'Cancelar'}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   )

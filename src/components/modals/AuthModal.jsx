@@ -203,6 +203,11 @@ export function AuthModal({ initialTab = 'login', onClose }) {
             : (t.authHintRegister ?? 'Registro gratuito · Sin tarjeta de crédito')
           }
         </p>
+
+        {/* Cookie notice */}
+        <p className="text-center text-cream/25 text-xs mt-2">
+          🔒 {t.cookieInfo ?? 'Al iniciar sesión guardamos una cookie segura para mantener tu sesión activa.'}
+        </p>
       </div>
     </div>
   )
