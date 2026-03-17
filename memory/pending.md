@@ -5,17 +5,16 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 ---
 
 
-## 🚀 Próximo — v5.1 Social login (Google + Apple)
+## 🚀 Próximo — v5.1 Social login (Google)
 
 **Alcance previsto:**
-- Google OAuth2 — mayor reducción de fricción, prioritario
-- Apple Sign In — obligatorio para App Store (v6.1 iOS)
-- DB: `auth_provider` (`"local"` | `"google"` | `"apple"`) + `provider_id` en tabla `users`; `password_hash` pasa a nullable
-- Backend: verificación de token con API de Google/Apple → emite nuestro propio JWT (el sistema de sesiones no cambia)
-- Librería: `authlib` para FastAPI
-- Frontend: Google Identity Services (script oficial), Apple JS SDK
+- Google OAuth2 — gratis, sin coste, mayor reducción de fricción
+- DB: `auth_provider` (`"local"` | `"google"`) + `provider_id` en tabla `users`; `password_hash` pasa a nullable
+- Backend: verificación de ID token con Google → emite nuestro propio JWT (el sistema de sesiones no cambia)
+- Librería: `authlib` o `google-auth` para FastAPI
+- Frontend: Google Identity Services (script oficial, One Tap)
 
-**Decisión:** hacer antes de v6 para que las apps arranquen con social login desde el día 1.
+**Apple Sign In — aplazado a v6.1:** requiere Apple Developer Program ($99/año). Solo tiene sentido pagarlo cuando se publique en App Store, que es el único momento en que es obligatorio. Se implementa como parte del bloque iOS.
 
 ---
 
