@@ -215,7 +215,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins_list,
     allow_origin_regex=r"https://fungus[^.]*\.vercel\.app",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE"],  # POST/DELETE for auth + me endpoints
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],  # PATCH for profile update
     allow_headers=["*"],
 )
 
