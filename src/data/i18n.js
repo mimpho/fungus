@@ -172,6 +172,9 @@ export const i18n = {
     nombre: 'Nombre', apellidos: 'Apellidos', fechaNacimiento: 'Fecha de nacimiento', opcional: 'Opcional',
     hola: 'Hola',
     editarPerfil: 'Editar perfil', datosCuenta: 'Datos de cuenta', cambioGuardado: 'Cambios guardados', guardar: 'Guardar',
+    eliminarCuenta: 'Eliminar cuenta', confirmarEliminar: '¿Seguro? Esta acción es irreversible.', cancelar: 'Cancelar', siEliminar: 'Sí, eliminar',
+    cookieInfo: 'Al iniciar sesión guardamos una cookie segura para mantener tu sesión activa.',
+    sinZonasSeguidas: 'Aún no sigues ninguna zona.', sinEspeciesFavoritas: 'Aún no tienes especies favoritas.', mas: 'más',
 
     // ── Micología — página ────────────────────────────────────────────────────
     micologiaDesc: 'Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.',
@@ -468,6 +471,9 @@ export const i18n = {
     nombre: 'Nom', apellidos: 'Cognoms', fechaNacimiento: 'Data de naixement', opcional: 'Opcional',
     hola: 'Hola',
     editarPerfil: 'Editar perfil', datosCuenta: 'Dades del compte', cambioGuardado: 'Canvis desats', guardar: 'Desa',
+    eliminarCuenta: 'Eliminar compte', confirmarEliminar: 'Segur? Aquesta acció és irreversible.', cancelar: 'Cancel·lar', siEliminar: 'Sí, eliminar',
+    cookieInfo: 'En iniciar sessió guardem una galeta segura per mantenir la teva sessió activa.',
+    sinZonasSeguidas: 'Encara no segueixes cap zona.', sinEspeciesFavoritas: 'Encara no tens espècies favorites.', mas: 'més',
 
     // ── Micologia — pàgina ────────────────────────────────────────────────────
     micologiaDesc: "Articles per entendre el regne fungi: ecologia, identificació, història i ciència.",
@@ -764,6 +770,9 @@ export const i18n = {
     nombre: 'First name', apellidos: 'Last name', fechaNacimiento: 'Date of birth', opcional: 'Optional',
     hola: 'Hi',
     editarPerfil: 'Edit profile', datosCuenta: 'Account details', cambioGuardado: 'Changes saved', guardar: 'Save',
+    eliminarCuenta: 'Delete account', confirmarEliminar: 'Are you sure? This action cannot be undone.', cancelar: 'Cancel', siEliminar: 'Yes, delete',
+    cookieInfo: 'When you sign in, we store a secure cookie to keep your session active.',
+    sinZonasSeguidas: "You're not following any zones yet.", sinEspeciesFavoritas: 'You have no favourite species yet.', mas: 'more',
 
     // ── Mycology — page ───────────────────────────────────────────────────────
     micologiaDesc: 'Articles to understand the fungi kingdom: ecology, identification, history and science.',

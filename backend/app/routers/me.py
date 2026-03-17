@@ -64,6 +64,18 @@ async def update_profile(
     return current_user
 
 
+# ── Account ────────────────────────────────────────────────────────────────────
+
+@router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_account(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Permanently delete the authenticated user and all associated data."""
+    await db.delete(current_user)
+    await db.commit()
+
+
 # ── Followed zones ─────────────────────────────────────────────────────────────
 
 @router.get("/followed-zones", response_model=list[FollowedZoneOut])

@@ -12,10 +12,12 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ### Añadido
 - **Campos de perfil en registro**: Nombre, Apellidos y Fecha de nacimiento (opcional) en el formulario de registro — frontend (`AuthModal`) y backend (`RegisterRequest`, migración 007 en `users`).
 - **`PATCH /me/profile`**: endpoint para editar nombre, apellidos y fecha de nacimiento del usuario autenticado. Email es inmutable.
-- **`EditProfileModal`**: modal de edición de perfil — pre-rellena datos del usuario, muestra estado de éxito (✓ Cambios guardados) y cierra automáticamente. Desactiva ESC mientras hay lightbox activo.
-- **Botón de edición en perfil**: icono lápiz en la tarjeta de usuario abre `EditProfileModal`. Muestra nombre completo si está disponible.
+- **`DELETE /me/account`**: eliminación permanente de cuenta con CASCADE en zonas y favoritos.
+- **`EditProfileModal`**: modal de edición de perfil — pre-rellena datos del usuario, muestra estado de éxito (✓ Cambios guardados) y cierra automáticamente.
+- **Perfil UX**: saludo `Hola, {nombre}`, iniciales en avatar, botón "Editar perfil" con label en desktop, "Cerrar sesión | Eliminar cuenta" como links al pie con confirmación inline.
+- **Cookie notice** en `AuthModal` al pie del formulario — informa de la cookie de sesión en el momento relevante (sin banner previo).
 - **`IC.pencil`**: nuevo icono SVG de lápiz añadido a `helpers.jsx`.
-- **i18n**: claves `nombre`, `apellidos`, `fechaNacimiento`, `opcional`, `editarPerfil`, `datosCuenta`, `cambioGuardado`, `guardar` en ES/CA/EN.
+- **i18n**: claves `hola`, `nombre`, `apellidos`, `fechaNacimiento`, `opcional`, `editarPerfil`, `datosCuenta`, `cambioGuardado`, `guardar`, `eliminarCuenta`, `confirmarEliminar`, `cancelar`, `siEliminar`, `cookieInfo`, `sinZonasSeguidas`, `sinEspeciesFavoritas`, `mas` en ES/CA/EN.
 - **URL sync completo** en `Zones.jsx` y `Species.jsx`: todos los filtros (vista, orden, tipo bosque, CCAA, comarca, familia, comestibilidad) se sincronizan con la URL.
 - **Deep links desde Perfil**: "Ver todas →" en zonas seguidas → `/zonas?seguidas=1`; en favoritas → `/especies?filtro=favoritas`.
 - **Hero de `SpeciesModal` abre lightbox** al clicar, con efecto zoom y badge de fotos.
@@ -23,8 +25,11 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - **CCAA incluida en búsqueda de zonas**.
 
 ### Corregido
-- **`SameSite=None`** en cookie de refresh para producción (Vercel → Render cross-site). `secure=True` en producción.
-- `stopPropagation` en botón de favorito del hero de `SpeciesModal` — evitaba abrir lightbox al clicar el corazón.
+- **`SameSite=None`** en cookie de refresh para producción (Vercel → Render cross-site).
+- **CORS**: `PATCH` añadido a `allow_methods` en `main.py` — `PATCH /me/profile` bloqueado por preflight CORS.
+- **`translateApiError`**: mapea `'Failed to fetch'` / `'Load failed'` (Safari) / `'NetworkError...'` (Firefox) a `errRed`; cualquier error desconocido también cae a `errRed` en lugar de mostrar texto técnico en inglés.
+- **ruff UP045**: `Optional[X]` → `X | None` en `me.py` y `schemas/auth.py`.
+- `stopPropagation` en botón de favorito del hero de `SpeciesModal`.
 
 ---
 
