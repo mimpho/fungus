@@ -430,10 +430,10 @@ Este archivo es privado (`.gitignore`) y es la fuente de verdad para decisiones 
 | v4.7 | ✅ Entregado | i18n completo: UI strings ES/CA/EN (~110 claves), DB layer con `?lang=` en `/species`, commonNames_ca/en para 202 especies |
 | v4.7.1 | ✅ Entregado | i18n editorial completo: artículos ES/CA/EN, morfología 202 especies, sticky search bar, header scroll inteligente |
 | v5 | ✅ Entregado | Auth JWT + user accounts + followed zones & fav species en BD |
-| v5.1 | 🗂 Backlog | Social login: Google OAuth2 + Apple Sign In (obligatorio antes de iOS App Store) |
+| v5.1 | 🗂 Backlog | Social login: Google OAuth2 (Apple aplazado a v6.1 — requiere Apple Developer $99/año) |
 | v5.2 | 🗂 Backlog | Confirmación de email al registro (token verificación, banner en perfil) |
 | v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) — APK, mapa nativo, notificaciones push |
-| v6.1 | 🗂 Backlog | App móvil iOS — distribución App Store |
+| v6.1 | 🗂 Backlog | App móvil iOS — distribución App Store + Apple Sign In (obligatorio para App Store) |
 | v7 | 🗂 Backlog | SEO: prerendering estático + react-helmet-async + Core Web Vitals |
 
 Spec completa de v4.x: `docs/backend_architecture.md`
