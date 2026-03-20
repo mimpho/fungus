@@ -480,7 +480,7 @@ export default function ImageGenerator() {
   );
 }
 
-export default function ImageGenerator() {
+function App() {
   const [history, setHistory] = useState(() => {
     let items = [];
     try {
@@ -860,7 +860,7 @@ export default function ImageGenerator() {
     }
   };
 
-  const withTimeout = (promise, ms): Promise => {
+  const withTimeout = (promise, ms) => {
     let timeoutId;
     const timeoutPromise = new Promise((_, reject) => {
       timeoutId = setTimeout(() => {
