@@ -36,7 +36,15 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 - Frontend: mostrar banner "Verifica tu email" en perfil si `!email_verified`
 - Proveedor: Resend o SendGrid (cheap/free tier suficiente para volumen inicial)
 
-**Decisión:** postergar a después de v5.1. Social login (especialmente Apple) es blocker duro para App Store y tiene más impacto en conversión.
+**Decisión:** postergar a después de v5.2. Sin proveedor de email configurado todavía (Resend o SendGrid).
+
+---
+
+## 🗂 Sin fecha — v6.0 App Android
+
+- React Native + Expo — APK, mapa nativo, notificaciones push
+- **Condicionado a monetización previa** (costes de desarrollo y distribución)
+- iOS eliminado del roadmap — requiere Apple Developer ($99/año) + Apple Sign In; se reconsiderará si hay ingresos
 
 ---
 
