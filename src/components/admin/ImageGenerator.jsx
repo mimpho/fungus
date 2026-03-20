@@ -7,14 +7,14 @@ import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'rea
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
-import { 
-  Camera, 
-  Sprout, 
-  TreePine, 
+import {
+  Camera,
+  Sprout,
+  TreePine,
   Wand2,
-  Maximize2, 
-  Loader2, 
-  Download, 
+  Maximize2,
+  Loader2,
+  Download,
   RefreshCw,
   Copy,
   Sparkles,
@@ -375,7 +375,7 @@ class ErrorBoundary extends React.Component {
                 {this.state.error?.message || "Error desconocido"}
               </code>
             </div>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="w-full py-4 bg-white text-black font-bold rounded-xl uppercase tracking-widest text-[10px] hover:bg-emerald-500 hover:text-white transition-all duration-500"
             >
@@ -390,10 +390,10 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const EditableField = ({ 
-  value, 
-  onSave, 
-  className = "", 
+const EditableField = ({
+  value,
+  onSave,
+  className = "",
   inputClassName = "",
   validate
 }) => {
@@ -414,7 +414,7 @@ const EditableField = ({
       setIsEditing(false);
       return;
     }
-    
+
     if (validate) {
       const error = validate(tempValue);
       if (error) {
@@ -424,7 +424,7 @@ const EditableField = ({
         return;
       }
     }
-    
+
     onSave(tempValue);
     setIsEditing(false);
   };
@@ -450,8 +450,8 @@ const EditableField = ({
   }
 
   return (
-    <span 
-      className={`cursor-pointer hover:text-emerald-400 transition-colors ${className}`} 
+    <span
+      className={`cursor-pointer hover:text-emerald-400 transition-colors ${className}`}
       onClick={(e) => {
         e.stopPropagation();
         setIsEditing(true);
@@ -490,7 +490,7 @@ function App() {
       console.error("Failed to parse history from localStorage:", e);
       items = [];
     }
-    
+
     // Migration: Ensure all items have a specimenId
     let changed = false;
     items = items.map((item, index) => {
@@ -515,14 +515,14 @@ function App() {
         // Assign sequential IDs starting from 001 for existing items
         // We use the reverse index so oldest is 001
         const id = (items.length - index).toString().padStart(3, '0');
-        return { 
-          ...item, 
-          settings: { ...item.settings, specimenId: id } 
+        return {
+          ...item,
+          settings: { ...item.settings, specimenId: id }
         };
       }
       return item;
     });
-    
+
     if (changed) {
       localStorage.setItem('fungus_history', JSON.stringify(items));
     }
@@ -545,9 +545,9 @@ function App() {
     const base = baseId.replace(/[a-z]+$/, '');
     let suffixCode = 'a'.charCodeAt(0);
     let newId = base + String.fromCharCode(suffixCode);
-    
+
     const existingIds = new Set(currentHistory.map(item => item.settings.specimenId));
-    
+
     while (existingIds.has(newId)) {
       suffixCode++;
       newId = base + String.fromCharCode(suffixCode);
@@ -630,10 +630,10 @@ function App() {
   const generateFallbackPrompt = (name, settings) => {
     const speciesData = findSpeciesData(name);
     const habitat = speciesData ? speciesData.habitat : "its natural forest habitat";
-    
+
     // Extract scientific name for the prompt
     const cleanName = name.includes(' - ') ? name.split(' - ')[1] : name;
-    
+
     let composition = "1 specimen";
     if (settings.specimenCount === 2) {
       const layouts = [
@@ -656,7 +656,7 @@ function App() {
     // Simular el realismo biótico y morfológico con alta variabilidad
     const rand = Math.random();
     let realismDetails = "";
-    
+
     // Siempre añadir una ligera imperfección morfológica al adulto (asimetría natural)
     const morphological = [
       "with a slightly asymmetrical cap and natural wavy margins",
@@ -703,7 +703,7 @@ function App() {
     // Determinar negativos taxonómicos según el género con pesos reforzados
     let negativeTaxonomic = "blurry, distorted, low quality, watermark, text";
     const lowerName = cleanName.toLowerCase();
-    
+
     if (lowerName.includes("russula") || lowerName.includes("lactarius")) {
       realismDetails += ", with a perfectly smooth and clean cylindrical stem, bare and naked stipe";
     }
@@ -775,12 +775,12 @@ function App() {
   const checkApiKey = async () => {
     // Usamos corchetes para que TypeScript no se queje del .env
     const envKey = import.meta.env?.VITE_GEMINI_API_KEY;
-  
+
     if (envKey) {
       setHasKey(true); // <--- Cambiado de setHasApiKey a setHasKey
       return;
     }
-  
+
     try {
       // @ts-ignore
       const result = await Promise.resolve(true);
@@ -796,7 +796,7 @@ function App() {
       setHasKey(true);
       return;
     }
-  
+
     // Usamos el interrogante (?.) para que si aistudio no existe, no explote
     // @ts-ignore
     console.log("Open key dialog requested");
@@ -883,19 +883,19 @@ function App() {
       } catch (err) {
         lastError = err;
         const errorMsg = err.message || "";
-        const isRetryable = 
+        const isRetryable =
           errorMsg.includes("500") ||
           errorMsg.includes("INTERNAL") ||
-          errorMsg.includes("503") || 
+          errorMsg.includes("503") ||
           errorMsg.includes("UNAVAILABLE") ||
           errorMsg.includes("429") ||
           errorMsg.includes("RESOURCE_EXHAUSTED") ||
           errorMsg.includes("high demand") ||
           errorMsg.includes("Service Unavailable") ||
           errorMsg.includes("Timeout");
-        
+
         if (!isRetryable || i === maxRetries - 1) throw err;
-        
+
         if (onRetry) onRetry(i + 1, err);
 
         // Faster exponential backoff
@@ -913,17 +913,17 @@ function App() {
 
     const reader = new FileReader();
     reader.onload = async (event) => {
-      const text = event.target?.result ;
+      const text = event.target?.result;
       const lines = text.split('\n').filter(line => line.trim().length > 0);
-      
+
       // Skip header if it looks like one
       if (lines.length === 0) {
         setError("El archivo CSV está vacío.");
         return;
       }
-      
+
       const startIdx = (lines[0] && (lines[0].toLowerCase().includes('id') || lines[0].toLowerCase().includes('nombre'))) ? 1 : 0;
-      
+
       // Process up to 100 items to avoid overloading but allow more than 10
       const items = lines.slice(startIdx, startIdx + 100).map(line => {
         const parts = line.split(',');
@@ -956,7 +956,7 @@ function App() {
     }).filter(item => item.name.length > 0);
 
     const existingIds = new Set(history.map(h => h.settings.specimenId));
-    const finalGenerationList = items 
+    const finalGenerationList = items
       ? generationList.filter(item => !existingIds.has(item.id))
       : generationList;
 
@@ -990,7 +990,7 @@ function App() {
     try {
       // Ensure key is selected for image generation models with timeout to prevent hanging
       setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Validando sesión de IA...`]);
-      
+
       if (false) {
         try {
           const hasKeySelected = await withTimeout(window.aistudio.hasSelectedApiKey(), 3000);
@@ -1023,14 +1023,14 @@ function App() {
 
       for (let i = 0; i < finalGenerationList.length; i++) {
         if (cancelRef.current) break;
-        
+
         if (isBatch) {
           setBatchProgress({ current: i + 1, total: finalGenerationList.length });
         }
 
         const { id: currentSpecimenId, name: currentName } = finalGenerationList[i];
-        
-        setBatchQueue(prev => prev.map((item, idx) => 
+
+        setBatchQueue(prev => prev.map((item, idx) =>
           idx === i ? { ...item, status: 'processing' } : item
         ));
 
@@ -1038,20 +1038,20 @@ function App() {
           setGenerationStep("Esperando entre capturas...");
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
-        
+
         try {
           setRetryStatus(null);
           setGenerationStep(`Conectando para ${currentName}...`);
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Iniciando ${currentName}...`]);
-          
+
           const speciesData = findSpeciesData(currentName);
           const habitatContext = speciesData ? speciesData.habitat : "its natural forest habitat";
           const family = speciesData?.family;
           const goldenRule = family ? TAXONOMY_GOLDEN_RULES[family] : null;
-          
+
           // Extract scientific name for the prompt
           const cleanName = currentName.includes(' - ') ? currentName.split(' - ')[1] : currentName;
-          
+
           let extraTaxonomicCommand = "";
           if (goldenRule) {
             extraTaxonomicCommand = ` ESCUDO DE VERDAD (TAXONOMY GOLDEN RULE): ${goldenRule}`;
@@ -1069,14 +1069,14 @@ function App() {
           REMINDER: Apply BIOTIC REALISM (slug bites, dry edges, forest debris) and occasionally include small insects or spider webs  your instructions.`;
 
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando prompt taxonómico...`]);
-          
+
           let prompt = "";
           try {
-            const promptResponse = await withRetry(() => genAI.getGenerativeModel({ model: 'gemini-1.5-pro', systemInstruction: MYCOLOGICAL_ENGINE_INSTRUCTIONS }).generateContent(enginePrompt), 2, 40000, 1000, (attempt) => {
+            const promptResponse = await withRetry(() => genAI.getGenerativeModel({ model: 'gemini-1.5-flash', systemInstruction: MYCOLOGICAL_ENGINE_INSTRUCTIONS }).generateContent(enginePrompt), 2, 40000, 1000, (attempt) => {
               setRetryStatus(`Reintentando análisis (${attempt}/2)...`);
               setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Reintento prompt ${attempt}...`]);
             });
-            
+
             prompt = (await promptResponse.response).text()?.trim() || "";
             if (!prompt) throw new Error("Respuesta de prompt vacía");
           } catch (promptErr) {
@@ -1089,7 +1089,7 @@ function App() {
 
           setGenerationStep(`Enviando diseño de ${currentName}...`);
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando imagen a Google...`]);
-          
+
           const response = await withRetry(() => genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' }).generateContent({ parts: [{ text: prompt }] }), 3, 90000, 2000, (attempt) => {
             setRetryStatus(`Servidor saturado. Reintento (${attempt}/3)...`);
             setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Reintento imagen ${attempt}...`]);
@@ -1097,7 +1097,7 @@ function App() {
 
           setGenerationStep("Recibiendo datos de imagen...");
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Datos recibidos. Procesando...`]);
-          
+
           let imageUrl = null;
           const candidates = response.candidates;
           if (!candidates || candidates.length === 0) throw new Error("El servidor no devolvió ninguna imagen.");
@@ -1115,10 +1115,10 @@ function App() {
 
           setGenerationStep("Procesando revelado final...");
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Revelando fotografía...`]);
-          
+
           const finalImage = await processImage(imageUrl, settings.fileFormat, settings.quality);
           lastFinalImage = finalImage;
-          
+
           setGenerationStep("Traduciendo metadatos...");
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ¡Generación exitosa!`]);
 
@@ -1137,10 +1137,10 @@ function App() {
               .filter(p => p.length > 10);
             lastPromptParts = parts;
           }
-          
+
           const itemId = Math.random().toString(36).substr(2, 9);
           newBatchIds.push(itemId);
-          
+
           const newItem = {
             id: itemId,
             url: finalImage,
@@ -1150,8 +1150,8 @@ function App() {
           setHistory(prev => [newItem, ...prev].slice(0, 30));
           lastGeneratedItem = newItem;
           successCount++;
-          
-          setBatchQueue(prev => prev.map((item, idx) => 
+
+          setBatchQueue(prev => prev.map((item, idx) =>
             idx === i ? { ...item, status: 'completed' } : item
           ));
         } catch (itemErr) {
@@ -1159,7 +1159,7 @@ function App() {
           failCount++;
           const errorMsg = itemErr.message || "Error desconocido";
           if (!firstItemError) firstItemError = errorMsg;
-          setBatchQueue(prev => prev.map((item, idx) => 
+          setBatchQueue(prev => prev.map((item, idx) =>
             idx === i ? { ...item, status: 'failed', error: errorMsg } : item
           ));
         }
@@ -1226,15 +1226,15 @@ function App() {
 
   const handleBulkDownload = async () => {
     if (selectedIds.length === 0) return;
-    
+
     const zip = new JSZip();
     const selectedItems = history.filter(item => selectedIds.includes(item.id));
     const extension = getExtension(bulkFormat);
-    
+
     for (let i = 0; i < selectedItems.length; i++) {
       const item = selectedItems[i];
       const id = item.settings.specimenId;
-      
+
       // Original in selected format: esp-<id>-main-large.<extension>
       try {
         const originalInFormat = await processImage(item.url, bulkFormat, 0.8, 1);
@@ -1243,7 +1243,7 @@ function App() {
       } catch (err) {
         console.error("Error converting original image for bulk download:", err);
       }
-      
+
       // 50% version in selected format: esp-<id>-main.<extension>
       try {
         const smallImage = await processImage(item.url, bulkFormat, 0.8, 0.5);
@@ -1253,7 +1253,7 @@ function App() {
         console.error("Error creating small image for bulk download:", err);
       }
     }
-    
+
     const content = await zip.generateAsync({ type: 'blob' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(content);
@@ -1281,7 +1281,7 @@ function App() {
     try {
       // For image editing models, we MUST ensure a key is selected with timeout
       setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Validando sesión de IA...`]);
-      
+
       if (false) {
         try {
           const hasKeySelected = await withTimeout(window.aistudio.hasSelectedApiKey(), 3000);
@@ -1302,9 +1302,9 @@ function App() {
       if (!apiKey) {
         throw new Error("Clave API no configurada.");
       }
-      
-      const genAI = new GoogleGenerativeAI({ apiKey });
-      
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+
       // Extract base64 data from generatedImage
       setGenerationStep("Preparando imagen original...");
       setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Procesando imagen base...`]);
@@ -1319,7 +1319,7 @@ function App() {
 
       setGenerationStep("Solicitando cambios a la IA...");
       setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Enviando petición de refinamiento (Gemini 3.1)...`]);
-      
+
       const response = await withRetry(async () => {
         const cleanScientificName = currentSettings.scientificName.includes(' - ') ? currentSettings.scientificName.split(' - ')[1] : currentSettings.scientificName;
         const speciesData = findSpeciesData(currentSettings.scientificName);
@@ -1334,7 +1334,7 @@ function App() {
           const errMsg = err.message || "";
           const isTimeout = errMsg.includes("Timeout") || errMsg.includes("tiempo");
           const isInternal = errMsg.includes("500") || errMsg.includes("INTERNAL");
-          
+
           if (isTimeout || isInternal) {
             setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini 3.1 ${isTimeout ? 'lento' : 'error'}. Usando motor de respaldo (Gemini 2.5)...`]);
             return await genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }).generateContent({ parts: [{ text: refinementText }] });
@@ -1363,7 +1363,7 @@ function App() {
         setGenerationStep("Revelando fotografía refinada...");
         const finalImage = await processImage(imageUrl, settings.fileFormat, settings.quality);
         setGeneratedImage(finalImage);
-        
+
         // Update prompt display with Spanish translation
         setGenerationStep("Traduciendo descripción...");
         try {
@@ -1373,15 +1373,15 @@ function App() {
         } catch (e) {
           setPromptParts([`Refinado: ${refinementText}`]);
         }
-        
+
         setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ¡Refinamiento completado con éxito!`]);
         setCurrentPromptPartIndex(0);
-        
+
         const newItem = {
           id: Math.random().toString(36).substr(2, 9),
           url: finalImage,
-          settings: { 
-            ...currentSettings, 
+          settings: {
+            ...currentSettings,
             description: `${currentSettings.description || ''} (Refined: ${refinementText})`,
             specimenId: getNextSuffixId(currentSettings.specimenId, history)
           },
@@ -1397,7 +1397,7 @@ function App() {
       console.error("Error de refinamiento:", err);
       const errorMsg = err.message || "Error desconocido";
       setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERROR: ${errorMsg}`]);
-      
+
       if (errorMsg.includes("Requested entity w found")) {
         setHasKey(false);
         setError("Error de clave API. Por favor, vuelve a seleccionar tu clave API para refinar.");
@@ -1416,7 +1416,7 @@ function App() {
   if (hasKey === false) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full bg-black/40 backdrop-blur-xl rounded-xl p-8 shadow-2xl border border-white/10 text-center"
@@ -1444,7 +1444,7 @@ function App() {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen selection:bg-emerald-900/30 text-[#f4ebe1] relative"
       onDragOver={(e) => {
         e.preventDefault();
@@ -1456,13 +1456,13 @@ function App() {
         setIsDragging(false);
         const file = e.dataTransfer.files[0];
         if (file && file.name.endsWith('.csv')) {
-          handleMassImport({ target: { files: [file] } } );
+          handleMassImport({ target: { files: [file] } });
         }
       }}
     >
       <AnimatePresence>
         {isDragging && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1481,16 +1481,16 @@ function App() {
       <header className="border-b border-white/5 bg-black/20 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img 
-              src="https://fungus-ashen.vercel.app/assets/images/logoFungus.png" 
-              alt="Logo" 
-              className="h-12 w-auto" 
+            <img
+              src="https://fungus-ashen.vercel.app/assets/images/logoFungus.png"
+              alt="Logo"
+              className="h-12 w-auto"
               referrerPolicy="no-referrer"
             />
           </div>
           <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-[0.2em] text-[#d9cda1]/60">
             <span className="text-[#f4ebe1] cursor-default">Generador</span>
-            <button 
+            <button
               onClick={() => setIsArchiveOpen(true)}
               className="hover:text-[#f4ebe1] cursor-pointer transition-colors uppercase"
             >
@@ -1516,7 +1516,7 @@ function App() {
                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50" />
                     <div className="relative z-10">
                       <div className="relative w-24 h-24 mx-auto mb-6">
-                        <motion.div 
+                        <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                           className="absolute inset-0 border-[1px] border-white/5 border-t-emerald-500 rounded-full"
@@ -1569,15 +1569,15 @@ function App() {
                             {batchProgress ? `${batchProgress.current} / ${batchProgress.total}` : batchQueue.length}
                           </span>
                         </div>
-                        
+
                         <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
                           {batchQueue.map((item, idx) => (
                             <div key={idx} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5 border border-white/5 group transition-colors hover:bg-white/10">
                               <div className="flex items-center gap-3 overflow-hidden">
                                 {item.status === 'completed' ? <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" /> :
-                                 item.status === 'failed' ? <AlertCircle className="w-3 h-3 text-red-500 shrink-0" /> :
-                                 item.status === 'processing' ? <Loader2 className="w-3 h-3 text-emerald-500 animate-spin shrink-0" /> :
-                                 <Clock className="w-3 h-3 text-[#d9cda1]/30 shrink-0" />}
+                                  item.status === 'failed' ? <AlertCircle className="w-3 h-3 text-red-500 shrink-0" /> :
+                                    item.status === 'processing' ? <Loader2 className="w-3 h-3 text-emerald-500 animate-spin shrink-0" /> :
+                                      <Clock className="w-3 h-3 text-[#d9cda1]/30 shrink-0" />}
                                 <div className="flex flex-col truncate">
                                   <span className={`text-xs font-bold truncate ${item.status === 'processing' ? 'text-emerald-400' : 'text-[#d9cda1]/80'}`}>
                                     {item.name}
@@ -1599,8 +1599,8 @@ function App() {
 
                         {batchProgress && (
                           <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-emerald-500/50 transition-all duration-500" 
+                            <div
+                              className="h-full bg-emerald-500/50 transition-all duration-500"
                               style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
                             />
                           </div>
@@ -1610,7 +1610,7 @@ function App() {
                   )}
 
                   {/* Botón Detener */}
-                  <button 
+                  <button
                     onClick={stopGeneration}
                     className="w-full bg-red-500/10 text-red-400 border border-red-500/10 rounded-xl py-4 font-bold text-xs uppercase tracking-[0.2em] hover:bg-red-500/20 transition-all flex items-center justify-center gap-3"
                   >
@@ -1623,267 +1623,265 @@ function App() {
               {!isGenerating && (
                 <div className="space-y-10">
                   <section className="transition-all duration-500">
-                <div className="space-y-8">
-                  <div className="grid grid-cols-12 gap-4">
-                    <div className="col-span-3">
-                      <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70">ID</label>
-                      <input 
-                        type="text"
-                        placeholder="001"
-                        className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-mono text-sm text-[#f4ebe1]"
-                        value={settings.specimenId}
-                        onChange={(e) => setSettings({...settings, specimenId: e.target.value})}
-                      />
-                    </div>
-                    <div className="col-span-9">
-                      <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70">Nombre Científico</label>
-                      <input 
-                        type="text"
-                        list="mushroom-species"
-                        placeholder="Amanita muscaria"
-                        className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-xl placeholder:text-white/10 text-[#f4ebe1]"
-                        value={settings.scientificName}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const match = MUSHROOM_SPECIES_DATA.find(s => s.name === val);
-                          if (match && val.includes(' - ')) {
-                            const [idPart, namePart] = val.split(' - ');
-                            const cleanId = idPart.replace('esp-', '');
-                            setSettings({
-                              ...settings,
-                              specimenId: cleanId,
-                              scientificName: namePart
-                            });
-                          } else {
-                            setSettings({...settings, scientificName: val});
-                          }
-                        }}
-                      />
-                      <datalist id="mushroom-species">
-                        {MUSHROOM_SPECIES_DATA.map(s => (
-                          <option key={s.name} value={s.name} />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
+                    <div className="space-y-8">
+                      <div className="grid grid-cols-12 gap-4">
+                        <div className="col-span-3">
+                          <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70">ID</label>
+                          <input
+                            type="text"
+                            placeholder="001"
+                            className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-mono text-sm text-[#f4ebe1]"
+                            value={settings.specimenId}
+                            onChange={(e) => setSettings({ ...settings, specimenId: e.target.value })}
+                          />
+                        </div>
+                        <div className="col-span-9">
+                          <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70">Nombre Científico</label>
+                          <input
+                            type="text"
+                            list="mushroom-species"
+                            placeholder="Amanita muscaria"
+                            className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-xl placeholder:text-white/10 text-[#f4ebe1]"
+                            value={settings.scientificName}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const match = MUSHROOM_SPECIES_DATA.find(s => s.name === val);
+                              if (match && val.includes(' - ')) {
+                                const [idPart, namePart] = val.split(' - ');
+                                const cleanId = idPart.replace('esp-', '');
+                                setSettings({
+                                  ...settings,
+                                  specimenId: cleanId,
+                                  scientificName: namePart
+                                });
+                              } else {
+                                setSettings({ ...settings, scientificName: val });
+                              }
+                            }}
+                          />
+                          <datalist id="mushroom-species">
+                            {MUSHROOM_SPECIES_DATA.map(s => (
+                              <option key={s.name} value={s.name} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
 
-                  <div className="space-y-6">
-                    <div className="pt-2 border-t border-white/5">
-                      <button 
-                        onClick={() => setIsSceneExpanded(!isSceneExpanded)}
-                        className="w-full flex items-center justify-between group"
-                      >
-                        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[#d9cda1] flex items-center gap-2 group-hover:text-[#f4ebe1] transition-colors">
-                          <Layout className="w-3 h-3" />
-                          Ajustes de Escena
-                        </h3>
-                        <ChevronDown className={`w-4 h-4 text-[#d9cda1] transition-transform duration-300 ${isSceneExpanded ? 'rotate-180' : ''}`} />
-                      </button>
-                      
-                      <AnimatePresence>
-                        {isSceneExpanded && (
-                          <motion.div 
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
+                      <div className="space-y-6">
+                        <div className="pt-2 border-t border-white/5">
+                          <button
+                            onClick={() => setIsSceneExpanded(!isSceneExpanded)}
+                            className="w-full flex items-center justify-between group"
                           >
-                            <div className="space-y-6 pt-6">
-                              <div>
-                                <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Número de Ejemplares</label>
-                                <div className="flex gap-2">
-                                  {[1, 2, 3].map((num) => (
-                                    <button
-                                      key={num}
-                                      onClick={() => setSettings({...settings, specimenCount: num})}
-                                      className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${
-                                        settings.specimenCount === num 
-                                          ? 'bg-[#f4ebe1] border-[#f4ebe1] text-[#1a1a1a]' 
-                                          : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
-                                      }`}
-                                    >
-                                      {num}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[#d9cda1] flex items-center gap-2 group-hover:text-[#f4ebe1] transition-colors">
+                              <Layout className="w-3 h-3" />
+                              Ajustes de Escena
+                            </h3>
+                            <ChevronDown className={`w-4 h-4 text-[#d9cda1] transition-transform duration-300 ${isSceneExpanded ? 'rotate-180' : ''}`} />
+                          </button>
 
-                              <div>
-                                <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Tipo de Plano</label>
-                                <div className="relative">
-                                  <select 
-                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all appearance-none text-xs font-bold uppercase tracking-wider text-[#f4ebe1]"
-                                    value={settings.shotType}
-                                    onChange={(e) => setSettings({...settings, shotType: e.target.value})}
-                                  >
-                                    {SHOT_TYPES.map(s => <option key={s} value={s} className="bg-[#2b3529]">{s}</option>)}
-                                  </select>
-                                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#d9cda1]">
-                                    <ChevronRight className="w-3 h-3 rotate-90" />
+                          <AnimatePresence>
+                            {isSceneExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="space-y-6 pt-6">
+                                  <div>
+                                    <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Número de Ejemplares</label>
+                                    <div className="flex gap-2">
+                                      {[1, 2, 3].map((num) => (
+                                        <button
+                                          key={num}
+                                          onClick={() => setSettings({ ...settings, specimenCount: num })}
+                                          className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${settings.specimenCount === num
+                                              ? 'bg-[#f4ebe1] border-[#f4ebe1] text-[#1a1a1a]'
+                                              : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
+                                            }`}
+                                        >
+                                          {num}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Tipo de Plano</label>
+                                    <div className="relative">
+                                      <select
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all appearance-none text-xs font-bold uppercase tracking-wider text-[#f4ebe1]"
+                                        value={settings.shotType}
+                                        onChange={(e) => setSettings({ ...settings, shotType: e.target.value })}
+                                      >
+                                        {SHOT_TYPES.map(s => <option key={s} value={s} className="bg-[#2b3529]">{s}</option>)}
+                                      </select>
+                                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#d9cda1]">
+                                        <ChevronRight className="w-3 h-3 rotate-90" />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Detalles Específicos (Opcional)</label>
+                                    <textarea
+                                      placeholder="ej. con got rocío, sobre un tronco caído..."
+                                      className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all h-24 resize-none text-xs placeholder:text-white/10 text-[#f4ebe1]"
+                                      value={settings.description}
+                                      onChange={(e) => setSettings({ ...settings, description: e.target.value })}
+                                    />
                                   </div>
                                 </div>
-                              </div>
-
-                              <div>
-                                <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Detalles Específicos (Opcional)</label>
-                                <textarea 
-                                  placeholder="ej. con got rocío, sobre un tronco caído..."
-                                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all h-24 resize-none text-xs placeholder:text-white/10 text-[#f4ebe1]"
-                                  value={settings.description}
-                                  onChange={(e) => setSettings({...settings, description: e.target.value})}
-                                />
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    <div className="pt-2 border-t border-white/5">
-                      <button 
-                        onClick={() => setIsExportExpanded(!isExportExpanded)}
-                        className="w-full flex items-center justify-between group"
-                      >
-                        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[#d9cda1] flex items-center gap-2 group-hover:text-[#f4ebe1] transition-colors">
-                          <Settings2 className="w-3 h-3" />
-                          Ajustes de Exportación
-                        </h3>
-                        <ChevronDown className={`w-4 h-4 text-[#d9cda1] transition-transform duration-300 ${isExportExpanded ? 'rotate-180' : ''}`} />
-                      </button>
-                    
-                    <AnimatePresence>
-                      {isExportExpanded && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-6 pt-6">
-                            <div>
-                              <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Formato de Imagen (Proporción)</label>
-                              <div className="relative">
-                                <select 
-                                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all appearance-none text-xs font-bold uppercase tracking-wider text-[#f4ebe1]"
-                                  value={settings.aspectRatio}
-                                  onChange={(e) => setSettings({...settings, aspectRatio: e.target.value })}
-                                >
-                                  {ASPECT_RATIOS.map(ar => <option key={ar.value} value={ar.value} className="bg-[#2b3529]">{ar.label}</option>)}
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#d9cda1]">
-                                  <ChevronRight className="w-3 h-3 rotate-90" />
-                                </div>
-                              </div>
-                            </div>
-
-                            <div>
-                              <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Formato de Archivo</label>
-                              <div className="flex gap-2">
-                                {FILE_FORMATS.map((ff) => (
-                                  <button
-                                    key={ff.value}
-                                    onClick={() => setSettings({...settings, fileFormat: ff.value})}
-                                    className={`flex-1 px-3 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
-                                      settings.fileFormat === ff.value 
-                                        ? 'bg-[#f4ebe1] border-[#f4ebe1] text-[#1a1a1a]' 
-                                        : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
-                                    }`}
-                                  >
-                                    {ff.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {settings.fileFormat !== 'image/png' && (
-                              <div>
-                                <div className="flex justify-between items-center mb-3">
-                                  <label className="block text-xs font-bold uppercase tracking-widest text-[#d9cda1]/50">Calidad de Compresión</label>
-                                  <span className="text-xs font-bold text-[#d9cda1]">{Math.round(settings.quality * 100)}%</span>
-                                </div>
-                                <input 
-                                  type="range"
-                                  min="0.1"
-                                  max="1.0"
-                                  step="0.05"
-                                  value={settings.quality}
-                                  onChange={(e) => setSettings({...settings, quality: parseFloat(e.target.value)})}
-                                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#d9cda1]"
-                                />
-                              </div>
+                              </motion.div>
                             )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                          </AnimatePresence>
+                        </div>
+
+                        <div className="pt-2 border-t border-white/5">
+                          <button
+                            onClick={() => setIsExportExpanded(!isExportExpanded)}
+                            className="w-full flex items-center justify-between group"
+                          >
+                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[#d9cda1] flex items-center gap-2 group-hover:text-[#f4ebe1] transition-colors">
+                              <Settings2 className="w-3 h-3" />
+                              Ajustes de Exportación
+                            </h3>
+                            <ChevronDown className={`w-4 h-4 text-[#d9cda1] transition-transform duration-300 ${isExportExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          <AnimatePresence>
+                            {isExportExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="space-y-6 pt-6">
+                                  <div>
+                                    <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Formato de Imagen (Proporción)</label>
+                                    <div className="relative">
+                                      <select
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all appearance-none text-xs font-bold uppercase tracking-wider text-[#f4ebe1]"
+                                        value={settings.aspectRatio}
+                                        onChange={(e) => setSettings({ ...settings, aspectRatio: e.target.value })}
+                                      >
+                                        {ASPECT_RATIOS.map(ar => <option key={ar.value} value={ar.value} className="bg-[#2b3529]">{ar.label}</option>)}
+                                      </select>
+                                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#d9cda1]">
+                                        <ChevronRight className="w-3 h-3 rotate-90" />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Formato de Archivo</label>
+                                    <div className="flex gap-2">
+                                      {FILE_FORMATS.map((ff) => (
+                                        <button
+                                          key={ff.value}
+                                          onClick={() => setSettings({ ...settings, fileFormat: ff.value })}
+                                          className={`flex-1 px-3 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${settings.fileFormat === ff.value
+                                              ? 'bg-[#f4ebe1] border-[#f4ebe1] text-[#1a1a1a]'
+                                              : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
+                                            }`}
+                                        >
+                                          {ff.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {settings.fileFormat !== 'image/png' && (
+                                    <div>
+                                      <div className="flex justify-between items-center mb-3">
+                                        <label className="block text-xs font-bold uppercase tracking-widest text-[#d9cda1]/50">Calidad de Compresión</label>
+                                        <span className="text-xs font-bold text-[#d9cda1]">{Math.round(settings.quality * 100)}%</span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min="0.1"
+                                        max="1.0"
+                                        step="0.05"
+                                        value={settings.quality}
+                                        onChange={(e) => setSettings({ ...settings, quality: parseFloat(e.target.value) })}
+                                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#d9cda1]"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <div className="pt-6">
+                    <div className="space-y-4">
+                      <button
+                        onClick={() => generateImage()}
+                        disabled={!settings.scientificName}
+                        className="w-full bg-[#f4ebe1] text-[#1a1a1a] rounded-2xl py-5 font-bold text-sm uppercase tracking-[0.2em] hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-2xl shadow-black/40 active:scale-[0.98] group"
+                      >
+                        <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                        Capturar Espécimen
+                      </button>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          onClick={() => {
+                            setSettings({
+                              ...settings,
+                              scientificName: '',
+                              specimenId: getNextId(history),
+                              description: ''
+                            });
+                            setGeneratedImage(null);
+                            setViewedItem(null);
+                          }}
+                          className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 flex items-center justify-center gap-2 hover:bg-white/10 transition-all text-[#d9cda1] hover:text-white text-xs font-bold uppercase tracking-widest"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Nuevo
+                        </button>
+
+                        <div className="relative flex-1">
+                          <input
+                            type="file"
+                            accept=".csv"
+                            onChange={handleMassImport}
+                            className="hidden"
+                            id="csv-import"
+                          />
+                          <label
+                            htmlFor="csv-import"
+                            className="w-full h-full bg-white/5 border border-white/10 rounded-2xl py-4 flex items-center justify-center gap-2 cursor-pointer hover:bg-white/10 transition-all text-[#d9cda1] hover:text-white text-xs font-bold uppercase tracking-widest"
+                          >
+                            <FileUp className="w-4 h-4" />
+                            Importar
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
+              )}
 
-            <div className="pt-6">
-              <div className="space-y-4">
-                <button 
-                  onClick={() => generateImage()}
-                  disabled={!settings.scientificName}
-                  className="w-full bg-[#f4ebe1] text-[#1a1a1a] rounded-2xl py-5 font-bold text-sm uppercase tracking-[0.2em] hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-2xl shadow-black/40 active:scale-[0.98] group"
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-5 bg-red-900/20 border border-red-500/20 rounded-2xl flex items-start gap-3 text-red-200 text-xs leading-relaxed mt-10"
                 >
-                  <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                  Capturar Espécimen
-                </button>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <button 
-                    onClick={() => {
-                      setSettings({
-                        ...settings,
-                        scientificName: '',
-                        specimenId: getNextId(history),
-                        description: ''
-                      });
-                      setGeneratedImage(null);
-                      setViewedItem(null);
-                    }}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 flex items-center justify-center gap-2 hover:bg-white/10 transition-all text-[#d9cda1] hover:text-white text-xs font-bold uppercase tracking-widest"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Nuevo
-                  </button>
-
-                  <div className="relative flex-1">
-                    <input 
-                      type="file" 
-                      accept=".csv" 
-                      onChange={handleMassImport} 
-                      className="hidden" 
-                      id="csv-import"
-                    />
-                    <label 
-                      htmlFor="csv-import"
-                      className="w-full h-full bg-white/5 border border-white/10 rounded-2xl py-4 flex items-center justify-center gap-2 cursor-pointer hover:bg-white/10 transition-all text-[#d9cda1] hover:text-white text-xs font-bold uppercase tracking-widest"
-                    >
-                      <FileUp className="w-4 h-4" />
-                      Importar
-                    </label>
-                  </div>
-                </div>
-              </div>
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <p>{error}</p>
+                </motion.div>
+              )}
             </div>
           </div>
-        )}
-
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-5 bg-red-900/20 border border-red-500/20 rounded-2xl flex items-start gap-3 text-red-200 text-xs leading-relaxed mt-10"
-            >
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <p>{error}</p>
-            </motion.div>
-          )}
-        </div>
-      </div>
 
           {/* Display */}
           <div className="lg:col-span-8">
@@ -1891,27 +1889,27 @@ function App() {
               <div className="flex-1 relative flex items-center justify-center p-12 bg-black/10">
                 <AnimatePresence mode="wait">
                   {generatedImage ? (
-                    <motion.div 
+                    <motion.div
                       key="image"
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className="w-full h-full flex flex-col items-center justify-center gap-10"
                     >
                       <div className="relative group max-w-full">
-                        <img 
-                          src={generatedImage} 
+                        <img
+                          src={generatedImage}
                           alt={settings.scientificName}
                           className="rounded-xl shadow-2xl max-h-[75vh] object-contain border border-white/10"
                           referrerPolicy="no-referrer"
                         />
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-6 rounded-xl backdrop-blur-sm">
-                          <button 
+                          <button
                             onClick={() => setLightboxImage(generatedImage)}
                             className="w-14 h-14 bg-white/10 border border-white/20 backdrop-blur-md rounded-full hover:scale-110 transition-transform flex items-center justify-center shadow-xl"
                           >
                             <Maximize2 className="w-6 h-6 text-white" />
                           </button>
-                          <button 
+                          <button
                             onClick={handleDownload}
                             className="w-14 h-14 bg-white/10 border border-white/20 backdrop-blur-md rounded-full hover:scale-110 transition-transform flex items-center justify-center shadow-xl"
                           >
@@ -1921,37 +1919,37 @@ function App() {
                       </div>
                       <div className="text-center space-y-2">
                         <h3 className="text-4xl font-serif font-medium tracking-tight text-[#f4ebe1] flex items-center justify-center gap-3">
-                          <EditableField 
-                            value={viewedItem?.settings.specimenId || settings.specimenId} 
+                          <EditableField
+                            value={viewedItem?.settings.specimenId || settings.specimenId}
                             className="font-mono text-[#d9cda1]/40"
                             inputClassName="w-24 text-center font-mono"
                             onSave={(newId) => {
                               if (!viewedItem) return;
-                              setHistory(prev => prev.map(h => 
-                                h.id === viewedItem.id 
-                                  ? { ...h, settings: { ...h.settings, specimenId: newId } } 
+                              setHistory(prev => prev.map(h =>
+                                h.id === viewedItem.id
+                                  ? { ...h, settings: { ...h.settings, specimenId: newId } }
                                   : h
                               ));
                               setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, specimenId: newId } } : null);
-                            }} 
+                            }}
                             validate={(newId) => {
                               const exists = history.some(item => item.settings.specimenId === newId && item.id !== viewedItem?.id);
                               return exists ? "Este ID ya existe en la biblioteca." : null;
                             }}
                           />
-                          <EditableField 
-                            value={viewedItem?.settings.scientificName || settings.scientificName} 
+                          <EditableField
+                            value={viewedItem?.settings.scientificName || settings.scientificName}
                             className="italic"
                             inputClassName="w-full max-w-md text-center italic"
                             onSave={(newName) => {
                               if (!viewedItem) return;
-                              setHistory(prev => prev.map(h => 
-                                h.id === viewedItem.id 
-                                  ? { ...h, settings: { ...h.settings, scientificName: newName } } 
+                              setHistory(prev => prev.map(h =>
+                                h.id === viewedItem.id
+                                  ? { ...h, settings: { ...h.settings, scientificName: newName } }
                                   : h
                               ));
                               setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, scientificName: newName } } : null);
-                            }} 
+                            }}
                           />
                         </h3>
                         <p className="text-xs text-[#d9cda1]/60 uppercase tracking-[0.3em] font-bold">
@@ -1960,16 +1958,16 @@ function App() {
                       </div>
                     </motion.div>
                   ) : (
-                    <motion.div 
+                    <motion.div
                       key="empty"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       className="text-center max-w-sm"
                     >
                       <div className="relative w-48 h-48 mx-auto mb-8 flex items-center justify-center">
-                        <img 
-                          src="https://fungus-ashen.vercel.app/assets/images/placeholder.png" 
-                          alt="Placeholder" 
+                        <img
+                          src="https://fungus-ashen.vercel.app/assets/images/placeholder.png"
+                          alt="Placeholder"
                           className="w-full h-full object-contain opacity-15"
                           referrerPolicy="no-referrer"
                         />
@@ -1991,7 +1989,7 @@ function App() {
                       <span className="block text-[9px] text-[#d9cda1]/50 uppercase tracking-[0.2em] font-bold">Prompt</span>
                       <div className="h-5 overflow-hidden">
                         <AnimatePresence mode="wait">
-                          <motion.span 
+                          <motion.span
                             key={currentPromptPartIndex}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 0.5, y: 0 }}
@@ -2019,14 +2017,14 @@ function App() {
                 </div>
                 {generatedImage && (
                   <div className="flex items-center gap-6">
-                    <button 
+                    <button
                       onClick={() => setIsRefining(!isRefining)}
                       className={`flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-colors ${isRefining ? 'text-[#f4ebe1]' : 'text-[#d9cda1] hover:text-[#f4ebe1]'}`}
                     >
                       <Sparkles className="w-4 h-4" />
                       Refinar
                     </button>
-                    <button 
+                    <button
                       onClick={() => generateImage()}
                       className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#d9cda1] hover:text-[#f4ebe1] transition-colors"
                     >
@@ -2040,14 +2038,14 @@ function App() {
               {/* Refinement Input */}
               <AnimatePresence>
                 {isRefining && (
-                  <motion.div 
+                  <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     className="px-10 pb-8 overflow-hidden"
                   >
                     <div className="flex gap-4">
-                      <input 
+                      <input
                         type="text"
                         placeholder="ej. añade más rocío, cambia el fondo a musgo..."
                         className="flex-1 bg-black/20 border border-white/10 rounded-xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all text-sm text-[#f4ebe1] placeholder:text-white/10"
@@ -2056,7 +2054,7 @@ function App() {
                         onKeyDown={(e) => e.key === 'Enter' && refineImage()}
                         autoFocus
                       />
-                      <button 
+                      <button
                         onClick={refineImage}
                         disabled={!refinementText || isGenerating}
                         className="bg-[#f4ebe1] text-[#1a1a1a] px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-white transition-all disabled:opacity-30"
@@ -2075,23 +2073,23 @@ function App() {
       {/* Lightbox */}
       <AnimatePresence>
         {lightboxImage && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-12 backdrop-blur-xl"
             onClick={() => setLightboxImage(null)}
           >
-            <button 
+            <button
               className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors"
               onClick={() => setLightboxImage(null)}
             >
               <X className="w-8 h-8" />
             </button>
-            <motion.img 
+            <motion.img
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              src={lightboxImage} 
+              src={lightboxImage}
               alt="Full view"
               className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
               onClick={(e) => e.stopPropagation()}
@@ -2103,7 +2101,7 @@ function App() {
       {/* Archive Modal */}
       <AnimatePresence>
         {isArchiveOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -2113,7 +2111,7 @@ function App() {
               setRecentBatchIds();
             }}
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               className="bg-[#2b3529] border border-white/10 w-full max-w-5xl max-h-[85vh] rounded-[1.25rem] shadow-2xl flex flex-col overflow-hidden"
@@ -2128,7 +2126,7 @@ function App() {
                     <div className="flex items-center gap-6">
                       <div>
                         <h2 className="text-xl font-serif font-bold text-[#f4ebe1]">{selectedIds.length} seleccionados</h2>
-                        <button 
+                        <button
                           onClick={toggleSelectAll}
                           className="text-xs uppercase tracking-widest text-[#d9cda1] font-bold hover:text-white transition-colors"
                         >
@@ -2136,16 +2134,16 @@ function App() {
                         </button>
                       </div>
                       <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5">
-                        <select 
+                        <select
                           value={bulkFormat}
-                          onChange={(e) => setBulkFormat(e.target.value )}
+                          onChange={(e) => setBulkFormat(e.target.value)}
                           className="bg-transparent text-[#f4ebe1] text-xs font-bold uppercase tracking-widest px-3 outline-none cursor-pointer"
                         >
                           <option value="image/webp" className="bg-[#2b3529]">WEBP</option>
                           <option value="image/jpeg" className="bg-[#2b3529]">JPG</option>
                         </select>
                         <div className="w-px h-4 bg-white/10" />
-                        <button 
+                        <button
                           onClick={handleBulkDownload}
                           disabled={selectedIds.length === 0}
                           className="bg-[#f4ebe1] text-[#1a1a1a] px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:scale-100"
@@ -2153,7 +2151,7 @@ function App() {
                           Descargar Selección
                         </button>
                       </div>
-                      <button 
+                      <button
                         onClick={() => {
                           setIsBulkMode(false);
                           setSelectedIds([]);
@@ -2170,7 +2168,7 @@ function App() {
                         <p className="text-xs uppercase tracking-widest text-[#d9cda1]/50 font-bold">Últim generaciones guardad</p>
                       </div>
                       <div className="flex items-center gap-3 ml-4">
-                        <button 
+                        <button
                           onClick={() => setIsBulkMode(true)}
                           className="flex items-center gap-2 bg-white/5 text-[#d9cda1] px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
                         >
@@ -2181,7 +2179,7 @@ function App() {
                     </>
                   )}
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setIsArchiveOpen(false);
                     setRecentBatchIds();
@@ -2203,23 +2201,22 @@ function App() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {history.map((item) => (
-                      <motion.div 
+                      <motion.div
                         key={item.id}
                         layout
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className={`group relative rounded-xl overflow-hidden border transition-all cursor-pointer ${
-                          selectedIds.includes(item.id)
+                        className={`group relative rounded-xl overflow-hidden border transition-all cursor-pointer ${selectedIds.includes(item.id)
                             ? 'border-emerald-500 ring-2 ring-emerald-500/50'
-                            : recentBatchIds.includes(item.id) 
-                              ? 'bg-emerald-900/20 border-emerald-500/30 hover:border-emerald-500/50' 
+                            : recentBatchIds.includes(item.id)
+                              ? 'bg-emerald-900/20 border-emerald-500/30 hover:border-emerald-500/50'
                               : 'bg-black/20 border-white/5 hover:border-white/20'
-                        }`}
+                          }`}
                         onClick={() => {
                           if (isBulkMode) {
-                            setSelectedIds(prev => 
-                              prev.includes(item.id) 
-                                ? prev.filter(id => id !== item.id) 
+                            setSelectedIds(prev =>
+                              prev.includes(item.id)
+                                ? prev.filter(id => id !== item.id)
                                 : [...prev, item.id]
                             );
                           } else {
@@ -2231,12 +2228,12 @@ function App() {
                         }}
                       >
                         <div className="aspect-square overflow-hidden relative">
-                          <img 
-                            src={item.url} 
+                          <img
+                            src={item.url}
                             alt={item.settings.scientificName}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           />
-                          
+
                           {isBulkMode && (
                             <div className="absolute top-4 left-4 z-10">
                               {selectedIds.includes(item.id) ? (
@@ -2252,18 +2249,18 @@ function App() {
                           )}
 
                           <div className="absolute top-3 right-3 flex gap-2">
-                            <button 
+                            <button
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 const id = item.settings.specimenId;
                                 const extension = getExtension(item.settings.fileFormat);
-                                
+
                                 // Download original
                                 const linkOriginal = document.createElement('a');
                                 linkOriginal.href = item.url;
                                 linkOriginal.download = `esp-${id}-main-large.${extension}`;
                                 linkOriginal.click();
-                                
+
                                 // Download reduced
                                 try {
                                   const smallImage = await processImage(item.url, item.settings.fileFormat, item.settings.quality, 0.5);
@@ -2279,7 +2276,7 @@ function App() {
                             >
                               <Download className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteFromHistory(item.id);
@@ -2292,13 +2289,13 @@ function App() {
                         </div>
                         <div className="p-5">
                           <h4 className="font-serif text-xl text-[#f4ebe1] truncate flex items-center gap-2">
-                            <EditableField 
-                              value={item.settings.specimenId} 
+                            <EditableField
+                              value={item.settings.specimenId}
                               className="font-mono text-[#d9cda1]/40 text-sm"
                               inputClassName="w-16 text-center font-mono text-sm"
                               onSave={(newId) => {
                                 setHistory(prev => prev.map(h => h.id === item.id ? { ...h, settings: { ...h.settings, specimenId: newId } } : h));
-                              }} 
+                              }}
                               validate={(newId) => {
                                 const exists = history.some(h => h.settings.specimenId === newId && h.id !== item.id);
                                 return exists ? "Este ID ya existe." : null;
