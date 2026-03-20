@@ -5,7 +5,17 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 ---
 
 
-## 🚀 Próximo — v5.1 Social login (Google)
+## 🚀 Próximo — v5.1 Generador de Imágenes de Setas (Acceso Protegido)
+
+**Alcance previsto:**
+- Migración del componente `App.tsx` (AI Studio) a `src/components/admin/ImageGenerator.tsx`.
+- Integración en Router con ruta `/admin/generator`.
+- Seguridad: Acceso solo para `role === 'admin'`.
+- Uso de `VITE_GEMINI_API_KEY` para integración con Gemini 1.5 Flash.
+
+---
+
+## 🗂 Backlog — v5.2 Social login (Google)
 
 **Alcance previsto:**
 - Google OAuth2 — gratis, sin coste, mayor reducción de fricción
@@ -14,11 +24,9 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 - Librería: `authlib` o `google-auth` para FastAPI
 - Frontend: Google Identity Services (script oficial, One Tap)
 
-**Apple Sign In — aplazado a v6.1:** requiere Apple Developer Program ($99/año). Solo tiene sentido pagarlo cuando se publique en App Store, que es el único momento en que es obligatorio. Se implementa como parte del bloque iOS.
-
 ---
 
-## 🗂 Backlog — v5.2 Confirmación de email
+## 🗂 Backlog — v5.3 Confirmación de email
 
 **Alcance previsto:**
 - Enviar email de verificación al registrar una cuenta nueva
