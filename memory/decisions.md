@@ -289,4 +289,23 @@ useEffect(() => {
   if (!location.pathname.startsWith('/especies')) return  // no contaminar /familia/
   setSearchParams(prev => { const p = new URLSearchParams(prev); p.set('pagina', '1'); return p }, { replace: true })
 }, [searchQuery, orden, showFilter, familyFilter])
+
+---
+
+## Generador de imágenes — Monorepo vs Microservicio (v5.1)
+
+**Decisión:** El generador de imágenes con IA (Imagen 4 + Gemini) vive en el monorepo como herramienta admin del frontend, no como microservicio independiente.
+
+**Argumento principal (el que cierra el debate):** La carga computacional pesada recae en los servidores de Google. Un microservicio backend propio no escalaría nada — solo añadiría un salto de red y una superficie de fallo extra para un proceso que ya tarda 30–120s y depende de APIs externas.
+
+**Argumentos secundarios:**
+- **Auth nativo:** `AdminGuard` + columna `role` en `users` cubre frontend y backend sin necesidad de tokens compartidos entre servicios ni API Gateway.
+- **Sync-release:** la migración `008_add_user_role` y los cambios de UI viajan en el mismo commit. No hay riesgo de estado inconsistente entre versiones de servicios distintos.
+- **Reutilización de dominio:** el generador consume `useSpecies()` (misma API REST que el resto de la app) y constantes de `src/data/`. Nada requiere acceso especial que un microservicio no pueda tener también — pero sí evita duplicar tipos y constantes.
+
+**Alternativas descartadas:**
+- *Microservicio FastAPI separado en Render:* segundo cold start, CORS adicional, gestión de auth cross-service, build CI/CD duplicado. Cero ganancia de escalabilidad dado el modelo client-first con Google AI.
+- *Worker con cola (Celery + Redis):* válido si el pipeline de procesamiento bloqueara el backend principal, pero actualmente las llamadas van directamente del cliente a Google.
+
+**Deuda técnica conocida:** `VITE_GEMINI_API_KEY` está expuesta en el bundle del frontend. Es aceptable porque la herramienta está detrás de `AdminGuard` (solo usuarios con `role = 'admin'`), pero el único argumento real a favor de un microservicio en el futuro sería mover las API keys al backend FastAPI y convertir el generador en un endpoint autenticado server-side. No es urgente mientras el acceso admin sea fiable.
 ```
