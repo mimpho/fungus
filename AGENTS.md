@@ -4,9 +4,9 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v4.7 frontend/backend; v4.7.1 i18n editorial en curso
-**Estado frontend**: i18n completo ES/CA/EN (~110 claves). Zonas y especies desde API. Filtros comarca/CCAA, restyling UI, `no_comestible` category. Catálogo de 200 zonas y 202 especies desde BD. `SpeciesModal` muestra `cond_fruct` (temp/precip/suelo/req) desde API para las 202 especies en ES/CA/EN.
-**Estado backend**: v4.7. FastAPI + SQLAlchemy + Alembic + Outbreak Index + WeatherCache + Species Taxonomy/Confusions. Endpoints `/species` con `?lang=es|ca|en`. `commonNames_ca/en` + `cond_fruct` (ES/CA/EN) para 202 especies en `extra_data` (migraciones 004–018).
+**Versión actual**: v5.1 frontend; v5.0 backend
+**Estado frontend**: Auth completo (JWT, perfil, editar/eliminar cuenta). i18n ES/CA/EN completo. Admin: ImageGenerator (`/admin/generator`) + AdminGallery (`/admin/gallery`) con toggle Público/Admin. Catálogo: 200 zonas + 202 especies desde API.
+**Estado backend**: v5.0. Auth JWT: register/login/refresh/logout/me. Tabla `users` con `role` (`"user"`|`"admin"`). Weather cache + Outbreak Index. Endpoints `/species` con `?lang=`.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
 

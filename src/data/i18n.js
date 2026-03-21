@@ -175,6 +175,7 @@ export const i18n = {
     eliminarCuenta: 'Eliminar cuenta', confirmarEliminar: '¿Seguro? Esta acción es irreversible.', cancelar: 'Cancelar', siEliminar: 'Sí, eliminar',
     cookieInfo: 'Al iniciar sesión guardamos una cookie segura para mantener tu sesión activa.',
     sinZonasSeguidas: 'Aún no sigues ninguna zona.', sinEspeciesFavoritas: 'Aún no tienes especies favoritas.', mas: 'más',
+    adminGenerator: 'Generador', adminGallery: 'Galería', adminMode: 'Modo admin', modoPublico: 'Público', modoAdmin: 'Admin',
 
     // ── Micología — página ────────────────────────────────────────────────────
     micologiaDesc: 'Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.',
@@ -474,6 +475,7 @@ export const i18n = {
     eliminarCuenta: 'Eliminar compte', confirmarEliminar: 'Segur? Aquesta acció és irreversible.', cancelar: 'Cancel·lar', siEliminar: 'Sí, eliminar',
     cookieInfo: 'En iniciar sessió guardem una galeta segura per mantenir la teva sessió activa.',
     sinZonasSeguidas: 'Encara no segueixes cap zona.', sinEspeciesFavoritas: 'Encara no tens espècies favorites.', mas: 'més',
+    adminGenerator: 'Generador', adminGallery: 'Galeria', adminMode: 'Mode admin', modoPublico: 'Públic', modoAdmin: 'Admin',
 
     // ── Micologia — pàgina ────────────────────────────────────────────────────
     micologiaDesc: "Articles per entendre el regne fungi: ecologia, identificació, història i ciència.",
@@ -773,6 +775,7 @@ export const i18n = {
     eliminarCuenta: 'Delete account', confirmarEliminar: 'Are you sure? This action cannot be undone.', cancelar: 'Cancel', siEliminar: 'Yes, delete',
     cookieInfo: 'When you sign in, we store a secure cookie to keep your session active.',
     sinZonasSeguidas: "You're not following any zones yet.", sinEspeciesFavoritas: 'You have no favourite species yet.', mas: 'more',
+    adminGenerator: 'Generator', adminGallery: 'Gallery', adminMode: 'Admin mode', modoPublico: 'Public', modoAdmin: 'Admin',
 
     // ── Mycology — page ───────────────────────────────────────────────────────
     micologiaDesc: 'Articles to understand the fungi kingdom: ecology, identification, history and science.',

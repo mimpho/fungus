@@ -4,7 +4,7 @@ import { useApp } from '../contexts/AppContext'
 import { IC } from '../lib/helpers'
 
 export default function Layout() {
-  const { followedZones, t } = useApp()
+  const { followedZones, t, user, isAdminView } = useApp()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // ── Header fixed + spacer ──────────────────────────────────────────────────
@@ -97,12 +97,23 @@ export default function Layout() {
     }
   }, [])
 
-  const navItems = [
+  const isAdmin = user?.role === 'admin'
+
+  const userNavItems = [
     { to: '/',          label: t.dashboard,  icon: IC.chart,    end: true },
     { to: '/zonas',     label: t.zonas,      icon: IC.pin,      badge: followedZones.length },
     { to: '/especies',  label: t.especies,   icon: IC.mushroom },
     { to: '/micologia', label: t.micologia,  icon: IC.book },
-    { to: '/perfil',    label: t.profile,    icon: IC.user },
+  ]
+
+  const adminNavItems = [
+    { to: '/admin/generator', label: t.adminGenerator, icon: IC.wand },
+    { to: '/admin/gallery',   label: t.adminGallery,   icon: IC.grid },
+  ]
+
+  const navItems = [
+    ...(isAdmin && isAdminView ? adminNavItems : userNavItems),
+    { to: '/perfil', label: t.profile, icon: IC.user },
   ]
 
   const headerContent = (

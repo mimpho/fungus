@@ -4,8 +4,22 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
+## 🚀 Próximo — v5.2 Generador: mejoras de flujo
 
-## 🚀 Próximo — v5.1 Social login (Google)
+**Alcance previsto:**
+
+- **Overwrite modal**: al intentar guardar como imagen `main` una especie que ya tiene imágenes en BD, mostrar un modal de comparación con las 4 imágenes (nueva generada, main actual, foto 1, foto 2). El usuario asigna posición (main | 1 | 2 | eliminar) a cada una mediante una lista ordenable. Requiere:
+  - Backend: endpoint `PATCH /api/v1/species/{id}/images` — acepta imagen en base64, actualiza slots en BD
+  - Frontend: `ImageOverwriteModal` con previsualización de 4 imágenes y selector de slot por imagen
+
+- **Gallery click → Generador**: click en un item de `AdminGallery` abre el generador con la especie pre-cargada y la imagen actual visible como referencia. El flujo sería: galería → generador (especie + imagen actual en panel) → instrucciones de refinamiento → imagen nueva → confirmación de reemplazo.
+  - El refinador actual (`callGeminiRefine`) no toma la imagen existente como input real — genera desde cero con instrucciones. Evaluar si suficiente o si se requiere img2img real.
+
+---
+
+## 🗂 Backlog — v6.0 Social login (Google)
+
+(Era v5.2 — movido a v6 para priorizar mejoras del generador)
 
 **Alcance previsto:**
 - Google OAuth2 — gratis, sin coste, mayor reducción de fricción
@@ -14,11 +28,11 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 - Librería: `authlib` o `google-auth` para FastAPI
 - Frontend: Google Identity Services (script oficial, One Tap)
 
-**Apple Sign In — aplazado a v6.1:** requiere Apple Developer Program ($99/año). Solo tiene sentido pagarlo cuando se publique en App Store, que es el único momento en que es obligatorio. Se implementa como parte del bloque iOS.
-
 ---
 
-## 🗂 Backlog — v5.2 Confirmación de email
+## 🗂 Backlog — v6.1 Confirmación de email
+
+(Era v5.3 — movido a v6.x)
 
 **Alcance previsto:**
 - Enviar email de verificación al registrar una cuenta nueva
@@ -28,11 +42,19 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 - Frontend: mostrar banner "Verifica tu email" en perfil si `!email_verified`
 - Proveedor: Resend o SendGrid (cheap/free tier suficiente para volumen inicial)
 
-**Decisión:** postergar a después de v5.1. Social login (especialmente Apple) es blocker duro para App Store y tiene más impacto en conversión.
+**Decisión:** postergar hasta después de v6.0. Sin proveedor de email configurado todavía.
 
 ---
 
-## 🗂 Backlog — v7 SEO
+## 🗂 Sin fecha — v7.0 App Android
+
+- React Native + Expo — APK, mapa nativo, notificaciones push
+- **Condicionado a monetización previa** (costes de desarrollo y distribución)
+- iOS eliminado del roadmap — requiere Apple Developer ($99/año) + Apple Sign In; se reconsiderará si hay ingresos
+
+---
+
+## 🗂 Backlog — v8 SEO
 
 - Prerendering estático en build time para rutas conocidas (`/especies/:id`, `/zonas/:id`, etc.)
 - `react-helmet-async`: meta tags dinámicos por ruta (título, description, Open Graph)

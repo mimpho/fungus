@@ -259,3 +259,19 @@ body::after {
 @media (hover: hover) {
   .fungus-popup .popup-zone-btn { display: none; }
 }
+
+/* ── AdminGallery filter pill ────────────────────────────────────────────────
+   Mobile:  search = full pill · selects = single merged pill (no gap between them)
+   Desktop: search = left-rounded · family = flat · edibility = right-rounded
+   ─────────────────────────────────────────────────────────────────────────── */
+.ag-search  { border-radius: 26px; }
+.ag-family  { border-radius: 26px 0 0 26px; }
+.ag-edib    { border-radius: 0 26px 26px 0; }
+@media (min-width: 1024px) {
+  .ag-search { border-radius: 26px 0 0 26px; }
+  .ag-family { border-radius: 0; }
+  /* ag-edib stays 0 26px 26px 0 — same on both breakpoints */
+}
+
+/* Hide native datalist picker indicator (Chrome shows it on hover) */
+input[list]::-webkit-calendar-picker-indicator { display: none !important; opacity: 0 !important; width: 0 !important; }

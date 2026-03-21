@@ -9,8 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "framer-motion": "^12.38.0",
+    "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
+    "lucide-react": "^0.577.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
