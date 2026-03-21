@@ -1,12 +1,68 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { useSpecies } from '../hooks/useSpecies'
 import { Tabs } from '../components/ui/Tabs'
-import { IC, SpeciesCard, resolveUrl } from '../lib/helpers'
+import { IC, resolveUrl } from '../lib/helpers'
 
 const PAGE_SIZE = 24
 const H = '52px'
+
+// ── GalleryCard — tarjeta de galería admin que abre el generador ──────────────
+const EDIBILITY_DOT = {
+  excelente:    'bg-emerald-500',
+  bueno:        'bg-emerald-400',
+  comestible:   'bg-amber-400',
+  no_comestible:'bg-stone-400',
+  precaucion:   'bg-orange-400',
+  toxico:       'bg-red-500',
+  mortal:       'bg-red-700',
+}
+
+function GalleryCard({ s, onOpen }) {
+  const [imgError, setImgError] = useState(false)
+  const dot = EDIBILITY_DOT[s.edibility] ?? 'bg-stone-400'
+
+  return (
+    <button
+      onClick={() => onOpen(s)}
+      className="group relative rounded-2xl overflow-hidden bg-white/[0.04] hover:ring-2 hover:ring-[#d9cda1]/40 transition-all text-left flex flex-col"
+    >
+      {/* Image */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-white/[0.03]">
+        {s.photo?.url && !imgError
+          ? <img
+              src={resolveUrl(s.photo.url)}
+              alt={s.scientificName}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+              onError={() => setImgError(true)}
+            />
+          : <div className="w-full h-full flex items-center justify-center text-cream/10">
+              {IC.mushroom}
+            </div>
+        }
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-white text-xs font-bold uppercase tracking-widest">Generar</span>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="p-3 flex items-center gap-2">
+        <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
+        <div className="min-w-0">
+          <p className="text-cream text-xs font-semibold italic truncate leading-tight">{s.scientificName}</p>
+          <p className="text-cream/40 text-[10px] font-mono">{s.id}</p>
+        </div>
+      </div>
+    </button>
+  )
+}
 
 const EDIBILITY_OPTIONS = [
   { id: 'todas', label: 'Comestibilidad' },
@@ -44,9 +100,10 @@ const ViewTabs = ({ view, setView }) => (
 )
 
 export default function AdminGallery() {
-  const { t, setSelectedSpecies, favoriteSpecies, toggleFavorite } = useApp()
+  const { t } = useApp()
   const { species, loading } = useSpecies()
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   const [query, setQuery] = useState('')
   const [family, setFamily] = useState('todas')
@@ -94,11 +151,11 @@ export default function AdminGallery() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const isFav = (s) => favoriteSpecies.some(f => f.id === s.id)
+  const openInGenerator = (s) => navigate(`/admin/generator?especie=${s.id}`)
 
   const GridItem = ({ s }) => (
     <button
-      onClick={() => setSelectedSpecies(s)}
+      onClick={() => openInGenerator(s)}
       className="group relative aspect-square rounded-xl overflow-hidden bg-white/[0.04] hover:ring-2 hover:ring-[#d9cda1]/40 transition-all"
       title={s.scientificName}
     >
@@ -244,15 +301,8 @@ export default function AdminGallery() {
         </div>
       ) : view === 'card' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {paginated.map((s, i) => (
-            <SpeciesCard
-              key={s.id}
-              species={s}
-              onOpen={setSelectedSpecies}
-              isFav={isFav(s)}
-              onToggleFav={toggleFavorite}
-              animDelay={i * 0.04}
-            />
+          {paginated.map((s) => (
+            <GalleryCard key={s.id} s={s} onOpen={openInGenerator} />
           ))}
         </div>
       ) : (

@@ -10,9 +10,13 @@ import { LeafletMap } from '../map/LeafletMap'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GallerySection — muestra la galería de fotos de una especie.
-// Rastrea el estado de carga de cada imagen en tiempo real:
-//   • Si todas las imágenes fallan (404 / error de red) → se oculta la sección
-//   • Si al menos una carga → muestra la galería normalmente
+// Layout dinámico según el número de fotos:
+//   1 foto  → imagen a ancho completo
+//   2 fotos → 50/50 (2 columnas desktop, 2 filas mobile)
+//   3 fotos → principal grande (izquierda, 3/4) + 2 pequeñas apiladas (derecha, 1/4)
+//   4 fotos → cuadrícula 2×2
+//   5+ fotos → cuadrícula 2×2 con "+N" en la última celda (click abre lightbox)
+// Si todas las imágenes fallan (404) → sección oculta.
 // ─────────────────────────────────────────────────────────────────────────────
 function GallerySection({ species, onOpenLightbox }) {
   const { t } = useApp()
@@ -29,67 +33,105 @@ function GallerySection({ species, onOpenLightbox }) {
   // Nada que mostrar, o todas las imágenes han fallado
   if (total === 0 || errored >= total) return null
 
-  const mainUrl = resolveUrl(species.photo?.largeUrl || species.photo?.url)
+  // ── Shared sub-components ──────────────────────────────────────────────────
+
+  const ZoomOverlay = () => (
+    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+      <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+      </svg>
+    </div>
+  )
+
+  const Caption = ({ text }) => text ? (
+    <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
+      style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
+      {text}
+    </div>
+  ) : null
+
+  function PhotoCell({ photo, index, className = '', style = {} }) {
+    return (
+      <div className={`gallery-thumb group relative overflow-hidden rounded-lg cursor-pointer ${className}`}
+        style={style}
+        onClick={() => onOpenLightbox(allPhotos, index)}>
+        <img src={resolveUrl(photo.url)} alt={photo.caption || species.scientificName}
+          className="w-full h-full object-cover" onError={onErr} />
+        <ZoomOverlay />
+        <Caption text={photo.caption} />
+      </div>
+    )
+  }
+
+  // ── Layout templates ───────────────────────────────────────────────────────
+
+  let grid = null
+
+  if (total === 1) {
+    // Full width, 16:9
+    grid = (
+      <PhotoCell photo={allPhotos[0]} index={0} style={{ aspectRatio: '16/9' }} />
+    )
+  } else if (total === 2) {
+    // Two equal halves — single column on mobile, two columns on sm+
+    grid = (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {allPhotos.map((photo, i) => (
+          <PhotoCell key={i} photo={photo} index={i} style={{ aspectRatio: '4/3' }} />
+        ))}
+      </div>
+    )
+  } else if (total === 3) {
+    // Classic 3: large main (left, 3/4 width) + 2 small stacked (right, 1/4)
+    grid = (
+      <div className="grid grid-cols-2 sm:grid-cols-4 sm:grid-rows-2 w-full sm:aspect-[2/1] sm:overflow-hidden gap-2">
+        <PhotoCell photo={allPhotos[0]} index={0}
+          className="col-span-2 sm:col-span-3 sm:row-span-2"
+          style={{ minHeight: 0 }} />
+        {allPhotos.slice(1).map((photo, i) => (
+          <PhotoCell key={i + 1} photo={photo} index={i + 1}
+            className="col-span-1 row-span-1"
+            style={{ minHeight: 0 }} />
+        ))}
+      </div>
+    )
+  } else if (total === 4) {
+    // 2×2 equal grid
+    grid = (
+      <div className="grid grid-cols-2 gap-2">
+        {allPhotos.map((photo, i) => (
+          <PhotoCell key={i} photo={photo} index={i} style={{ aspectRatio: '4/3' }} />
+        ))}
+      </div>
+    )
+  } else {
+    // 5+: 2×2 with "+N more" overlay on the 4th cell
+    const remaining = total - 4 // photos hidden behind overlay
+    grid = (
+      <div className="grid grid-cols-2 gap-2">
+        {allPhotos.slice(0, 3).map((photo, i) => (
+          <PhotoCell key={i} photo={photo} index={i} style={{ aspectRatio: '4/3' }} />
+        ))}
+        {/* 4th cell: photo + "+N" overlay */}
+        <div className="gallery-thumb group relative overflow-hidden rounded-lg cursor-pointer"
+          style={{ aspectRatio: '4/3' }}
+          onClick={() => onOpenLightbox(allPhotos, 3)}>
+          <img src={resolveUrl(allPhotos[3].url)} alt={allPhotos[3].caption || ''}
+            className="w-full h-full object-cover" onError={onErr} />
+          <div className="absolute inset-0 bg-black/55 group-hover:bg-black/65 transition-all flex items-center justify-center">
+            <span className="text-white text-2xl font-bold drop-shadow-lg">+{remaining}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <section>
       <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">
         📷 {t.galeria} ({total} {total === 1 ? t.galeria_foto : t.galeria_fotos})
       </h3>
-      <div className={`grid gap-2 ${
-        extraPhotos.length === 0 ? 'grid-cols-1'
-        : extraPhotos.length === 1 ? 'grid-cols-2'
-        : extraPhotos.length === 2 ? 'grid-cols-2 sm:grid-cols-4 sm:grid-rows-2 w-full sm:aspect-[2/1] sm:overflow-hidden'
-        : 'grid-cols-4'
-      }`}>
-        {/* Foto principal */}
-        <div
-          className={`gallery-thumb group relative overflow-hidden rounded-lg cursor-pointer${extraPhotos.length === 2 ? ' col-span-2 sm:col-span-3 sm:row-span-2' : ''}`}
-          style={extraPhotos.length === 2 ? { minHeight: 0 } : { aspectRatio: '4/3' }}
-          onClick={() => onOpenLightbox(allPhotos, 0)}>
-          <img
-            src={mainUrl}
-            alt={species.scientificName}
-            className="w-full h-full object-cover object-top"
-            onError={onErr}
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center rounded-lg">
-            <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-            </svg>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
-            {species.scientificName}
-          </div>
-        </div>
-
-        {/* Fotos extra */}
-        {extraPhotos.map((foto, i) => (
-          <div key={i}
-            className={`gallery-thumb group relative cursor-pointer overflow-hidden rounded-lg${extraPhotos.length === 2 ? ' col-span-1 row-span-1' : ''}`}
-            style={extraPhotos.length === 2 ? { minHeight: 0 } : { aspectRatio: '4/3' }}
-            onClick={() => onOpenLightbox(allPhotos, i + 1)}>
-            <img
-              src={resolveUrl(foto.url)}
-              alt={foto.caption || ''}
-              className="w-full h-full object-cover"
-              onError={onErr}
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-              <svg className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-              </svg>
-            </div>
-            {foto.caption && (
-              <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[9px] text-white/80 truncate rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
-                {foto.caption}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      {grid}
       <p className="text-cream/30 text-[11px] mt-2 text-center">
         {t.hazClicImagen}
       </p>

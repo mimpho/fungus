@@ -1,4 +1,6 @@
 """Pydantic schemas for species endpoints."""
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -49,3 +51,42 @@ class SpeciesDetail(SpeciesListItem):
     cond_req: str | None = None
     # Full extra_data blob: morphology, all photos, etc.
     extra_data: dict | None = None
+
+
+class SpeciesImageUpdate(BaseModel):
+    """Body for PATCH /species/{id}/images — save a generated image to a slot."""
+
+    slot: Literal["main", "photo1", "photo2"]
+    """Target slot: main photo, or gallery photo 1 / 2."""
+
+    image_base64: str
+    """Raw base64-encoded image bytes (no data: URI prefix)."""
+
+    mime_type: str = "image/jpeg"
+    """MIME type of the image (e.g. 'image/jpeg', 'image/webp', 'image/png')."""
+
+
+class SlotReorderBody(BaseModel):
+    """Body for POST /species/{id}/images/reorder — rearrange existing slot images."""
+
+    main: Literal["main", "photo1", "photo2"] = "main"
+    """Which current slot should become the new 'main' image."""
+
+    photo1: Literal["main", "photo1", "photo2"] = "photo1"
+    """Which current slot should become the new 'photo1' image."""
+
+    photo2: Literal["main", "photo1", "photo2"] = "photo2"
+    """Which current slot should become the new 'photo2' image."""
+
+
+class SetPhotosOrderBody(BaseModel):
+    """Body for POST /species/{id}/images/set-order — write an ordered photo list.
+
+    Replaces ALL photos for the species.  The first URL becomes the main photo
+    (``extra_data.photo.url``); the rest fill ``extra_data.photos``.
+    URLs may be static asset paths (``/assets/...``) or ``data:`` URIs from the
+    generator.  An empty list clears all photos.
+    """
+
+    photos: list[str]
+    """Ordered list of photo URLs (first = main, rest = gallery)."""

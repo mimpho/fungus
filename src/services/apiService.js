@@ -312,6 +312,29 @@ export async function fetchAllSpecies(lang = 'es') {
 const _detailRawCache = new Map()  // speciesId → raw API JSON
 const _detailPromises = new Map()  // speciesId → in-flight Promise<raw JSON>
 
+/**
+ * Invalidate the detail cache for a specific species.
+ * Call this after any admin operation that mutates a species (image save, reorder).
+ * The next SpeciesModal open will re-fetch fresh data from the API.
+ */
+export function invalidateSpeciesDetailCache(speciesId) {
+  _detailRawCache.delete(speciesId)
+  _detailPromises.delete(speciesId)
+}
+
+/**
+ * Populate the detail cache with fresh raw JSON returned by a mutation endpoint.
+ *
+ * Prefer this over invalidateSpeciesDetailCache when the mutation response already
+ * contains the updated data (e.g. set-order, PATCH images).  It bypasses the
+ * browser's HTTP Cache-Control cache: the next fetchSpeciesDetail call returns
+ * this data immediately from the JS-level map without hitting the network.
+ */
+export function setSpeciesDetailCache(speciesId, rawData) {
+  _detailRawCache.set(speciesId, rawData)
+  _detailPromises.delete(speciesId)
+}
+
 export async function fetchSpeciesDetail(speciesId, lang = 'es') {
   // If raw JSON already cached, just re-normalize with the requested lang
   if (_detailRawCache.has(speciesId)) {

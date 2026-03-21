@@ -9,6 +9,33 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Añadido
+
+**v5.3 — Generador: fotos ilimitadas, DnD insertion-style, galería dinámica**
+
+- **`POST /api/v1/species/{id}/images/set-order`** (backend): nuevo endpoint admin-only. Acepta `{"photos": ["url1", "url2", ...]}` — lista ordenada de URLs. Escribe `extra_data.photo.url = photos[0]` y `extra_data.photos = [{url, caption}...]`. Soporta fotos ilimitadas (sin límite de 3 slots). Preserva captions existentes por URL. Schema `SetPhotosOrderBody` en `backend/app/schemas/species.py`.
+- **Modal unificado `CatalogImagesModal`**: reemplaza `OverwriteSlotPicker` + el modal de guardado antiguo. Props: `newImageDataUrl?`, `newImageMimeType?`. Si se proporciona imagen nueva, aparece prepended en posición 0. Siempre usa `POST /images/set-order`. Un solo flujo para guardar y reorganizar.
+- **DnD insertion-style con `framer-motion layout`**: al arrastrar una tarjeta, las demás se deslizan suavemente para hacer hueco en tiempo real (spring animation). Modelo: `visualPhotos = moveItem(photos, dragIdx, hoverIdx)` — framer-motion anima las transiciones de posición con `key` URL estable. Touch DnD mantiene el mismo comportamiento con listeners imperativos non-passive.
+- **Galería dinámica en `SpeciesModal`**: `GallerySection` adapta el layout según el número de fotos — 1 foto (ancho completo 16:9), 2 fotos (50/50), 3 fotos (layout clásico grande + 2 pequeñas), 4 fotos (cuadrícula 2×2), 5+ fotos (cuadrícula 2×2 con `+N` en la última celda, click abre lightbox).
+
+---
+
+**v5.2 — Generador: flujo de guardado en catálogo + Gallery → Generador**
+
+- **`PATCH /api/v1/species/{id}/images`** (backend): nuevo endpoint admin-only. Acepta `slot` (`main`|`photo1`|`photo2`), `image_base64` y `mime_type`. Almacena la imagen como `data:` URI en `extra_data` JSONB. Usa `flag_modified` para que SQLAlchemy detecte el cambio en JSONB. Requiere `get_admin_user` dependency.
+- **`POST /api/v1/species/{id}/images/reorder`** (backend): nuevo endpoint admin-only. Acepta mapping `{main, photo1, photo2}` indicando qué slot actual pasa a cada posición. Reasigna URLs (estáticas o `data:` URI) sin recodificar. Schema `SlotReorderBody` en `backend/app/schemas/species.py`.
+- **`SpeciesImageUpdate`** y **`SlotReorderBody`** schemas en `backend/app/schemas/species.py`.
+- **Gallery → Generador**: clic en cualquier especie de `AdminGallery` navega a `/admin/generator?especie=<id>` en lugar de abrir el `SpeciesModal`. Nueva tarjeta `GalleryCard` (componente local) con hover overlay "Generar" y dot de comestibilidad.
+- **Pre-carga por URL**: `ImageGenerator` lee `?especie=` al montar, rellena los campos ID y Nombre Científico, y obtiene el detalle completo de la especie (con `extra_data.photos`) para mostrar el panel de referencia.
+- **Panel de referencia siempre fresco**: el sidebar re-sincroniza `referenceSpecies` desde la API cada vez que cambia `settings.specimenId` (con `AbortController` para cancelar peticiones obsoletas). Al abrir el modal de guardado, siempre se hace un fetch previo al DB para garantizar el estado más reciente.
+- **Panel de referencia**: sección en el sidebar del generador que muestra las 3 imágenes actuales del catálogo (principal, foto 1, foto 2) para cualquier especie seleccionada.
+- **Botón "Guardar"**: visible siempre que haya imagen generada y `specimenId` relleno — independiente de si la especie viene de `?especie=`.
+- **`OverwriteSlotPicker`** (dos pestañas) + modal de gestión de catálogo:
+  - **Pestaña "Nueva imagen"**: selección visual del slot destino (principal / foto 1 / foto 2). Llama a `PATCH /api/v1/species/{id}/images`.
+  - **Pestaña "Reorganizar"**: 3 cards con select "← de: Principal / Foto 1 / Foto 2" por slot destino. Valida permutación sin duplicados. Llama a `POST /api/v1/species/{id}/images/reorder`. Preview de la imagen fuente en cada card.
+  - Ambas pestañas actualizan el panel de referencia tras la operación sin recargar la página.
+- **Bloqueo de navegación**: `useBlocker` (React Router v6.28) muestra diálogo de confirmación al intentar salir con imagen generada sin guardar. `beforeunload` protege también el cierre de pestaña/ventana.
+
 ---
 
 ## [5.1.0] - 2026-03-21 — Admin: Image Generator + Gallery
