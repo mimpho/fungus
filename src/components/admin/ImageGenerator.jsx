@@ -1375,7 +1375,7 @@ function App() {
                               type="text"
                               list="mushroom-species"
                               placeholder="Amanita muscaria"
-                              className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 pr-10 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-sm placeholder:text-white/10 text-[#f4ebe1]"
+                              className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 pr-10 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-sm placeholder:text-white/10 text-[#f4ebe1]"
                               style={{ WebkitAppearance: 'none' }}
                               value={settings.scientificName}
                               onChange={(e) => {
