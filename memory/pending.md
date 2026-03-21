@@ -4,16 +4,16 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚀 Próximo — v5.2 Generador: mejoras de flujo
+## 🚀 Próximo — v6.0 Social login (Google)
+
+(Era v5.2 — v5.2 entregado)
 
 **Alcance previsto:**
-
-- **Overwrite modal**: al intentar guardar como imagen `main` una especie que ya tiene imágenes en BD, mostrar un modal de comparación con las 4 imágenes (nueva generada, main actual, foto 1, foto 2). El usuario asigna posición (main | 1 | 2 | eliminar) a cada una mediante una lista ordenable. Requiere:
-  - Backend: endpoint `PATCH /api/v1/species/{id}/images` — acepta imagen en base64, actualiza slots en BD
-  - Frontend: `ImageOverwriteModal` con previsualización de 4 imágenes y selector de slot por imagen
-
-- **Gallery click → Generador**: click en un item de `AdminGallery` abre el generador con la especie pre-cargada y la imagen actual visible como referencia. El flujo sería: galería → generador (especie + imagen actual en panel) → instrucciones de refinamiento → imagen nueva → confirmación de reemplazo.
-  - El refinador actual (`callGeminiRefine`) no toma la imagen existente como input real — genera desde cero con instrucciones. Evaluar si suficiente o si se requiere img2img real.
+- Google OAuth2 — gratis, sin coste, mayor reducción de fricción
+- DB: `auth_provider` (`"local"` | `"google"`) + `provider_id` en tabla `users`; `password_hash` pasa a nullable
+- Backend: verificación de ID token con Google → emite nuestro propio JWT (el sistema de sesiones no cambia)
+- Librería: `authlib` o `google-auth` para FastAPI
+- Frontend: Google Identity Services (script oficial, One Tap)
 
 ---
 

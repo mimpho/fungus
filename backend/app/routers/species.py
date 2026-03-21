@@ -1,17 +1,31 @@
 """Species routes: list and detail.
 
-GET /species           → paginated list (replaces mockSpecies on frontend)
-GET /species/{id}      → full detail (replaces SpeciesModal data)
+GET /species               → paginated list (replaces mockSpecies on frontend)
+GET /species/{id}          → full detail (replaces SpeciesModal data)
+PATCH /species/{id}/images → save generated image to a slot (admin only)
+POST /species/{id}/images/reorder   → rearrange existing slot images (admin only)
+POST /species/{id}/images/set-order → write ordered photo list (admin only)
 """
+import copy
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.database import get_db
+from app.dependencies import get_admin_user
 from app.models.species import Species
-from app.schemas.species import SpeciesDetail, SpeciesListItem, SpeciesOIParams
+from app.models.user import User
+from app.schemas.species import (
+    SetPhotosOrderBody,
+    SlotReorderBody,
+    SpeciesDetail,
+    SpeciesImageUpdate,
+    SpeciesListItem,
+    SpeciesOIParams,
+)
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/species", tags=["Species"])
@@ -202,3 +216,218 @@ async def get_species(
         raise HTTPException(status_code=404, detail=f"Species '{species_id}' not found")
 
     return _to_detail(species, lang)
+
+
+@router.patch("/{species_id}/images", response_model=SpeciesDetail)
+async def update_species_image(
+    species_id: str,
+    body: SpeciesImageUpdate,
+    _admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> SpeciesDetail:
+    """
+    Save a generated image to a species photo slot (admin only).
+
+    Stores the image as a ``data:`` URI inside ``extra_data`` JSONB so it is
+    immediately served without requiring a separate file-hosting deploy step.
+
+    Slots:
+    - ``main``   → ``extra_data.photo.url``
+    - ``photo1`` → ``extra_data.photos[0].url``
+    - ``photo2`` → ``extra_data.photos[1].url``
+
+    The ``image_base64`` field must contain raw base64 bytes (no ``data:`` prefix).
+    """
+    result = await db.execute(select(Species).where(Species.id == species_id))
+    species = result.scalar_one_or_none()
+
+    if species is None:
+        raise HTTPException(status_code=404, detail=f"Species '{species_id}' not found")
+
+    data_url = f"data:{body.mime_type};base64,{body.image_base64}"
+
+    # Deep-copy to avoid mutating the cached dict that SQLAlchemy has already tracked
+    extra = copy.deepcopy(species.extra_data or {})
+
+    if body.slot == "main":
+        if not isinstance(extra.get("photo"), dict):
+            extra["photo"] = {}
+        extra["photo"]["url"] = data_url
+
+    elif body.slot == "photo1":
+        photos = extra.get("photos")
+        if not isinstance(photos, list):
+            photos = []
+        if len(photos) == 0:
+            photos.append({"url": data_url, "caption": ""})
+        else:
+            photos[0] = {**photos[0], "url": data_url}
+        extra["photos"] = photos
+
+    elif body.slot == "photo2":
+        photos = extra.get("photos")
+        if not isinstance(photos, list):
+            photos = []
+        if len(photos) == 0:
+            photos.append({"url": "", "caption": ""})
+        if len(photos) == 1:
+            photos.append({"url": data_url, "caption": ""})
+        else:
+            photos[1] = {**photos[1], "url": data_url}
+        extra["photos"] = photos
+
+    species.extra_data = extra
+    flag_modified(species, "extra_data")
+    await db.commit()
+    await db.refresh(species)
+
+    log.info("Admin saved generated image to %s slot=%s", species_id, body.slot)
+    return _to_detail(species)
+
+
+@router.post("/{species_id}/images/reorder", response_model=SpeciesDetail)
+async def reorder_species_images(
+    species_id: str,
+    body: SlotReorderBody,
+    _admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> SpeciesDetail:
+    """
+    Rearrange existing slot images without re-encoding them (admin only).
+
+    The body maps each *new* slot to the *current* slot that should fill it.
+    Example: ``{"main": "photo1", "photo1": "main", "photo2": "photo2"}``
+    swaps the main and photo1 images while leaving photo2 unchanged.
+
+    Works for both static asset URLs and data: URIs stored from the generator.
+    """
+    result = await db.execute(select(Species).where(Species.id == species_id))
+    species = result.scalar_one_or_none()
+
+    if species is None:
+        raise HTTPException(status_code=404, detail=f"Species '{species_id}' not found")
+
+    extra = copy.deepcopy(species.extra_data or {})
+
+    # Snapshot current URLs before any writes
+    def _get_url(slot: str) -> str | None:
+        if slot == "main":
+            ph = extra.get("photo")
+            return ph.get("url") if isinstance(ph, dict) else None
+        idx = 0 if slot == "photo1" else 1
+        photos = extra.get("photos")
+        if isinstance(photos, list) and len(photos) > idx:
+            return photos[idx].get("url") if isinstance(photos[idx], dict) else None
+        return None
+
+    snapshot = {
+        "main": _get_url("main"),
+        "photo1": _get_url("photo1"),
+        "photo2": _get_url("photo2"),
+    }
+
+    # Apply new mapping: new_slot ← url from body.<new_slot> (= current slot name)
+    new_urls = {
+        "main":   snapshot[body.main],
+        "photo1": snapshot[body.photo1],
+        "photo2": snapshot[body.photo2],
+    }
+
+    # Write main
+    if not isinstance(extra.get("photo"), dict):
+        extra["photo"] = {}
+    if new_urls["main"] is not None:
+        extra["photo"]["url"] = new_urls["main"]
+    elif "url" in extra.get("photo", {}):
+        extra["photo"].pop("url", None)
+
+    # Write photo1 / photo2
+    photos = extra.get("photos")
+    if not isinstance(photos, list):
+        photos = []
+
+    for i, slot_key in enumerate(["photo1", "photo2"]):
+        url = new_urls[slot_key]
+        if url is not None:
+            while len(photos) <= i:
+                photos.append({"url": "", "caption": ""})
+            photos[i] = {**photos[i], "url": url}
+        else:
+            # Ensure the slot exists but is empty (don't leave stale URL)
+            if len(photos) > i:
+                photos[i] = {**photos[i], "url": ""}
+
+    extra["photos"] = photos
+    species.extra_data = extra
+    flag_modified(species, "extra_data")
+    await db.commit()
+    await db.refresh(species)
+
+    log.info(
+        "Admin reordered images for %s: main←%s photo1←%s photo2←%s",
+        species_id, body.main, body.photo1, body.photo2,
+    )
+    return _to_detail(species)
+
+
+@router.post("/{species_id}/images/set-order", response_model=SpeciesDetail)
+async def set_species_photos_order(
+    species_id: str,
+    body: SetPhotosOrderBody,
+    _admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> SpeciesDetail:
+    """
+    Write an ordered list of photo URLs for a species, replacing all existing photos (admin only).
+
+    The first URL in ``photos`` becomes the main photo (``extra_data.photo.url``).
+    Remaining URLs fill ``extra_data.photos`` as gallery items, preserving existing
+    captions where a matching URL is found.  An empty list clears all photos.
+
+    Supports unlimited photos — not capped at the legacy 3-slot limit.
+    Works for both static asset paths and ``data:`` URIs from the generator.
+    """
+    result = await db.execute(select(Species).where(Species.id == species_id))
+    species = result.scalar_one_or_none()
+
+    if species is None:
+        raise HTTPException(status_code=404, detail=f"Species '{species_id}' not found")
+
+    extra = copy.deepcopy(species.extra_data or {})
+
+    # Build a caption lookup from existing photos so we don't lose captions on reorder
+    caption_by_url: dict[str, str] = {}
+    existing_main = extra.get("photo")
+    if isinstance(existing_main, dict) and existing_main.get("url"):
+        caption_by_url[existing_main["url"]] = existing_main.get("caption", "")
+    for item in extra.get("photos") or []:
+        if isinstance(item, dict) and item.get("url"):
+            caption_by_url[item["url"]] = item.get("caption", "")
+
+    if body.photos:
+        # First URL → main photo
+        main_url = body.photos[0]
+        if not isinstance(extra.get("photo"), dict):
+            extra["photo"] = {}
+        extra["photo"]["url"] = main_url
+        extra["photo"]["caption"] = caption_by_url.get(main_url, "")
+
+        # Remaining URLs → gallery array
+        extra["photos"] = [
+            {"url": url, "caption": caption_by_url.get(url, "")}
+            for url in body.photos[1:]
+        ]
+    else:
+        # Empty list: clear all photos
+        if isinstance(extra.get("photo"), dict):
+            extra["photo"].pop("url", None)
+            extra["photo"].pop("caption", None)
+        extra["photos"] = []
+
+    species.extra_data = extra
+    flag_modified(species, "extra_data")
+    await db.commit()
+    await db.refresh(species)
+
+    log.info("Admin set photo order for %s: %d photo(s)", species_id, len(body.photos))
+    return _to_detail(species)
