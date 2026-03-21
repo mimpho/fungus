@@ -46,6 +46,21 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
+## 🗂 Sin fecha — Hardening: API keys del generador al backend
+
+Deuda técnica documentada en `memory/decisions.md` (sección "Generador de imágenes — Monorepo vs Microservicio").
+
+Actualmente `VITE_GEMINI_API_KEY` está expuesta en el bundle del frontend. Aceptable mientras el acceso sea exclusivamente por `AdminGuard`, pero la solución correcta a largo plazo es:
+
+- Backend: endpoint `POST /api/v1/admin/generate-image` — recibe parámetros del prompt, llama a Imagen 4 / Gemini server-side, devuelve imagen en base64
+- Las API keys de Google dejan de estar en el cliente
+- `ImageGenerator.jsx` pasa a llamar al endpoint FastAPI en lugar de llamar directamente a Google AI SDK
+- Auth: el endpoint ya tiene acceso al JWT — verificar `role = 'admin'` en el middleware, sin cambios en `AdminGuard`
+
+**Cuándo priorizar:** si hay señales de que la key está siendo usada fuera del panel admin (monitoring de quotas), o si el número de admins crece y la key necesita rotarse sin redesploy del frontend.
+
+---
+
 ## 🗂 Sin fecha — v7.0 App Android
 
 - React Native + Expo — APK, mapa nativo, notificaciones push

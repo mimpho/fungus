@@ -436,6 +436,7 @@ Este archivo es privado (`.gitignore`) y es la fuente de verdad para decisiones 
 | v6.1 | 🗂 Backlog | Confirmación de email al registro (token verificación, banner en perfil) |
 | v7.0 | 🗂 Sin fecha | App móvil Android (React Native + Expo) — condicionado a monetización previa |
 | v8 | 🗂 Backlog | SEO: prerendering estático + react-helmet-async + Core Web Vitals |
+| — | 🗂 Sin fecha | Hardening: mover API keys del generador al backend FastAPI (endpoint admin server-side) — ver `memory/decisions.md` |
 
 Spec completa de v4.x: `docs/backend_architecture.md`
 
