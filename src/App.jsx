@@ -8,6 +8,7 @@ import Species    from './pages/Species'
 import Family     from './pages/Family'
 import Articles   from './pages/Articles'
 import Profile    from './pages/Profile'
+import AdminGallery from './pages/AdminGallery'
 import Layout          from './components/Layout'
 import { ModalRenderer } from './components/modals/ModalRenderer'
 
@@ -48,6 +49,11 @@ export default function App() {
               <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#4a7c59] border-t-transparent rounded-full animate-spin" /></div>}>
                 <ImageGenerator />
               </Suspense>
+            </AdminGuard>
+          } />
+          <Route path="admin/gallery"   element={
+            <AdminGuard>
+              <AdminGallery />
             </AdminGuard>
           } />
           <Route path="*"               element={<Navigate to="/" replace />} />

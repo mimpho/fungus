@@ -113,6 +113,12 @@ export const IC = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
     </svg>
   ),
+  wand: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M5 3l1.5 1.5M3 5l1.5 1.5M9 3l.5 2M3 9l2 .5M7 7l10 10M17 3l4 4-12 12H5v-4L17 3z" />
+    </svg>
+  ),
   pencil: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

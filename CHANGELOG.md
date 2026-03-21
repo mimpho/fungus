@@ -9,27 +9,56 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+---
+
+## [5.1.0] - 2026-03-21 — Admin: Image Generator + Gallery
+
 ### Añadido
-- **Campos de perfil en registro**: Nombre, Apellidos y Fecha de nacimiento (opcional) en el formulario de registro — frontend (`AuthModal`) y backend (`RegisterRequest`, migración 007 en `users`).
-- **`PATCH /me/profile`**: endpoint para editar nombre, apellidos y fecha de nacimiento del usuario autenticado. Email es inmutable.
-- **`DELETE /me/account`**: eliminación permanente de cuenta con CASCADE en zonas y favoritos.
-- **`EditProfileModal`**: modal de edición de perfil — pre-rellena datos del usuario, muestra estado de éxito (✓ Cambios guardados) y cierra automáticamente.
-- **Perfil UX**: saludo `Hola, {nombre}`, iniciales en avatar, botón "Editar perfil" con label en desktop, "Cerrar sesión | Eliminar cuenta" como links al pie con confirmación inline.
-- **Cookie notice** en `AuthModal` al pie del formulario — informa de la cookie de sesión en el momento relevante (sin banner previo).
-- **`IC.pencil`**: nuevo icono SVG de lápiz añadido a `helpers.jsx`.
-- **i18n**: claves `hola`, `nombre`, `apellidos`, `fechaNacimiento`, `opcional`, `editarPerfil`, `datosCuenta`, `cambioGuardado`, `guardar`, `eliminarCuenta`, `confirmarEliminar`, `cancelar`, `siEliminar`, `cookieInfo`, `sinZonasSeguidas`, `sinEspeciesFavoritas`, `mas` en ES/CA/EN.
-- **URL sync completo** en `Zones.jsx` y `Species.jsx`: todos los filtros (vista, orden, tipo bosque, CCAA, comarca, familia, comestibilidad) se sincronizan con la URL.
-- **Deep links desde Perfil**: "Ver todas →" en zonas seguidas → `/zonas?seguidas=1`; en favoritas → `/especies?filtro=favoritas`.
-- **Hero de `SpeciesModal` abre lightbox** al clicar, con efecto zoom y badge de fotos.
-- **Hover-lift en cards de especies** solucionado — `anim-up` dividido en dos keyframes para que `transform` no quede congelado por `fill-mode: both`.
-- **CCAA incluida en búsqueda de zonas**.
+
+**Generador de imágenes (`/admin/generator`)**
+- **`ImageGenerator`**: migración completa desde AI Studio a componente Vite/React en `src/components/admin/ImageGenerator.jsx`. Ruta protegida por `AdminGuard` (`role === 'admin'`).
+- **Imagen 4** via endpoint `:predict` (`imagen-4.0-generate-001`) para generación. **Gemini 2.5 Flash** para descripción/traducción de texto.
+- **Refinador real** (`callGeminiRefine`): edición imagen-a-imagen con `gemini-2.0-flash-exp-image-generation` — envía la imagen actual como `inlineData` + instrucción de texto, obtiene imagen editada. Fallback a Imagen 4 text-to-image si el modelo no está disponible.
+- **Dimensiones fijas**: 1376×768 (large) y 688×384 (small), via `processImage` con `targetWidth`/`targetHeight`.
+- **Selector de especies desde API**: eliminado array hardcoded `MUSHROOM_SPECIES_DATA` (200 entradas). Reemplazado por `useSpecies()` + `useMemo` con `FOREST_TYPE_LABELS` mapping.
+
+**Navegación admin**
+- **`isAdminView`** en `AppContext`: toggle de modo navegación (user ↔ admin) sin recarga.
+- **Toggle Público/Admin** en `Profile.jsx` via `Tabs` — visible solo para `role === 'admin'`.
+- **Layout split**: `userNavItems` (Dashboard, Zonas, Especies, Micología) vs `adminNavItems` (Generator, Gallery). Perfil siempre visible. Las secciones se alternan, no se suman.
+- **Rutas admin** en inglés: `/admin/generator`, `/admin/gallery`. `AdminGuard` en `App.jsx`.
+- **`IC.wand`** — nuevo icono SVG de varita mágica en `helpers.jsx`.
+- **i18n**: claves `adminGenerator`, `adminGallery`, `modoPublico`, `modoAdmin` en ES/CA/EN.
+
+**Galería admin (`/admin/gallery`)**
+- **`AdminGallery`**: nueva página con catálogo de 202 especies desde API.
+- **Vista card** (por defecto): usa `SpeciesCard` igual que `/especies`.
+- **Vista grid**: cuadrícula 8 columnas con hover overlay (nombre científico + id).
+- **Filtros**: búsqueda de texto + selector familia + selector comestibilidad.
+- **Connected filter pill**: `ag-search` / `ag-family` / `ag-edib` en `styles.css` — redondeado solo en extremos, plano entre segmentos, gap 4px como `SearchFilterBar`.
+- **Responsive**: mobile = título + toggle en misma fila · búsqueda en fila 1 · selectores como pill única en fila 2 (gap-0). Desktop = todo en una fila horizontal.
+- **Paginación** con `?pagina=N` sincronizado en URL (PAGE_SIZE = 24).
+
+**Auth UX (post-v5.0)**
+- **Campos de perfil en registro**: Nombre, Apellidos y Fecha de nacimiento (opcional) en `AuthModal` y backend (`RegisterRequest`, migración 007).
+- **`PATCH /me/profile`**: endpoint para editar nombre, apellidos y fecha de nacimiento. Email inmutable.
+- **`DELETE /me/account`**: eliminación permanente con CASCADE.
+- **`EditProfileModal`**: pre-rellena datos, muestra ✓ Cambios guardados, cierra automáticamente.
+- **Perfil UX**: saludo `Hola, {nombre}`, iniciales en avatar, deep links "Ver todas →" a zonas/favoritos.
+- **Cookie notice** en `AuthModal` al pie del formulario.
+- **`IC.pencil`** — icono de lápiz en `helpers.jsx`.
+- **URL sync completo** en `Zones.jsx` y `Species.jsx` — todos los filtros en URL.
+- **Hero de `SpeciesModal` abre lightbox** al clicar.
+- **i18n**: claves `hola`, `nombre`, `apellidos`, `fechaNacimiento`, `editarPerfil`, `cambioGuardado`, `guardar`, `eliminarCuenta`, `confirmarEliminar`, `cookieInfo`, `sinZonasSeguidas`, `sinEspeciesFavoritas`, `mas` en ES/CA/EN.
 
 ### Corregido
+- **`setRecentBatchIds([])`** — llamadas sin argumento causaban `TypeError` al acceder a `.includes()` sobre `undefined`.
 - **`SameSite=None`** en cookie de refresh para producción (Vercel → Render cross-site).
-- **CORS**: `PATCH` añadido a `allow_methods` en `main.py` — `PATCH /me/profile` bloqueado por preflight CORS.
-- **`translateApiError`**: mapea `'Failed to fetch'` / `'Load failed'` (Safari) / `'NetworkError...'` (Firefox) a `errRed`; cualquier error desconocido también cae a `errRed` en lugar de mostrar texto técnico en inglés.
+- **CORS**: `PATCH` añadido a `allow_methods` — `PATCH /me/profile` bloqueado por preflight.
+- **`translateApiError`**: mapea `'Failed to fetch'` / `'Load failed'` (Safari) / `'NetworkError'` (Firefox) a `errRed`.
 - **ruff UP045**: `Optional[X]` → `X | None` en `me.py` y `schemas/auth.py`.
 - `stopPropagation` en botón de favorito del hero de `SpeciesModal`.
+- **Hover-lift en cards de especies** — `anim-up` dividido en dos keyframes.
 
 ---
 

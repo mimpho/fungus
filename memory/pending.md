@@ -4,18 +4,22 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-
-## 🚀 Próximo — v5.1 Generador de Imágenes de Setas (Acceso Protegido)
+## 🚀 Próximo — v5.2 Generador: mejoras de flujo
 
 **Alcance previsto:**
-- Migración del componente `App.tsx` (AI Studio) a `src/components/admin/ImageGenerator.tsx`.
-- Integración en Router con ruta `/admin/generator`.
-- Seguridad: Acceso solo para `role === 'admin'`.
-- Uso de `VITE_GEMINI_API_KEY` para integración con Gemini 1.5 Flash.
+
+- **Overwrite modal**: al intentar guardar como imagen `main` una especie que ya tiene imágenes en BD, mostrar un modal de comparación con las 4 imágenes (nueva generada, main actual, foto 1, foto 2). El usuario asigna posición (main | 1 | 2 | eliminar) a cada una mediante una lista ordenable. Requiere:
+  - Backend: endpoint `PATCH /api/v1/species/{id}/images` — acepta imagen en base64, actualiza slots en BD
+  - Frontend: `ImageOverwriteModal` con previsualización de 4 imágenes y selector de slot por imagen
+
+- **Gallery click → Generador**: click en un item de `AdminGallery` abre el generador con la especie pre-cargada y la imagen actual visible como referencia. El flujo sería: galería → generador (especie + imagen actual en panel) → instrucciones de refinamiento → imagen nueva → confirmación de reemplazo.
+  - El refinador actual (`callGeminiRefine`) no toma la imagen existente como input real — genera desde cero con instrucciones. Evaluar si suficiente o si se requiere img2img real.
 
 ---
 
-## 🗂 Backlog — v5.2 Social login (Google)
+## 🗂 Backlog — v6.0 Social login (Google)
+
+(Era v5.2 — movido a v6 para priorizar mejoras del generador)
 
 **Alcance previsto:**
 - Google OAuth2 — gratis, sin coste, mayor reducción de fricción
@@ -26,7 +30,9 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🗂 Backlog — v5.3 Confirmación de email
+## 🗂 Backlog — v6.1 Confirmación de email
+
+(Era v5.3 — movido a v6.x)
 
 **Alcance previsto:**
 - Enviar email de verificación al registrar una cuenta nueva
@@ -36,11 +42,11 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 - Frontend: mostrar banner "Verifica tu email" en perfil si `!email_verified`
 - Proveedor: Resend o SendGrid (cheap/free tier suficiente para volumen inicial)
 
-**Decisión:** postergar a después de v5.2. Sin proveedor de email configurado todavía (Resend o SendGrid).
+**Decisión:** postergar hasta después de v6.0. Sin proveedor de email configurado todavía.
 
 ---
 
-## 🗂 Sin fecha — v6.0 App Android
+## 🗂 Sin fecha — v7.0 App Android
 
 - React Native + Expo — APK, mapa nativo, notificaciones push
 - **Condicionado a monetización previa** (costes de desarrollo y distribución)
@@ -48,7 +54,7 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🗂 Backlog — v7 SEO
+## 🗂 Backlog — v8 SEO
 
 - Prerendering estático en build time para rutas conocidas (`/especies/:id`, `/zonas/:id`, etc.)
 - `react-helmet-async`: meta tags dinámicos por ruta (título, description, Open Graph)

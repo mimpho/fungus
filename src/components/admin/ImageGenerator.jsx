@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, useMemo, Component, ErrorInfo, ReactNode } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
+import { useSpecies } from '../../hooks/useSpecies';
 import {
   Camera,
   Sprout,
@@ -133,206 +134,13 @@ const TAXONOMY_GOLDEN_RULES = {
   "Tuberaceae": "Aspecto de tubérculo irregular, hipogea (subterránea), carne veteada (marmórea)."
 };
 
-const MUSHROOM_SPECIES_DATA = [
-  { name: "esp-001 - Boletus edulis", family: "Boletaceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-002 - Boletus aereus", family: "Boletaceae", habitat: "Bosque Mediterráneo - Encin Alcornocales (Luz dorada, hoj encina, musgo)" },
-  { name: "esp-003 - Boletus pinophilus", family: "Boletaceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-004 - Boletus reticulatus", family: "Boletaceae", habitat: "Frondosas - Hay Robles (Humedad, hojarasca ancha, sombr)" },
-  { name: "esp-005 - Imleria badia", family: "Boletaceae", habitat: "Bosques de conífer frondosas" },
-  { name: "esp-006 - Leccinum scabrum", family: "Boletaceae", habitat: "Bosques de abedules" },
-  { name: "esp-007 - Leccinum versipelle", family: "Boletaceae", habitat: "Bosques de abedules" },
-  { name: "esp-008 - Suillus luteus", family: "Boletaceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-009 - Suillus granulatus", family: "Boletaceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-010 - Suillus bellini", family: "Boletaceae", habitat: "Pinares mediterráneos" },
-  { name: "esp-011 - Xerocomus subtomentosus", family: "Boletaceae", habitat: "Bosques mixtos" },
-  { name: "esp-012 - Caloboletus calopus", family: "Boletaceae", habitat: "Bosques de montaña" },
-  { name: "esp-013 - Suillellus luridus", family: "Boletaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-014 - Neoboletus erythropus", family: "Boletaceae", habitat: "Bosques de montaña" },
-  { name: "esp-015 - Rubroboletus satanas", family: "Boletaceae", habitat: "Bosques de frondos" },
-  { name: "esp-016 - Gyroporus cyanescens", family: "Boletaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-017 - Gyroporus castaneus", family: "Boletaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-018 - Chalciporus piperatus", family: "Boletaceae", habitat: "Bosques de coníferas" },
-  { name: "esp-019 - Neoboletus luridiformis", family: "Boletaceae", habitat: "Bosques de montaña" },
-  { name: "esp-020 - Paxillus involutus", family: "Paxillaceae", habitat: "Bosques húmedos" },
-  { name: "esp-021 - Aureoboletus gentilis", family: "Boletaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-022 - Tapinella atrotomentosa", family: "Tapinellaceae", habitat: "Troncos de coníferas" },
-  { name: "esp-023 - Russula virescens", family: "Russulaceae", habitat: "Bosque Mediterráneo - Encin Alcornocales (Luz dorada, hoj encina, musgo)" },
-  { name: "esp-024 - Russula cyanoxantha", family: "Russulaceae", habitat: "Frondosas - Hay Robles (Humedad, hojarasca ancha, sombr)" },
-  { name: "esp-025 - Russula delica", family: "Russulaceae", habitat: "Bosques mixtos" },
-  { name: "esp-026 - Russula emetica", family: "Russulaceae", habitat: "Bosques húmedos y turberas" },
-  { name: "esp-027 - Russula aurea", family: "Russulaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-028 - Russula parazurea", family: "Russulaceae", habitat: "Bosques mixtos" },
-  { name: "esp-029 - Russula olivacea", family: "Russulaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-030 - Russula vesca", family: "Russulaceae", habitat: "Bosques mixtos" },
-  { name: "esp-031 - Russula foetens", family: "Russulaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-032 - Russula nigricans", family: "Russulaceae", habitat: "Bosques mixtos" },
-  { name: "esp-033 - Russula xerampelina", family: "Russulaceae", habitat: "Bosques de coníferas" },
-  { name: "esp-034 - Russula mustelina", family: "Russulaceae", habitat: "Bosques de montaña" },
-  { name: "esp-035 - Lactarius deliciosus", family: "Russulaceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-036 - Lactarius sanguifluus", family: "Russulaceae", habitat: "Bosque Mediterráneo - Encin Alcornocales (Luz dorada, hoj encina, musgo)" },
-  { name: "esp-037 - Lactarius deterrimus", family: "Russulaceae", habitat: "Bosques de piceas" },
-  { name: "esp-038 - Lactifluus piperatus", family: "Russulaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-039 - Lactarius torminosus", family: "Russulaceae", habitat: "Bosques de abedules" },
-  { name: "esp-040 - Lactarius indigo", family: "Russulaceae", habitat: "Bosques de pinos y robles" },
-  { name: "esp-041 - Lactarius volemus", family: "Russulaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-042 - Lactifluus vellereus", family: "Russulaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-043 - Russula laurocerasi", family: "Russulaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-044 - Russula pseudointegra", family: "Russulaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-045 - Cantharellus cibarius", family: "Cantharellaceae", habitat: "Bosque Mediterráneo - Encin Alcornocales (Luz dorada, hoj encina, musgo)" },
-  { name: "esp-046 - Cantharellus pallens", family: "Cantharellaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-047 - Cantharellus aurora", family: "Cantharellaceae", habitat: "Bosques de coníferas" },
-  { name: "esp-048 - Craterellus cornucopioides", family: "Cantharellaceae", habitat: "Bosque Mediterráneo - Encin Alcornocales (Luz dorada, hoj encina, musgo)" },
-  { name: "esp-049 - Craterellus lutescens", family: "Cantharellaceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-050 - Craterellus tubaeformis", family: "Cantharellaceae", habitat: "Bosques húmedos" },
-  { name: "esp-051 - Hydnum repandum", family: "Hydnaceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-052 - Hydnum rufescens", family: "Hydnaceae", habitat: "Bosques mixtos" },
-  { name: "esp-053 - Gomphus clavatus", family: "Gomphaceae", habitat: "Bosques de montaña" },
-  { name: "esp-054 - Pseudocraterellus undulatus", family: "Cantharellaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-055 - Amanita caesarea", family: "Amanitaceae", habitat: "Bosque Mediterráneo - Encin Alcornocales (Luz dorada, hoj encina, musgo)" },
-  { name: "esp-056 - Amanita muscaria", family: "Amanitaceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-057 - Amanita phalloides", family: "Amanitaceae", habitat: "Bosque Mediterráneo - Encin Alcornocales (Luz dorada, hoj encina, musgo)" },
-  { name: "esp-058 - Amanita verna", family: "Amanitaceae", habitat: "Bosques de frondos primavera" },
-  { name: "esp-059 - Amanita virosa", family: "Amanitaceae", habitat: "Bosques de montaña" },
-  { name: "esp-060 - Amanita pantherina", family: "Amanitaceae", habitat: "Bosques mixtos" },
-  { name: "esp-061 - Amanita rubescens", family: "Amanitaceae", habitat: "Frondosas - Hay Robles (Humedad, hojarasca ancha, sombr)" },
-  { name: "esp-062 - Amanita ovoidea", family: "Amanitaceae", habitat: "Bosques mediterráneos calcáreos" },
-  { name: "esp-063 - Amanita spissa", family: "Amanitaceae", habitat: "Bosques mixtos" },
-  { name: "esp-064 - Amanita crocea", family: "Amanitaceae", habitat: "Bosques de montaña" },
-  { name: "esp-065 - Amanita citrina", family: "Amanitaceae", habitat: "Bosques mixtos" },
-  { name: "esp-066 - Amanita gemmata", family: "Amanitaceae", habitat: "Bosques de pinos" },
-  { name: "esp-067 - Amanita strobiliformis", family: "Amanitaceae", habitat: "Bosques de frondos" },
-  { name: "esp-068 - Amanita eliae", family: "Amanitaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-069 - Amanita excelsa", family: "Amanitaceae", habitat: "Bosques mixtos" },
-  { name: "esp-070 - Pleurotus ostreatus", family: "Pleurotaceae", habitat: "Troncos y Madera - Lignícolas (Textur corteza, líquenes)" },
-  { name: "esp-071 - Pleurotus eryngii", family: "Pleurotaceae", habitat: "Prader Pastizales (Luz abierta, hierba corta, rocío)" },
-  { name: "esp-072 - Pleurotus cornucopiae", family: "Pleurotaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-073 - Pleurotus pulmonarius", family: "Pleurotaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-074 - Omphalotus olearius", family: "Omphalotaceae", habitat: "Raíces de olivos y encinas" },
-  { name: "esp-075 - Lentinula edodes", family: "Omphalotaceae", habitat: "Troncos de frondosas (cultivado)" },
-  { name: "esp-076 - Hohenbuehelia petaloides", family: "Pleurotaceae", habitat: "Suelo con restos leñosos" },
-  { name: "esp-077 - Panus conchatus", family: "Panaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-078 - Morchella esculenta", family: "Morchellaceae", habitat: "Bosques de ribera y terrenos removidos" },
-  { name: "esp-079 - Morchella elata", family: "Morchellaceae", habitat: "Bosques de montaña y quemados" },
-  { name: "esp-080 - Morchella conica", family: "Morchellaceae", habitat: "Bosques mixtos" },
-  { name: "esp-081 - Morchella importuna", family: "Morchellaceae", habitat: "Jardines y zon" },
-  { name: "esp-082 - Gyromitra esculenta", family: "Discinaceae", habitat: "Bosques de montaña" },
-  { name: "esp-083 - Helvella lacunosa", family: "Helvellaceae", habitat: "Bosques mixtos" },
-  { name: "esp-084 - Helvella crispa", family: "Helvellaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-085 - Helvella acetabulum", family: "Helvellaceae", habitat: "Bosques mixtos calcáreos" },
-  { name: "esp-086 - Tuber melanosporum", family: "Tuberaceae", habitat: "Bajo encin robles (Trufa negra)" },
-  { name: "esp-087 - Tuber aestivum", family: "Tuberaceae", habitat: "Bajo frondosas (Trufa de verano)" },
-  { name: "esp-088 - Tuber borchii", family: "Tuberaceae", habitat: "Bajo pinos y frondosas" },
-  { name: "esp-089 - Peziza vesiculosa", family: "Pezizaceae", habitat: "Terrenos abonados" },
-  { name: "esp-090 - Tricholoma equestre", family: "Tricholomataceae", habitat: "Bosque Mediterráneo - Encin Alcornocales (Luz dorada, hoj encina, musgo)" },
-  { name: "esp-091 - Tricholoma portentosum", family: "Tricholomataceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-092 - Tricholoma terreum", family: "Tricholomataceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-  { name: "esp-093 - Tricholoma sulphureum", family: "Tricholomataceae", habitat: "Bosques de frondosas" },
-  { name: "esp-094 - Tricholoma saponaceum", family: "Tricholomataceae", habitat: "Bosques mixtos" },
-  { name: "esp-095 - Calocybe gambosa", family: "Lyophyllaceae", habitat: "Prader Pastizales (Luz abierta, hierba corta, rocío)" },
-  { name: "esp-096 - Lyophyllum decastes", family: "Lyophyllaceae", habitat: "Bosques mixtos" },
-  { name: "esp-101 - Lepista nuda", family: "Tricholomataceae", habitat: "Prader Pastizales (Luz abierta, hierba corta, rocío)" },
-  { name: "esp-102 - Lepista personata", family: "Tricholomataceae", habitat: "Prader pastizales" },
-  { name: "esp-103 - Flammulina velutipes", family: "Physalacriaceae", habitat: "Troncos de frondos winter" },
-  { name: "esp-104 - Armillaria mellea", family: "Physalacriaceae", habitat: "Troncos y Madera - Lignícolas (Textur corteza, líquenes)" },
-  { name: "esp-105 - Entoloma sinuatum", family: "Entolomataceae", habitat: "Bosques de frondos" },
-  { name: "esp-106 - Entoloma rhodopolium", family: "Entolomataceae", habitat: "Bosques de frondosas" },
-  { name: "esp-107 - Entoloma clypeatum", family: "Entolomataceae", habitat: "Bajo rosáce primavera" },
-  { name: "esp-108 - Clitopilus prunulus", family: "Entolomataceae", habitat: "Bosques mixtos" },
-  { name: "esp-109 - Rhodotus palmatus", family: "Physalacriaceae", habitat: "Troncos de olmos" },
-  { name: "esp-110 - Entoloma lividoalbum", family: "Entolomataceae", habitat: "Bosques de frondosas" },
-  { name: "esp-111 - Cortinarius orellanus", family: "Cortinariaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-112 - Cortinarius rubellus", family: "Cortinariaceae", habitat: "Bosques de montaña" },
-  { name: "esp-113 - Cortinarius violaceus", family: "Cortinariaceae", habitat: "Frondosas - Hay Robles (Humedad, hojarasca ancha, sombr)" },
-  { name: "esp-114 - Cortinarius caperatus", family: "Cortinariaceae", habitat: "Bosques de montaña" },
-  { name: "esp-115 - Cortinarius splendens", family: "Cortinariaceae", habitat: "Bosques de hayas" },
-  { name: "esp-116 - Cortinarius praestans", family: "Cortinariaceae", habitat: "Bosques de frondos" },
-  { name: "esp-117 - Cortinarius armeniacus", family: "Cortinariaceae", habitat: "Bosques de coníferas" },
-  { name: "esp-118 - Inocybe rimosa", family: "Inocybaceae", habitat: "Bosques mixtos" },
-  { name: "esp-119 - Inocybe erubescens", family: "Inocybaceae", habitat: "Bosques de frondos" },
-  { name: "esp-120 - Hebeloma crustuliniforme", family: "Hymenogastraceae", habitat: "Bosques mixtos" },
-  { name: "esp-121 - Hebeloma sinapizans", family: "Hymenogastraceae", habitat: "Bosques de frondosas" },
-  { name: "esp-122 - Galerina marginata", family: "Hymenogastraceae", habitat: "Troncos de coníferas" },
-  { name: "esp-123 - Gymnopilus junonius", family: "Hymenogastraceae", habitat: "Troncos de frondosas" },
-  { name: "esp-124 - Phlegmacium calochroum", family: "Cortinariaceae", habitat: "Bosques de frondos" },
-  { name: "esp-125 - Dermocybe sanguinea", family: "Cortinariaceae", habitat: "Bosques de montaña" },
-  { name: "esp-126 - Ganoderma lucidum", family: "Ganodermataceae", habitat: "Troncos y Madera - Lignícolas (Textur corteza, líquenes)" },
-  { name: "esp-127 - Ganoderma applanatum", family: "Ganodermataceae", habitat: "Troncos de frondosas" },
-  { name: "esp-128 - Laetiporus sulphureus", family: "Polyporaceae", habitat: "Troncos y Madera - Lignícolas (Textur corteza, líquenes)" },
-  { name: "esp-129 - Fomes fomentarius", family: "Polyporaceae", habitat: "Troncos y Madera - Lignícolas (Textur corteza, líquenes)" },
-  { name: "esp-130 - Trametes versicolor", family: "Polyporaceae", habitat: "Troncos y Madera - Lignícolas (Textur corteza, líquenes)" },
-  { name: "esp-131 - Trametes gibbosa", family: "Polyporaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-132 - Meripilus giganteus", family: "Meripilaceae", habitat: "Raíces de frondosas" },
-  { name: "esp-133 - Grifola frondosa", family: "Grifolaceae", habitat: "Base de robles" },
-  { name: "esp-134 - Sparassis crispa", family: "Sparassidaceae", habitat: "Base de pinos" },
-  { name: "esp-135 - Polyporus squamosus", family: "Polyporaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-136 - Pycnoporus cinnabarinus", family: "Polyporaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-137 - Daedalea quercina", family: "Fomitopsidaceae", habitat: "Troncos de robles" },
-  { name: "esp-138 - Fistulina hepatica", family: "Fistulinaceae", habitat: "Bosque Mediterráneo - Encin Alcornocales (Luz dorada, hoj encina, musgo)" },
-  { name: "esp-139 - Phlebia radiata", family: "Meruliaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-140 - Hygrophorus marzuolus", family: "Hygrophoraceae", habitat: "Bosques de montaña en primavera" },
-  { name: "esp-141 - Hygrophorus hypothejus", family: "Hygrophoraceae", habitat: "Bosques de pinos en invierno" },
-  { name: "esp-142 - Hygrophorus agathosmus", family: "Hygrophoraceae", habitat: "Bosques de montaña" },
-  { name: "esp-143 - Hygrophorus pustulatus", family: "Hygrophoraceae", habitat: "Bosques de coníferas" },
-  { name: "esp-144 - Hygrocybe punicea", family: "Hygrophoraceae", habitat: "Prader montaña" },
-  { name: "esp-145 - Hygrocybe pratensis", family: "Hygrophoraceae", habitat: "Prader pastizales" },
-  { name: "esp-146 - Hygrocybe psittacina", family: "Hygrophoraceae", habitat: "Prader" },
-  { name: "esp-147 - Cuphophyllus virgineus", family: "Hygrophoraceae", habitat: "Prader pastizales" },
-  { name: "esp-148 - Pholiota squarrosa", family: "Strophariaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-149 - Hypholoma fasciculare", family: "Strophariaceae", habitat: "Troncos y Madera - Lignícolas (Textur corteza, líquenes)" },
-  { name: "esp-150 - Hypholoma capnoides", family: "Strophariaceae", habitat: "Troncos de coníferas" },
-  { name: "esp-151 - Stropharia aeruginosa", family: "Strophariaceae", habitat: "Bosques mixtos" },
-  { name: "esp-152 - Agrocybe praecox", family: "Strophariaceae", habitat: "Jardines y zon" },
-  { name: "esp-153 - Agrocybe aegerita", family: "Strophariaceae", habitat: "Troncos de chopos" },
-  { name: "esp-154 - Kuehneromyces mutabilis", family: "Strophariaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-155 - Psilocybe semilanceata", family: "Hymenogastraceae", habitat: "Prader" },
-  { name: "esp-156 - Cyclocybe cylindracea", family: "Strophariaceae", habitat: "Troncos de chopos" },
-  { name: "esp-157 - Stropharia coronilla", family: "Strophariaceae", habitat: "Prader pastizales" },
-  { name: "esp-158 - Agaricus campestris", family: "Agaricaceae", habitat: "Prader Pastizales (Luz abierta, hierba corta, rocío)" },
-  { name: "esp-159 - Agaricus silvicola", family: "Agaricaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-160 - Agaricus xanthodermus", family: "Agaricaceae", habitat: "Jardines y parques" },
-  { name: "esp-161 - Agaricus augustus", family: "Agaricaceae", habitat: "Bosques mixtos" },
-  { name: "esp-162 - Lepiota cristata", family: "Agaricaceae", habitat: "Jardines y bosques" },
-  { name: "esp-163 - Macrolepiota procera", family: "Agaricaceae", habitat: "Prader Pastizales (Luz abierta, hierba corta, rocío)" },
-  { name: "esp-164 - Macrolepiota rhacodes", family: "Agaricaceae", habitat: "Bosques mixtos" },
-  { name: "esp-165 - Leucoagaricus leucothites", family: "Agaricaceae", habitat: "Prader jardines" },
-  { name: "esp-166 - Coprinus comatus", family: "Agaricaceae", habitat: "Frondosas - Hay Robles (Humedad, hojarasca ancha, sombr)" },
-  { name: "esp-167 - Coprinellus micaceus", family: "Psathyrellaceae", habitat: "Suelo con restos leñosos" },
-  { name: "esp-168 - Coprinopsis atramentaria", family: "Psathyrellaceae", habitat: "Terrenos removidos" },
-  { name: "esp-169 - Psathyrella candolleana", family: "Psathyrellaceae", habitat: "Jardines y bosques" },
-  { name: "esp-170 - Panaeolus papilionaceus", family: "Bolbitiaceae", habitat: "Prader" },
-  { name: "esp-171 - Lacrymaria lacrymabunda", family: "Psathyrellaceae", habitat: "Caminos y jardines" },
-  { name: "esp-172 - Hericium erinaceus", family: "Hericiaceae", habitat: "Frondosas - Hay Robles (Humedad, hojarasca ancha, sombr)" },
-  { name: "esp-173 - Hericium coralloides", family: "Hericiaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-174 - Sarcodon imbricatus", family: "Bankeraceae", habitat: "Bosques de montaña" },
-  { name: "esp-175 - Sarcodon scabrosus", family: "Bankeraceae", habitat: "Bosques de frondosas" },
-  { name: "esp-176 - Hydnellum peckii", family: "Bankeraceae", habitat: "Bosques de montaña" },
-  { name: "esp-177 - Phellodon niger", family: "Bankeraceae", habitat: "Bosques de coníferas" },
-  { name: "esp-178 - Bankera fuligineoalba", family: "Bankeraceae", habitat: "Bosques de pinos" },
-  { name: "esp-179 - Auriscalpium vulgare", family: "Auriscalpiaceae", habitat: "Piñ pino" },
-  { name: "esp-180 - Calvatia gigantea", family: "Agaricaceae", habitat: "Prader pastizales" },
-  { name: "esp-181 - Lycoperdon perlatum", family: "Agaricaceae", habitat: "Prader Pastizales (Luz abierta, hierba corta, rocío)" },
-  { name: "esp-182 - Lycoperdon pyriforme", family: "Agaricaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-183 - Scleroderma citrinum", family: "Sclerodermataceae", habitat: "Bosques mixtos" },
-  { name: "esp-184 - Bovista plumbea", family: "Agaricaceae", habitat: "Prader Pastizales (Luz abierta, hierba corta, rocío)" },
-  { name: "esp-185 - Phallus impudicus", family: "Phallaceae", habitat: "Bosques mixtos" },
-  { name: "esp-186 - Phallus hadriani", family: "Phallaceae", habitat: "Dun terrenos arenosos" },
-  { name: "esp-187 - Clathrus ruber", family: "Phallaceae", habitat: "Bosques y jardines" },
-  { name: "esp-188 - Clathrus archeri", family: "Phallaceae", habitat: "Frondosas - Hay Robles (Humedad, hojarasca ancha, sombr)" },
-  { name: "esp-189 - Mutinus caninus", family: "Phallaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-190 - Marasmius oreades", family: "Marasmiaceae", habitat: "Prader Pastizales (Luz abierta, hierba corta, rocío)" },
-  { name: "esp-191 - Marasmius rotula", family: "Marasmiaceae", habitat: "Restos leñosos de frondosas" },
-  { name: "esp-192 - Mycena galericulata", family: "Mycenaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-193 - Mycena haematopus", family: "Mycenaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-194 - Oudemansiella mucida", family: "Physalacriaceae", habitat: "Frondosas - Hay Robles (Humedad, hojarasca ancha, sombr)" },
-  { name: "esp-195 - Oudemansiella radicata", family: "Physalacriaceae", habitat: "Bosques de frondosas" },
-  { name: "esp-196 - Strobilurus esculentus", family: "Physalacriaceae", habitat: "Piñ piceas" },
-  { name: "esp-197 - Mycena chlorophos", family: "Mycenaceae", habitat: "Bosques tropicales/húmedos" },
-  { name: "esp-198 - Auricularia auricula-judae", family: "Auriculariaceae", habitat: "Troncos y Madera - Lignícolas (Textur corteza, líquenes)" },
-  { name: "esp-199 - Trametes hirsuta", family: "Polyporaceae", habitat: "Troncos de frondosas" },
-  { name: "esp-200 - Xylaria hypoxylon", family: "Xylariaceae", habitat: "Troncos y Madera - Lignícolas (Textur corteza, líquenes)" },
-  { name: "esp-201 - Butyriboletus regius", family: "Boletaceae", habitat: "Bosques de montaña" },
-  { name: "esp-202 - Chroogomphus rutilus", family: "Gomphidiaceae", habitat: "Pinares y Coníferas (Luz fría/niebla, acícul piñas)" },
-];
+const FOREST_TYPE_LABELS = {
+  pinar:   'Pinares y Coníferas',
+  hayedo:  'Frondosas - Hayedos',
+  robledal:'Frondosas - Robledales',
+  encinar: 'Bosque Mediterráneo - Encinar/Alcornocal',
+};
+
 
 const getExtension = (mime) => {
   const ext = mime.split('/')[1];
@@ -529,6 +337,19 @@ function App() {
     return items;
   });
 
+  // ── Species from API ──────────────────────────────────────────────────────
+  const { species: apiSpecies } = useSpecies()
+  const mushroomSpeciesData = useMemo(() =>
+    apiSpecies.map(s => ({
+      name: `${s.id} - ${s.scientificName}`,
+      family: s.family,
+      habitat: (s.forestTypes ?? [])
+        .map(ft => FOREST_TYPE_LABELS[ft] ?? ft)
+        .join(', ') || 'su hábitat natural',
+    })),
+    [apiSpecies]
+  )
+
   const getNextId = (currentHistory) => {
     if (currentHistory.length === 0) return "001";
     const ids = currentHistory
@@ -619,7 +440,7 @@ function App() {
 
   const findSpeciesData = (name) => {
     const lowerName = name.toLowerCase();
-    return MUSHROOM_SPECIES_DATA.find(s => {
+    return mushroomSpeciesData.find(s => {
       const sLower = s.name.toLowerCase();
       // Match if exactly equal or if the scientific name part matches
       const sScientificPart = sLower.includes(' - ') ? sLower.split(' - ')[1] : sLower;
@@ -802,7 +623,7 @@ function App() {
     console.log("Open key dialog requested");
   };
 
-  const processImage = (base64, format, quality, scale = 1) => {
+  const processImage = (base64, format, quality, targetWidth = null, targetHeight = null) => {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("Tiempo de espera agotado al procesar la imagen"));
@@ -812,8 +633,8 @@ function App() {
       img.onload = () => {
         clearTimeout(timeout);
         const canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
+        canvas.width = targetWidth ?? img.width;
+        canvas.height = targetHeight ?? img.height;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           reject(new Error("No se pudo obtener el contexto del canvas"));
@@ -848,7 +669,7 @@ function App() {
 
     // Reduced: esp-<id>-main.<extension>
     try {
-      const smallImage = await processImage(generatedImage, settings.fileFormat, settings.quality, 0.5);
+      const smallImage = await processImage(generatedImage, settings.fileFormat, settings.quality, 688, 384);
       const linkSmall = document.createElement('a');
       linkSmall.href = smallImage;
       linkSmall.download = `esp-${id}-main.${extension}`;
@@ -858,6 +679,46 @@ function App() {
     } catch (err) {
       console.error("Error creating small image:", err);
     }
+  };
+
+  // Imagen 4 uses the :predict endpoint, not :generateContent
+  const callImagen3 = async (prompt, apiKey, aspectRatio = '16:9') => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instances: [{ prompt }], parameters: { sampleCount: 1, aspectRatio } }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || `Imagen API error ${res.status}`);
+    }
+    const data = await res.json();
+    const pred = data?.predictions?.[0];
+    if (!pred?.bytesBase64Encoded) throw new Error("Imagen API no devolvió imagen.");
+    return `data:${pred.mimeType || 'image/png'};base64,${pred.bytesBase64Encoded}`;
+  };
+
+  // Real image-to-image editing via Gemini 2.0 Flash (multimodal input → image output).
+  // Sends the current image + instruction text; the model edits the image directly.
+  // Falls back to callImagen3 (text-to-image) if the model is unavailable.
+  const callGeminiRefine = async (imageBase64, mimeType, instruction, apiKey) => {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp-image-generation' });
+    const response = await model.generateContent({
+      contents: [{
+        role: 'user',
+        parts: [
+          { inlineData: { mimeType, data: imageBase64 } },
+          { text: instruction },
+        ],
+      }],
+      generationConfig: { responseModalities: ['image'] },
+    });
+    const parts = response.response?.candidates?.[0]?.content?.parts ?? [];
+    const imagePart = parts.find(p => p.inlineData);
+    if (!imagePart) throw new Error('El modelo de refinamiento no devolvió imagen.');
+    return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
   };
 
   const withTimeout = (promise, ms) => {
@@ -984,7 +845,7 @@ function App() {
     setRetryStatus(null);
     setPromptParts();
     setIsRefining(false);
-    setRecentBatchIds();
+    setRecentBatchIds([]);
     setGeneratedImage(null);
 
     try {
@@ -1072,7 +933,7 @@ function App() {
 
           let prompt = "";
           try {
-            const promptResponse = await withRetry(() => genAI.getGenerativeModel({ model: 'gemini-1.5-flash', systemInstruction: MYCOLOGICAL_ENGINE_INSTRUCTIONS }).generateContent(enginePrompt), 2, 40000, 1000, (attempt) => {
+            const promptResponse = await withRetry(() => genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: MYCOLOGICAL_ENGINE_INSTRUCTIONS }).generateContent(enginePrompt), 2, 40000, 1000, (attempt) => {
               setRetryStatus(`Reintentando análisis (${attempt}/2)...`);
               setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Reintento prompt ${attempt}...`]);
             });
@@ -1090,7 +951,7 @@ function App() {
           setGenerationStep(`Enviando diseño de ${currentName}...`);
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando imagen a Google...`]);
 
-          const response = await withRetry(() => genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' }).generateContent({ parts: [{ text: prompt }] }), 3, 90000, 2000, (attempt) => {
+          const imageUrl = await withRetry(() => callImagen3(prompt, apiKey, settings.aspectRatio || '16:9'), 3, 90000, 2000, (attempt) => {
             setRetryStatus(`Servidor saturado. Reintento (${attempt}/3)...`);
             setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Reintento imagen ${attempt}...`]);
           });
@@ -1098,32 +959,17 @@ function App() {
           setGenerationStep("Recibiendo datos de imagen...");
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Datos recibidos. Procesando...`]);
 
-          let imageUrl = null;
-          const candidates = response.candidates;
-          if (!candidates || candidates.length === 0) throw new Error("El servidor no devolvió ninguna imagen.");
-
-          if (candidates[0].content?.parts) {
-            for (const part of candidates[0].content.parts) {
-              if (part.inlineData) {
-                imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-                break;
-              }
-            }
-          }
-
-          if (!imageUrl) throw new Error("No se encontraron datos de imagen en la respuesta.");
-
           setGenerationStep("Procesando revelado final...");
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Revelando fotografía...`]);
 
-          const finalImage = await processImage(imageUrl, settings.fileFormat, settings.quality);
+          const finalImage = await processImage(imageUrl, settings.fileFormat, settings.quality, 1376, 768);
           lastFinalImage = finalImage;
 
           setGenerationStep("Traduciendo metadatos...");
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ¡Generación exitosa!`]);
 
           try {
-            const translationResponse = await withTimeout(genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }).generateContent({ parts: [{ text: 'Traduce este prompt de generación de imágenes de setas a una lista de frases cortas' }] }), 30000);
+            const translationResponse = await withTimeout(genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }).generateContent('Traduce este prompt de generación de imágenes de setas a una lista de frases cortas'), 30000);
             const translatedPrompt = (await translationResponse.response).text() || prompt;
             const parts = translatedPrompt
               .split(/[.!?]+/)
@@ -1237,7 +1083,7 @@ function App() {
 
       // Original in selected format: esp-<id>-main-large.<extension>
       try {
-        const originalInFormat = await processImage(item.url, bulkFormat, 0.8, 1);
+        const originalInFormat = await processImage(item.url, bulkFormat, 0.8, 1376, 768);
         const base64Data = originalInFormat.split(',')[1];
         zip.file(`esp-${id}-main-large.${extension}`, base64Data, { base64: true });
       } catch (err) {
@@ -1246,7 +1092,7 @@ function App() {
 
       // 50% version in selected format: esp-<id>-main.<extension>
       try {
-        const smallImage = await processImage(item.url, bulkFormat, 0.8, 0.5);
+        const smallImage = await processImage(item.url, bulkFormat, 0.8, 688, 384);
         const smallBase64 = smallImage.split(',')[1];
         zip.file(`esp-${id}-main.${extension}`, smallBase64, { base64: true });
       } catch (err) {
@@ -1279,33 +1125,12 @@ function App() {
     setIsRefining(false);
 
     try {
-      // For image editing models, we MUST ensure a key is selected with timeout
-      setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Validando sesión de IA...`]);
-
-      if (false) {
-        try {
-          const hasKeySelected = await withTimeout(window.aistudio.hasSelectedApiKey(), 3000);
-          if (!hasKeySelected) {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Clave no detectada. Abriendo selector...`]);
-            await window.aistudio.openSelectKey();
-            setHasKey(true);
-          } else {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Sesión de clave validada.`]);
-          }
-        } catch (keyErr) {
-          console.warn("Timeout o error al verificar clave en refinamiento, procediendo...", keyErr);
-          setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Verificación omitida (timeout). Procediendo...`]);
-        }
-      }
-
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-      if (!apiKey) {
-        throw new Error("Clave API no configurada.");
-      }
+      if (!apiKey) throw new Error("Clave API no configurada.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
 
-      // Extract base64 data from generatedImage
+      // Extract base64 data from current image — used as input for real image editing
       setGenerationStep("Preparando imagen original...");
       setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Procesando imagen base...`]);
       const base64Data = generatedImage.split(',')[1];
@@ -1318,56 +1143,45 @@ function App() {
       const currentSettings = viewedItem ? viewedItem.settings : settings;
 
       setGenerationStep("Solicitando cambios a la IA...");
-      setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Enviando petición de refinamiento (Gemini 3.1)...`]);
+      setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Enviando petición de refinamiento (Gemini 2.0 Flash Image Edit)...`]);
 
       const response = await withRetry(async () => {
-        const cleanScientificName = currentSettings.scientificName.includes(' - ') ? currentSettings.scientificName.split(' - ')[1] : currentSettings.scientificName;
-        const speciesData = findSpeciesData(currentSettings.scientificName);
-        const family = speciesData?.family;
-        const goldenRule = family ? TAXONOMY_GOLDEN_RULES[family] : null;
-        const extraTaxonomicCommand = goldenRule ? ` ESCUDO DE VERDAD (TAXONOMY GOLDEN RULE): ${goldenRule}` : "";
-
         try {
-          setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Intentando refinamiento con Gemini 3.1...`]);
-          return await withTimeout(genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' }).generateContent({ parts: [{ text: refinementText }] }), 60000); // 60s for 3.1
+          // Primary: true image-to-image editing — model receives the image + instruction
+          setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Refinando con Gemini 2.0 Flash (edición real)...`]);
+          return await withTimeout(callGeminiRefine(base64Data, mimeType, refinementText, apiKey), 120000);
         } catch (err) {
           const errMsg = err.message || "";
           const isTimeout = errMsg.includes("Timeout") || errMsg.includes("tiempo");
-          const isInternal = errMsg.includes("500") || errMsg.includes("INTERNAL");
+          const isUnavailable = errMsg.includes("404") || errMsg.includes("not found") || errMsg.includes("no longer available");
 
-          if (isTimeout || isInternal) {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini 3.1 ${isTimeout ? 'lento' : 'error'}. Usando motor de respaldo (Gemini 2.5)...`]);
-            return await genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }).generateContent({ parts: [{ text: refinementText }] });
+          if (isTimeout || isUnavailable) {
+            // Fallback: text-to-image (no real editing, but recovers gracefully)
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini Edit ${isTimeout ? 'lento' : 'no disponible'}. Usando generación de respaldo (Imagen 4)...`]);
+            return await withTimeout(callImagen3(refinementText, apiKey), 90000);
           }
           throw err;
         }
-      }, 4, 150000, 3000, (attempt) => {
-        setRetryStatus(`Reintentando refinamiento (${attempt}/4)...`);
+      }, 3, 150000, 3000, (attempt) => {
+        setRetryStatus(`Reintentando refinamiento (${attempt}/3)...`);
         setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Reintento de refinamiento ${attempt}...`]);
       });
 
       setGenerationStep("Recibiendo nueva versión...");
       setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Imagen refinada recibida. Procesando...`]);
 
-      let imageUrl = null;
-      if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-            break;
-          }
-        }
-      }
+      // response is already the imageUrl string from callImagen3
+      const imageUrl = response;
 
       if (imageUrl) {
         setGenerationStep("Revelando fotografía refinada...");
-        const finalImage = await processImage(imageUrl, settings.fileFormat, settings.quality);
+        const finalImage = await processImage(imageUrl, settings.fileFormat, settings.quality, 1376, 768);
         setGeneratedImage(finalImage);
 
         // Update prompt display with Spanish translation
         setGenerationStep("Traduciendo descripción...");
         try {
-          const translationResponse = await withTimeout(genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }).generateContent({ parts: [{ text: `Traduce esta petición de refinamiento de imagen a una frase corta y elegante en español: ${refinementText}` }] }), 30000);
+          const translationResponse = await withTimeout(genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }).generateContent(`Traduce esta petición de refinamiento de imagen a una frase corta y elegante en español: ${refinementText}`), 30000);
           const translatedRefinement = (await translationResponse.response).text() || refinementText;
           setPromptParts([`Refinado: ${translatedRefinement}`]);
         } catch (e) {
@@ -1477,30 +1291,7 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <header className="border-b border-white/5 bg-black/20 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img
-              src="https://fungus-ashen.vercel.app/assets/images/logoFungus.png"
-              alt="Logo"
-              className="h-12 w-auto"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-          <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-[0.2em] text-[#d9cda1]/60">
-            <span className="text-[#f4ebe1] cursor-default">Generador</span>
-            <button
-              onClick={() => setIsArchiveOpen(true)}
-              className="hover:text-[#f4ebe1] cursor-pointer transition-colors uppercase"
-            >
-              Biblioteca
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-12">
+      <main className="max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-12 gap-16">
           {/* Controls - SIDEBAR_MARKER */}
           <div className="lg:col-span-4 flex flex-col h-full">
@@ -1645,7 +1436,7 @@ function App() {
                             value={settings.scientificName}
                             onChange={(e) => {
                               const val = e.target.value;
-                              const match = MUSHROOM_SPECIES_DATA.find(s => s.name === val);
+                              const match = mushroomSpeciesData.find(s => s.name === val);
                               if (match && val.includes(' - ')) {
                                 const [idPart, namePart] = val.split(' - ');
                                 const cleanId = idPart.replace('esp-', '');
@@ -1660,7 +1451,7 @@ function App() {
                             }}
                           />
                           <datalist id="mushroom-species">
-                            {MUSHROOM_SPECIES_DATA.map(s => (
+                            {mushroomSpeciesData.map(s => (
                               <option key={s.name} value={s.name} />
                             ))}
                           </datalist>
@@ -1697,8 +1488,8 @@ function App() {
                                           key={num}
                                           onClick={() => setSettings({ ...settings, specimenCount: num })}
                                           className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${settings.specimenCount === num
-                                              ? 'bg-[#f4ebe1] border-[#f4ebe1] text-[#1a1a1a]'
-                                              : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
+                                            ? 'bg-[#f4ebe1] border-[#f4ebe1] text-[#1a1a1a]'
+                                            : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
                                             }`}
                                         >
                                           {num}
@@ -1783,8 +1574,8 @@ function App() {
                                           key={ff.value}
                                           onClick={() => setSettings({ ...settings, fileFormat: ff.value })}
                                           className={`flex-1 px-3 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${settings.fileFormat === ff.value
-                                              ? 'bg-[#f4ebe1] border-[#f4ebe1] text-[#1a1a1a]'
-                                              : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
+                                            ? 'bg-[#f4ebe1] border-[#f4ebe1] text-[#1a1a1a]'
+                                            : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
                                             }`}
                                         >
                                           {ff.label}
@@ -2005,7 +1796,7 @@ function App() {
                     <div className="flex items-center gap-10">
                       <div className="space-y-1">
                         <span className="block text-[9px] text-[#d9cda1]/50 uppercase tracking-[0.2em] font-bold">Modelo</span>
-                        <span className="text-xs font-bold text-[#f4ebe1]">Gemini 3.1 Flash Image</span>
+                        <span className="text-xs font-bold text-[#f4ebe1]">Imagen 4 + Gemini 2.5 Flash</span>
                       </div>
                       <div className="w-px h-10 bg-white/5" />
                       <div className="space-y-1">
@@ -2108,7 +1899,7 @@ function App() {
             className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
             onClick={() => {
               setIsArchiveOpen(false);
-              setRecentBatchIds();
+              setRecentBatchIds([]);
             }}
           >
             <motion.div
@@ -2182,7 +1973,7 @@ function App() {
                 <button
                   onClick={() => {
                     setIsArchiveOpen(false);
-                    setRecentBatchIds();
+                    setRecentBatchIds([]);
                     setIsBulkMode(false);
                     setSelectedIds([]);
                   }}
@@ -2207,10 +1998,10 @@ function App() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className={`group relative rounded-xl overflow-hidden border transition-all cursor-pointer ${selectedIds.includes(item.id)
-                            ? 'border-emerald-500 ring-2 ring-emerald-500/50'
-                            : recentBatchIds.includes(item.id)
-                              ? 'bg-emerald-900/20 border-emerald-500/30 hover:border-emerald-500/50'
-                              : 'bg-black/20 border-white/5 hover:border-white/20'
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/50'
+                          : recentBatchIds.includes(item.id)
+                            ? 'bg-emerald-900/20 border-emerald-500/30 hover:border-emerald-500/50'
+                            : 'bg-black/20 border-white/5 hover:border-white/20'
                           }`}
                         onClick={() => {
                           if (isBulkMode) {
@@ -2223,7 +2014,7 @@ function App() {
                             setGeneratedImage(item.url);
                             setViewedItem(item);
                             setIsArchiveOpen(false);
-                            setRecentBatchIds();
+                            setRecentBatchIds([]);
                           }
                         }}
                       >
@@ -2263,7 +2054,7 @@ function App() {
 
                                 // Download reduced
                                 try {
-                                  const smallImage = await processImage(item.url, item.settings.fileFormat, item.settings.quality, 0.5);
+                                  const smallImage = await processImage(item.url, item.settings.fileFormat, item.settings.quality, 688, 384);
                                   const linkSmall = document.createElement('a');
                                   linkSmall.href = smallImage;
                                   linkSmall.download = `esp-${id}-main.${extension}`;

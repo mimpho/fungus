@@ -2,7 +2,7 @@
 
 Sistema inteligente de predicción micológica para Cataluña y España.
 
-**Versión**: v4.7.1 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
+**Versión**: v5.1 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 
@@ -94,10 +94,13 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v4.6.4 | ✅ | Datos confusiones familias restantes (Amanitaceae, Cantharellaceae, Russulaceae, Cortinariaceae) |
 | v4.7 | ✅ | i18n completo: UI strings ES/CA/EN, DB layer `?lang=` en `/species`, commonNames para 202 especies |
 | v4.7.1 | ✅ | i18n editorial completo: artículos ES/CA/EN, morfología 202 especies, sticky search bar, header scroll inteligente |
-| v5 | 🗂 Backlog | Auth + favoritos en BD: JWT, registro/login, favoritos por usuario |
-| v6.0 | 🗂 Backlog | App móvil Android (React Native + Expo) |
-| v6.1 | 🗂 Backlog | App móvil iOS |
-| v7 | 🗂 Backlog | SEO: prerendering estático + react-helmet-async + Core Web Vitals |
+| v5.0 | ✅ | Auth JWT + user accounts + followed zones & fav species en BD |
+| v5.1 | ✅ | ImageGenerator (Imagen 4 + refinador real) · AdminGallery · modo admin nav |
+| v5.2 | 🗂 | Generador: overwrite modal · gallery → generador |
+| v6.0 | 🗂 | Social login: Google OAuth2 |
+| v6.1 | 🗂 | Confirmación de email al registro |
+| v7.0 | 🗂 | App móvil Android (React Native + Expo) |
+| v8 | 🗂 | SEO: prerendering estático + Core Web Vitals |
 
 Backlog detallado: `memory/pending.md`
 

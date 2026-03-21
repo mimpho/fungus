@@ -4,8 +4,8 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v5.0 frontend/backend; v5.1 Image Generator (admin) next
-**Estado frontend**: Auth completo. AuthModal (login/registro con nombre/apellidos/fecha), authService (token en memoria), AppContext con auth gate, Profile con saludo personalizado, iniciales en avatar, editar perfil, eliminar cuenta. i18n completo ES/CA/EN (~120 claves + ~180 claves editoriales `art_*`). Artículos ES/CA/EN completos. Morfología trilingüe 202 especies. Sticky search bar + header scroll inteligente. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. URL sync completo en Zones y Species. Hero de SpeciesModal abre lightbox.
+**Versión actual**: v5.1 frontend; v5.0 backend
+**Estado frontend**: Auth completo. AuthModal (login/registro con nombre/apellidos/fecha), authService (token en memoria), AppContext con auth gate, Profile con saludo personalizado, iniciales en avatar, editar perfil, eliminar cuenta. i18n completo ES/CA/EN (~120 claves + ~180 claves editoriales `art_*`). Artículos ES/CA/EN completos. Morfología trilingüe 202 especies. Sticky search bar + header scroll inteligente. Zonas y especies desde API, weather cache embebido en `/zones`. ZoneModal con score OI + rango temp + días sin lluvia. `VITE_API_BASE` configurable. Catálogo: 200 zonas + 202 especies. URL sync completo en Zones y Species. Hero de SpeciesModal abre lightbox. Admin: `ImageGenerator` (`/admin/generator`) con Imagen 4 + Gemini 2.5 Flash + refinador real imagen-a-imagen; `AdminGallery` (`/admin/gallery`) con filtros y vista card/grid; toggle Público/Admin en Perfil (`isAdminView`).
 **Estado backend**: v5.0. Auth JWT: register/login/refresh/logout/me. Tabla `users` con campos `plan`, `role` (`"user"`|`"admin"`), `first_name`, `last_name`, `birth_date`. Tablas `user_followed_zones` y `user_fav_species`. Migraciones 006+007+008. `PATCH /me/profile`, `DELETE /me/account`. bcrypt directo (sin passlib). Weather cache operativo (Open-Meteo, TTL 3h). Auto-migrate al arrancar (timeout 30s). Endpoints `/species` con `?lang=`. Confusiones completas para 8 familias.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
@@ -430,11 +430,12 @@ Este archivo es privado (`.gitignore`) y es la fuente de verdad para decisiones 
 | v4.7 | ✅ Entregado | i18n completo: UI strings ES/CA/EN (~110 claves), DB layer con `?lang=` en `/species`, commonNames_ca/en para 202 especies |
 | v4.7.1 | ✅ Entregado | i18n editorial completo: artículos ES/CA/EN, morfología 202 especies, sticky search bar, header scroll inteligente |
 | v5 | ✅ Entregado | Auth JWT + user accounts + followed zones & fav species en BD |
-| v5.1 | 🗂 Backlog | Generador de imágenes de setas (Gemini) — ruta `/admin/generator`, acceso `role=admin` |
-| v5.2 | 🗂 Backlog | Social login: Google OAuth2 |
-| v5.3 | 🗂 Backlog | Confirmación de email al registro (token verificación, banner en perfil) |
-| v6.0 | 🗂 Sin fecha | App móvil Android (React Native + Expo) — condicionado a monetización previa |
-| v7 | 🗂 Backlog | SEO: prerendering estático + react-helmet-async + Core Web Vitals |
+| v5.1 | ✅ Entregado | ImageGenerator (Imagen 4 + Gemini 2.5 Flash + refinador real) · AdminGallery · modo admin nav |
+| v5.2 | 🗂 Backlog | Generador: overwrite modal (4 imágenes, asignación de slot) · gallery click → generador |
+| v6.0 | 🗂 Backlog | Social login: Google OAuth2 |
+| v6.1 | 🗂 Backlog | Confirmación de email al registro (token verificación, banner en perfil) |
+| v7.0 | 🗂 Sin fecha | App móvil Android (React Native + Expo) — condicionado a monetización previa |
+| v8 | 🗂 Backlog | SEO: prerendering estático + react-helmet-async + Core Web Vitals |
 
 Spec completa de v4.x: `docs/backend_architecture.md`
 

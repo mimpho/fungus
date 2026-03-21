@@ -47,6 +47,7 @@ export function AppProvider({ children }) {
   const [user, setUser]             = useState(null)
   const [authLoading, setAuthLoading] = useState(true)   // true until initial refresh resolves
   const [authModal, setAuthModal]   = useState(null)      // null | 'login' | 'register'
+  const [isAdminView, setIsAdminView] = useState(false)  // admin nav visible only when toggled
 
   // ── Modal stack ─────────────────────────────────────────────────────────────
   const [selectedZone, setSelectedZone]       = useState(null)
@@ -162,6 +163,7 @@ export function AppProvider({ children }) {
       user, isAuthenticated, authLoading,
       login, register, logout, updateUserProfile, deleteAccount,
       authModal, setAuthModal,
+      isAdminView, setIsAdminView,
       // modal stack
       selectedZone, setSelectedZone,
       selectedSpecies, setSelectedSpecies,
