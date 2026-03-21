@@ -343,7 +343,7 @@ export async function fetchSpeciesDetail(speciesId, lang = 'es') {
 
   // Share in-flight promise to avoid duplicate requests (React StrictMode)
   if (!_detailPromises.has(speciesId)) {
-    const promise = fetch(`${API_BASE}/species/${speciesId}`)
+    const promise = fetch(`${API_BASE}/species/${speciesId}`, { cache: 'no-store' })
       .then(res => {
         if (!res.ok) throw new Error(`API /species/${speciesId} error ${res.status}`)
         return res.json()

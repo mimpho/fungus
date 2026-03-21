@@ -235,46 +235,55 @@ function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyS
   //    target (the grid, which has onDragOver+preventDefault). Cards are children of the
   //    grid, not ancestors, so onDrop on cards never fires.
 
-  const _dragOrigIdx = useRef(null); // origIdx of dragged card
-  const _hoverIdxRef = useRef(null); // mirrors hoverIdx (origIdx space) — avoids stale closure in handleDrop
+  const _dragOrigIdx  = useRef(null);  // origIdx of dragged card
+  const _hoverIdxRef  = useRef(null);  // mirrors hoverIdx (origIdx space) — avoids stale closure
+  const _dropFiredRef = useRef(false); // true once handleDrop commits — guards handleDragEnd
 
-  function handleDragStart(origIdx) {
-    _dragOrigIdx.current = origIdx;
-    _hoverIdxRef.current = origIdx;
-    setDragIdx(origIdx);
-    setHoverIdx(origIdx);
-  }
-
-  // Called from each card's onDragEnter with the card's origIdx (stable, not visualIdx).
-  // Deduplication prevents re-renders when dragenter bubbles from child elements of the same card.
-  function handleDragEnter(origIdx) {
-    if (_dragOrigIdx.current === null) return;
-    if (origIdx === _dragOrigIdx.current) return; // ignore re-entering the dragged card itself
-    if (_hoverIdxRef.current === origIdx) return; // already tracking this card — child element bubble
-    _hoverIdxRef.current = origIdx;
-    setHoverIdx(origIdx);
-  }
-
-  // Attached to the grid — HTML5 drop fires on the grid (valid drop target via onDragOver
-  // preventDefault), then bubbles up. Uses _hoverIdxRef (not hoverIdx closure) for reliability.
-  function handleDrop(e) {
-    e.preventDefault();
-    if (_dragOrigIdx.current === null) return;
-    const target = _hoverIdxRef.current ?? _dragOrigIdx.current;
-    setPhotos(prev => _moveItem(prev, _dragOrigIdx.current, target));
-    _dragOrigIdx.current = null;
-    _hoverIdxRef.current = null;
+  function _resetDragState() {
+    _dragOrigIdx.current  = null;
+    _hoverIdxRef.current  = null;
+    _dropFiredRef.current = false;
     setDragIdx(null);
     setHoverIdx(null);
   }
 
+  function handleDragStart(origIdx) {
+    _dragOrigIdx.current  = origIdx;
+    _hoverIdxRef.current  = origIdx;
+    _dropFiredRef.current = false;
+    setDragIdx(origIdx);
+    setHoverIdx(origIdx);
+  }
+
+  // Called from each card's onDragEnter — uses origIdx (stable during drag, not visualIdx).
+  // Deduplication prevents re-renders from child-element dragenter bubbling.
+  function handleDragEnter(origIdx) {
+    if (_dragOrigIdx.current === null) return;
+    if (origIdx === _dragOrigIdx.current) return;
+    if (_hoverIdxRef.current === origIdx) return;
+    _hoverIdxRef.current = origIdx;
+    setHoverIdx(origIdx);
+  }
+
+  // onDrop on both grid and cards — drop may fire on the card (where cursor is) or the grid
+  // depending on browser. idempotent: _dropFiredRef prevents double-commit on bubble.
+  function handleDrop(e) {
+    e.preventDefault();
+    if (_dragOrigIdx.current === null || _dropFiredRef.current) return;
+    _dropFiredRef.current = true; // mark as handled before any async work
+    const from   = _dragOrigIdx.current;
+    const target = _hoverIdxRef.current ?? from;
+    _resetDragState();
+    if (from !== target) {
+      setPhotos(prev => _moveItem(prev, from, target));
+    }
+  }
+
   function handleDragEnd() {
-    // Fires after drop completes, or when dropped outside any valid target — clean up
+    // Fires on source after drop (or when dropped outside valid target).
+    // If drop already fired, refs are already cleared — nothing to do.
     if (_dragOrigIdx.current !== null) {
-      _dragOrigIdx.current = null;
-      _hoverIdxRef.current = null;
-      setDragIdx(null);
-      setHoverIdx(null);
+      _resetDragState();
     }
   }
 
@@ -415,6 +424,8 @@ function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyS
                   draggable={!busy}
                   onDragStart={() => handleDragStart(origIdx)}
                   onDragEnter={() => handleDragEnter(origIdx)}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={handleDrop}
                   onDragEnd={handleDragEnd}
                   animate={{ opacity: isDragging ? 0.35 : 1, scale: isDragging ? 0.96 : 1 }}
                   className={[
@@ -759,6 +770,7 @@ function App() {
   const [refinementText, setRefinementText] = useState('');
   const [error, setError] = useState(null);
   const [hasKey, setHasKey] = useState(null);
+  const [runtimeKey, setRuntimeKey] = useState(''); // API key entered at runtime (fallback when env var not set)
   const [recentBatchIds, setRecentBatchIds] = useState([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -1017,13 +1029,15 @@ function App() {
 
   const checkApiKey = () => {
     const envKey = import.meta.env?.VITE_GEMINI_API_KEY;
-    setHasKey(!!envKey);
+    setHasKey(!!(envKey || runtimeKey));
   };
 
-  const handleOpenKeyDialog = () => {
-    if (import.meta.env?.VITE_GEMINI_API_KEY) {
-      setHasKey(true);
-    }
+  // Returns the active API key: env var takes priority, runtimeKey is the manual fallback
+  const getApiKey = () => import.meta.env?.VITE_GEMINI_API_KEY || runtimeKey || '';
+
+  const handleConfirmRuntimeKey = () => {
+    const trimmed = runtimeKey.trim();
+    if (trimmed) setHasKey(true);
   };
 
   const processImage = (base64, format, quality, targetWidth = null, targetHeight = null) => {
@@ -1255,12 +1269,12 @@ function App() {
       // Ensure key is selected for image generation models with timeout to prevent hanging
       setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Validando sesión de IA...`]);
 
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+      const apiKey = getApiKey();
       if (!apiKey) {
         throw new Error("Clave API no configurada. Por favor, selecciona una clave válida.");
       }
       setStatusLog(prev => [...prev, "Sesión de IA validada."]);
-      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
+      const genAI = new GoogleGenerativeAI(apiKey);
       const newBatchIds = [];
       let lastFinalImage = null;
       let lastPromptParts = [];
@@ -1513,7 +1527,7 @@ function App() {
     setIsRefining(false);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+      const apiKey = getApiKey();
       if (!apiKey) throw new Error("Clave API no configurada.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -1630,14 +1644,25 @@ function App() {
           <p className="text-[#d9cda1]/80 mb-8 leading-relaxed">
             Para generar imágenes de alta resolución usando Imagen 4 + Gemini 2.5 Flash, necesitas una clave API de Google Cloud de pago.
           </p>
-          <button
-            onClick={handleOpenKeyDialog}
-            className="w-full bg-[#f4ebe1] text-[#1a1a1a] rounded-full py-4 font-bold uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
-          >
-            Seleccionar Clave API
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          <p className="mt-6 text-xs font-bold uppercase tracking-widest text-[#d9cda1]/50">
+          <div className="flex flex-col gap-3 mb-2">
+            <input
+              type="password"
+              value={runtimeKey}
+              onChange={e => setRuntimeKey(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleConfirmRuntimeKey()}
+              placeholder="AIza..."
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[#f4ebe1] text-sm placeholder-white/20 focus:outline-none focus:border-emerald-500/50"
+            />
+            <button
+              onClick={handleConfirmRuntimeKey}
+              disabled={!runtimeKey.trim()}
+              className="w-full bg-[#f4ebe1] text-[#1a1a1a] rounded-full py-4 font-bold uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Confirmar clave
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[#d9cda1]/50">
             Más información sobre la <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="underline">facturación de la API de Gemini</a>.
           </p>
         </motion.div>
