@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, useMemo, Component } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
@@ -593,34 +593,15 @@ function App() {
     return () => clearInterval(interval);
   }, [generatedImage, promptParts]);
 
-  const checkApiKey = async () => {
-    // Usamos corchetes para que TypeScript no se queje del .env
+  const checkApiKey = () => {
     const envKey = import.meta.env?.VITE_GEMINI_API_KEY;
-
-    if (envKey) {
-      setHasKey(true); // <--- Cambiado de setHasApiKey a setHasKey
-      return;
-    }
-
-    try {
-      // @ts-ignore
-      const result = await Promise.resolve(true);
-      setHasKey(!!result); // <--- Cambiado aquí también
-    } catch (error) {
-      console.error('Error checking API key', error);
-    }
+    setHasKey(!!envKey);
   };
 
   const handleOpenKeyDialog = () => {
-    // Si tenemos la clave en el .env, simplemente marcamos que tenemos llave y no hacemos nada más
     if (import.meta.env?.VITE_GEMINI_API_KEY) {
       setHasKey(true);
-      return;
     }
-
-    // Usamos el interrogante (?.) para que si aistudio no existe, no explote
-    // @ts-ignore
-    console.log("Open key dialog requested");
   };
 
   const processImage = (base64, format, quality, targetWidth = null, targetHeight = null) => {
@@ -843,7 +824,7 @@ function App() {
     cancelRef.current = false;
     setError(null);
     setRetryStatus(null);
-    setPromptParts();
+    setPromptParts([]);
     setIsRefining(false);
     setRecentBatchIds([]);
     setGeneratedImage(null);
@@ -851,22 +832,6 @@ function App() {
     try {
       // Ensure key is selected for image generation models with timeout to prevent hanging
       setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Validando sesión de IA...`]);
-
-      if (false) {
-        try {
-          const hasKeySelected = await withTimeout(window.aistudio.hasSelectedApiKey(), 3000);
-          if (!hasKeySelected) {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Clave no detectada. Abriendo selector...`]);
-            await window.aistudio.openSelectKey();
-            setHasKey(true);
-          } else {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Sesión de clave validada.`]);
-          }
-        } catch (keyErr) {
-          console.warn("Timeout o error al verificar clave, procediendo...", keyErr);
-          setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Verificación omitida (timeout). Procediendo...`]);
-        }
-      }
 
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
       if (!apiKey) {
@@ -1240,7 +1205,7 @@ function App() {
           </div>
           <h1 className="text-3xl font-serif font-semibold mb-4 text-[#f4ebe1]">Clave API Requerida</h1>
           <p className="text-[#d9cda1]/80 mb-8 leading-relaxed">
-            Para generar imágenes de set alta resolución usando Gemini 3.1, necesit una clave API de Google Cloud de pago.
+            Para generar imágenes de alta resolución usando Imagen 4 + Gemini 2.5 Flash, necesitas una clave API de Google Cloud de pago.
           </p>
           <button
             onClick={handleOpenKeyDialog}
