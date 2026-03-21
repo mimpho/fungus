@@ -272,3 +272,6 @@ body::after {
   .ag-family { border-radius: 0; }
   /* ag-edib stays 0 26px 26px 0 — same on both breakpoints */
 }
+
+/* Hide native datalist picker indicator (Chrome shows it on hover) */
+input[list]::-webkit-calendar-picker-indicator { display: none; }
