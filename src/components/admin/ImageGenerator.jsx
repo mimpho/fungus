@@ -1257,7 +1257,7 @@ function App() {
       </AnimatePresence>
 
       <main className="max-w-7xl mx-auto">
-        <div className="grid lg:grid-cols-12 gap-16">
+        <div className="grid lg:grid-cols-12 gap-8">
           {/* Controls - SIDEBAR_MARKER */}
           <div className="lg:col-span-4 flex flex-col h-full">
             <div className="space-y-10 flex flex-col h-full">
@@ -1265,48 +1265,25 @@ function App() {
                 <motion.div
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6 flex flex-col h-full"
+                  className="space-y-6"
                 >
-                  {/* Nuevo Loader Centralizado en Sidebar */}
-                  <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-3xl p-10 text-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50" />
-                    <div className="relative z-10">
-                      <div className="relative w-24 h-24 mx-auto mb-6">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                          className="absolute inset-0 border-[1px] border-white/5 border-t-emerald-500 rounded-full"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Sprout className="w-10 h-10 text-emerald-500 animate-pulse" />
-                        </div>
-                      </div>
-                      <h2 className="text-2xl font-serif italic text-emerald-400 mb-2">Capturando...</h2>
-                      <div className="space-y-1">
-                        <p className="text-xs uppercase tracking-[0.3em] text-emerald-500/60 font-bold animate-pulse">
-                          {generationStep || "Procesando espécimen"}
-                        </p>
-                        <div className="text-emerald-500/30 font-mono text-[9px] uppercase tracking-widest">
-                          T+ {Math.floor(generationTime / 60)}:{(generationTime % 60).toString().padStart(2, '0')}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Consola de Registro con Altura Automática */}
-                  <div className="bg-black/40 rounded-2xl p-5 border border-white/5 shadow-inner flex flex-col flex-1 min-h-[200px]">
-                    <div className="text-[9px] font-mono text-[#d9cda1]/30 uppercase tracking-widest mb-4 flex justify-between items-center">
+                  {/* Consola de Registro */}
+                  <div className="bg-black/40 rounded-2xl p-5 border border-white/5 shadow-inner flex flex-col">
+                    <div className="text-[9px] font-mono text-[#d9cda1]/30 uppercase tracking-widest mb-3 flex justify-between items-center">
                       <span className="text-emerald-500/60 flex items-center gap-2">
                         <History size={10} />
                         Registro de Actividad
+                        <span className="text-emerald-500/30 font-mono text-[9px] uppercase tracking-widest ml-2">
+                          T+ {Math.floor(generationTime / 60)}:{(generationTime % 60).toString().padStart(2, '0')}
+                        </span>
                       </span>
                       <div className="flex gap-3">
                         <button onClick={copyLog} className="hover:text-emerald-400 transition-colors p-1" title="Copiar Log"><Copy size={12} /></button>
                       </div>
                     </div>
-                    <div className="space-y-2 overflow-y-auto custom-scrollbar pr-2 font-mono flex-1">
+                    <div className="space-y-1 overflow-y-auto custom-scrollbar pr-2 font-mono max-h-[220px]">
                       {statusLog.map((log, idx) => (
-                        <div key={idx} className="text-xs text-[#d9cda1]/60 text-left leading-relaxed border-l border-white/5 pl-3 py-1">
+                        <div key={idx} className="text-[10px] text-[#d9cda1]/55 text-left leading-snug border-l border-white/5 pl-3 py-0.5">
                           <span className="text-emerald-500/40 mr-2">›</span>
                           {log}
                         </div>
@@ -1393,28 +1370,34 @@ function App() {
                         </div>
                         <div className="col-span-9">
                           <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70">Nombre Científico</label>
-                          <input
-                            type="text"
-                            list="mushroom-species"
-                            placeholder="Amanita muscaria"
-                            className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-xl placeholder:text-white/10 text-[#f4ebe1]"
-                            value={settings.scientificName}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const match = mushroomSpeciesData.find(s => s.name === val);
-                              if (match && val.includes(' - ')) {
-                                const [idPart, namePart] = val.split(' - ');
-                                const cleanId = idPart.replace('esp-', '');
-                                setSettings({
-                                  ...settings,
-                                  specimenId: cleanId,
-                                  scientificName: namePart
-                                });
-                              } else {
-                                setSettings({ ...settings, scientificName: val });
-                              }
-                            }}
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              list="mushroom-species"
+                              placeholder="Amanita muscaria"
+                              className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 pr-10 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-xl placeholder:text-white/10 text-[#f4ebe1]"
+                              style={{ WebkitAppearance: 'none' }}
+                              value={settings.scientificName}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const match = mushroomSpeciesData.find(s => s.name === val);
+                                if (match && val.includes(' - ')) {
+                                  const [idPart, namePart] = val.split(' - ');
+                                  const cleanId = idPart.replace('esp-', '');
+                                  setSettings({
+                                    ...settings,
+                                    specimenId: cleanId,
+                                    scientificName: namePart
+                                  });
+                                } else {
+                                  setSettings({ ...settings, scientificName: val });
+                                }
+                              }}
+                            />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#d9cda1]">
+                              <ChevronRight className="w-3 h-3 rotate-90" />
+                            </div>
+                          </div>
                           <datalist id="mushroom-species">
                             {mushroomSpeciesData.map(s => (
                               <option key={s.name} value={s.name} />
