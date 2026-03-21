@@ -123,13 +123,13 @@ export default function AdminGallery() {
     <div className="space-y-6 anim-up pb-20">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 lg:gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
 
         {/*
           Mobile:  [title + subtitle ········· view toggle]
           Desktop: [title + subtitle] (toggle moves to filter row)
         */}
-        <div className="flex items-center justify-between lg:justify-start gap-4">
+        <div className="flex items-center justify-between gap-4 lg:shrink-0">
           <div>
             <h2 className="font-display text-4xl font-semibold text-cream">{t.adminGallery ?? 'Gallery'}</h2>
             <p className="text-muted text-sm mt-1">{loading ? '…' : `${filtered.length} especies`}</p>
@@ -140,7 +140,7 @@ export default function AdminGallery() {
         </div>
 
         {/* Filter bar row (+ desktop toggle) */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center flex-1 gap-1 lg:gap-4">
 
           {/*
             ── Filter pill ──
