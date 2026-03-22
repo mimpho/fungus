@@ -315,40 +315,13 @@ export async function fetchAllSpecies(lang = 'es') {
  * @param {string} speciesId
  * @returns {Promise<object>}  especie normalizada con todos los campos (cap, stem, photos…)
  */
-// Raw cache (lang-independent): fetches once, normalizes per lang on demand
-const _detailRawCache = new Map()  // speciesId → raw API JSON
+// In-flight promise deduplication only: avoids double fetch on React StrictMode double-mount.
+// No TTL cache — every SpeciesModal open fetches fresh data from the API so admin edits
+// are always visible without any manual invalidation.
 const _detailPromises = new Map()  // speciesId → in-flight Promise<raw JSON>
 
-/**
- * Invalidate the detail cache for a specific species.
- * Call this after any admin operation that mutates a species (image save, reorder).
- * The next SpeciesModal open will re-fetch fresh data from the API.
- */
-export function invalidateSpeciesDetailCache(speciesId) {
-  _detailRawCache.delete(speciesId)
-  _detailPromises.delete(speciesId)
-}
-
-/**
- * Populate the detail cache with fresh raw JSON returned by a mutation endpoint.
- *
- * Prefer this over invalidateSpeciesDetailCache when the mutation response already
- * contains the updated data (e.g. set-order, PATCH images).  It bypasses the
- * browser's HTTP Cache-Control cache: the next fetchSpeciesDetail call returns
- * this data immediately from the JS-level map without hitting the network.
- */
-export function setSpeciesDetailCache(speciesId, rawData) {
-  _detailRawCache.set(speciesId, rawData)
-  _detailPromises.delete(speciesId)
-}
-
 export async function fetchSpeciesDetail(speciesId, lang = 'es') {
-  // If raw JSON already cached, just re-normalize with the requested lang
-  if (_detailRawCache.has(speciesId)) {
-    return normalizeSpeciesDetail(_detailRawCache.get(speciesId), lang)
-  }
-
-  // Share in-flight promise to avoid duplicate requests (React StrictMode)
+  // Share in-flight promise to avoid duplicate requests (React StrictMode double-mount)
   if (!_detailPromises.has(speciesId)) {
     const promise = fetch(`${API_BASE}/species/${speciesId}`, { cache: 'no-store' })
       .then(res => {
@@ -356,7 +329,6 @@ export async function fetchSpeciesDetail(speciesId, lang = 'es') {
         return res.json()
       })
       .then(raw => {
-        _detailRawCache.set(speciesId, raw)
         _detailPromises.delete(speciesId)
         return raw
       })

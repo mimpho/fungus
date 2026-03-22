@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { useSpecies } from '../../hooks/useSpecies';
 import { useApp } from '../../contexts/AppContext';
-import { API_BASE, setSpeciesDetailCache } from '../../services/apiService';
+import { API_BASE } from '../../services/apiService';
 import { invalidateSpeciesListCache } from '../../hooks/useSpecies';
 import { authHeaders } from '../../services/authService';
 import { resolveUrl } from '../../lib/helpers';
@@ -2427,9 +2427,7 @@ function App() {
               }
               const updated = await res.json();
               setReferenceSpecies(updated);
-              // Populate JS detail cache and bust the list cache so the public species
-              // list and SpeciesModal both reflect the new photo order on next render.
-              setSpeciesDetailCache(referenceSpecies.id, updated);
+              // Bust list cache so the species thumbnail reflects the new order on next load.
               invalidateSpeciesListCache();
               if (catalogModal.newImageDataUrl) setSavedToCatalog(true);
               setApplyStatus('success');

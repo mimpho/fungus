@@ -4,7 +4,7 @@ import { mockFamilies } from '../../data/families' // MOCK PERMANENTE — sin en
 import { IC, EdibilityTag, SpeciesImg, getScoreColor, TaxonomyBlock, ConfusionesBlock, resolveUrl } from '../../lib/helpers'
 import { useZones } from '../../hooks/useZones'
 import { useSpecies } from '../../hooks/useSpecies'
-import { fetchSpeciesDetail, invalidateSpeciesDetailCache } from '../../services/apiService'
+import { fetchSpeciesDetail } from '../../services/apiService'
 import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
 
@@ -153,10 +153,6 @@ export function SpeciesModal({ species, onClose }) {
   const [detailLoading, setDetailLoading] = useState(true)
 
   useEffect(() => {
-    // Invalidate JS cache on every open so admin photo changes are always visible.
-    // _detailRawCache persists within a session; without invalidation, changes made
-    // from another tab or session would only show after a full page reload.
-    invalidateSpeciesDetailCache(species.id)
     let cancelled = false
     setDetail(species)
     setDetailLoading(true)
