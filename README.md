@@ -2,7 +2,7 @@
 
 Sistema inteligente de predicción micológica para Cataluña y España.
 
-**Versión**: v5.1 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
+**Versión**: v5.3 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 
@@ -96,7 +96,8 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v4.7.1 | ✅ | i18n editorial completo: artículos ES/CA/EN, morfología 202 especies, sticky search bar, header scroll inteligente |
 | v5.0 | ✅ | Auth JWT + user accounts + followed zones & fav species en BD |
 | v5.1 | ✅ | ImageGenerator (Imagen 4 + refinador real) · AdminGallery · modo admin nav |
-| v5.2 | 🗂 | Generador: overwrite modal · gallery → generador |
+| v5.2 | ✅ | Generador: gallery → generador con pre-carga · panel de referencia · modal guardado en catálogo |
+| v5.3 | ✅ | Fotos ilimitadas · CatalogImagesModal · DnD reordering · galería dinámica en SpeciesModal |
 | v6.0 | 🗂 | Social login: Google OAuth2 |
 | v6.1 | 🗂 | Confirmación de email al registro |
 | v7.0 | 🗂 | App móvil Android (React Native + Expo) |

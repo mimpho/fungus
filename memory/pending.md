@@ -6,21 +6,6 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ## 🚀 Próximo — v6.0 Social login (Google)
 
-(Era v5.2 — v5.2 entregado)
-
-**Alcance previsto:**
-- Google OAuth2 — gratis, sin coste, mayor reducción de fricción
-- DB: `auth_provider` (`"local"` | `"google"`) + `provider_id` en tabla `users`; `password_hash` pasa a nullable
-- Backend: verificación de ID token con Google → emite nuestro propio JWT (el sistema de sesiones no cambia)
-- Librería: `authlib` o `google-auth` para FastAPI
-- Frontend: Google Identity Services (script oficial, One Tap)
-
----
-
-## 🗂 Backlog — v6.0 Social login (Google)
-
-(Era v5.2 — movido a v6 para priorizar mejoras del generador)
-
 **Alcance previsto:**
 - Google OAuth2 — gratis, sin coste, mayor reducción de fricción
 - DB: `auth_provider` (`"local"` | `"google"`) + `provider_id` en tabla `users`; `password_hash` pasa a nullable
