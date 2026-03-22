@@ -198,13 +198,16 @@ function _moveItem(arr, from, to) {
 
 function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyStatus, onConfirm, onClose }) {
 
-  // Build initial ordered list of URLs from DB + optional new image
+  // Build initial ordered list of URLs from DB + optional new image.
+  // Raw DB URLs are stored as-is (no resolveUrl) so set-order can match them
+  // back to their metadata (largeUrl, caption) via exact string lookup.
+  // resolveUrl is applied only at render time (src={resolveUrl(url)}).
   function buildInitialPhotos() {
     const result = [];
-    const mainUrl = resolveUrl(species?.extra_data?.photo?.url ?? species?.photo_url ?? '');
+    const mainUrl = species?.extra_data?.photo?.url ?? species?.photo_url ?? '';
     if (mainUrl) result.push(mainUrl);
     for (const p of (species?.extra_data?.photos ?? [])) {
-      const url = resolveUrl(p?.url ?? '');
+      const url = p?.url ?? '';
       if (url) result.push(url);
     }
     if (newImageDataUrl) result.unshift(newImageDataUrl); // prepend at position 0
@@ -447,7 +450,7 @@ function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyS
                   <div className="aspect-[4/3] bg-black/40 flex items-center justify-center overflow-hidden relative">
                     {url
                       ? <img
-                          src={url}
+                          src={resolveUrl(url)}
                           alt={_photoPosLabel(visualIdx)}
                           draggable={false}
                           className="w-full h-full object-cover pointer-events-none"
