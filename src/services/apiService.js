@@ -290,7 +290,7 @@ export async function fetchAllSpecies(lang = 'es') {
     const params = new URLSearchParams({ limit: _SPECIES_PAGE_SIZE, lang })
     if (cursor) params.set('cursor', cursor)
 
-    const res = await fetch(`${API_BASE}/species?${params}`)
+    const res = await fetch(`${API_BASE}/species?${params}`, { cache: 'no-store' })
     if (!res.ok) throw new Error(`API /species error ${res.status}`)
     const page = await res.json()
 

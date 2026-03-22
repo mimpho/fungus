@@ -20,6 +20,16 @@ import { useApp } from '../contexts/AppContext'
 const _speciesCache = {}    // { es: Species[], ca: Species[], en: Species[] }
 const _speciesPromises = {} // { es: Promise, ca: Promise, en: Promise }
 
+/**
+ * Invalida la caché de la lista de especies para todos los idiomas.
+ * Llamar después de cualquier mutación admin (set-order, PATCH /images)
+ * para que la próxima llamada a useSpecies recargue datos frescos del servidor.
+ */
+export function invalidateSpeciesListCache() {
+  Object.keys(_speciesCache).forEach(lang => delete _speciesCache[lang])
+  Object.keys(_speciesPromises).forEach(lang => delete _speciesPromises[lang])
+}
+
 export function useSpecies() {
   const { lang } = useApp()
   const [species, setSpecies] = useState(_speciesCache[lang] ?? mockSpecies)

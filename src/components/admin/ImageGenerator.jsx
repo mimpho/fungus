@@ -11,6 +11,7 @@ import JSZip from 'jszip';
 import { useSpecies } from '../../hooks/useSpecies';
 import { useApp } from '../../contexts/AppContext';
 import { API_BASE, setSpeciesDetailCache } from '../../services/apiService';
+import { invalidateSpeciesListCache } from '../../hooks/useSpecies';
 import { authHeaders } from '../../services/authService';
 import { resolveUrl } from '../../lib/helpers';
 import { MODAL } from '../../lib/constants';
@@ -211,7 +212,9 @@ function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyS
   }
 
   const [photos, setPhotos] = useState(buildInitialPhotos);
-  useEffect(() => { setPhotos(buildInitialPhotos()); }, [species?.id, newImageDataUrl]); // eslint-disable-line
+  // Re-build when species or its photo data changes (same species ID after a save)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setPhotos(buildInitialPhotos()); }, [species?.id, species?.extra_data, newImageDataUrl]);
 
   // ── Drag state ──
   const [dragIdx,   setDragIdx]   = useState(null); // original index in photos[]
@@ -2424,9 +2427,10 @@ function App() {
               }
               const updated = await res.json();
               setReferenceSpecies(updated);
-              // Populate JS cache with mutation response — bypasses browser HTTP cache
-              // (Cache-Control: public, max-age=3600 would otherwise serve stale data)
+              // Populate JS detail cache and bust the list cache so the public species
+              // list and SpeciesModal both reflect the new photo order on next render.
               setSpeciesDetailCache(referenceSpecies.id, updated);
+              invalidateSpeciesListCache();
               if (catalogModal.newImageDataUrl) setSavedToCatalog(true);
               setApplyStatus('success');
               setTimeout(() => {
