@@ -183,6 +183,10 @@ const getExtension = (mime) => {
 
 function _photoPosLabel(i) { return i === 0 ? 'Principal' : `Foto ${i}`; }
 
+// Module-level API key — persists across component remounts within the same page session.
+// runtimeKey state drives the input field; _moduleApiKey holds the confirmed value.
+let _moduleApiKey = '';
+
 function _moveItem(arr, from, to) {
   if (from === to || from == null || to == null) return arr;
   const result = [...arr];
@@ -960,8 +964,9 @@ function App() {
       specimenId: idNum,
       scientificName: found.scientificName,
     }));
-    // Fetch full detail (with photos) for the reference panel
-    fetch(`${API_BASE}/species/${especieId}`, { headers: authHeaders() })
+    // Fetch full detail (with photos) for the reference panel.
+    // cache: 'no-store' bypasses Cache-Control: public, max-age=3600 so photo order is always fresh.
+    fetch(`${API_BASE}/species/${especieId}`, { cache: 'no-store', headers: authHeaders() })
       .then(r => r.ok ? r.json() : null)
       .then(detail => { if (detail) setReferenceSpecies(detail); })
       .catch(() => {});
@@ -975,7 +980,7 @@ function App() {
     const speciesId = `esp-${rawId.padStart(3, '0')}`;
     if (referenceSpecies?.id === speciesId) return; // already current — no-op
     const controller = new AbortController();
-    fetch(`${API_BASE}/species/${speciesId}`, { headers: authHeaders(), signal: controller.signal })
+    fetch(`${API_BASE}/species/${speciesId}`, { cache: 'no-store', headers: authHeaders(), signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(detail => { if (detail) setReferenceSpecies(detail); })
       .catch(() => {});
@@ -1029,15 +1034,19 @@ function App() {
 
   const checkApiKey = () => {
     const envKey = import.meta.env?.VITE_GEMINI_API_KEY;
-    setHasKey(!!(envKey || runtimeKey));
+    // _moduleApiKey persists across remounts — no need to re-enter the key on navigation
+    setHasKey(!!(envKey || _moduleApiKey));
   };
 
-  // Returns the active API key: env var takes priority, runtimeKey is the manual fallback
-  const getApiKey = () => import.meta.env?.VITE_GEMINI_API_KEY || runtimeKey || '';
+  // Returns the active API key: env var takes priority, module-level key is the manual fallback
+  const getApiKey = () => import.meta.env?.VITE_GEMINI_API_KEY || _moduleApiKey || '';
 
   const handleConfirmRuntimeKey = () => {
     const trimmed = runtimeKey.trim();
-    if (trimmed) setHasKey(true);
+    if (trimmed) {
+      _moduleApiKey = trimmed; // persist for future remounts in this session
+      setHasKey(true);
+    }
   };
 
   const processImage = (base64, format, quality, targetWidth = null, targetHeight = null) => {
