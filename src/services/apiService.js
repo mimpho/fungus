@@ -240,7 +240,14 @@ export function normalizeSpeciesDetail(s, lang = 'es') {
     cond_req:    i18n('cond_req',    s.cond_req     ?? null),
     // Sobrescribir con datos de extra_data que son más completos
     photo:       ex.photo  ?? base.photo,
-    photos:      ex.photos ?? [],
+    // v5.3+: photos array. Fallback to v5.2 photo1/photo2 slots for species not yet
+    // migrated through set-order (those have extra_data.photo1 / photo2, not photos[]).
+    photos:      ex.photos?.length > 0
+      ? ex.photos
+      : [
+          ...(ex.photo1?.url ? [ex.photo1] : []),
+          ...(ex.photo2?.url ? [ex.photo2] : []),
+        ],
     // Morfología — i18n: busca cap_ca / cap_en en extra_data, fallback a ES
     cap:         i18n('cap',        ex.cap         ?? null),
     stem:        i18n('stem',       ex.stem        ?? null),
