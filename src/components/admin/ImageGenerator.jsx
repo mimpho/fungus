@@ -779,6 +779,7 @@ function App() {
   const [isRefining, setIsRefining] = useState(false);
   const [refinementText, setRefinementText] = useState('');
   const [error, setError] = useState(null);
+  const [refineWarning, setRefineWarning] = useState(null); // non-fatal: shown when refine falls back to text-to-image
   const [hasKey, setHasKey] = useState(null);
   const [runtimeKey, setRuntimeKey] = useState(''); // API key entered at runtime (fallback when env var not set)
   const [recentBatchIds, setRecentBatchIds] = useState([]);
@@ -1131,12 +1132,12 @@ function App() {
     return `data:${pred.mimeType || 'image/png'};base64,${pred.bytesBase64Encoded}`;
   };
 
-  // Real image-to-image editing via Gemini 2.0 Flash (multimodal input → image output).
+  // Real image-to-image editing via Gemini 2.0 Flash Preview (multimodal input → image output).
   // Sends the current image + instruction text; the model edits the image directly.
   // Falls back to callImagen3 (text-to-image) if the model is unavailable.
   const callGeminiRefine = async (imageBase64, mimeType, instruction, apiKey) => {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp-image-generation' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-preview-image-generation' });
     const response = await model.generateContent({
       contents: [{
         role: 'user',
@@ -1145,7 +1146,7 @@ function App() {
           { text: instruction },
         ],
       }],
-      generationConfig: { responseModalities: ['image'] },
+      generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
     });
     const parts = response.response?.candidates?.[0]?.content?.parts ?? [];
     const imagePart = parts.find(p => p.inlineData);
@@ -1544,6 +1545,7 @@ function App() {
     setGenerationStep("Iniciando refinamiento...");
     setStatusLog([`[${new Date().toLocaleTimeString()}] Iniciando sesión de refinamiento...`]);
     setError(null);
+    setRefineWarning(null);
     setIsRefining(false);
 
     try {
@@ -1575,11 +1577,22 @@ function App() {
         } catch (err) {
           const errMsg = err.message || "";
           const isTimeout = errMsg.includes("Timeout") || errMsg.includes("tiempo");
-          const isUnavailable = errMsg.includes("404") || errMsg.includes("not found") || errMsg.includes("no longer available");
+          const isUnavailable =
+            errMsg.includes("404") ||
+            errMsg.includes("400") ||
+            errMsg.includes("not found") ||
+            errMsg.includes("no longer available") ||
+            errMsg.includes("INVALID_ARGUMENT") ||
+            errMsg.includes("deprecated") ||
+            errMsg.includes("preview") ||
+            errMsg.includes("not supported") ||
+            errMsg.includes("unavailable");
 
           if (isTimeout || isUnavailable) {
-            // Fallback: text-to-image (no real editing, but recovers gracefully)
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini Edit ${isTimeout ? 'lento' : 'no disponible'}. Usando generación de respaldo (Imagen 4)...`]);
+            // Fallback: text-to-image (no real editing, but show a visible warning to the user)
+            const reason = isTimeout ? 'lento' : 'no disponible';
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini Edit ${reason}. Usando generación de respaldo (Imagen 4)...`]);
+            setRefineWarning(`El modo de edición real no está disponible ahora mismo. La imagen se ha generado de nuevo desde el texto, no a partir de la original.`);
             return await withTimeout(callImagen3(refinementText, apiKey), 90000);
           }
           throw err;
@@ -2129,6 +2142,17 @@ function App() {
                 >
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <p>{error}</p>
+                </motion.div>
+              )}
+
+              {refineWarning && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-5 bg-amber-900/20 border border-amber-500/30 rounded-2xl flex items-start gap-3 text-amber-200 text-xs leading-relaxed mt-4"
+                >
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                  <p>{refineWarning}</p>
                 </motion.div>
               )}
             </div>
