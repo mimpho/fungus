@@ -1240,8 +1240,13 @@ function App() {
   };
 
   const generateImage = async (items) => {
-    const generationList = items || settings.scientificName.split(',').map((n, i) => {
-      const baseIdNum = parseInt(settings.specimenId) || 0;
+    // When called without explicit items (e.g. Regenerar button), resolve settings
+    // from the currently viewed item so ID and name stay in sync with what's displayed.
+    // settings.specimenId is cleared after each generation, so viewedItem.settings
+    // is the reliable source for the specimen being re-generated.
+    const activeSettings = (!items && viewedItem) ? viewedItem.settings : settings;
+    const generationList = items || activeSettings.scientificName.split(',').map((n, i) => {
+      const baseIdNum = parseInt(activeSettings.specimenId) || 0;
       return {
         id: (baseIdNum + i).toString().padStart(3, '0'),
         name: n.trim()
