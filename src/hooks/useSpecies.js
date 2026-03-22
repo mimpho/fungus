@@ -20,14 +20,17 @@ import { useApp } from '../contexts/AppContext'
 const _speciesCache = {}    // { es: Species[], ca: Species[], en: Species[] }
 const _speciesPromises = {} // { es: Promise, ca: Promise, en: Promise }
 
+const SPECIES_REFRESH_EVENT = 'fungus:species-list-invalidated'
+
 /**
- * Invalida la caché de la lista de especies para todos los idiomas.
- * Llamar después de cualquier mutación admin (set-order, PATCH /images)
- * para que la próxima llamada a useSpecies recargue datos frescos del servidor.
+ * Invalida la caché de la lista de especies para todos los idiomas y notifica
+ * a todos los useSpecies montados para que recarguen inmediatamente.
+ * Llamar después de cualquier mutación admin (set-order, PATCH /images).
  */
 export function invalidateSpeciesListCache() {
   Object.keys(_speciesCache).forEach(lang => delete _speciesCache[lang])
   Object.keys(_speciesPromises).forEach(lang => delete _speciesPromises[lang])
+  window.dispatchEvent(new Event(SPECIES_REFRESH_EVENT))
 }
 
 export function useSpecies() {
@@ -35,8 +38,19 @@ export function useSpecies() {
   const [species, setSpecies] = useState(_speciesCache[lang] ?? mockSpecies)
   const [loading, setLoading] = useState(!_speciesCache[lang])
   const [error, setError] = useState(null)
+  // Incrementar este contador fuerza el efecto de carga a re-ejecutarse
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Escuchar invalidaciones del admin para refrescar sin necesidad de navegar
+  useEffect(() => {
+    const handler = () => setRefreshKey(k => k + 1)
+    window.addEventListener(SPECIES_REFRESH_EVENT, handler)
+    return () => window.removeEventListener(SPECIES_REFRESH_EVENT, handler)
+  }, [])
 
   useEffect(() => {
+    let cancelled = false
+
     // Si ya hay cache para este idioma, usarla directamente
     if (_speciesCache[lang]) {
       setSpecies(_speciesCache[lang])
@@ -49,25 +63,20 @@ export function useSpecies() {
     setLoading(true)
     setError(null)
 
-    let cancelled = false
-
-    const load = async () => {
+    const doLoad = async () => {
       if (!_speciesPromises[lang]) {
         _speciesPromises[lang] = fetchAllSpecies(lang)
       }
 
       try {
         const apiSpecies = await _speciesPromises[lang]
-
         if (cancelled) return
-
         _speciesCache[lang] = apiSpecies
         delete _speciesPromises[lang]
         setSpecies(apiSpecies)
         setLoading(false)
       } catch (err) {
         if (cancelled) return
-
         console.warn(`[useSpecies] API no disponible (lang=${lang}), usando mock data:`, err)
         setError('No se pudieron cargar especies en tiempo real.')
         delete _speciesPromises[lang]
@@ -75,9 +84,9 @@ export function useSpecies() {
       }
     }
 
-    load()
+    doLoad()
     return () => { cancelled = true }
-  }, [lang]) // Re-ejecutar cuando cambia el idioma
+  }, [lang, refreshKey]) // refreshKey se incrementa cuando admin invalida el cache
 
   return { species, loading, error }
 }
