@@ -4,19 +4,17 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚀 Próximo — v5.4 Rediseño generador admin (galería-first)
+## 🚧 En progreso — v5.4 Rediseño generador admin (galería-first)
 
-**Motivación:** el flujo actual del generador tiene bugs acumulados difíciles de aislar y una UX poco coherente con el objetivo real de la herramienta (gestionar imágenes de especies del catálogo). Se rediseña desde cero reutilizando los bloques ya construidos.
+Implementación completada en `feat/v5.4-generator-redesign`. Pendiente: PR + merge + bump de versión.
 
-**Alcance:**
-
-- **Entrada: AdminGallery como pantalla principal** de `/admin/generator`. Sin `?especie=` → galería con buscador + filtros ya existentes. Con `?especie=XXX` → abre modal de esa especie directamente.
-- **Modal de especie** (nuevo componente): clic en tarjeta de galería → modal con miniaturas de todas las fotos de la especie + lightbox navegable entre fotos. Dos acciones: "Reordenar" y "Generar imagen".
-- **Modo reordenar**: el modal cambia a DnD con el `CatalogImagesModal` ya existente. "Reordenar" → "Guardar orden".
-- **Vista generador simplificada**: selector de especie + input ID eliminados → título con nombre de la especie. Se mantienen los desplegables de ajustes de escena. Se elimina el bloque "Imágenes en catálogo" del sidebar (redundante — acceso desde galería). Se eliminan los botones "Nuevo" y "Cargar CSV". "Capturar espécimen" → "Generar imagen". Panel derecho (visor + historial + consola) sin cambios.
-- **Reutilizar sin reescribir**: `AdminGallery` + `GalleryCard`, `CatalogImagesModal` (DnD), panel derecho del generador, lógica de generación (`generateImage`, `callImagen3`, `callGeminiRefine`), consola de estado.
-
-**Nueva branch:** `feat/v5.4-generator-redesign` desde `main` tras mergear `fix/generator-apikey-cache`.
+**Testing manual recomendado antes del merge:**
+- `/admin/generator` sin params → galería con filtros
+- Clic en tarjeta → `SpeciesAdminModal` abre, lightbox funciona, navegar ←/→
+- "Reordenar" → `CatalogImagesModal` DnD, guardar orden actualiza la galería
+- "Generar imagen" → navega a `?especie=XXX&generar=1` → generador simplificado (sin selector, sin Nuevo/CSV, sin catálogo sidebar, botón "Generar imagen")
+- Back button desde generador → vuelve al modal de especie
+- `/admin/gallery` → redirige a `/admin/generator`
 
 ---
 

@@ -15,6 +15,7 @@ import { invalidateSpeciesListCache } from '../../hooks/useSpecies';
 import { authHeaders } from '../../services/authService';
 import { resolveUrl } from '../../lib/helpers';
 import { MODAL } from '../../lib/constants';
+import { CatalogImagesModal } from './CatalogImagesModal';
 import {
   Camera,
   Sprout,
@@ -159,365 +160,12 @@ const getExtension = (mime) => {
 
 
 
-// ── CatalogImagesModal ────────────────────────────────────────────────────────
-// Unified modal for saving a generated image and/or reordering existing catalog
-// photos. Supports unlimited photos — not limited to 3 legacy slots.
-//
-// DnD: insertion-style — dragging a card causes the others to shift in real time
-// to make room (not swap-on-drop). Implemented with framer-motion `layout` for
-// smooth spring animation on desktop, and imperative non-passive touch listeners
-// (so we can preventDefault scroll) on mobile.
-//
-// Model:
-//   photos[]  — committed order (what will be saved)
-//   dragIdx   — index in photos[] of the card being dragged
-//   hoverIdx  — final target index (0..n-1) in photos[] where dragged card lands
-//   visualPhotos = moveItem(photos, dragIdx, hoverIdx)  ← live visual order
-//
-// Props:
-//   species          — SpeciesDetail from DB (source of existing photos)
-//   newImageDataUrl  — data: URI of newly generated image, or null
-//   newImageMimeType — MIME type of new image, or null
-//   applyStatus      — null | 'saving' | 'success' | 'error'
-//   onConfirm(urls)  — called with final ordered URL array; parent calls set-order
-//   onClose          — close without saving
-
-function _photoPosLabel(i) { return i === 0 ? 'Principal' : `Foto ${i}`; }
+// CatalogImagesModal is now in ./CatalogImagesModal.jsx (extracted v5.4)
 
 // Module-level API key — persists across component remounts within the same page session.
 // runtimeKey state drives the input field; _moduleApiKey holds the confirmed value.
 let _moduleApiKey = '';
 
-function _moveItem(arr, from, to) {
-  if (from === to || from == null || to == null) return arr;
-  const result = [...arr];
-  const [item] = result.splice(from, 1);
-  result.splice(to, 0, item);
-  return result;
-}
-
-function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyStatus, onConfirm, onClose }) {
-
-  // Build initial ordered list of URLs from DB + optional new image.
-  // Raw DB URLs are stored as-is (no resolveUrl) so set-order can match them
-  // back to their metadata (largeUrl, caption) via exact string lookup.
-  // resolveUrl is applied only at render time (src={resolveUrl(url)}).
-  function buildInitialPhotos() {
-    const result = [];
-    const mainUrl = species?.extra_data?.photo?.url ?? species?.photo_url ?? '';
-    if (mainUrl) result.push(mainUrl);
-    for (const p of (species?.extra_data?.photos ?? [])) {
-      const url = p?.url ?? '';
-      if (url) result.push(url);
-    }
-    if (newImageDataUrl) result.unshift(newImageDataUrl); // prepend at position 0
-    return result;
-  }
-
-  const [photos, setPhotos] = useState(buildInitialPhotos);
-  // Re-build when species or its photo data changes (same species ID after a save)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setPhotos(buildInitialPhotos()); }, [species?.id, species?.extra_data, newImageDataUrl]);
-
-  // ── Drag state ──
-  const [dragIdx,   setDragIdx]   = useState(null); // original index in photos[]
-  const [hoverIdx,  setHoverIdx]  = useState(null); // live target position in photos[]
-  const gridRef = useRef(null);
-
-  // Live visual order while dragging — what the user sees
-  const visualPhotos = (dragIdx !== null && hoverIdx !== null)
-    ? _moveItem(photos, dragIdx, hoverIdx)
-    : photos;
-
-  // ── HTML5 DnD (desktop) ──
-  //
-  // Key design decisions:
-  // 1. dragIdx / hoverIdx are in **origIdx space** (position in the committed photos[]).
-  //    origIdx = photos.indexOf(url) — stable during drag (only changes after handleDrop commits).
-  //    Using origIdx instead of visualIdx avoids framer-motion phantom events: if layout
-  //    animations moved cards and re-fired dragenter with changed visualIdx values, order
-  //    would flip back. origIdx never changes mid-drag so state is stable.
-  //
-  // 2. onDragEnter is on each card using origIdx (direct, reliable for enter tracking).
-  //    Deduplication via _hoverIdxRef prevents redundant updates from child-element bubbling.
-  //
-  // 3. onDrop is on the grid container only — HTML5 DnD fires `drop` on the valid drop
-  //    target (the grid, which has onDragOver+preventDefault). Cards are children of the
-  //    grid, not ancestors, so onDrop on cards never fires.
-
-  const _dragOrigIdx  = useRef(null);  // origIdx of dragged card
-  const _hoverIdxRef  = useRef(null);  // mirrors hoverIdx (origIdx space) — avoids stale closure
-  const _dropFiredRef = useRef(false); // true once handleDrop commits — guards handleDragEnd
-
-  function _resetDragState() {
-    _dragOrigIdx.current  = null;
-    _hoverIdxRef.current  = null;
-    _dropFiredRef.current = false;
-    setDragIdx(null);
-    setHoverIdx(null);
-  }
-
-  function handleDragStart(origIdx) {
-    _dragOrigIdx.current  = origIdx;
-    _hoverIdxRef.current  = origIdx;
-    _dropFiredRef.current = false;
-    setDragIdx(origIdx);
-    setHoverIdx(origIdx);
-  }
-
-  // Called from each card's onDragEnter — uses origIdx (stable during drag, not visualIdx).
-  // Deduplication prevents re-renders from child-element dragenter bubbling.
-  function handleDragEnter(origIdx) {
-    if (_dragOrigIdx.current === null) return;
-    if (origIdx === _dragOrigIdx.current) return;
-    if (_hoverIdxRef.current === origIdx) return;
-    _hoverIdxRef.current = origIdx;
-    setHoverIdx(origIdx);
-  }
-
-  // onDrop on both grid and cards — drop may fire on the card (where cursor is) or the grid
-  // depending on browser. idempotent: _dropFiredRef prevents double-commit on bubble.
-  function handleDrop(e) {
-    e.preventDefault();
-    if (_dragOrigIdx.current === null || _dropFiredRef.current) return;
-    _dropFiredRef.current = true; // mark as handled before any async work
-    const from   = _dragOrigIdx.current;
-    const target = _hoverIdxRef.current ?? from;
-    _resetDragState();
-    if (from !== target) {
-      setPhotos(prev => _moveItem(prev, from, target));
-    }
-  }
-
-  function handleDragEnd() {
-    // Fires on source after drop (or when dropped outside valid target).
-    // If drop already fired, refs are already cleared — nothing to do.
-    if (_dragOrigIdx.current !== null) {
-      _resetDragState();
-    }
-  }
-
-  // ── Touch DnD (mobile) — non-passive so we can preventDefault scroll ──
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) return;
-    let touchSrcOrigIdx = null;  // original photos[] index of the card being touched
-
-    function vidxAt(x, y) {
-      const el = document.elementFromPoint(x, y);
-      const card = el?.closest('[data-vidx]');
-      return card ? parseInt(card.dataset.vidx, 10) : null;
-    }
-
-    function origIdxAt(x, y) {
-      const el = document.elementFromPoint(x, y);
-      const card = el?.closest('[data-origidx]');
-      return card ? parseInt(card.dataset.origidx, 10) : null;
-    }
-
-    function onTouchStart(e) {
-      const card = e.target.closest('[data-origidx]');
-      if (!card) return;
-      touchSrcOrigIdx = parseInt(card.dataset.origidx, 10);
-      setDragIdx(touchSrcOrigIdx);
-      setHoverIdx(touchSrcOrigIdx);
-    }
-
-    function onTouchMove(e) {
-      if (touchSrcOrigIdx === null) return;
-      e.preventDefault(); // block scroll while dragging
-      const t = e.touches[0];
-      // Use origIdx (stable) — same strategy as desktop dragover to avoid animation jitter
-      const oi = origIdxAt(t.clientX, t.clientY);
-      if (oi !== null && oi !== touchSrcOrigIdx) setHoverIdx(oi);
-    }
-
-    function onTouchEnd(e) {
-      if (touchSrcOrigIdx === null) return;
-      const t = e.changedTouches[0];
-      const oi = origIdxAt(t.clientX, t.clientY);
-      const targetHover = (oi !== null && oi !== touchSrcOrigIdx) ? oi : touchSrcOrigIdx;
-      setPhotos(prev => _moveItem(prev, touchSrcOrigIdx, targetHover));
-      touchSrcOrigIdx = null;
-      setDragIdx(null);
-      setHoverIdx(null);
-    }
-
-    grid.addEventListener('touchstart', onTouchStart, { passive: true });
-    grid.addEventListener('touchmove',  onTouchMove,  { passive: false });
-    grid.addEventListener('touchend',   onTouchEnd,   { passive: true });
-    return () => {
-      grid.removeEventListener('touchstart', onTouchStart);
-      grid.removeEventListener('touchmove',  onTouchMove);
-      grid.removeEventListener('touchend',   onTouchEnd);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // grid ref is stable; handlers use functional setState or refs
-
-  const busy = applyStatus === 'saving' || applyStatus === 'success';
-
-  return (
-    <div
-      className="fixed inset-0 z-[110] flex items-end sm:items-start justify-center modal-outer"
-      style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)', overflowY: 'auto' }}
-      onClick={() => { if (!busy) onClose(); }}
-    >
-      <div
-        className="sm:my-8 w-full max-w-4xl anim-scale modal-inner"
-        style={{ background: MODAL.bg }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between border-b border-white/5"
-          style={{ background: MODAL.bg }}>
-          <div>
-            <h2 className="font-display text-xl font-semibold text-cream">
-              {newImageDataUrl ? 'Guardar imagen en catálogo' : 'Imágenes del catálogo'}
-            </h2>
-            <p className="text-muted/70 text-xs italic mt-0.5">{species?.scientific_name}</p>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={busy}
-            className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-6 space-y-5">
-
-          {/* New image preview strip — only shown when saving a new image */}
-          {newImageDataUrl && (
-            <div className="flex items-start gap-4 p-4 bg-emerald-900/10 border border-emerald-500/20 rounded-xl">
-              <div className="shrink-0">
-                <div className="w-24 aspect-[4/3] rounded-xl overflow-hidden bg-black/30 ring-2 ring-emerald-500/60">
-                  <img src={newImageDataUrl} alt="Nueva" className="w-full h-full object-cover" />
-                </div>
-              </div>
-              <p className="text-sm text-[#d9cda1]/70 leading-relaxed pt-1">
-                La nueva imagen aparece en primera posición. Arrástrala donde quieras o déjala como principal.
-              </p>
-            </div>
-          )}
-
-          {/* Hint */}
-          <p className="text-[10px] text-[#d9cda1]/40 text-center uppercase tracking-widest flex items-center justify-center gap-1.5">
-            <Move className="w-3 h-3" />
-            {newImageDataUrl
-              ? 'Ordena las imágenes y confirma para guardar'
-              : 'Arrastra para reordenar — las otras imágenes se desplazan en tiempo real'}
-          </p>
-
-          {/* ── Drag grid: 1 col on mobile, 3 cols on md+ ── */}
-          {/* Grid has fixed item count so layout animations don't distort column widths */}
-          <div
-            ref={gridRef}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
-            onDragOver={e => e.preventDefault()}  // makes grid a valid drop target — drop fires here
-            onDrop={handleDrop}
-          >
-            {visualPhotos.map((url, visualIdx) => {
-              // origIdx = position of this URL in the committed photos[]
-              const origIdx  = photos.indexOf(url);
-              const isDragging = origIdx === dragIdx;
-              const isNewImg   = url === newImageDataUrl;
-
-              return (
-                <motion.div
-                  key={url}               /* stable key → framer-motion tracks across positions */
-                  layout                  /* animates position changes with spring */
-                  transition={{ type: 'spring', stiffness: 400, damping: 30, mass: 0.8 }}
-                  data-vidx={visualIdx}   /* visual position — used by touch DnD */
-                  data-origidx={origIdx}  /* original index — used by touch DnD to identify card */
-                  draggable={!busy}
-                  onDragStart={() => handleDragStart(origIdx)}
-                  onDragEnter={() => handleDragEnter(origIdx)}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={handleDrop}
-                  onDragEnd={handleDragEnd}
-                  animate={{ opacity: isDragging ? 0.35 : 1, scale: isDragging ? 0.96 : 1 }}
-                  className={[
-                    'rounded-2xl overflow-hidden border-2 select-none',
-                    busy  ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
-                    isNewImg && !isDragging ? 'border-emerald-500/50' : '',
-                    !isNewImg && !isDragging ? 'border-white/10'       : '',
-                    isDragging              ? 'border-white/10'        : '',
-                  ].join(' ')}
-                >
-                  {/* Image */}
-                  <div className="aspect-[4/3] bg-black/40 flex items-center justify-center overflow-hidden relative">
-                    {url
-                      ? <img
-                          src={resolveUrl(url)}
-                          alt={_photoPosLabel(visualIdx)}
-                          draggable={false}
-                          className="w-full h-full object-cover pointer-events-none"
-                          onError={e => { e.currentTarget.style.display = 'none'; }}
-                        />
-                      : <div className="flex flex-col items-center gap-2 text-[#d9cda1]/15 p-4">
-                          <Camera className="w-10 h-10" />
-                          <span className="text-[9px] font-bold uppercase tracking-widest">Vacío</span>
-                        </div>
-                    }
-
-                    {/* Drag handle hint */}
-                    {!busy && !isDragging && (
-                      <div className="absolute top-2 right-2 opacity-25 pointer-events-none">
-                        <Move className="w-4 h-4 text-white drop-shadow" />
-                      </div>
-                    )}
-
-                    {/* "Nueva" badge */}
-                    {isNewImg && !isDragging && (
-                      <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full shadow pointer-events-none">
-                        Nueva
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Position label bar — shows visual position */}
-                  <div className={`px-4 py-3 flex items-center gap-2 transition-colors ${isNewImg ? 'bg-emerald-900/30' : 'bg-black/40'}`}>
-                    <span className="text-xs font-bold uppercase tracking-widest text-[#f4ebe1] flex-1">
-                      {_photoPosLabel(visualIdx)}
-                    </span>
-                    {isNewImg && !isDragging && (
-                      <span className="text-[9px] text-emerald-400/80 font-bold uppercase tracking-widest">nueva</span>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Confirm button */}
-          <button
-            onClick={() => onConfirm(photos)}
-            disabled={busy || photos.length === 0}
-            className="w-full bg-emerald-700/80 hover:bg-emerald-600/80 text-white rounded-xl py-3.5 text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {applyStatus === 'saving'
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{newImageDataUrl ? 'Guardando...' : 'Aplicando...'}</>
-              : applyStatus === 'success'
-              ? <><CheckCircle2 className="w-3.5 h-3.5" />{newImageDataUrl ? 'Guardado' : 'Reorganización aplicada'}</>
-              : photos.length === 0
-              ? <><Camera className="w-3.5 h-3.5" />Sin imágenes</>
-              : <><Save className="w-3.5 h-3.5" />{newImageDataUrl ? 'Confirmar y guardar' : 'Aplicar orden'}</>
-            }
-          </button>
-
-          {applyStatus === 'error' && (
-            <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-500/20 rounded-xl text-red-300 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Error al guardar. Verifica que tienes permisos de administrador.</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
 // Error Boundary Component
@@ -708,6 +356,10 @@ function App() {
 
   // ── URL query param ?especie= (pre-fill from AdminGallery; kept in sync with selector) ─
   const [searchParams, setSearchParams] = useSearchParams()
+
+  // ── Gallery-first mode (v5.4): arrived from AdminGeneratorHub via ?generar=1 ─────────
+  // Hides selector, ID field, Nuevo/CSV, and reference panel; shows species title instead.
+  const isGalleryFirst = searchParams.get('generar') === '1'
 
   // ── Admin nav — ensure generator always shows admin nav items ─────────────
   const { setIsAdminView } = useApp()
@@ -1863,9 +1515,32 @@ function App() {
 
               {!isGenerating && (
                 <div className="space-y-10">
+
+                  {/* ── Gallery-first: species title (replaces selector in generar=1 mode) ── */}
+                  {isGalleryFirst && settings.scientificName && (
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9cda1]/40 mb-1">Generando para</p>
+                        <p className="font-display text-xl font-semibold text-cream italic leading-tight truncate">{settings.scientificName}</p>
+                        <p className="text-cream/30 text-[10px] font-mono mt-0.5">{searchParams.get('especie')}</p>
+                      </div>
+                      <button
+                        onClick={() => window.history.back()}
+                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-cream/40 hover:text-cream transition-colors mt-1"
+                        title="Volver a la galería"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Galería
+                      </button>
+                    </div>
+                  )}
+
                   <section className="transition-all duration-500">
                     <div className="space-y-8">
-                      <div className="grid grid-cols-12 gap-4">
+                      {/* ── Selector especie + ID (oculto en gallery-first mode) ── */}
+                      {!isGalleryFirst && <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-3">
                           <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70 flex items-center gap-1.5">
                             ID
@@ -1954,7 +1629,8 @@ function App() {
                             </AnimatePresence>
                           </div>
                         </div>
-                      </div>
+                      </div>}
+                      {/* ── /Selector especie + ID ── */}
 
                       <div className="space-y-6">
                         <div className="pt-2 border-t border-white/5">
@@ -2108,8 +1784,8 @@ function App() {
                     </div>
                   </section>
 
-                  {/* ── Reference panel — clickable to open CatalogImagesModal ── */}
-                  {referenceSpecies && (
+                  {/* ── Reference panel (oculto en gallery-first — acceso desde SpeciesAdminModal) ── */}
+                  {referenceSpecies && !isGalleryFirst && (
                     <div className="pt-2 border-t border-white/5">
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9cda1]/50">Imágenes en catálogo</p>
@@ -2160,10 +1836,11 @@ function App() {
                         className="w-full bg-[#f4ebe1] text-[#1a1a1a] rounded-2xl py-5 font-bold text-sm uppercase tracking-[0.2em] hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-2xl shadow-black/40 active:scale-[0.98] group"
                       >
                         <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                        Capturar Espécimen
+                        {isGalleryFirst ? 'Generar imagen' : 'Capturar Espécimen'}
                       </button>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      {/* Nuevo + CSV — ocultos en gallery-first (navegación de vuelta via header) */}
+                      {!isGalleryFirst && <div className="grid grid-cols-2 gap-4">
                         <button
                           onClick={() => {
                             setSettings({
@@ -2200,7 +1877,7 @@ function App() {
                             Importar
                           </label>
                         </div>
-                      </div>
+                      </div>}
                     </div>
                   </div>
                 </div>

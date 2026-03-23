@@ -9,6 +9,18 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Añadido
+
+- **`CatalogImagesModal.jsx`**: extraído de `ImageGenerator.jsx` a su propio archivo (`src/components/admin/`) para que pueda reutilizarse desde `SpeciesAdminModal` sin cargar el bundle completo del generador. Exports: `CatalogImagesModal` (default + named), `photoPosLabel`, `moveItem`.
+- **`SpeciesAdminModal.jsx`**: nuevo modal de especie abierto desde la galería admin. Muestra miniaturas de todas las fotos con lightbox navegable (←/→, dots, ESC). Dos acciones: "Reordenar" (abre `CatalogImagesModal` DnD) y "Generar imagen" (navega al generador simplificado vía `?especie=XXX&generar=1`). Fetch del detalle raw al montar para alimentar `CatalogImagesModal`.
+- **`AdminGeneratorHub.jsx`**: hub unificado para `/admin/generator`. Modo galería (default): renderiza `AdminGallery` + `SpeciesAdminModal` cuando hay `?especie=`. Modo generador: lazy-load de `ImageGenerator` cuando hay `?especie=XXX&generar=1`. Gestión URL: `replace: true` para modal open/close (no ensucia el historial), push para navegar al generador (back button funciona).
+
+### Cambiado
+
+- **`AdminGallery`**: acepta prop `onOpen` opcional. Cuando se provee (hub mode), lo usa en lugar de `navigate()`. Retrocompatible — sin prop, comportamiento anterior.
+- **`ImageGenerator`**: modo gallery-first activado con `?generar=1`. Oculta selector de especie + campo ID, botones "Nuevo" y "Importar CSV", y bloque "Imágenes en catálogo" del sidebar. Muestra título con nombre científico + botón "← Galería" en su lugar. Botón principal renombrado a "Generar imagen". Elimina la definición inline de `CatalogImagesModal` y sus helpers; usa import de `./CatalogImagesModal`.
+- **`App.jsx`**: ruta `/admin/generator` apunta a `AdminGeneratorHub` (lazy). Ruta `/admin/gallery` redirige a `/admin/generator` (redirect permanente). Eliminado el lazy de `ImageGenerator` del router raíz — ahora está dentro del hub.
+
 ---
 
 ## [5.3.1] - 2026-03-22 — Bug fixes: caché fotos, generador admin
