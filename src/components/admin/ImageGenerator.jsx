@@ -146,9 +146,9 @@ const TAXONOMY_GOLDEN_RULES = {
 };
 
 const FOREST_TYPE_LABELS = {
-  pinar:   'Pinares y Coníferas',
-  hayedo:  'Frondosas - Hayedos',
-  robledal:'Frondosas - Robledales',
+  pinar: 'Pinares y Coníferas',
+  hayedo: 'Frondosas - Hayedos',
+  robledal: 'Frondosas - Robledales',
   encinar: 'Bosque Mediterráneo - Encinar/Alcornocal',
 };
 
@@ -449,12 +449,12 @@ function App() {
   const [retryStatus, setRetryStatus] = useState(null);
   const [generationStep, setGenerationStep] = useState(null);
   const [statusLog, setStatusLog] = useState([]);
-  const logEndRef = React.useRef(null);
+  const logContainerRef = React.useRef(null);
 
-  // Auto-scroll log
+  // Auto-scroll log container (never scrollIntoView — that drags the whole page)
   React.useEffect(() => {
-    if (logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [statusLog]);
 
@@ -654,7 +654,7 @@ function App() {
           loadedReferenceIdRef.current = especieId;
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => controller.abort();
   }, [searchParams, apiSpecies]);
 
@@ -1016,19 +1016,38 @@ function App() {
 
           let extraTaxonomicCommand = "";
           if (goldenRule) {
-            extraTaxonomicCommand = ` ESCUDO DE VERDAD (TAXONOMY GOLDEN RULE): ${goldenRule}`;
+            extraTaxonomicCommand = `\nESCUDO DE VERDAD (TAXONOMY GOLDEN RULE): ${goldenRule}`;
           }
 
-          const enginePrompt = `Generate a photorealistic image prompt for the mushroom species: "${cleanName}".
-          ${extraTaxonomicCommand}
+          // Build species-specific morphology block from referenceSpecies.extra_data
+          // This overrides generic family-level knowledge with actual verified data.
+          let morphologyBlock = "";
+          const refData = referenceSpecies?.extra_data ?? referenceSpecies;
+          if (refData) {
+            const cap   = refData.cap;
+            const stem  = refData.stem;
+            const flesh = refData.flesh;
+            const spore = refData.sporePrint ?? refData.spore_print;
+            const lines = [];
+            if (cap)   lines.push(`CAP (píleo): shape=${cap.forma ?? ''}, color=${cap.color ?? ''}, diameter=${cap.diametro ?? ''}, surface=${cap.superficie ?? ''}`);
+            if (stem)  lines.push(`STIPE (pie): shape=${stem.forma ?? ''}, color=${stem.color ?? ''}, height=${stem.altura ?? ''}, diameter=${stem.diametro ?? ''}`);
+            if (flesh) lines.push(`FLESH (carne): color=${flesh.color ?? ''}, texture=${flesh.textura ?? ''}, smell=${flesh.olor ?? ''}`);
+            if (spore) lines.push(`SPORE PRINT: ${spore}`);
+            if (lines.length > 0) {
+              morphologyBlock = `\n\n⚠️ VERIFIED SPECIES MORPHOLOGY — OVERRIDE ALL GENERIC KNOWLEDGE ⚠️\nThe following data is from a peer-reviewed mycological database. You MUST reproduce these traits EXACTLY:\n${lines.join('\n')}\nDo NOT invent or substitute any morphological detail. If the cap color says "beige-cream with a central umbo", draw exactly that.`;
+            }
+          }
+
+          const enginePrompt = `Generate a photorealistic image prompt for the mushroom species: "${cleanName}".${extraTaxonomicCommand}${morphologyBlock}
+
           Composition: ${settings.specimenCount} specimen(s).
           Habitat context: ${habitatContext}.
           Additional details: ${settings.description || 'None'}.
           Shot type: ${settings.shotType}.
           FOCUS: Ensure the adult mushroom (main specimen) is perfectly in focus with extreme sharpness and botanical detail.
-          STEM MORPHOLOGY: Pay extreme attention to the stipe (stem) proportions. It must match the species' botanical reality (slender, bulbous, thick, etc.). Avoid any thickness aberrations.
-          SCIENTIFIC PROTOCOL: Rely strictly on botanical descriptions from Index Fungorum and MycoBank. IGNORE general internet imagery bias.
-          REMINDER: Apply BIOTIC REALISM (slug bites, dry edges, forest debris) and occasionally include small insects or spider webs  your instructions.`;
+          STEM MORPHOLOGY: Pay extreme attention to the stipe (stem) proportions — use the verified data above, not generic assumptions.
+          SCIENTIFIC PROTOCOL: The verified morphology block above takes precedence over all internet imagery, training data bias, or family-level defaults.
+          REMINDER: Apply BIOTIC REALISM (slug bites, dry edges, forest debris) and occasionally include small insects or spider webs.`;
 
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando prompt taxonómico...`]);
 
@@ -1441,14 +1460,13 @@ function App() {
                         <button onClick={copyLog} className="hover:text-emerald-400 transition-colors p-1" title="Copiar Log"><Copy size={12} /></button>
                       </div>
                     </div>
-                    <div className="space-y-1 overflow-y-auto custom-scrollbar pr-2 font-mono max-h-[220px]">
+                    <div ref={logContainerRef} className="space-y-1 overflow-y-auto custom-scrollbar pr-2 font-mono max-h-[220px]">
                       {statusLog.map((log, idx) => (
                         <div key={idx} className="text-[10px] text-[#d9cda1]/55 text-left leading-snug border-l border-white/5 pl-3 py-0.5">
                           <span className="text-emerald-500/40 mr-2">›</span>
                           {log}
                         </div>
                       ))}
-                      <div ref={logEndRef} />
                     </div>
                   </div>
 
@@ -1521,8 +1539,8 @@ function App() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9cda1]/40 mb-1">Generando para</p>
-                        <p className="font-display text-xl font-semibold text-cream italic leading-tight truncate">{settings.scientificName}</p>
-                        <p className="text-cream/30 text-[10px] font-mono mt-0.5">{searchParams.get('especie')}</p>
+                        <p className="font-display text-3xl font-semibold text-cream leading-tight truncate">{settings.scientificName}</p>
+                        <p className="text-cream/30 text-sm font-mono mt-0.5">{searchParams.get('especie')}</p>
                       </div>
                       <button
                         onClick={() => window.history.back()}
@@ -1545,7 +1563,7 @@ function App() {
                           <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70 flex items-center gap-1.5">
                             ID
                             <span title="Se rellena automáticamente al seleccionar una seta" className="text-[#d9cda1]/30 cursor-help">
-                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 0a5 5 0 1 0 0 10A5 5 0 0 0 5 0zm.5 7.5h-1v-3h1v3zm0-4h-1v-1h1v1z"/></svg>
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 0a5 5 0 1 0 0 10A5 5 0 0 0 5 0zm.5 7.5h-1v-3h1v3zm0-4h-1v-1h1v1z" /></svg>
                             </span>
                           </label>
                           <input
@@ -1804,13 +1822,13 @@ function App() {
                         <div className="grid grid-cols-3 gap-2">
                           {[
                             { label: 'Principal', url: resolveUrl(referenceSpecies.extra_data?.photo?.url ?? referenceSpecies.photo_url ?? '') },
-                            { label: 'Foto 1',    url: resolveUrl(referenceSpecies.extra_data?.photos?.[0]?.url ?? '') },
-                            { label: 'Foto 2',    url: resolveUrl(referenceSpecies.extra_data?.photos?.[1]?.url ?? '') },
+                            { label: 'Foto 1', url: resolveUrl(referenceSpecies.extra_data?.photos?.[0]?.url ?? '') },
+                            { label: 'Foto 2', url: resolveUrl(referenceSpecies.extra_data?.photos?.[1]?.url ?? '') },
                           ].map(({ label, url }) => (
                             <div key={label} className="space-y-1">
                               <div className="aspect-square rounded-lg overflow-hidden bg-black/30 flex items-center justify-center">
                                 {url
-                                  ? <img src={url} alt={label} className="w-full h-full object-cover group-hover:brightness-75 transition-all" loading="lazy" onError={e => { e.target.style.display='none' }} />
+                                  ? <img src={url} alt={label} className="w-full h-full object-cover group-hover:brightness-75 transition-all" loading="lazy" onError={e => { e.target.style.display = 'none' }} />
                                   : <Camera className="w-4 h-4 text-white/10" />
                                 }
                               </div>
@@ -1941,45 +1959,47 @@ function App() {
                           </button>
                         </div>
                       </div>
-                      <div className="text-center space-y-2">
-                        <h3 className="text-4xl font-serif font-medium tracking-tight text-[#f4ebe1] flex items-center justify-center gap-3">
-                          <EditableField
-                            value={viewedItem?.settings.specimenId || settings.specimenId}
-                            className="font-mono text-[#d9cda1]/40"
-                            inputClassName="w-24 text-center font-mono"
-                            onSave={(newId) => {
-                              if (!viewedItem) return;
-                              setHistory(prev => prev.map(h =>
-                                h.id === viewedItem.id
-                                  ? { ...h, settings: { ...h.settings, specimenId: newId } }
-                                  : h
-                              ));
-                              setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, specimenId: newId } } : null);
-                            }}
-                            validate={(newId) => {
-                              const exists = history.some(item => item.settings.specimenId === newId && item.id !== viewedItem?.id);
-                              return exists ? "Este ID ya existe en la biblioteca." : null;
-                            }}
-                          />
-                          <EditableField
-                            value={viewedItem?.settings.scientificName || settings.scientificName}
-                            className="italic"
-                            inputClassName="w-full max-w-md text-center italic"
-                            onSave={(newName) => {
-                              if (!viewedItem) return;
-                              setHistory(prev => prev.map(h =>
-                                h.id === viewedItem.id
-                                  ? { ...h, settings: { ...h.settings, scientificName: newName } }
-                                  : h
-                              ));
-                              setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, scientificName: newName } } : null);
-                            }}
-                          />
-                        </h3>
-                        <p className="text-xs text-[#d9cda1]/60 uppercase tracking-[0.3em] font-bold">
-                          {viewedItem ? 'Archivo de Biblioteca' : 'Espécimen Generado'}
-                        </p>
-                      </div>
+                      {!isGalleryFirst && (
+                        <div className="text-center space-y-2">
+                          <h3 className="text-4xl font-serif font-medium tracking-tight text-[#f4ebe1] flex items-center justify-center gap-3">
+                            <EditableField
+                              value={viewedItem?.settings.specimenId || settings.specimenId}
+                              className="font-mono text-[#d9cda1]/40"
+                              inputClassName="w-24 text-center font-mono"
+                              onSave={(newId) => {
+                                if (!viewedItem) return;
+                                setHistory(prev => prev.map(h =>
+                                  h.id === viewedItem.id
+                                    ? { ...h, settings: { ...h.settings, specimenId: newId } }
+                                    : h
+                                ));
+                                setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, specimenId: newId } } : null);
+                              }}
+                              validate={(newId) => {
+                                const exists = history.some(item => item.settings.specimenId === newId && item.id !== viewedItem?.id);
+                                return exists ? "Este ID ya existe en la biblioteca." : null;
+                              }}
+                            />
+                            <EditableField
+                              value={viewedItem?.settings.scientificName || settings.scientificName}
+                              className="italic"
+                              inputClassName="w-full max-w-md text-center italic"
+                              onSave={(newName) => {
+                                if (!viewedItem) return;
+                                setHistory(prev => prev.map(h =>
+                                  h.id === viewedItem.id
+                                    ? { ...h, settings: { ...h.settings, scientificName: newName } }
+                                    : h
+                                ));
+                                setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, scientificName: newName } } : null);
+                              }}
+                            />
+                          </h3>
+                          <p className="text-xs text-[#d9cda1]/60 uppercase tracking-[0.3em] font-bold">
+                            {viewedItem ? 'Archivo de Biblioteca' : 'Espécimen Generado'}
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   ) : (
                     <motion.div
@@ -2067,7 +2087,7 @@ function App() {
                           try {
                             const r = await fetch(`${API_BASE}/species/${speciesId}`, { headers: authHeaders() });
                             if (r.ok) { ref = await r.json(); setReferenceSpecies(ref); loadedReferenceIdRef.current = speciesId; }
-                          } catch (_) {}
+                          } catch (_) { }
                           if (!ref) ref = referenceSpecies;
                           setCatalogModal({ newImageDataUrl: generatedImage, newImageMimeType: mime });
                           setApplyStatus(null);
