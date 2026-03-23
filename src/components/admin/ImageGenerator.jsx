@@ -717,7 +717,9 @@ function App() {
   const { species: apiSpecies } = useSpecies()
   const mushroomSpeciesData = useMemo(() =>
     apiSpecies.map(s => ({
-      name: `${s.id} - ${s.scientificName}`,
+      id: s.id,                        // "esp-063"
+      cleanId: s.id.replace('esp-', ''), // "063"
+      scientificName: s.scientificName,
       family: s.family,
       habitat: (s.forestTypes ?? [])
         .map(ft => FOREST_TYPE_LABELS[ft] ?? ft)
@@ -725,6 +727,22 @@ function App() {
     })),
     [apiSpecies]
   )
+
+  // ── Species combobox state ─────────────────────────────────────────────────
+  const [speciesOpen, setSpeciesOpen] = useState(false)
+  const [speciesFilter, setSpeciesFilter] = useState('')
+  const speciesComboRef = useRef(null)
+  const speciesInputRef = useRef(null)
+
+  const filteredSpecies = useMemo(() => {
+    const q = speciesFilter.trim().toLowerCase()
+    if (!q) return mushroomSpeciesData
+    return mushroomSpeciesData.filter(s =>
+      s.scientificName.toLowerCase().includes(q) ||
+      s.cleanId.includes(q) ||
+      s.family.toLowerCase().includes(q)
+    )
+  }, [mushroomSpeciesData, speciesFilter])
 
   const getNextId = (currentHistory) => {
     if (currentHistory.length === 0) return "001";
@@ -979,7 +997,20 @@ function App() {
       .catch(() => {});
   }, [searchParams, apiSpecies]);
 
-  // Keep the sidebar reference panel in sync when specimenId is typed manually.
+  // Close the species combobox when clicking outside it.
+  useEffect(() => {
+    if (!speciesOpen) return
+    const handler = (e) => {
+      if (speciesComboRef.current && !speciesComboRef.current.contains(e.target)) {
+        setSpeciesOpen(false)
+        setSpeciesFilter('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [speciesOpen])
+
+  // Keep the sidebar reference panel in sync when specimenId changes (set by the combobox).
   // Only triggers when the ID looks complete (1-3 digits) and differs from what's loaded.
   useEffect(() => {
     const rawId = settings.specimenId;
@@ -1856,45 +1887,76 @@ function App() {
                         </div>
                         <div className="col-span-9">
                           <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70">Nombre Científico</label>
-                          <div className="relative">
+                          {/* Custom combobox — replaces <input list> + <datalist> for full UX control */}
+                          <div className="relative" ref={speciesComboRef}>
                             <input
+                              ref={speciesInputRef}
                               type="text"
-                              list="mushroom-species"
-                              placeholder="Amanita muscaria"
-                              className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 pr-10 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-sm placeholder:text-white/10 text-[#f4ebe1]"
-                              style={{ WebkitAppearance: 'none' }}
-                              value={settings.scientificName}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                const match = mushroomSpeciesData.find(s => s.name === val);
-                                if (match && val.includes(' - ')) {
-                                  // Full species selected from datalist: extract parts and sync URL.
-                                  // The ?especie= useEffect will re-fire and fill settings + reference panel.
-                                  const [idPart, namePart] = val.split(' - ');
-                                  const cleanId = idPart.replace('esp-', '');
-                                  const paddedId = cleanId.padStart(3, '0');
-                                  setSettings({
-                                    ...settings,
-                                    specimenId: cleanId,
-                                    scientificName: namePart
-                                  });
-                                  setSearchParams({ especie: `esp-${paddedId}` });
-                                } else {
-                                  // Partial / free text — no species matched yet; clear ID and URL param.
-                                  setSettings({ ...settings, scientificName: val, specimenId: '' });
-                                  setSearchParams({});
-                                }
+                              placeholder={speciesOpen ? 'Buscar especie...' : 'Selecciona una especie'}
+                              className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 pr-10 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-sm placeholder:text-white/20 text-[#f4ebe1]"
+                              value={speciesOpen ? speciesFilter : settings.scientificName}
+                              onChange={(e) => setSpeciesFilter(e.target.value)}
+                              onFocus={() => { setSpeciesOpen(true); setSpeciesFilter('') }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Escape') { setSpeciesOpen(false); setSpeciesFilter('') }
                               }}
                             />
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#d9cda1]">
-                              <ChevronRight className="w-3 h-3 rotate-90" />
-                            </div>
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#d9cda1]/60 hover:text-[#d9cda1] transition-colors"
+                              onClick={() => {
+                                if (speciesOpen) {
+                                  setSpeciesOpen(false)
+                                  setSpeciesFilter('')
+                                } else {
+                                  setSpeciesOpen(true)
+                                  setSpeciesFilter('')
+                                  speciesInputRef.current?.focus()
+                                }
+                              }}
+                            >
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${speciesOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                              {speciesOpen && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -4 }}
+                                  transition={{ duration: 0.12 }}
+                                  className="absolute top-full left-0 right-0 mt-2 bg-[#1c2118] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                >
+                                  <div className="max-h-64 overflow-y-auto overscroll-contain">
+                                    {filteredSpecies.length === 0 ? (
+                                      <div className="px-5 py-4 text-sm text-white/30 italic">Sin resultados para "{speciesFilter}"</div>
+                                    ) : (
+                                      filteredSpecies.map(s => (
+                                        <button
+                                          key={s.id}
+                                          type="button"
+                                          className="w-full text-left px-5 py-3 hover:bg-white/5 transition-colors flex items-center justify-between gap-4 group border-b border-white/5 last:border-0"
+                                          onMouseDown={(e) => {
+                                            // onMouseDown fires before onBlur, preventing premature close
+                                            e.preventDefault()
+                                            const paddedId = s.cleanId.padStart(3, '0')
+                                            setSettings(prev => ({ ...prev, specimenId: s.cleanId, scientificName: s.scientificName }))
+                                            setSearchParams({ especie: `esp-${paddedId}` })
+                                            setSpeciesOpen(false)
+                                            setSpeciesFilter('')
+                                          }}
+                                        >
+                                          <span className="font-serif text-sm italic text-[#f4ebe1] group-hover:text-white truncate">{s.scientificName}</span>
+                                          <span className="font-mono text-xs text-[#d9cda1]/30 shrink-0">esp-{s.cleanId.padStart(3, '0')}</span>
+                                        </button>
+                                      ))
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
-                          <datalist id="mushroom-species">
-                            {mushroomSpeciesData.map(s => (
-                              <option key={s.name} value={s.name} />
-                            ))}
-                          </datalist>
                         </div>
                       </div>
 
