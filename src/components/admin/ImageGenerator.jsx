@@ -744,15 +744,6 @@ function App() {
     )
   }, [mushroomSpeciesData, speciesFilter])
 
-  const getNextId = (currentHistory) => {
-    if (currentHistory.length === 0) return "001";
-    const ids = currentHistory
-      .map(item => parseInt(item.settings.specimenId))
-      .filter(id => !isNaN(id));
-    if (ids.length === 0) return "001";
-    const maxId = Math.max(...ids);
-    return (maxId + 1).toString().padStart(3, '0');
-  };
 
   const getNextSuffixId = (baseId, currentHistory) => {
     if (!baseId) return "001a";
@@ -783,11 +774,8 @@ function App() {
     quality: 0.8,
   });
 
-  useEffect(() => {
-    if (!settings.specimenId) {
-      setSettings(prev => ({ ...prev, specimenId: getNextId(history) }));
-    }
-  }, [history]);
+  // specimenId is now always set by the combobox (derived from selected species DB id).
+  // No auto-initialization — stays '' until the user selects a species.
   const [viewedItem, setViewedItem] = useState(null);
   const [generatedImage, setGeneratedImage] = useState(null);
   const [lastPrompt, setLastPrompt] = useState('');
@@ -1010,21 +998,8 @@ function App() {
     return () => document.removeEventListener('mousedown', handler)
   }, [speciesOpen])
 
-  // Keep the sidebar reference panel in sync when specimenId changes (set by the combobox).
-  // Only triggers when the ID looks complete (1-3 digits) and differs from what's loaded.
-  useEffect(() => {
-    const rawId = settings.specimenId;
-    if (!rawId || rawId.length < 1 || rawId.length > 3 || !/^\d+$/.test(rawId)) return;
-    const speciesId = `esp-${rawId.padStart(3, '0')}`;
-    if (referenceSpecies?.id === speciesId) return; // already current — no-op
-    const controller = new AbortController();
-    fetch(`${API_BASE}/species/${speciesId}`, { cache: 'no-store', headers: authHeaders(), signal: controller.signal })
-      .then(r => r.ok ? r.json() : null)
-      .then(detail => { if (detail) setReferenceSpecies(detail); })
-      .catch(() => {});
-    return () => controller.abort();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.specimenId]);
+  // Reference panel is loaded exclusively via the ?especie= useEffect above.
+  // No secondary sync needed — the combobox always updates searchParams, which triggers that effect.
 
   useEffect(() => {
     try {
@@ -2173,9 +2148,11 @@ function App() {
                             setSettings({
                               ...settings,
                               scientificName: '',
-                              specimenId: getNextId(history),
+                              specimenId: '',
                               description: ''
                             });
+                            setSearchParams({});
+                            setReferenceSpecies(null);
                             setGeneratedImage(null);
                             setViewedItem(null);
                           }}
