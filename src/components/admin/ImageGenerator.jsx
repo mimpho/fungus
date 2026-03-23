@@ -311,47 +311,88 @@ const LOADING_MESSAGES = [
 ];
 
 /**
- * Fetches a reference photo from iNaturalist for a given species name.
- * Returns { base64, mimeType } or null on failure.
- * Used as visual anchor for Gemini so it sees the real species before writing the prompt.
+ * Fetches up to `maxPhotos` reference photos from iNaturalist for a given species.
+ * Returns an array of { base64, mimeType } objects (may be empty on failure).
+ * Used as visual anchors for Gemini so it sees real specimens before writing the prompt.
+ * Multiple photos reduce the chance that one atypical/bad specimen skews the result.
  */
-async function fetchInatReference(scientificName) {
+async function fetchInatReferences(scientificName, maxPhotos = 3) {
+  const results = [];
   try {
     const encoded = encodeURIComponent(scientificName);
+
+    // 1. Find the taxon
     const taxaRes = await fetch(
-      `https://api.inaturalist.org/v1/taxa?q=${encoded}&per_page=3&is_active=true&rank=species`,
+      `https://api.inaturalist.org/v1/taxa?q=${encoded}&per_page=5&is_active=true&rank=species`,
       { signal: AbortSignal.timeout(8000) }
     );
-    if (!taxaRes.ok) return null;
+    if (!taxaRes.ok) return results;
     const taxaData = await taxaRes.json();
 
-    // Pick the first result whose name closely matches (avoid false positives)
     const lowerTarget = scientificName.toLowerCase();
     const taxon = taxaData.results?.find(t =>
       t.name?.toLowerCase() === lowerTarget || t.name?.toLowerCase().startsWith(lowerTarget)
     ) ?? taxaData.results?.[0];
+    if (!taxon) return results;
 
-    const photoUrl = taxon?.default_photo?.medium_url;
-    if (!photoUrl) return null;
-
-    // Fetch the actual image bytes
-    const imgRes = await fetch(photoUrl, { signal: AbortSignal.timeout(10000) });
-    if (!imgRes.ok) return null;
-    const blob = await imgRes.blob();
-    const mimeType = blob.type || 'image/jpeg';
-    const arrayBuffer = await blob.arrayBuffer();
-    // Convert ArrayBuffer → base64 in chunks to avoid call stack overflow on large images
-    const uint8 = new Uint8Array(arrayBuffer);
-    let binary = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8.length; i += chunkSize) {
-      binary += String.fromCharCode(...uint8.subarray(i, i + chunkSize));
+    // 2. Collect candidate photo URLs: taxon_photos first, then default_photo
+    const candidateUrls = new Set();
+    for (const tp of (taxon.taxon_photos ?? [])) {
+      const url = tp?.photo?.medium_url;
+      if (url) candidateUrls.add(url);
+      if (candidateUrls.size >= maxPhotos * 2) break;
     }
-    return { base64: btoa(binary), mimeType };
+    const defaultUrl = taxon.default_photo?.medium_url;
+    if (defaultUrl) candidateUrls.add(defaultUrl);
+
+    // 3. Fetch top-rated community observations for more variety if we need more photos
+    if (candidateUrls.size < maxPhotos) {
+      try {
+        const obsRes = await fetch(
+          `https://api.inaturalist.org/v1/observations?taxon_id=${taxon.id}&quality_grade=research&photos=true&per_page=6&order_by=votes`,
+          { signal: AbortSignal.timeout(8000) }
+        );
+        if (obsRes.ok) {
+          const obsData = await obsRes.json();
+          for (const obs of (obsData.results ?? [])) {
+            for (const photo of (obs.photos ?? [])) {
+              const url = photo.url?.replace('/square.', '/medium.');
+              if (url) candidateUrls.add(url);
+              if (candidateUrls.size >= maxPhotos * 2) break;
+            }
+            if (candidateUrls.size >= maxPhotos * 2) break;
+          }
+        }
+      } catch { /* observations fetch is best-effort */ }
+    }
+
+    // 4. Download up to maxPhotos images in parallel, convert to base64
+    const toBase64 = async (url) => {
+      try {
+        const imgRes = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (!imgRes.ok) return null;
+        const blob = await imgRes.blob();
+        const mimeType = blob.type || 'image/jpeg';
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuffer);
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < uint8.length; i += chunkSize) {
+          binary += String.fromCharCode(...uint8.subarray(i, i + chunkSize));
+        }
+        return { base64: btoa(binary), mimeType };
+      } catch { return null; }
+    };
+
+    const urlList = [...candidateUrls].slice(0, maxPhotos);
+    const fetched = await Promise.all(urlList.map(toBase64));
+    for (const img of fetched) {
+      if (img) results.push(img);
+    }
   } catch (e) {
     console.warn('[iNat] Reference fetch failed:', e?.message ?? e);
-    return null;
   }
+  return results;
 }
 
 export default function ImageGenerator() {
@@ -1121,26 +1162,36 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
 5. SPONTANEOUS FAUNA (HIGHLY RECOMMENDED): A small creature that looks naturally present: beetle, ladybird, small snail, ant on the stipe, or gossamer spider thread between stems. Must feel accidental, not staged.
 6. MYCOLOGICAL ACCURACY: All morphological details from the verified block above take absolute precedence over training data bias or internet imagery.`;
 
-          setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Buscando referencia visual (iNaturalist)...`]);
+          setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Buscando referencias visuales (iNaturalist)...`]);
 
-          // Fetch a reference photo from iNaturalist to ground Gemini in the real species
-          const inatRef = await fetchInatReference(cleanName);
-          if (inatRef) {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Referencia iNat obtenida ✓`]);
+          // Fetch up to 3 reference photos from iNaturalist — more photos → more accurate color averaging
+          const inatRefs = await fetchInatReferences(cleanName, 3);
+          if (inatRefs.length > 0) {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${inatRefs.length} referencia(s) iNat obtenida(s) ✓`]);
           } else {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Sin referencia iNat — usando solo datos morfológicos`]);
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Sin referencias iNat — usando solo datos morfológicos`]);
           }
 
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando prompt taxonómico...`]);
 
-          // Build Gemini content parts: optional reference image + text prompt
-          const geminiParts = inatRef
-            ? [
-                { text: `The following is a real photograph of ${cleanName} from iNaturalist. Study it carefully: note the exact cap color, stipe color, surface texture, proportions, and any distinguishing features. Then use this visual reference — combined with the verified morphology data in the text prompt — to write the most accurate possible image generation prompt.` },
-                { inlineData: { mimeType: inatRef.mimeType, data: inatRef.base64 } },
-                { text: enginePrompt }
-              ]
-            : enginePrompt;
+          // Build Gemini content parts: visual references (photos) + text prompt.
+          // ⚠️ VISUAL PRIORITY RULE: if photos and text descriptions conflict on color,
+          //    the photos are the ground truth — they show the real species.
+          let geminiParts;
+          if (inatRefs.length > 0) {
+            const photoParts = [];
+            inatRefs.forEach((ref, idx) => {
+              photoParts.push({ text: `Reference photo ${idx + 1} of ${inatRefs.length} — real ${cleanName} specimen from iNaturalist:` });
+              photoParts.push({ inlineData: { mimeType: ref.mimeType, data: ref.base64 } });
+            });
+            geminiParts = [
+              { text: `⚠️ VISUAL REFERENCE PRIORITY RULE: The following ${inatRefs.length} photograph(s) show REAL specimens of ${cleanName} documented by the scientific community on iNaturalist. Study all photos carefully and extract: the exact cap color (note any color variation between photos — average them), stipe color and texture, veil remnants, surface texture, and overall proportions. IF THERE IS ANY CONFLICT between the photo colors and the text morphology description below, THE PHOTOS ARE ALWAYS CORRECT — the text may contain errors. Use the photos as the primary color reference.` },
+              ...photoParts,
+              { text: enginePrompt },
+            ];
+          } else {
+            geminiParts = enginePrompt;
+          }
 
           let prompt = "";
           try {
