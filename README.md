@@ -98,6 +98,8 @@ GET /api/v1/admin/trigger-backfill?days=N
 | v5.1 | ✅ | ImageGenerator (Imagen 4 + refinador real) · AdminGallery · modo admin nav |
 | v5.2 | ✅ | Generador: gallery → generador con pre-carga · panel de referencia · modal guardado en catálogo |
 | v5.3 | ✅ | Fotos ilimitadas · CatalogImagesModal · DnD reordering · galería dinámica en SpeciesModal |
+| v5.3.1 | ✅ | Bug fixes generador: caché fotos, lightbox large, Regenerar ID, Refinar modelo, combobox selector |
+| v5.4 | 🗂 | Rediseño generador admin: galería-first, modal especie con lightbox, sidebar simplificado |
 | v6.0 | 🗂 | Social login: Google OAuth2 |
 | v6.1 | 🗂 | Confirmación de email al registro |
 | v7.0 | 🗂 | App móvil Android (React Native + Expo) |

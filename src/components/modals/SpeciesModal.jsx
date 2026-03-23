@@ -24,7 +24,9 @@ function GallerySection({ species, onOpenLightbox }) {
     ? { url: species.photo.largeUrl || species.photo.url, caption: species.scientificName }
     : null
   const extraPhotos = species.photos || []
+  // Dedup by URL: guards against DB state where extra_data.photos accidentally includes the main URL
   const allPhotos = [...(mainPhoto ? [mainPhoto] : []), ...extraPhotos]
+    .filter((p, i, arr) => arr.findIndex(q => q.url === p.url) === i)
   const total = allPhotos.length
 
   const [errored, setErrored] = useState(0)
@@ -153,8 +155,6 @@ export function SpeciesModal({ species, onClose }) {
   const [detailLoading, setDetailLoading] = useState(true)
 
   useEffect(() => {
-    // Siempre fetch el detalle — mockSpecies no tiene _partial, así que no podemos
-    // confiar en ese flag. _detailCache evita peticiones duplicadas.
     let cancelled = false
     setDetail(species)
     setDetailLoading(true)

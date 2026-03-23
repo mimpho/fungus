@@ -10,7 +10,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { useSpecies } from '../../hooks/useSpecies';
 import { useApp } from '../../contexts/AppContext';
-import { API_BASE, setSpeciesDetailCache } from '../../services/apiService';
+import { API_BASE } from '../../services/apiService';
+import { invalidateSpeciesListCache } from '../../hooks/useSpecies';
 import { authHeaders } from '../../services/authService';
 import { resolveUrl } from '../../lib/helpers';
 import { MODAL } from '../../lib/constants';
@@ -197,13 +198,16 @@ function _moveItem(arr, from, to) {
 
 function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyStatus, onConfirm, onClose }) {
 
-  // Build initial ordered list of URLs from DB + optional new image
+  // Build initial ordered list of URLs from DB + optional new image.
+  // Raw DB URLs are stored as-is (no resolveUrl) so set-order can match them
+  // back to their metadata (largeUrl, caption) via exact string lookup.
+  // resolveUrl is applied only at render time (src={resolveUrl(url)}).
   function buildInitialPhotos() {
     const result = [];
-    const mainUrl = resolveUrl(species?.extra_data?.photo?.url ?? species?.photo_url ?? '');
+    const mainUrl = species?.extra_data?.photo?.url ?? species?.photo_url ?? '';
     if (mainUrl) result.push(mainUrl);
     for (const p of (species?.extra_data?.photos ?? [])) {
-      const url = resolveUrl(p?.url ?? '');
+      const url = p?.url ?? '';
       if (url) result.push(url);
     }
     if (newImageDataUrl) result.unshift(newImageDataUrl); // prepend at position 0
@@ -211,7 +215,9 @@ function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyS
   }
 
   const [photos, setPhotos] = useState(buildInitialPhotos);
-  useEffect(() => { setPhotos(buildInitialPhotos()); }, [species?.id, newImageDataUrl]); // eslint-disable-line
+  // Re-build when species or its photo data changes (same species ID after a save)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setPhotos(buildInitialPhotos()); }, [species?.id, species?.extra_data, newImageDataUrl]);
 
   // ── Drag state ──
   const [dragIdx,   setDragIdx]   = useState(null); // original index in photos[]
@@ -444,7 +450,7 @@ function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyS
                   <div className="aspect-[4/3] bg-black/40 flex items-center justify-center overflow-hidden relative">
                     {url
                       ? <img
-                          src={url}
+                          src={resolveUrl(url)}
                           alt={_photoPosLabel(visualIdx)}
                           draggable={false}
                           className="w-full h-full object-cover pointer-events-none"
@@ -700,8 +706,8 @@ function App() {
     return items;
   });
 
-  // ── URL query param ?especie= (pre-fill from AdminGallery) ───────────────
-  const [searchParams] = useSearchParams()
+  // ── URL query param ?especie= (pre-fill from AdminGallery; kept in sync with selector) ─
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // ── Admin nav — ensure generator always shows admin nav items ─────────────
   const { setIsAdminView } = useApp()
@@ -711,7 +717,9 @@ function App() {
   const { species: apiSpecies } = useSpecies()
   const mushroomSpeciesData = useMemo(() =>
     apiSpecies.map(s => ({
-      name: `${s.id} - ${s.scientificName}`,
+      id: s.id,                        // "esp-063"
+      cleanId: s.id.replace('esp-', ''), // "063"
+      scientificName: s.scientificName,
       family: s.family,
       habitat: (s.forestTypes ?? [])
         .map(ft => FOREST_TYPE_LABELS[ft] ?? ft)
@@ -720,15 +728,22 @@ function App() {
     [apiSpecies]
   )
 
-  const getNextId = (currentHistory) => {
-    if (currentHistory.length === 0) return "001";
-    const ids = currentHistory
-      .map(item => parseInt(item.settings.specimenId))
-      .filter(id => !isNaN(id));
-    if (ids.length === 0) return "001";
-    const maxId = Math.max(...ids);
-    return (maxId + 1).toString().padStart(3, '0');
-  };
+  // ── Species combobox state ─────────────────────────────────────────────────
+  const [speciesOpen, setSpeciesOpen] = useState(false)
+  const [speciesFilter, setSpeciesFilter] = useState('')
+  const speciesComboRef = useRef(null)
+  const speciesInputRef = useRef(null)
+
+  const filteredSpecies = useMemo(() => {
+    const q = speciesFilter.trim().toLowerCase()
+    if (!q) return mushroomSpeciesData
+    return mushroomSpeciesData.filter(s =>
+      s.scientificName.toLowerCase().includes(q) ||
+      s.cleanId.includes(q) ||
+      s.family.toLowerCase().includes(q)
+    )
+  }, [mushroomSpeciesData, speciesFilter])
+
 
   const getNextSuffixId = (baseId, currentHistory) => {
     if (!baseId) return "001a";
@@ -759,11 +774,8 @@ function App() {
     quality: 0.8,
   });
 
-  useEffect(() => {
-    if (!settings.specimenId) {
-      setSettings(prev => ({ ...prev, specimenId: getNextId(history) }));
-    }
-  }, [history]);
+  // specimenId is now always set by the combobox (derived from selected species DB id).
+  // No auto-initialization — stays '' until the user selects a species.
   const [viewedItem, setViewedItem] = useState(null);
   const [generatedImage, setGeneratedImage] = useState(null);
   const [lastPrompt, setLastPrompt] = useState('');
@@ -773,6 +785,7 @@ function App() {
   const [isRefining, setIsRefining] = useState(false);
   const [refinementText, setRefinementText] = useState('');
   const [error, setError] = useState(null);
+  const [refineWarning, setRefineWarning] = useState(null); // non-fatal: shown when refine falls back to text-to-image
   const [hasKey, setHasKey] = useState(null);
   const [runtimeKey, setRuntimeKey] = useState(''); // API key entered at runtime (fallback when env var not set)
   const [recentBatchIds, setRecentBatchIds] = useState([]);
@@ -914,6 +927,10 @@ function App() {
   const [applyStatus, setApplyStatus] = useState(null); // null | 'saving' | 'success' | 'error'
   // Reference species data loaded when ?especie= is in the URL
   const [referenceSpecies, setReferenceSpecies] = useState(null);
+  // Tracks which species ID is currently loaded — used to skip redundant re-fetches
+  // when apiSpecies changes (e.g. mockSpecies → full list, or after invalidateSpeciesListCache)
+  // without needing referenceSpecies in the effect deps (which would cause infinite loops).
+  const loadedReferenceIdRef = useRef(null);
 
   // savedToCatalog: false when a new image is generated, true after saving to DB
   const [savedToCatalog, setSavedToCatalog] = useState(false);
@@ -952,41 +969,58 @@ function App() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [generatedImage, savedToCatalog]);
 
-  // Pre-fill species from ?especie= URL param (navigated from AdminGallery)
+  // Pre-fill species from ?especie= URL param (navigated from AdminGallery or the combobox).
+  // Re-runs when searchParams changes (new species selected) or when apiSpecies changes
+  // (mockSpecies → full list on mount, or after invalidateSpeciesListCache saves).
   useEffect(() => {
     const especieId = searchParams.get('especie');
     if (!especieId || apiSpecies.length === 0) return;
     const found = apiSpecies.find(s => s.id === especieId);
-    if (!found) return;
-    const idNum = especieId.replace('esp-', '');
-    setSettings(prev => ({
-      ...prev,
-      specimenId: idNum,
-      scientificName: found.scientificName,
-    }));
-    // Fetch full detail (with photos) for the reference panel.
-    // cache: 'no-store' bypasses Cache-Control: public, max-age=3600 so photo order is always fresh.
-    fetch(`${API_BASE}/species/${especieId}`, { cache: 'no-store', headers: authHeaders() })
-      .then(r => r.ok ? r.json() : null)
-      .then(detail => { if (detail) setReferenceSpecies(detail); })
-      .catch(() => {});
-  }, [searchParams, apiSpecies]);
+    if (!found) return; // species not yet in current apiSpecies batch (e.g. still mockSpecies)
 
-  // Keep the sidebar reference panel in sync when specimenId is typed manually.
-  // Only triggers when the ID looks complete (1-3 digits) and differs from what's loaded.
-  useEffect(() => {
-    const rawId = settings.specimenId;
-    if (!rawId || rawId.length < 1 || rawId.length > 3 || !/^\d+$/.test(rawId)) return;
-    const speciesId = `esp-${rawId.padStart(3, '0')}`;
-    if (referenceSpecies?.id === speciesId) return; // already current — no-op
+    const idNum = especieId.replace('esp-', '');
+    setSettings(prev =>
+      prev.specimenId === idNum && prev.scientificName === found.scientificName
+        ? prev  // no change — avoid a spurious re-render
+        : { ...prev, specimenId: idNum, scientificName: found.scientificName }
+    );
+
+    // Skip re-fetch if the same species is already loaded — this prevents flicker when
+    // apiSpecies changes (mockSpecies → full list) while the selection hasn't changed.
+    if (loadedReferenceIdRef.current === especieId) return;
+
     const controller = new AbortController();
-    fetch(`${API_BASE}/species/${speciesId}`, { cache: 'no-store', headers: authHeaders(), signal: controller.signal })
+    fetch(`${API_BASE}/species/${especieId}`, {
+      cache: 'no-store',
+      headers: authHeaders(),
+      signal: controller.signal,
+    })
       .then(r => r.ok ? r.json() : null)
-      .then(detail => { if (detail) setReferenceSpecies(detail); })
+      .then(detail => {
+        if (detail) {
+          setReferenceSpecies(detail);
+          loadedReferenceIdRef.current = especieId;
+        }
+      })
       .catch(() => {});
     return () => controller.abort();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.specimenId]);
+  }, [searchParams, apiSpecies]);
+
+  // Close the species combobox when clicking outside it.
+  useEffect(() => {
+    if (!speciesOpen) return
+    const handler = (e) => {
+      if (speciesComboRef.current && !speciesComboRef.current.contains(e.target)) {
+        setSpeciesOpen(false)
+        setSpeciesFilter('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [speciesOpen])
+
+  // Reference panel is loaded exclusively via the ?especie= useEffect above.
+  // No secondary sync needed — the combobox always updates searchParams, which triggers that effect.
 
   useEffect(() => {
     try {
@@ -1125,12 +1159,12 @@ function App() {
     return `data:${pred.mimeType || 'image/png'};base64,${pred.bytesBase64Encoded}`;
   };
 
-  // Real image-to-image editing via Gemini 2.0 Flash (multimodal input → image output).
+  // Real image-to-image editing via Gemini 2.0 Flash Preview (multimodal input → image output).
   // Sends the current image + instruction text; the model edits the image directly.
   // Falls back to callImagen3 (text-to-image) if the model is unavailable.
   const callGeminiRefine = async (imageBase64, mimeType, instruction, apiKey) => {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp-image-generation' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-preview-image-generation' });
     const response = await model.generateContent({
       contents: [{
         role: 'user',
@@ -1139,7 +1173,7 @@ function App() {
           { text: instruction },
         ],
       }],
-      generationConfig: { responseModalities: ['image'] },
+      generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
     });
     const parts = response.response?.candidates?.[0]?.content?.parts ?? [];
     const imagePart = parts.find(p => p.inlineData);
@@ -1234,8 +1268,13 @@ function App() {
   };
 
   const generateImage = async (items) => {
-    const generationList = items || settings.scientificName.split(',').map((n, i) => {
-      const baseIdNum = parseInt(settings.specimenId) || 0;
+    // When called without explicit items (e.g. Regenerar button), resolve settings
+    // from the currently viewed item so ID and name stay in sync with what's displayed.
+    // settings.specimenId is cleared after each generation, so viewedItem.settings
+    // is the reliable source for the specimen being re-generated.
+    const activeSettings = (!items && viewedItem) ? viewedItem.settings : settings;
+    const generationList = items || activeSettings.scientificName.split(',').map((n, i) => {
+      const baseIdNum = parseInt(activeSettings.specimenId) || 0;
       return {
         id: (baseIdNum + i).toString().padStart(3, '0'),
         name: n.trim()
@@ -1533,6 +1572,7 @@ function App() {
     setGenerationStep("Iniciando refinamiento...");
     setStatusLog([`[${new Date().toLocaleTimeString()}] Iniciando sesión de refinamiento...`]);
     setError(null);
+    setRefineWarning(null);
     setIsRefining(false);
 
     try {
@@ -1564,11 +1604,22 @@ function App() {
         } catch (err) {
           const errMsg = err.message || "";
           const isTimeout = errMsg.includes("Timeout") || errMsg.includes("tiempo");
-          const isUnavailable = errMsg.includes("404") || errMsg.includes("not found") || errMsg.includes("no longer available");
+          const isUnavailable =
+            errMsg.includes("404") ||
+            errMsg.includes("400") ||
+            errMsg.includes("not found") ||
+            errMsg.includes("no longer available") ||
+            errMsg.includes("INVALID_ARGUMENT") ||
+            errMsg.includes("deprecated") ||
+            errMsg.includes("preview") ||
+            errMsg.includes("not supported") ||
+            errMsg.includes("unavailable");
 
           if (isTimeout || isUnavailable) {
-            // Fallback: text-to-image (no real editing, but recovers gracefully)
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini Edit ${isTimeout ? 'lento' : 'no disponible'}. Usando generación de respaldo (Imagen 4)...`]);
+            // Fallback: text-to-image (no real editing, but show a visible warning to the user)
+            const reason = isTimeout ? 'lento' : 'no disponible';
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini Edit ${reason}. Usando generación de respaldo (Imagen 4)...`]);
+            setRefineWarning(`El modo de edición real no está disponible ahora mismo. La imagen se ha generado de nuevo desde el texto, no a partir de la original.`);
             return await withTimeout(callImagen3(refinementText, apiKey), 90000);
           }
           throw err;
@@ -1816,50 +1867,92 @@ function App() {
                     <div className="space-y-8">
                       <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-3">
-                          <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70">ID</label>
+                          <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70 flex items-center gap-1.5">
+                            ID
+                            <span title="Se rellena automáticamente al seleccionar una seta" className="text-[#d9cda1]/30 cursor-help">
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 0a5 5 0 1 0 0 10A5 5 0 0 0 5 0zm.5 7.5h-1v-3h1v3zm0-4h-1v-1h1v1z"/></svg>
+                            </span>
+                          </label>
                           <input
                             type="text"
-                            placeholder="001"
-                            className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-mono text-sm text-[#f4ebe1]"
+                            readOnly
+                            placeholder="—"
+                            className="w-full bg-black/10 border border-white/5 rounded-2xl px-5 py-4 font-mono text-sm text-[#f4ebe1]/40 cursor-default select-none"
                             value={settings.specimenId}
-                            onChange={(e) => setSettings({ ...settings, specimenId: e.target.value })}
                           />
                         </div>
                         <div className="col-span-9">
                           <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70">Nombre Científico</label>
-                          <div className="relative">
+                          {/* Custom combobox — replaces <input list> + <datalist> for full UX control */}
+                          <div className="relative" ref={speciesComboRef}>
                             <input
+                              ref={speciesInputRef}
                               type="text"
-                              list="mushroom-species"
-                              placeholder="Amanita muscaria"
-                              className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 pr-10 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-sm placeholder:text-white/10 text-[#f4ebe1]"
-                              style={{ WebkitAppearance: 'none' }}
-                              value={settings.scientificName}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                const match = mushroomSpeciesData.find(s => s.name === val);
-                                if (match && val.includes(' - ')) {
-                                  const [idPart, namePart] = val.split(' - ');
-                                  const cleanId = idPart.replace('esp-', '');
-                                  setSettings({
-                                    ...settings,
-                                    specimenId: cleanId,
-                                    scientificName: namePart
-                                  });
-                                } else {
-                                  setSettings({ ...settings, scientificName: val });
-                                }
+                              placeholder={speciesOpen ? 'Buscar especie...' : 'Selecciona una especie'}
+                              className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 pr-10 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-serif text-sm placeholder:text-white/20 text-[#f4ebe1]"
+                              value={speciesOpen ? speciesFilter : settings.scientificName}
+                              onChange={(e) => setSpeciesFilter(e.target.value)}
+                              onFocus={() => { setSpeciesOpen(true); setSpeciesFilter('') }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Escape') { setSpeciesOpen(false); setSpeciesFilter('') }
                               }}
                             />
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#d9cda1]">
-                              <ChevronRight className="w-3 h-3 rotate-90" />
-                            </div>
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#d9cda1]/60 hover:text-[#d9cda1] transition-colors"
+                              onClick={() => {
+                                if (speciesOpen) {
+                                  setSpeciesOpen(false)
+                                  setSpeciesFilter('')
+                                } else {
+                                  setSpeciesOpen(true)
+                                  setSpeciesFilter('')
+                                  speciesInputRef.current?.focus()
+                                }
+                              }}
+                            >
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${speciesOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                              {speciesOpen && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -4 }}
+                                  transition={{ duration: 0.12 }}
+                                  className="absolute top-full left-0 right-0 mt-2 bg-[#1c2118] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                >
+                                  <div className="max-h-64 overflow-y-auto overscroll-contain">
+                                    {filteredSpecies.length === 0 ? (
+                                      <div className="px-5 py-4 text-sm text-white/30 italic">Sin resultados para "{speciesFilter}"</div>
+                                    ) : (
+                                      filteredSpecies.map(s => (
+                                        <button
+                                          key={s.id}
+                                          type="button"
+                                          className="w-full text-left px-5 py-3 hover:bg-white/5 transition-colors flex items-center justify-between gap-4 group border-b border-white/5 last:border-0"
+                                          onMouseDown={(e) => {
+                                            // onMouseDown fires before onBlur, preventing premature close
+                                            e.preventDefault()
+                                            const paddedId = s.cleanId.padStart(3, '0')
+                                            setSettings(prev => ({ ...prev, specimenId: s.cleanId, scientificName: s.scientificName }))
+                                            setSearchParams({ especie: `esp-${paddedId}` })
+                                            setSpeciesOpen(false)
+                                            setSpeciesFilter('')
+                                          }}
+                                        >
+                                          <span className="font-serif text-sm italic text-[#f4ebe1] group-hover:text-white truncate">{s.scientificName}</span>
+                                          <span className="font-mono text-xs text-[#d9cda1]/30 shrink-0">esp-{s.cleanId.padStart(3, '0')}</span>
+                                        </button>
+                                      ))
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
-                          <datalist id="mushroom-species">
-                            {mushroomSpeciesData.map(s => (
-                              <option key={s.name} value={s.name} />
-                            ))}
-                          </datalist>
                         </div>
                       </div>
 
@@ -2076,9 +2169,12 @@ function App() {
                             setSettings({
                               ...settings,
                               scientificName: '',
-                              specimenId: getNextId(history),
+                              specimenId: '',
                               description: ''
                             });
+                            setSearchParams({});
+                            setReferenceSpecies(null);
+                            loadedReferenceIdRef.current = null;
                             setGeneratedImage(null);
                             setViewedItem(null);
                           }}
@@ -2118,6 +2214,17 @@ function App() {
                 >
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <p>{error}</p>
+                </motion.div>
+              )}
+
+              {refineWarning && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-5 bg-amber-900/20 border border-amber-500/30 rounded-2xl flex items-start gap-3 text-amber-200 text-xs leading-relaxed mt-4"
+                >
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                  <p>{refineWarning}</p>
                 </motion.div>
               )}
             </div>
@@ -2282,7 +2389,7 @@ function App() {
                           let ref = null;
                           try {
                             const r = await fetch(`${API_BASE}/species/${speciesId}`, { headers: authHeaders() });
-                            if (r.ok) { ref = await r.json(); setReferenceSpecies(ref); }
+                            if (r.ok) { ref = await r.json(); setReferenceSpecies(ref); loadedReferenceIdRef.current = speciesId; }
                           } catch (_) {}
                           if (!ref) ref = referenceSpecies;
                           setCatalogModal({ newImageDataUrl: generatedImage, newImageMimeType: mime });
@@ -2424,9 +2531,9 @@ function App() {
               }
               const updated = await res.json();
               setReferenceSpecies(updated);
-              // Populate JS cache with mutation response — bypasses browser HTTP cache
-              // (Cache-Control: public, max-age=3600 would otherwise serve stale data)
-              setSpeciesDetailCache(referenceSpecies.id, updated);
+              loadedReferenceIdRef.current = referenceSpecies.id; // mark as fresh — skip re-fetch after invalidateSpeciesListCache
+              // Bust list cache so the species thumbnail reflects the new order on next load.
+              invalidateSpeciesListCache();
               if (catalogModal.newImageDataUrl) setSavedToCatalog(true);
               setApplyStatus('success');
               setTimeout(() => {

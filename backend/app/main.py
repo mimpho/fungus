@@ -224,7 +224,11 @@ app.add_middleware(
 async def add_cache_control(request, call_next):
     response = await call_next(request)
     if request.method == "GET" and response.status_code == 200:
-        response.headers["Cache-Control"] = "public, max-age=3600"
+        # Species data changes after admin edits — never cache in browser or CDN
+        if "/species" in request.url.path:
+            response.headers["Cache-Control"] = "no-store"
+        else:
+            response.headers["Cache-Control"] = "public, max-age=3600"
     return response
 
 

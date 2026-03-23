@@ -395,26 +395,28 @@ async def set_species_photos_order(
 
     extra = copy.deepcopy(species.extra_data or {})
 
-    # Build a caption lookup from existing photos so we don't lose captions on reorder
-    caption_by_url: dict[str, str] = {}
+    # Build a metadata lookup from existing photos so we don't lose captions,
+    # largeUrl, or other photo attributes on reorder.
+    meta_by_url: dict[str, dict] = {}
     existing_main = extra.get("photo")
     if isinstance(existing_main, dict) and existing_main.get("url"):
-        caption_by_url[existing_main["url"]] = existing_main.get("caption", "")
+        url = existing_main["url"]
+        meta_by_url[url] = {k: v for k, v in existing_main.items() if k != "url"}
     for item in extra.get("photos") or []:
         if isinstance(item, dict) and item.get("url"):
-            caption_by_url[item["url"]] = item.get("caption", "")
+            url = item["url"]
+            meta_by_url[url] = {k: v for k, v in item.items() if k != "url"}
 
     if body.photos:
         # First URL → main photo
         main_url = body.photos[0]
         if not isinstance(extra.get("photo"), dict):
             extra["photo"] = {}
-        extra["photo"]["url"] = main_url
-        extra["photo"]["caption"] = caption_by_url.get(main_url, "")
+        extra["photo"] = {"url": main_url, **meta_by_url.get(main_url, {})}
 
         # Remaining URLs → gallery array
         extra["photos"] = [
-            {"url": url, "caption": caption_by_url.get(url, "")}
+            {"url": url, **meta_by_url.get(url, {})}
             for url in body.photos[1:]
         ]
     else:

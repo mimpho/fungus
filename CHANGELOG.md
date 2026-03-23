@@ -11,6 +11,21 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [5.3.1] - 2026-03-22 — Bug fixes: caché fotos, generador admin
+
+### Corregido
+
+- **Fotos desactualizadas en `SpeciesModal` y lightbox**: eliminada la caché TTL de detalle de especie (`_detailRawCache`). Cada apertura del modal hace un fetch fresco al backend (`cache: 'no-store'`), garantizando que los cambios del admin son inmediatamente visibles sin recargar la página.
+- **Lista de especies no se actualizaba tras guardar desde admin**: `invalidateSpeciesListCache()` ahora emite un evento `fungus:species-list-invalidated` via `window.dispatchEvent`. `useSpecies` escucha el evento y fuerza un re-fetch del catálogo completo sin necesidad de navegar.
+- **`largeUrl` se perdía al guardar con `set-order`**: `buildInitialPhotos` en el generador admin almacenaba las URLs ya procesadas por `resolveUrl()` (con `/` delantero), pero el backend `set-order` las busca en `meta_by_url` tal cual están en DB (sin prefijo). Se eliminó `resolveUrl` de `buildInitialPhotos`; ahora se aplica solo en el `src` de las imágenes renderizadas.
+- **`Cache-Control` del backend exponía `/species` con `max-age=3600`**: el middleware ahora devuelve `no-store` para todas las rutas `/species`, permitiendo que el frontend siempre reciba datos frescos.
+- **`set-order` del backend solo preservaba `caption`, perdía `largeUrl` y otros metadatos**: el dict `meta_by_url` ahora captura todos los campos excepto `url` — incluido `largeUrl`, `caption`, etc. El reorden por DnD ya no descarta la URL de alta resolución.
+- **Fotos duplicadas en galería `SpeciesModal`**: `allPhotos` en `GallerySection` ahora aplica deduplicación por URL (`findIndex`) antes de construir el array final.
+- **`Regenerar` generaba imagen con ID incorrecto**: `settings.specimenId` se limpia a `''` tras cada generación. `generateImage()` ahora usa `activeSettings = viewedItem.settings` cuando se llama sin args (Regenerar), evitando que el ID calculado sea siempre `000`.
+- **Refinar usaba modelo `gemini-2.0-flash-exp-image-generation` (deprecated)**: actualizado a `gemini-2.0-flash-preview-image-generation`. Fijado `responseModalities: ['IMAGE', 'TEXT']` (mayúsculas, ambas modalidades requeridas por el nuevo contrato de API). Ampliada la detección de modelo no disponible (`400`, `INVALID_ARGUMENT`, `deprecated`, `unavailable`). Cuando el fallback a Imagen 4 text-to-image se activa, se muestra un aviso ámbar visible al usuario en lugar de solo loguear en el panel de estado.
+
+---
+
 ## [5.3.0] - 2026-03-22 — Generador: fotos ilimitadas, DnD insertion-style, galería dinámica
 
 ### Añadido
