@@ -927,6 +927,10 @@ function App() {
   const [applyStatus, setApplyStatus] = useState(null); // null | 'saving' | 'success' | 'error'
   // Reference species data loaded when ?especie= is in the URL
   const [referenceSpecies, setReferenceSpecies] = useState(null);
+  // Tracks which species ID is currently loaded — used to skip redundant re-fetches
+  // when apiSpecies changes (e.g. mockSpecies → full list, or after invalidateSpeciesListCache)
+  // without needing referenceSpecies in the effect deps (which would cause infinite loops).
+  const loadedReferenceIdRef = useRef(null);
 
   // savedToCatalog: false when a new image is generated, true after saving to DB
   const [savedToCatalog, setSavedToCatalog] = useState(false);
@@ -965,24 +969,41 @@ function App() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [generatedImage, savedToCatalog]);
 
-  // Pre-fill species from ?especie= URL param (navigated from AdminGallery)
+  // Pre-fill species from ?especie= URL param (navigated from AdminGallery or the combobox).
+  // Re-runs when searchParams changes (new species selected) or when apiSpecies changes
+  // (mockSpecies → full list on mount, or after invalidateSpeciesListCache saves).
   useEffect(() => {
     const especieId = searchParams.get('especie');
     if (!especieId || apiSpecies.length === 0) return;
     const found = apiSpecies.find(s => s.id === especieId);
-    if (!found) return;
+    if (!found) return; // species not yet in current apiSpecies batch (e.g. still mockSpecies)
+
     const idNum = especieId.replace('esp-', '');
-    setSettings(prev => ({
-      ...prev,
-      specimenId: idNum,
-      scientificName: found.scientificName,
-    }));
-    // Fetch full detail (with photos) for the reference panel.
-    // cache: 'no-store' bypasses Cache-Control: public, max-age=3600 so photo order is always fresh.
-    fetch(`${API_BASE}/species/${especieId}`, { cache: 'no-store', headers: authHeaders() })
+    setSettings(prev =>
+      prev.specimenId === idNum && prev.scientificName === found.scientificName
+        ? prev  // no change — avoid a spurious re-render
+        : { ...prev, specimenId: idNum, scientificName: found.scientificName }
+    );
+
+    // Skip re-fetch if the same species is already loaded — this prevents flicker when
+    // apiSpecies changes (mockSpecies → full list) while the selection hasn't changed.
+    if (loadedReferenceIdRef.current === especieId) return;
+
+    const controller = new AbortController();
+    fetch(`${API_BASE}/species/${especieId}`, {
+      cache: 'no-store',
+      headers: authHeaders(),
+      signal: controller.signal,
+    })
       .then(r => r.ok ? r.json() : null)
-      .then(detail => { if (detail) setReferenceSpecies(detail); })
+      .then(detail => {
+        if (detail) {
+          setReferenceSpecies(detail);
+          loadedReferenceIdRef.current = especieId;
+        }
+      })
       .catch(() => {});
+    return () => controller.abort();
   }, [searchParams, apiSpecies]);
 
   // Close the species combobox when clicking outside it.
@@ -2153,6 +2174,7 @@ function App() {
                             });
                             setSearchParams({});
                             setReferenceSpecies(null);
+                            loadedReferenceIdRef.current = null;
                             setGeneratedImage(null);
                             setViewedItem(null);
                           }}
@@ -2367,7 +2389,7 @@ function App() {
                           let ref = null;
                           try {
                             const r = await fetch(`${API_BASE}/species/${speciesId}`, { headers: authHeaders() });
-                            if (r.ok) { ref = await r.json(); setReferenceSpecies(ref); }
+                            if (r.ok) { ref = await r.json(); setReferenceSpecies(ref); loadedReferenceIdRef.current = speciesId; }
                           } catch (_) {}
                           if (!ref) ref = referenceSpecies;
                           setCatalogModal({ newImageDataUrl: generatedImage, newImageMimeType: mime });
@@ -2509,6 +2531,7 @@ function App() {
               }
               const updated = await res.json();
               setReferenceSpecies(updated);
+              loadedReferenceIdRef.current = referenceSpecies.id; // mark as fresh — skip re-fetch after invalidateSpeciesListCache
               // Bust list cache so the species thumbnail reflects the new order on next load.
               invalidateSpeciesListCache();
               if (catalogModal.newImageDataUrl) setSavedToCatalog(true);
