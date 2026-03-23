@@ -477,7 +477,7 @@ function App() {
   const findSpeciesData = (name) => {
     const lowerName = name.toLowerCase();
     return mushroomSpeciesData.find(s => {
-      const sLower = s.name.toLowerCase();
+      const sLower = (s.scientificName ?? '').toLowerCase();
       // Match if exactly equal or if the scientific name part matches
       const sScientificPart = sLower.includes(' - ') ? sLower.split(' - ')[1] : sLower;
       return sLower === lowerName || sScientificPart === lowerName;
