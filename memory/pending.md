@@ -10,11 +10,19 @@ Implementación completada en `feat/v5.4-generator-redesign`. Pendiente: PR + me
 
 **Testing manual recomendado antes del merge:**
 - `/admin/generator` sin params → galería con filtros
-- Clic en tarjeta → `SpeciesAdminModal` abre, lightbox funciona, navegar ←/→
-- "Reordenar" → `CatalogImagesModal` DnD, guardar orden actualiza la galería
-- "Generar imagen" → navega a `?especie=XXX&generar=1` → generador simplificado (sin selector, sin Nuevo/CSV, sin catálogo sidebar, botón "Generar imagen")
+- Clic en tarjeta → skeleton → todas las fotos (sin flash/salto)
+- Lightbox abre con versión `-large`; navegar ←/→
+- "Reordenar" → DnD inline en el mismo modal, guardar actualiza la galería
+- "Generar imagen" → navega a `?especie=XXX&generar=1` → generador simplificado (sin selector, sin Nuevo/CSV, sin catálogo sidebar, sin ID/nombre editables, botón "Generar imagen")
+- Generación: no arrastra la página (scroll queda en el log interno)
+- Prompt de generación incluye morfología verificada de la especie (cap/stem/flesh)
 - Back button desde generador → vuelve al modal de especie
+- Guardar imagen generada → nueva imagen queda como primera (main)
 - `/admin/gallery` → redirige a `/admin/generator`
+
+**Backlog relacionado — Renaming de imágenes (ver `memory/decisions.md`):**
+- Fase B: script para renombrar assets estáticos `esp-XXX-main.jpg` → `esp-XXX-01.jpg`
+- Fase C: migrar `data:` URIs de generación a Supabase Storage con filenames numerados
 
 ---
 
