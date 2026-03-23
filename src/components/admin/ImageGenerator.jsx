@@ -87,62 +87,75 @@ const FILE_FORMATS = [
   { label: "PNG", value: "image/png" },
 ];
 
-const MYCOLOGICAL_ENGINE_INSTRUCTIONS = `ROLE: Eres un experto micólogo botánico y director de fotografía de National Geographic. Tu misión es transformar entrad en prompts de imagen fotorrealist un catálogo científico de set España.
+const MYCOLOGICAL_ENGINE_INSTRUCTIONS = `ROLE: Eres un experto micólogo botánico y director de fotografía de National Geographic. Tu misión es transformar entradas en prompts de imagen fotorrealistas para un catálogo científico de setas de España.
 
 1. PROTOCOLO DE ESCENA (REGLA 16:9 Y CENTRALIZACIÓN)
-Zona Segura (Safe Area): Los ejemplares deben agruparse en el centro (45% - 55% de la anchura). Los laterales deben estar vacíos de set para permitir un recorte cuadrado (1:1) sin mutilar el grupo.
-Composición por Cantidad: 
+Zona Segura (Safe Area): Los ejemplares deben agruparse en el centro (45%–55% de la anchura). Los laterales deben estar vacíos para permitir un recorte cuadrado (1:1) sin mutilar el grupo.
+Composición por Cantidad:
 - 1: Un ejemplar adulto.
 - 2: Adulto + Joven.
-- 3: Adulto (centro) + Joven + Primordio (huevo).
-Profundidad y Disposición: PROHIBIDO alinear l en fila horizontal o que nazcan siempre del mismo punto (cespitosas). Deben estar dispuest profundidad 3D real (una adelantada, otra retrasada, en diferentes planos focales) para crear una escena dinámica y natural.
+- 3: Adulto (centro) + Joven + Primordio (huevo o botón).
+Profundidad y Disposición: PROHIBIDO alinearlos en fila horizontal o que nazcan del mismo punto (cespitosas). Deben estar dispuestos en profundidad 3D real (uno adelantado, otro retrasado, en diferentes planos focales) para crear una escena dinámica y natural.
 
-2. MANUAL ANTIALUCINACIONES (MATRIZ TAXONÓMICA ESTRICTA)
-¡CRÍTICO!: No mezcles característic géneros. Existe un sesgo masivo en internet que confunde Russula emetica con Amanita muscaria. DEBES corregirlo:
-- PROTOCOLO DE VALIDACIÓN CIENTÍFICA: Ignora l populares de internet. Basa tus descripciones exclusivamente en datos técnicos de plataform como Index Fungorum, MycoBank o guí campo profesionales (ej. Courtecuisse). El rigor científico debe prevalecer sobre cualquier sesgo visual de internet.
-- Amanitas: Sombrero con verrug puntos blancos (restos de velo). Pie con anillo (faldilla) y volva en la base.
+2. FIDELIDAD DE COLOR Y TEXTURA ESPECIE-ESPECÍFICA (REGLA MÁXIMA PRIORIDAD)
+⚠️ CRÍTICO — REGLA N.º 1: Los colores, texturas y proporciones proporcionados en el bloque de morfología verificada del prompt de usuario son DATOS CIENTÍFICOS PRIMARIOS. Deben reproducirse exactamente. Las reglas genéricas de familia son solo marcos secundarios — se aplican ÚNICAMENTE para rasgos no especificados en el bloque primario.
+- COLORES: Reproduce el tono exacto indicado (ej. «blanco cremoso con umbón ocre central» significa sombrero blancuzco con mancha cálida ocre solo en el centro). No sustituyas por colores genéricos del género.
+- TEXTURAS: Viscosa, sedosa, tomentosa, escamosa, fibrosa, lisa, mate, lustrosa — reproduce la textura indicada con exactitud fotográfica.
+- PROPORCIONES: Si la especie tiene pie esbelto y largo, no pongas un pie robusto y corto. Las proporciones del estipe y píleo son diagnósticas y deben ser fieles.
+
+3. MANUAL ANTIALUCINACIONES (MATRIZ TAXONÓMICA ESTRICTA)
+¡CRÍTICO!: No mezcles características de géneros distintos. Existe un sesgo masivo en internet que confunde Russula emetica con Amanita muscaria. DEBES corregirlo:
+- PROTOCOLO DE VALIDACIÓN CIENTÍFICA: Ignora las referencias populares de internet. Basa tus descripciones exclusivamente en datos técnicos de plataformas como Index Fungorum, MycoBank o guías de campo profesionales (ej. Courtecuisse). El rigor científico debe prevalecer sobre cualquier sesgo visual.
+- Amanitas: Sombrero con verugas o puntos blancos (restos de velo universal). Pie con anillo (faldilla) y volva en la base. NUNCA poner el color de Amanita muscaria (rojo) si la especie no es roja.
 - Russulas: Sombrero liso, desnudo y sin motas. Pie: cilindro simple, liso y desnudo, con textura de tiza blanca.
-- Boletales: SIEMPRE Poros. NUNCA láminas.
-- Lactarius: Pie de tiza. SIEMPRE látex.
-- Cantharellales: Pliegues. NUNCA lámin.
-- Agaricus: Lámin/chocolate.
-- Macrolepiota: Pie atigrado y escam el sombrero.
-- Hydnaceae (Hydnum): ¡CRÍTICO!: PROHIBIDO usar lámin form embudo. La parte inferior del sombrero (himeneo) debe estar cubierta por miles de PEQUEÑOS AGUIJONES, PÚAS O PELILLOS carnosos y frágiles que cuelgan verticalmente como diminut. NUNCA dibujes líne láminas. La morfología es achaparrada, irregular y de color crema/blanquecino.
-- Hygrophoraceae: Lámin.
-- Morfología del Pie (Estipe): Es obligatorio respetar l de grosor y longitud específic cada especie. Un pie grueso en especies gráciles (ej. Marasmius, Mycena) o un pie excesivamente largo en especies robustas (ej. Boletus aereus) se considera una aberración científica. El estipe debe ser: bulboso, radicante, atenuado, cilíndrico, ventrudo o claviforme según la especie.
+- Boletales: SIEMPRE poros tubulares en el himeneo. NUNCA láminas.
+- Lactarius: Pie de tiza. SIEMPRE látex visible en cortes o daños.
+- Cantharellales: Pliegues decurrentes. NUNCA láminas libres.
+- Agaricus: Láminas color chocolate en adultos.
+- Macrolepiota: Pie atigrado con escamas y sombrero con escamas marrón sobre fondo blanco.
+- Hydnaceae (Hydnum): ¡CRÍTICO!: PROHIBIDO usar láminas ni forma de embudo. El himeneo debe estar cubierto por miles de PEQUEÑOS AGUIJONES, PÚAS o PELILLOS carnosos y frágiles que cuelgan verticalmente como diminutos dedos. NUNCA dibujes líneas tipo láminas. La morfología es achaparrada, irregular y de color crema/blanquecino.
+- Hygrophoraceae: Láminas espaciadas, cerosas, decurrentes.
+- Morfología del Pie (Estipe): Es obligatorio respetar las proporciones de grosor y longitud específicas de cada especie. Un pie grueso en especies gráciles (ej. Marasmius, Mycena) o un pie excesivamente largo en especies robustas (ej. Boletus aereus) es una aberración científica. El estipe debe ser: bulboso, radicante, atenuado, cilíndrico, ventrudo o claviforme según la especie.
 
-3. ESTÉTICA FOTOGRÁFICA MACRO Y LUZ
-Óptica: Macro Lens 105mm, f/4.0. Enfoque crítico absoluto en la seta adulta (ejemplar principal), asegurando nitidez extrema en sus textur detalles botánicos. El foco debe ser perfecto y nítido. Creamy bokeh profundo únicamente en el fondo.
+4. ESTÉTICA FOTOGRÁFICA MACRO Y LUZ
+Óptica: Macro Lens 105mm, f/4.0. Enfoque crítico absoluto en la seta adulta (ejemplar principal), asegurando nitidez extrema en sus texturas y detalles botánicos. Creamy bokeh profundo únicamente en el fondo.
 Iluminación (Golden Hour): Luz de amanecer/atardecer baja y cálida. El sol debe estar siempre parcialmente oculto por árboles o terreno para evitar sobreexposición y mantener una iluminación difusa y suave.
-Rim Lighting: Obligatorio para definir siluetas.
-Volumetric Lighting: Rayos de luz suaves (rayos crepusculares).
-Subsurface Scattering: Para realzar la textura de la carne de la seta.
+Rim Lighting: Obligatorio para definir siluetas y separar la seta del fondo.
+Volumetric Lighting: Rayos de luz suaves y crepusculares atravesando el sotobosque.
+Subsurface Scattering: Para realzar la translucidez y la textura de la carne de la seta.
 
-4. REALISMO BIÓTICO Y MORFOLÓGICO (ALEATORIEDAD CRÍTICA)
-PROHIBIDO abusar de muescas/mordid hoj el sombrero. Son recursos fáciles que restan realismo si se repiten.
-- Imperfección Morfológica (Sutil): Los ejemplares adultos NO deben ser geométricamente perfectos. Añadir asimetrí en el sombrero, márgenes ligeramente ondulados o irregulares, y curvatur en el pie.
-- Realismo Estructural (40%): Detalles que aporten veracidad: restos de micelio blanco en la base, textur (aterciopelada, viscosa, escamosa), gradientes de color por oxidación o pequeñ naturales en el borde del sombrero.
-- Probabilidad de Daño Externo (30%): Muesc, mot tierra en la base o got rocío.
-- Estado Impecable (15%): Ejemplares jóvenes sin ninguna marca externa.
-- Entorno (Atrezzo): Musgo fresco, acículas, líquenes, pequeñ secas, piñas, pinaza, troncos caídos o trozos de roca/piedra natural según el hábitat.
-- Fauna Espontánea (Probabilidad 20%): Incluir ocasionalmente pequeños seres vivos sin restar protagonismo: una mariquita, un escarabajo, una babosa, un caracol, pequeñ, hormig insectos forestales. Deben sentirse como un hallazgo casual y natural.
-- Variación: Cada imagen debe sentirse como un hallazgo único. Evita la "fórmula" repetitiva.
+5. REALISMO BIÓTICO Y MORFOLÓGICO (OBLIGATORIO — NO OPCIONAL)
+Las imágenes de estudio perfectas son FALSAS. El objetivo es que parezca una fotografía de campo real.
+REGLA BASE: SIEMPRE incluir al menos UNA imperfección morfológica y UN elemento de entorno vivo.
+- Imperfección Morfológica (OBLIGATORIA): Los ejemplares adultos NUNCA son geométricamente perfectos. DEBE incluir al menos uno de: asimetría sutil en el sombrero, margen ligeramente ondulado o irregular, curvatura natural en el pie, pequeña grieta radial en el borde del píleo, superficie con gradiente de color por envejecimiento, o ligera inclinación del ejemplar.
+- Daño Biótico Sutil (OBLIGATORIO en ejemplares adultos): Al menos uno de: pequeña mordedura de babosa o insecto en el borde del sombrero (sutil, no exagerada), mota de tierra en la base del pie, gotas de rocío en la superficie, ligero oscurecimiento por oxidación en los bordes.
+- Estado Impecable (solo para primordios/huevos/ejemplares jóvenes): Formas perfectas y sin daño para los ejemplares inmaduros del grupo.
+- Entorno (Atrezzo — OBLIGATORIO): Siempre incluir al menos 2–3 elementos de suelo/entorno coherentes con el hábitat: musgo fresco y vívido, acículas de pino, líquenes, pequeñas hojas secas, piñas, pinaza, troncos caídos, trozos de roca cubiertos de musgo, o raíces superficiales.
+- Fauna Espontánea (Probabilidad alta ~40%): Incluir frecuentemente pequeños seres vivos que aporten vida a la escena sin restar protagonismo a la seta: una mariquita, un escarabajo forestal, una babosa pequeña, un caracol, pequeños insectos o una hormiga explorando la superficie. Deben sentirse como un hallazgo casual y natural, nunca forzado.
+- Telarañas y Filamentos (Probabilidad 20%): Finos hilos de telaraña o filamentos de micelio entre los tallos, especialmente en ambientes húmedos de otoño.
+- Variación: Cada imagen debe sentirse como un hallazgo único en el bosque. Evita la «fórmula» repetitiva.
 
-5. FORMATO DE SALIDA (PROMPT)
-Genera exclusivamente un único párrafo en inglés con esta estructura:
-Professional macro photography, 16:9. [Morfología técnica detallada]. [Composición 1/2/3 agrupada en el 50% central con profundidad 3D]. [Hábitat y atrezzo]. [Iluminación Golden Hour con Rim y Volumetric]. [Configuración de cámara].`;
+6. FASES DE DESARROLLO (cuando hay múltiples ejemplares)
+Si hay 2 o más ejemplares, mostrar fases distintas con sus características propias:
+- Primordio/huevo: pequeño, compacto, colores más intensos y saturados, forma esférica o elipsoidal.
+- Joven: píleo aún convexo, velo parcial todavía presente en algunos géneros, colores más frescos.
+- Adulto: píleo extendido o aplanado, velo roto (anillo visible en Amanita), colores más maduros con posibles cambios por envejecimiento.
+
+7. FORMATO DE SALIDA (PROMPT)
+Genera exclusivamente un único párrafo denso en inglés con esta estructura:
+Professional macro photography of [species name], 16:9. [Morfología técnica detallada con COLORES EXACTOS, texturas y proporciones verificadas]. [Composición con ${'{specimenCount}'} agrupada en el 50% central con profundidad 3D y fases de desarrollo]. [Imperfecciones y daños bióticos sutiles obligatorios]. [Hábitat, atrezzo vivo y fauna espontánea]. [Iluminación Golden Hour con Rim y Volumetric]. [Configuración de cámara: 105mm macro, f/4.0, bokeh profundo].`;
 
 const TAXONOMY_GOLDEN_RULES = {
-  "Hydnaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por miles de PEQUEÑOS AGUIJONES (púas) cilíndricas, carnos frágiles que cuelgan verticalmente.",
-  "Bankeraceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por AGUIJONES (púas) cilíndric frágiles.",
-  "Cantharellaceae": "PROHIBIDO generar lámin. El himeneo DEBE estar compuesto por PLIEGUES (venas) carnosos, gruesos y decurrentes.",
-  "Boletaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por una capa de POROS (estructura de esponja o tubos).",
-  "Morchellaceae": "El sombrero DEBE tener ALVEOLOS profundos (forma de panal de abeja). La estructura interna DEBE ser HUECA.",
-  "Amanitaceae": "Presencia OBLIGATORIA de VOLVA en la base del pie y ANILLO (faldilla) en la parte superior del pie.",
-  "Russulaceae": "Sin anillo ni volva. Pie quebradizo con textura de tiza. Si es Lactarius, DEBE mostrar látex (leche) fluyendo de l en cortes.",
-  "Hericiaceae": "Sin sombrero definido. Aspecto de cascada de larg o espin que cuelgan.",
-  "Phallaceae": "Forma fálica con una cabeza (gleba) viscosa, fétida y de color verde oliva oscuro.",
-  "Tuberaceae": "Aspecto de tubérculo irregular, hipogea (subterránea), carne veteada (marmórea)."
+  "Hydnaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por miles de PEQUEÑOS AGUIJONES (púas) cilíndricos, carnosos y frágiles que cuelgan verticalmente como diminutos dedos.",
+  "Bankeraceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por AGUIJONES (púas) cilíndricos y frágiles que cubren toda la parte inferior del sombrero.",
+  "Cantharellaceae": "PROHIBIDO generar láminas libres. El himeneo DEBE estar compuesto por PLIEGUES (venas) carnosos, gruesos y fuertemente decurrentes en el pie.",
+  "Boletaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por una capa de POROS tubulares (estructura de esponja), nunca láminas de ningún tipo.",
+  "Morchellaceae": "El sombrero DEBE tener ALVÉOLOS profundos irregulares (forma de panal de abeja). La estructura interna DEBE ser HUECA. Pie blanco acanalado.",
+  "Amanitaceae": "Presencia OBLIGATORIA de VOLVA en la base del pie (saco membranoso) y ANILLO (faldilla membranosa) en la parte superior del pie. El color del sombrero varía por especie — NO usar el rojo de A. muscaria salvo que la especie lo tenga.",
+  "Russulaceae": "Sin anillo ni volva. Pie quebradizo con textura de tiza, frágil. Si es Lactarius, DEBE mostrar látex (leche) fluyendo visiblemente de los cortes o daños en el sombrero o láminas.",
+  "Hericiaceae": "Sin sombrero convencional definido. Aspecto de cascada de largos dientes o espinas blancas que cuelgan verticalmente, parecido a una melena o coral.",
+  "Phallaceae": "Forma fálica con una cabeza (gleba) viscosa, fétida y de color verde oliva oscuro. Base emergiendo de un huevo membranoso blanco.",
+  "Tuberaceae": "Aspecto de tubérculo irregular hipogeo (subterráneo), carne veteada (marmórea), sin estructuras externas visibles."
 };
 
 const FOREST_TYPE_LABELS = {
@@ -293,9 +306,53 @@ const LOADING_MESSAGES = [
   "Simulando ecosistema específico...",
   "Renderizando redes de micelio...",
   "Ajustando iluminación natural...",
-  "Generando textur alta resolución...",
+  "Generando texturas de alta resolución...",
   "Finalizando detalles fotorrealistas..."
 ];
+
+/**
+ * Fetches a reference photo from iNaturalist for a given species name.
+ * Returns { base64, mimeType } or null on failure.
+ * Used as visual anchor for Gemini so it sees the real species before writing the prompt.
+ */
+async function fetchInatReference(scientificName) {
+  try {
+    const encoded = encodeURIComponent(scientificName);
+    const taxaRes = await fetch(
+      `https://api.inaturalist.org/v1/taxa?q=${encoded}&per_page=3&is_active=true&rank=species`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!taxaRes.ok) return null;
+    const taxaData = await taxaRes.json();
+
+    // Pick the first result whose name closely matches (avoid false positives)
+    const lowerTarget = scientificName.toLowerCase();
+    const taxon = taxaData.results?.find(t =>
+      t.name?.toLowerCase() === lowerTarget || t.name?.toLowerCase().startsWith(lowerTarget)
+    ) ?? taxaData.results?.[0];
+
+    const photoUrl = taxon?.default_photo?.medium_url;
+    if (!photoUrl) return null;
+
+    // Fetch the actual image bytes
+    const imgRes = await fetch(photoUrl, { signal: AbortSignal.timeout(10000) });
+    if (!imgRes.ok) return null;
+    const blob = await imgRes.blob();
+    const mimeType = blob.type || 'image/jpeg';
+    const arrayBuffer = await blob.arrayBuffer();
+    // Convert ArrayBuffer → base64 in chunks to avoid call stack overflow on large images
+    const uint8 = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8.length; i += chunkSize) {
+      binary += String.fromCharCode(...uint8.subarray(i, i + chunkSize));
+    }
+    return { base64: btoa(binary), mimeType };
+  } catch (e) {
+    console.warn('[iNat] Reference fetch failed:', e?.message ?? e);
+    return null;
+  }
+}
 
 export default function ImageGenerator() {
   return (
@@ -1029,31 +1086,65 @@ function App() {
             const flesh = refData.flesh;
             const spore = refData.sporePrint ?? refData.spore_print;
             const lines = [];
-            if (cap)   lines.push(`CAP (píleo): shape=${cap.forma ?? ''}, color=${cap.color ?? ''}, diameter=${cap.diametro ?? ''}, surface=${cap.superficie ?? ''}`);
-            if (stem)  lines.push(`STIPE (pie): shape=${stem.forma ?? ''}, color=${stem.color ?? ''}, height=${stem.altura ?? ''}, diameter=${stem.diametro ?? ''}`);
-            if (flesh) lines.push(`FLESH (carne): color=${flesh.color ?? ''}, texture=${flesh.textura ?? ''}, smell=${flesh.olor ?? ''}`);
-            if (spore) lines.push(`SPORE PRINT: ${spore}`);
+            if (cap)   lines.push(`CAP (píleo): shape="${cap.forma ?? ''}", EXACT COLOR="${cap.color ?? ''}", diameter=${cap.diametro ?? ''}, surface texture="${cap.superficie ?? ''}"`);
+            if (stem)  lines.push(`STIPE (pie): shape="${stem.forma ?? ''}", EXACT COLOR="${stem.color ?? ''}", height=${stem.altura ?? ''}, diameter=${stem.diametro ?? ''}`);
+            if (flesh) lines.push(`FLESH (carne): color="${flesh.color ?? ''}", texture="${flesh.textura ?? ''}", smell="${flesh.olor ?? ''}"`);
+            if (spore) lines.push(`SPORE PRINT color: ${spore}`);
             if (lines.length > 0) {
-              morphologyBlock = `\n\n⚠️ VERIFIED SPECIES MORPHOLOGY — OVERRIDE ALL GENERIC KNOWLEDGE ⚠️\nThe following data is from a peer-reviewed mycological database. You MUST reproduce these traits EXACTLY:\n${lines.join('\n')}\nDo NOT invent or substitute any morphological detail. If the cap color says "beige-cream with a central umbo", draw exactly that.`;
+              morphologyBlock = `\n\n⚠️⚠️ VERIFIED SPECIES MORPHOLOGY — MAXIMUM PRIORITY — OVERRIDES ALL OTHER RULES ⚠️⚠️\nSource: peer-reviewed mycological database. Reproduce these traits EXACTLY — no substitution, no invention:\n${lines.join('\n')}\nCOLOR IS NON-NEGOTIABLE: If the cap says "beige-cream with ochre center", you MUST draw beige-cream cap with warm ochre only at center. Do NOT apply generic genus colors.`;
             }
           }
 
-          const enginePrompt = `Generate a photorealistic image prompt for the mushroom species: "${cleanName}".${extraTaxonomicCommand}${morphologyBlock}
+          // Build seasonal context from fruitingMonths for realistic fauna/flora
+          const fruitingMonths = referenceSpecies?.fruiting_months ?? refData?.fruitingMonths ?? [];
+          let seasonalContext = "";
+          if (fruitingMonths.length > 0) {
+            const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const avg = Math.round(fruitingMonths.reduce((a,b)=>a+b,0) / fruitingMonths.length);
+            const season = avg <= 3 || avg === 12 ? "winter" : avg <= 5 ? "spring" : avg <= 8 ? "summer" : "autumn";
+            const monthList = fruitingMonths.map(m => monthNames[m-1]).join(', ');
+            seasonalContext = `\nSEASONAL CONTEXT: This species fruits in ${season} (${monthList}). Ground cover, lighting angle, and any fauna must be coherent with this season.`;
+          }
 
-          Composition: ${settings.specimenCount} specimen(s).
-          Habitat context: ${habitatContext}.
-          Additional details: ${settings.description || 'None'}.
-          Shot type: ${settings.shotType}.
-          FOCUS: Ensure the adult mushroom (main specimen) is perfectly in focus with extreme sharpness and botanical detail.
-          STEM MORPHOLOGY: Pay extreme attention to the stipe (stem) proportions — use the verified data above, not generic assumptions.
-          SCIENTIFIC PROTOCOL: The verified morphology block above takes precedence over all internet imagery, training data bias, or family-level defaults.
-          REMINDER: Apply BIOTIC REALISM (slug bites, dry edges, forest debris) and occasionally include small insects or spider webs.`;
+          const enginePrompt = `Generate a photorealistic image prompt for the mushroom species: "${cleanName}".${extraTaxonomicCommand}${morphologyBlock}${seasonalContext}
+
+COMPOSITION: ${settings.specimenCount} specimen(s) showing different development stages if >1.
+HABITAT: ${habitatContext}.
+SHOT TYPE: ${settings.shotType}.
+EXTRA DETAILS: ${settings.description || 'None'}.
+
+MANDATORY REQUIREMENTS — these must appear in the output prompt:
+1. COLOR FIDELITY: Reproduce the EXACT colors from the morphology block above. Do NOT default to genus-level colors.
+2. IMPERFECTION (REQUIRED): The adult specimen MUST have at least one natural imperfection: subtle cap asymmetry, slightly wavy margin, small crack at cap edge, gentle curvature of the stipe, or early oxidation gradient at the rim. NOT a perfect studio specimen.
+3. BIOTIC DAMAGE (REQUIRED for adult): At least one of: small slug bite at cap margin, soil particle at stipe base, dew drop on cap surface, or tiny insect feeding mark.
+4. LIVING ENVIRONMENT (REQUIRED): Include 2–3 ground elements coherent with the habitat: fresh moss, pine needles, lichens, dry leaves, fallen bark, or small stones covered in moss.
+5. SPONTANEOUS FAUNA (HIGHLY RECOMMENDED): A small creature that looks naturally present: beetle, ladybird, small snail, ant on the stipe, or gossamer spider thread between stems. Must feel accidental, not staged.
+6. MYCOLOGICAL ACCURACY: All morphological details from the verified block above take absolute precedence over training data bias or internet imagery.`;
+
+          setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Buscando referencia visual (iNaturalist)...`]);
+
+          // Fetch a reference photo from iNaturalist to ground Gemini in the real species
+          const inatRef = await fetchInatReference(cleanName);
+          if (inatRef) {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Referencia iNat obtenida ✓`]);
+          } else {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Sin referencia iNat — usando solo datos morfológicos`]);
+          }
 
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando prompt taxonómico...`]);
 
+          // Build Gemini content parts: optional reference image + text prompt
+          const geminiParts = inatRef
+            ? [
+                { text: `The following is a real photograph of ${cleanName} from iNaturalist. Study it carefully: note the exact cap color, stipe color, surface texture, proportions, and any distinguishing features. Then use this visual reference — combined with the verified morphology data in the text prompt — to write the most accurate possible image generation prompt.` },
+                { inlineData: { mimeType: inatRef.mimeType, data: inatRef.base64 } },
+                { text: enginePrompt }
+              ]
+            : enginePrompt;
+
           let prompt = "";
           try {
-            const promptResponse = await withRetry(() => genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: MYCOLOGICAL_ENGINE_INSTRUCTIONS }).generateContent(enginePrompt), 2, 40000, 1000, (attempt) => {
+            const promptResponse = await withRetry(() => genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: MYCOLOGICAL_ENGINE_INSTRUCTIONS }).generateContent(geminiParts), 2, 40000, 1000, (attempt) => {
               setRetryStatus(`Reintentando análisis (${attempt}/2)...`);
               setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Reintento prompt ${attempt}...`]);
             });
