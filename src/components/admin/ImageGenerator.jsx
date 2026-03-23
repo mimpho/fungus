@@ -706,8 +706,8 @@ function App() {
     return items;
   });
 
-  // ── URL query param ?especie= (pre-fill from AdminGallery) ───────────────
-  const [searchParams] = useSearchParams()
+  // ── URL query param ?especie= (pre-fill from AdminGallery; kept in sync with selector) ─
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // ── Admin nav — ensure generator always shows admin nav items ─────────────
   const { setIsAdminView } = useApp()
@@ -1840,13 +1840,18 @@ function App() {
                     <div className="space-y-8">
                       <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-3">
-                          <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70">ID</label>
+                          <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70 flex items-center gap-1.5">
+                            ID
+                            <span title="Se rellena automáticamente al seleccionar una seta" className="text-[#d9cda1]/30 cursor-help">
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 0a5 5 0 1 0 0 10A5 5 0 0 0 5 0zm.5 7.5h-1v-3h1v3zm0-4h-1v-1h1v1z"/></svg>
+                            </span>
+                          </label>
                           <input
                             type="text"
-                            placeholder="001"
-                            className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all font-mono text-sm text-[#f4ebe1]"
+                            readOnly
+                            placeholder="—"
+                            className="w-full bg-black/10 border border-white/5 rounded-2xl px-5 py-4 font-mono text-sm text-[#f4ebe1]/40 cursor-default select-none"
                             value={settings.specimenId}
-                            onChange={(e) => setSettings({ ...settings, specimenId: e.target.value })}
                           />
                         </div>
                         <div className="col-span-9">
@@ -1863,15 +1868,21 @@ function App() {
                                 const val = e.target.value;
                                 const match = mushroomSpeciesData.find(s => s.name === val);
                                 if (match && val.includes(' - ')) {
+                                  // Full species selected from datalist: extract parts and sync URL.
+                                  // The ?especie= useEffect will re-fire and fill settings + reference panel.
                                   const [idPart, namePart] = val.split(' - ');
                                   const cleanId = idPart.replace('esp-', '');
+                                  const paddedId = cleanId.padStart(3, '0');
                                   setSettings({
                                     ...settings,
                                     specimenId: cleanId,
                                     scientificName: namePart
                                   });
+                                  setSearchParams({ especie: `esp-${paddedId}` });
                                 } else {
-                                  setSettings({ ...settings, scientificName: val });
+                                  // Partial / free text — no species matched yet; clear ID and URL param.
+                                  setSettings({ ...settings, scientificName: val, specimenId: '' });
+                                  setSearchParams({});
                                 }
                               }}
                             />
