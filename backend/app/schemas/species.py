@@ -90,3 +90,43 @@ class SetPhotosOrderBody(BaseModel):
 
     photos: list[str]
     """Ordered list of photo URLs (first = main, rest = gallery)."""
+
+
+class VisualPromptData(BaseModel):
+    """Structured visual DNA for a species — used by Myco-Engine prompt assembly.
+
+    Returned by GET /species/{id}/visual-prompt (admin only).
+    All text fields use positive visual language safe for image models.
+    Returns None if no entry exists for the species yet.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    species_id: str
+    cap_description: str | None = None
+    stipe_description: str | None = None
+    # Positive visual anchor — never negative prohibitions
+    hymenium_description: str | None = None
+    # External features only (safe for image model)
+    extra_morphology_visual: str | None = None
+    # Internal / chemical context — Gemini use only, not image model
+    extra_morphology_gemini: str | None = None
+    # 16:9 canvas fill
+    preferred_substrate: str | None = None
+    habitat_context: str | None = None
+    associated_fauna: str | None = None
+    is_validated: bool = False
+
+
+class VisualPromptUpsertBody(BaseModel):
+    """Body for PUT /species/{id}/visual-prompt — create or replace visual DNA."""
+
+    cap_description: str | None = None
+    stipe_description: str | None = None
+    hymenium_description: str | None = None
+    extra_morphology_visual: str | None = None
+    extra_morphology_gemini: str | None = None
+    preferred_substrate: str | None = None
+    habitat_context: str | None = None
+    associated_fauna: str | None = None
+    is_validated: bool = False

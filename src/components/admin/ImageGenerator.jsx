@@ -750,6 +750,8 @@ function App() {
   const [applyStatus, setApplyStatus] = useState(null); // null | 'saving' | 'success' | 'error'
   // Reference species data loaded when ?especie= is in the URL
   const [referenceSpecies, setReferenceSpecies] = useState(null);
+  // Structured visual DNA from mushroom_visual_prompts table (null = not available → fallback mode)
+  const [visualPromptData, setVisualPromptData] = useState(null);
   // Tracks which species ID is currently loaded — used to skip redundant re-fetches
   // when apiSpecies changes (e.g. mockSpecies → full list, or after invalidateSpeciesListCache)
   // without needing referenceSpecies in the effect deps (which would cause infinite loops).
@@ -820,17 +822,19 @@ function App() {
     if (loadedReferenceIdRef.current === especieId) return;
 
     const controller = new AbortController();
-    fetch(`${API_BASE}/species/${especieId}`, {
-      cache: 'no-store',
-      headers: authHeaders(),
-      signal: controller.signal,
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(detail => {
+    const opts = { cache: 'no-store', headers: authHeaders(), signal: controller.signal };
+    // Fetch species detail and visual prompt data in parallel
+    Promise.all([
+      fetch(`${API_BASE}/species/${especieId}`, opts).then(r => r.ok ? r.json() : null),
+      fetch(`${API_BASE}/species/${especieId}/visual-prompt`, opts).then(r => r.ok ? r.json() : null),
+    ])
+      .then(([detail, vpData]) => {
         if (detail) {
           setReferenceSpecies(detail);
           loadedReferenceIdRef.current = especieId;
         }
+        // vpData may be null (no entry yet) — frontend falls back to Gemini-only pipeline
+        setVisualPromptData(vpData ?? null);
       })
       .catch(() => { });
     return () => controller.abort();
@@ -1316,25 +1320,87 @@ ${morphLines.join('\n')}`;
             seasonalContext = `\nSEASON: ${season} (${monthList}) — ground cover, light angle, and fauna must match.`;
           }
 
-          // enginePrompt: antiConfusion FIRST, then diagnostic, then morphology.
-          // Generic aesthetics, biotic realism, and composition rules live in MYCOLOGICAL_ENGINE_INSTRUCTIONS.
-          const enginePrompt = `Generate a photorealistic mycological image prompt for: "${cleanName}".${extraTaxonomicCommand}
+          // ── Myco-Engine pipeline selection ──────────────────────────────────────
+          // If structured visual DNA is available from the DB (mushroom_visual_prompts),
+          // use the 4-layer deterministic pipeline — morphology is pre-validated and
+          // injected directly; Gemini only generates the creative scene details.
+          // Otherwise fall back to the Gemini-interprets-free-text pipeline.
+          const hasStructuredData = !!visualPromptData;
+          if (hasStructuredData) {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 DNA Visual en BD → pipeline estructurado (${visualPromptData.is_validated ? '✓ validado' : 'borrador'})`]);
+          } else {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 📝 Sin DNA Visual en BD → pipeline Gemini (fallback)`]);
+          }
+
+          // ── Layer 1: Morphological identity (DB data or Gemini-derived) ────────
+          // When hasStructuredData: assembled directly from validated fields.
+          // When fallback: built from refData (existing logic below).
+          let layer1_morphology = "";
+          if (hasStructuredData) {
+            const vp = visualPromptData;
+            const parts = [
+              vp.cap_description     ? `CAP: ${vp.cap_description}`              : null,
+              vp.stipe_description   ? `STIPE: ${vp.stipe_description}`          : null,
+              vp.hymenium_description? `HYMENIUM: ${vp.hymenium_description}`    : null,
+              vp.extra_morphology_visual ? `ADDITIONAL: ${vp.extra_morphology_visual}` : null,
+            ].filter(Boolean);
+            layer1_morphology = parts.join('\n');
+          }
+
+          // Layer 2 composition block — same regardless of pipeline
+          const specimenCountLabel = settings.specimenCount >= 4 ? '4 or more' : settings.specimenCount;
+          const stageBlock = settings.specimenCount >= 4
+            ? `- DEVELOPMENT STAGES (4+ specimens): a natural family group — one primordium (compact, emergent), one or two young specimens (caps still convex), two or more fully open adults (caps fully extended, all diagnostic features at maximum expression). Dispersed naturally at genuinely different depths within the central zone. NOT lined up. Feels like a spontaneous forest discovery.`
+            : settings.specimenCount >= 3
+            ? `- DEVELOPMENT STAGES (3 specimens): ONE egg/primordium (compact sphere or ovoid, no developed structures visible), ONE immature young specimen (cap still fully convex, all features forming), ONE fully open adult specimen (cap extended/flattened, all diagnostic features at maximum expression). These are THREE DISTINCT DEVELOPMENTAL STAGES — do NOT show two adults and one young.`
+            : settings.specimenCount === 2
+            ? `- DEVELOPMENT STAGES (2 specimens): adult (fully open, diagnostic features prominent) + young (cap still convex).`
+            : `- DEVELOPMENT STAGE (1 specimen): fully open adult with all diagnostic features at maximum expression.`;
+
+          // ── Build enginePrompt ───────────────────────────────────────────────────
+          let enginePrompt;
+          if (hasStructuredData) {
+            // STRUCTURED PIPELINE: Gemini receives pre-validated morphology;
+            // its ONLY job is to write a creative scene (atmosphere, fauna, light moment).
+            const vp = visualPromptData;
+            const substrateCtx = vp.preferred_substrate ?? habitatContext;
+            const habitatCtx   = vp.habitat_context     ?? habitatContext;
+            const faunaHint    = vp.associated_fauna     ? `Fauna hint (use or vary): ${vp.associated_fauna}.` : '';
+            const geminiCtx    = vp.extra_morphology_gemini ? `Species context (for scene realism): ${vp.extra_morphology_gemini}` : '';
+            enginePrompt = `You are writing the SCENE section of a mycological image prompt for: "${cleanName}".${extraTaxonomicCommand}
+
+MORPHOLOGY IS FIXED — do NOT invent or modify any visual feature. The morphology is:
+${layer1_morphology}
+${geminiCtx ? '\n' + geminiCtx : ''}
+
+YOUR TASK — write ONLY the scene/environment/atmosphere details (3–5 sentences):
+1. COMPOSITION: ${specimenCountLabel} specimen(s) grouped in the CENTRAL 50% of the frame, pronounced 3D depth (foreground noticeably closer and larger than background specimens). ${stageBlock}
+2. SUBSTRATE & GROUND COVER: describe the immediate forest floor in detail (${substrateCtx}).
+3. HABITAT & LIGHT MOMENT: one specific atmospheric detail — an unusual shaft of light, mist between trees, dewdrops on moss, or similar. Habitat: ${habitatCtx}.
+4. FAUNA (optional): ${faunaHint || 'one small animal that fits the habitat — a beetle, snail, spider, etc. Must feel incidental, not posed.'}
+5. CRITICAL CLOSE: "CRITICAL: [one key EXTERNAL visual feature from the morphology above] must be unmistakably prominent."
+   — Use ONLY external visible features. NEVER mention cut surfaces, reactions when damaged, or internal flesh.
+
+DO NOT include any morphology beyond what is given above. DO NOT include lighting or camera specs.`;
+          } else {
+            // FALLBACK PIPELINE: Gemini interprets free-text morphology (existing behavior)
+            enginePrompt = `Generate a photorealistic mycological image prompt for: "${cleanName}".${extraTaxonomicCommand}
 ${antiConfusionBlock}
 ${diagnosticBlock}
 ${morphologyBlock}
 ${seasonalContext}
 
 SCENE FORMAT: ONE single continuous photographic frame — ABSOLUTELY NO diptychs, split screens, panels, collages, before/after comparisons, or multi-image composites. The entire image must be a single uninterrupted scene.
-SCENE CONTENT: ${settings.specimenCount >= 4 ? '4 or more' : settings.specimenCount} specimen(s).
+SCENE CONTENT: ${specimenCountLabel} specimen(s).
 - CENTERING (CRITICAL for card crop): All specimens grouped in the CENTRAL ~50% of the frame width. The left and right 25% of the frame are background/habitat only — never cut off specimens at card edges.
 - 3D DEPTH (MANDATORY): Specimens at GENUINELY DIFFERENT DEPTHS with realistic separation — foreground specimen noticeably closer (larger, sharper), mid specimen at ~1.5–2× distance, background specimen at ~2.5–3× distance. NEVER lined up at the same depth plane. The depth difference must be VISIBLE and PRONOUNCED, not subtle.
-${settings.specimenCount >= 4 ? `- DEVELOPMENT STAGES (4+ specimens): a natural family group — one primordium (compact, emergent), one or two young specimens (caps still convex), two or more fully open adults (caps fully extended, all diagnostic features at maximum expression). Dispersed naturally at genuinely different depths within the central zone. NOT lined up. Feels like a spontaneous forest discovery.` : settings.specimenCount >= 3 ? `- DEVELOPMENT STAGES (3 specimens): ONE egg/primordium (compact sphere or ovoid, no developed structures visible), ONE immature young specimen (cap still fully convex, all features forming), ONE fully open adult specimen (cap extended/flattened, all diagnostic features at maximum expression). These are THREE DISTINCT DEVELOPMENTAL STAGES — do NOT show two adults and one young.` : settings.specimenCount === 2 ? `- DEVELOPMENT STAGES (2 specimens): adult (fully open, diagnostic features prominent) + young (cap still convex).` : `- DEVELOPMENT STAGE (1 specimen): fully open adult with all diagnostic features at maximum expression.`}
+${stageBlock}
 - Habitat: ${habitatContext}. Shot: ${settings.shotType}.${settings.description ? ` Scene notes: ${settings.description}.` : ''}
 
 OUTPUT STRUCTURE — write the prompt in this exact order (focus ONLY on biology and scene; photography style is handled separately):
 1. OPEN with the diagnostic feature (if any): "DEFINING VISUAL CHARACTERISTIC: [trait with precise size/scale words]..."
 2. DESCRIBE morphology: exact colors, textures, proportions, all key structures.
-3. SPECIFY composition: ${settings.specimenCount >= 4 ? '4 or more' : settings.specimenCount} specimen(s) in the central 50% of the frame, pronounced 3D depth, development stages as specified above.
+3. SPECIFY composition: ${specimenCountLabel} specimen(s) in the central 50% of the frame, pronounced 3D depth, development stages as specified above.
 4. DESCRIBE habitat and ground cover (moss, pine needles, leaves, lichen, etc.).
 5. FAUNA (optional but encouraged): one small animal exploring the scene — choose naturally from: a beetle, a snail, a slug, a centipede, a spider on silk thread, a small grasshopper, an ant, a tiny moth, a woodlouse, a forest fly, a caterpillar on nearby vegetation — whatever fits the habitat. NEVER force it; it must feel like a casual discovery.
 6. CLOSE with: "CRITICAL: [one visible external diagnostic trait — e.g. stipe color, cap texture, pore/tooth/ridge structure at cap margin] must be unmistakably prominent in the final image."
@@ -1343,6 +1409,7 @@ OUTPUT STRUCTURE — write the prompt in this exact order (focus ONLY on biology
 
 DO NOT include any lighting, camera settings, or photography style instructions — those are injected automatically.
 If no diagnostic feature: skip step 1 and open with step 2.`;
+          }
 
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando prompt taxonómico...`]);
 
@@ -1410,20 +1477,29 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
 
           // ── Mandatory photo specs — PREPENDED so image model reads them first ───
           // Image models weight the START of the prompt far more than the end.
-          // Hymenium visual constraints are also injected here to override the
-          // strong "gills by default" visual prior image models have from training data.
-          const hymeniumConstraint = family ? (HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family] ?? '') : '';
-          if (hymeniumConstraint) {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🍄 Himeneo especial: ${family} → constraint inyectado`]);
-          } else if (family) {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Familia: ${family} (sin constraint de himeneo)`]);
+          // Layer 1: when structured pipeline → inject validated morphology from DB.
+          //          when fallback → inject hymenium family constraint (HYMENIUM_VISUAL_FOR_IMAGE_MODEL).
+          let layer1_prefix = '';
+          if (hasStructuredData) {
+            // Full morphology is in layer1_morphology — inject it verbatim as Layer 1.
+            // The hymenium_description field already encodes the image-safe visual anchor.
+            layer1_prefix = layer1_morphology;
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 Layer 1 → morfología estructurada inyectada en prefijo`]);
           } else {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Familia no detectada — sin constraint de himeneo`]);
+            const hymeniumConstraint = family ? (HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family] ?? '') : '';
+            layer1_prefix = hymeniumConstraint;
+            if (hymeniumConstraint) {
+              setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🍄 Himeneo especial: ${family} → constraint inyectado`]);
+            } else if (family) {
+              setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Familia: ${family} (sin constraint de himeneo)`]);
+            } else {
+              setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Familia no detectada — sin constraint de himeneo`]);
+            }
           }
           const MANDATORY_PHOTO_PREFIX = [
             // Anti-diptych FIRST — absolute highest priority before anything else
             `OUTPUT FORMAT (ABSOLUTE RULE — OVERRIDES EVERYTHING): ONE single photograph. A single continuous uninterrupted rectangular image with no divisions. NOT a diptych. NOT side-by-side panels. NOT a grid. NOT before/after. NOT cross-section + exterior. ONE scene, one frame, one photo.`,
-            hymeniumConstraint,
+            layer1_prefix,
             `PHOTOGRAPHY STYLE: Hyper-realistic field photograph. Golden hour backlit forest — warm low-angle dawn or dusk sun partially hidden behind tree trunks, volumetric crepuscular rays piercing the understory, pronounced rim lighting separating mushrooms from background. Soft warm diffused light with no harsh shadows. All specimens centered in the MIDDLE 50% of the frame width — wide forest floor fills left and right thirds. Macro lens 105mm, f/4.0, razor-sharp focus on adult cap, deep creamy bokeh on background. Subsurface scattering through mushroom flesh.`,
           ].filter(Boolean).join('\n\n') + '\n\n';
           // Remove trailing duplicate lighting/lens blocks Gemini may have appended
@@ -2250,6 +2326,7 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
                             });
                             setSearchParams({});
                             setReferenceSpecies(null);
+                            setVisualPromptData(null);
                             loadedReferenceIdRef.current = null;
                             setGeneratedImage(null);
                             setViewedItem(null);
