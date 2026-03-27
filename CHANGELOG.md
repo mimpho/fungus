@@ -9,15 +9,28 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Añadido — v5.6 Generación masiva DNA Visual (en curso)
+
+- Rama `feat/v5.6-dna-mass-generation` abierta para script de generación offline.
+
+---
+
 ### Añadido — v5.5 Myco-Engine DNA Visual
 
 - **`mushroom_visual_prompts` (migración 009)**: nueva tabla en Supabase con DNA Visual por especie — campos separados para píleo, estipe, himenio (lenguaje visual de imagen, no botánico raw), morfología extra imagen-safe, morfología para Gemini (interna/reacciones), sustrato, hábitat y fauna asociada. Campo `is_validated` para control de calidad.
+- **`composition_notes`**: campo Text opcional por especie para reglas de composición (espécimen dominante, framing, elementos a evitar). Incluido en modelo, schema, endpoints, seed y frontend.
 - **`MushroomVisualPrompt` (modelo SQLAlchemy)**: modelo async con FK a `species.id`, campos Text para todos los descriptores visuales, `is_validated: bool`, `updated_at` auto.
 - **`VisualPromptData` + `VisualPromptUpsertBody` (schemas Pydantic)**: respuesta y body de upsert para el nuevo endpoint. `VisualPromptData` incluye `is_validated`.
 - **`GET /species/{id}/visual-prompt`** (admin only): devuelve el DNA Visual estructurado o `null` si no hay entrada todavía. 200 + null = sin datos = fallback pipeline.
 - **`PUT /species/{id}/visual-prompt`** (admin only): crea o reemplaza el DNA Visual de una especie. Semántica full-replace.
 - **`scripts/seed_visual_prompts.py`**: script de seeding con 10 especies piloto cubriendo todos los tipos de himenio: Boletaceae (poros), Amanitaceae (láminas + volva), Cantharellaceae (pliegues), Morchellaceae (alveolada), Russulaceae (láminas frágiles), Hydnaceae, Bankeraceae (dientes), Hericiaceae (coral). Todas marcadas `is_validated=True`.
+- **`docs/plan/seed_visual_prompts_009.sql`**: equivalente SQL del seed script para ejecutar en Supabase SQL Editor sin necesidad de shell de Render.
 - **`ImageGenerator.jsx` — pipeline estructurado**: cuando el backend devuelve DNA Visual para la especie seleccionada, el generador usa el pipeline de 4 capas (Layer 0: anti-díptico → Layer 1: morfología validada de BD → Layer 3: óptica → output Gemini de solo escena). Gemini recibe morfología pre-ensamblada y solo genera la escena/atmósfera. Fallback automático al pipeline Gemini-interpreta-morfología cuando no hay datos en BD. Log muestra `🧬 DNA Visual en BD` vs `📝 Sin DNA Visual`.
+
+### Corregido — v5.5
+
+- **Encuadre alto (espécimen en tercio superior)**: `MANDATORY_PHOTO_PREFIX` actualizado con instrucción explícita de cámara a nivel del suelo — lente a 5–10 cm del suelo, ligeramente hacia arriba, base del estipe en tercio inferior, copa en tercio central, dosel con bokeh en el tercio superior.
+- **Russula virescens renderizada con verrugas/volva (prior Amanita)**: descriptores de píleo reescritos para enfatizar superficie casi lisa con craquelado tipo cerámica (no baches 3D), estipe reescrito con cero indicación de bulbo/volva. `composition_notes` añadida especificando espécimen en suelo limpio sin emerge de huevo.
 
 ### Añadido — v5.4 Rediseño generador admin (galería-first)
 

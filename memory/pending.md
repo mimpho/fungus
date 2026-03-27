@@ -4,40 +4,24 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚧 En progreso — v5.5 Myco-Engine: DNA Visual en BD
+## 🚧 En progreso — v5.6 Generación masiva DNA Visual
 
-Implementación completada en `feat/v5.4-generator-redesign` (rama compartida). Pendiente:
-- Ejecutar migración 009 en Supabase prod
-- Ejecutar `python -m scripts.seed_visual_prompts` en Render (o local con DATABASE_URL) para las 10 especies piloto
-- Validar en el generador: las especies piloto deben mostrar "🧬 DNA Visual en BD → pipeline estructurado" en el log
-- Evaluar calidad de generación vs. pipeline anterior (Boletus edulis, Amanita muscaria, Cantharellus cibarius)
-- Ampliar seed a más especies si la prueba piloto es satisfactoria
-- PR + merge + bump de versión
+Rama: `feat/v5.6-dna-mass-generation`
 
-**10 especies piloto cubiertas:**
-Boletus edulis, Neoboletus luridiformis (Boletaceae), Amanita muscaria, Amanita phalloides (Amanitaceae), Cantharellus cibarius (Cantharellaceae), Morchella esculenta (Morchellaceae), Russula virescens (Russulaceae), Hydnum repandum (Hydnaceae), Sarcodon imbricatus (Bankeraceae), Hericium erinaceus (Hericiaceae).
+**Objetivo**: script Gemini offline para generar `mushroom_visual_prompts` para las 202 especies restantes sin DNA Visual (`is_validated=false`). Las 10 especies piloto (`is_validated=true`) se omiten.
 
----
+**Pendiente:**
+- Implementar `backend/scripts/generate_visual_dna.py`:
+  - Query de todas las especies agrupadas por género
+  - Pasar morfología + contexto de congéneres a Gemini
+  - Generar todos los campos de DNA Visual en lenguaje visual positivo (no negativo)
+  - Upsert con `is_validated=false`, no sobreescribir entradas `is_validated=true`
+  - Incluir campo `distinguishing_from_congeners` en `extra_morphology_visual` cuando aplique
+- Revisar manualmente familias con prior fuerte en modelos de imagen: Amanitaceae, Russulaceae, Boletaceae
+- PR + merge + deploy
 
-## ✅ Completado — v5.4 Rediseño generador admin (galería-first)
-
-Implementación completada en `feat/v5.4-generator-redesign`. Pendiente: PR + merge + bump de versión.
-
-**Testing manual recomendado antes del merge:**
-- `/admin/generator` sin params → galería con filtros
-- Clic en tarjeta → skeleton → todas las fotos (sin flash/salto)
-- Lightbox abre con versión `-large`; navegar ←/→
-- "Reordenar" → DnD inline en el mismo modal, guardar actualiza la galería
-- "Generar imagen" → navega a `?especie=XXX&generar=1` → generador simplificado (sin selector, sin Nuevo/CSV, sin catálogo sidebar, sin ID/nombre editables, botón "Generar imagen")
-- Generación: no arrastra la página (scroll queda en el log interno)
-- Prompt de generación incluye morfología verificada de la especie (cap/stem/flesh)
-- Back button desde generador → vuelve al modal de especie
-- Guardar imagen generada → nueva imagen queda como primera (main)
-- `/admin/gallery` → redirige a `/admin/generator`
-
-**Backlog relacionado — Renaming de imágenes (ver `memory/decisions.md`):**
-- Fase B: script para renombrar assets estáticos `esp-XXX-main.jpg` → `esp-XXX-01.jpg`
-- Fase C: migrar `data:` URIs de generación a Supabase Storage con filenames numerados
+**Problema identificado — confusión intragénero:**
+Boletus calopus vs Boletus satanas vs Boletus luridus — el modelo tiene prior genérico fuerte. El script debe incluir en el prompt el contexto de especies del mismo género para diferenciarlas visualmente.
 
 ---
 
