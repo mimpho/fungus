@@ -43,6 +43,8 @@ class MushroomVisualPrompt(Base):
     preferred_substrate: Mapped[str | None] = mapped_column(Text, nullable=True)
     habitat_context: Mapped[str | None] = mapped_column(Text, nullable=True)
     associated_fauna: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Species-specific composition guidance (dominant specimen, framing rules, etc.)
+    composition_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ── Quality control ───────────────────────────────────────────────────────
     is_validated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

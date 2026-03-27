@@ -1363,18 +1363,20 @@ ${morphLines.join('\n')}`;
             // STRUCTURED PIPELINE: Gemini receives pre-validated morphology;
             // its ONLY job is to write a creative scene (atmosphere, fauna, light moment).
             const vp = visualPromptData;
-            const substrateCtx = vp.preferred_substrate ?? habitatContext;
-            const habitatCtx   = vp.habitat_context     ?? habitatContext;
-            const faunaHint    = vp.associated_fauna     ? `Fauna hint (use or vary): ${vp.associated_fauna}.` : '';
-            const geminiCtx    = vp.extra_morphology_gemini ? `Species context (for scene realism): ${vp.extra_morphology_gemini}` : '';
+            const substrateCtx    = vp.preferred_substrate  ?? habitatContext;
+            const habitatCtx      = vp.habitat_context      ?? habitatContext;
+            const faunaHint       = vp.associated_fauna      ? `Fauna hint (use or vary): ${vp.associated_fauna}.` : '';
+            const geminiCtx       = vp.extra_morphology_gemini ? `Species context (for scene realism): ${vp.extra_morphology_gemini}` : '';
+            const compositionRule = vp.composition_notes     ? `\nSPECIES-SPECIFIC COMPOSITION RULE (MANDATORY): ${vp.composition_notes}` : '';
             enginePrompt = `You are writing the SCENE section of a mycological image prompt for: "${cleanName}".${extraTaxonomicCommand}
 
 MORPHOLOGY IS FIXED — do NOT invent or modify any visual feature. The morphology is:
 ${layer1_morphology}
 ${geminiCtx ? '\n' + geminiCtx : ''}
+${compositionRule}
 
 YOUR TASK — write ONLY the scene/environment/atmosphere details (3–5 sentences):
-1. COMPOSITION: ${specimenCountLabel} specimen(s) grouped in the CENTRAL 50% of the frame, pronounced 3D depth (foreground noticeably closer and larger than background specimens). ${stageBlock}
+1. COMPOSITION: ${specimenCountLabel} specimen(s) grouped in the CENTRAL 50% of the frame, pronounced 3D depth (foreground noticeably closer and larger than background specimens). ${stageBlock}${vp.composition_notes ? ' Apply the SPECIES-SPECIFIC COMPOSITION RULE above.' : ''}
 2. SUBSTRATE & GROUND COVER: describe the immediate forest floor in detail (${substrateCtx}).
 3. HABITAT & LIGHT MOMENT: one specific atmospheric detail — an unusual shaft of light, mist between trees, dewdrops on moss, or similar. Habitat: ${habitatCtx}.
 4. FAUNA (optional): ${faunaHint || 'one small animal that fits the habitat — a beetle, snail, spider, etc. Must feel incidental, not posed.'}
