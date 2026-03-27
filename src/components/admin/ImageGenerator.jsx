@@ -11,7 +11,7 @@ import JSZip from 'jszip';
 import { useSpecies } from '../../hooks/useSpecies';
 import { useApp } from '../../contexts/AppContext';
 import { API_BASE } from '../../services/apiService';
-import { invalidateSpeciesListCache } from '../../hooks/useSpecies';
+import { invalidateSpeciesListCache, patchSpeciesPhotoInCache } from '../../hooks/useSpecies';
 import { authHeaders } from '../../services/authService';
 import { resolveUrl } from '../../lib/helpers';
 import { MODAL } from '../../lib/constants';
@@ -87,15 +87,22 @@ const FILE_FORMATS = [
   { label: "PNG", value: "image/png" },
 ];
 
+// ── Image generation model ────────────────────────────────────────────────────
+// Model is selected dynamically via fetchAvailableImageModels (ListModels API).
+// Routing: model name starts with 'gemini-' → SDK generateContent + responseModalities
+//          model name starts with 'imagen-' → Predict REST API
+// ─────────────────────────────────────────────────────────────────────────────
+
 const MYCOLOGICAL_ENGINE_INSTRUCTIONS = `ROLE: Eres un experto micólogo botánico y director de fotografía de National Geographic. Tu misión es transformar entradas en prompts de imagen fotorrealistas para un catálogo científico de setas de España.
 
 1. PROTOCOLO DE ESCENA (REGLA 16:9 Y CENTRALIZACIÓN)
-Zona Segura (Safe Area): Los ejemplares deben agruparse en el centro (45%–55% de la anchura). Los laterales deben estar vacíos para permitir un recorte cuadrado (1:1) sin mutilar el grupo.
+Zona Segura (Safe Area): Los ejemplares deben agruparse en el CENTRO ESTRICTO (45%–55% de la anchura del encuadre). Los laterales (25% izquierdo y 25% derecho) son exclusivamente hábitat/fondo. Ningún ejemplar debe quedar cortado o parcialmente fuera del centro — la imagen se usa en tarjetas cuadradas 1:1.
 Composición por Cantidad:
-- 1: Un ejemplar adulto.
-- 2: Adulto + Joven.
-- 3: Adulto (centro) + Joven + Primordio (huevo o botón).
-Profundidad y Disposición: PROHIBIDO alinearlos en fila horizontal o que nazcan del mismo punto (cespitosas). Deben estar dispuestos en profundidad 3D real (uno adelantado, otro retrasado, en diferentes planos focales) para crear una escena dinámica y natural.
+- 1: Un ejemplar adulto, centrado.
+- 2: Adulto + Joven. Adulto en primer plano, joven más retrasado.
+- 3: Primordio (huevo/botón compacto) + Joven (convexo, formándose) + Adulto (abierto, rasgos diagnósticos a máxima expresión). SIEMPRE estas tres fases distintas — NUNCA dos adultos.
+- 4+: Varios ejemplares (primordio, joven, 2+ adultos en distintos planos) dispersos de forma natural a diferentes profundidades dentro del área central. La escena debe parecer una pequeña familia emergiendo del suelo.
+Profundidad y Disposición: ⚠️ CRÍTICO. PROHIBIDO alinearlos al mismo plano de profundidad. La diferencia de distancia entre el ejemplar más cercano y el más lejano debe ser EVIDENTE y PRONUNCIADA: el ejemplar del primer plano es notablemente más grande y más nítido; el del fondo se ve claramente más pequeño y con bokeh. La escena debe transmitir volumen real, no una alineación plana.
 
 2. FIDELIDAD DE COLOR Y TEXTURA ESPECIE-ESPECÍFICA (REGLA MÁXIMA PRIORIDAD)
 ⚠️ CRÍTICO — REGLA N.º 1: Los colores, texturas y proporciones proporcionados en el bloque de morfología verificada del prompt de usuario son DATOS CIENTÍFICOS PRIMARIOS. Deben reproducirse exactamente. Las reglas genéricas de familia son solo marcos secundarios — se aplican ÚNICAMENTE para rasgos no especificados en el bloque primario.
@@ -106,7 +113,7 @@ Profundidad y Disposición: PROHIBIDO alinearlos en fila horizontal o que nazcan
 3. MANUAL ANTIALUCINACIONES (MATRIZ TAXONÓMICA ESTRICTA)
 ¡CRÍTICO!: No mezcles características de géneros distintos. Existe un sesgo masivo en internet que confunde Russula emetica con Amanita muscaria. DEBES corregirlo:
 - PROTOCOLO DE VALIDACIÓN CIENTÍFICA: Ignora las referencias populares de internet. Basa tus descripciones exclusivamente en datos técnicos de plataformas como Index Fungorum, MycoBank o guías de campo profesionales (ej. Courtecuisse). El rigor científico debe prevalecer sobre cualquier sesgo visual.
-- Amanitas: Sombrero con verugas o puntos blancos (restos de velo universal). Pie con anillo (faldilla) y volva en la base. NUNCA poner el color de Amanita muscaria (rojo) si la especie no es roja.
+- Amanitas: El género tiene SECCIONES MUY DISTINTAS — NO apliques la misma morfología a todas. ⚠️ CRÍTICO: La regla "verugas blancas en el sombrero" solo aplica a la sección Amanita (A. muscaria, A. pantherina, A. citrina). Las secciones Vaginatae y Lepidella (A. ovoidea, A. caesarea, A. vaginata, A. fulva) tienen el sombrero COMPLETAMENTE LISO EN TODAS LAS FASES DE DESARROLLO — primordio, joven y adulto — sin verugas, sin escamas, sin parches blancos en el sombrero. El velo universal se rompe solo en la BASE (volva) y en el MARGEN (apéndices colgantes), NUNCA deja pústulas ni verrugas sobre la superficie del píleo. SIEMPRE consulta el bloque de morfología verificada y el bloque 🚫 ANTI-CONFUSIÓN — si dice "liso", el sombrero es liso en TODOS los ejemplares del grupo, incluidos los jóvenes. NUNCA apliques verugas por defecto.
 - Russulas: Sombrero liso, desnudo y sin motas. Pie: cilindro simple, liso y desnudo, con textura de tiza blanca.
 - Boletales: SIEMPRE poros tubulares en el himeneo. NUNCA láminas.
 - Lactarius: Pie de tiza. SIEMPRE látex visible en cortes o daños.
@@ -131,19 +138,24 @@ REGLA BASE: SIEMPRE incluir al menos UNA imperfección morfológica y UN element
 - Daño Biótico Sutil (OBLIGATORIO en ejemplares adultos): Al menos uno de: pequeña mordedura de babosa o insecto en el borde del sombrero (sutil, no exagerada), mota de tierra en la base del pie, gotas de rocío en la superficie, ligero oscurecimiento por oxidación en los bordes.
 - Estado Impecable (solo para primordios/huevos/ejemplares jóvenes): Formas perfectas y sin daño para los ejemplares inmaduros del grupo.
 - Entorno (Atrezzo — OBLIGATORIO): Siempre incluir al menos 2–3 elementos de suelo/entorno coherentes con el hábitat: musgo fresco y vívido, acículas de pino, líquenes, pequeñas hojas secas, piñas, pinaza, troncos caídos, trozos de roca cubiertos de musgo, o raíces superficiales.
-- Fauna Espontánea (Probabilidad alta ~40%): Incluir frecuentemente pequeños seres vivos que aporten vida a la escena sin restar protagonismo a la seta: una mariquita, un escarabajo forestal, una babosa pequeña, un caracol, pequeños insectos o una hormiga explorando la superficie. Deben sentirse como un hallazgo casual y natural, nunca forzado.
+- Fauna Espontánea (Probabilidad alta ~40%): Incluir frecuentemente un pequeño ser vivo que aporte vida a la escena sin restar protagonismo a la seta. Repertorio amplio — varía en cada generación: escarabajo forestal, caracol, babosa pequeña, ciempiés, araña con hilo de seda, saltamontes, hormiga, polilla pequeña, cochinilla, mosca de bosque, oruga sobre vegetación cercana, chinche de campo, larva bajo hoja. NUNCA repitas la misma especie en todas las imágenes. Deben sentirse como un hallazgo casual y natural, nunca forzado ni central.
 - Telarañas y Filamentos (Probabilidad 20%): Finos hilos de telaraña o filamentos de micelio entre los tallos, especialmente en ambientes húmedos de otoño.
 - Variación: Cada imagen debe sentirse como un hallazgo único en el bosque. Evita la «fórmula» repetitiva.
 
 6. FASES DE DESARROLLO (cuando hay múltiples ejemplares)
 Si hay 2 o más ejemplares, mostrar fases distintas con sus características propias:
-- Primordio/huevo: pequeño, compacto, colores más intensos y saturados, forma esférica o elipsoidal.
-- Joven: píleo aún convexo, velo parcial todavía presente en algunos géneros, colores más frescos.
+- Primordio/huevo: pequeño, compacto, forma esférica o elipsoidal. En especies con sombrero liso (ver bloque morfología), el primordio también es liso — NO añadir verrugas ni escamas al huevo.
+- Joven: píleo aún convexo, velo parcial todavía presente en algunos géneros, colores más frescos. ⚠️ La textura del píleo joven HEREDA la textura del adulto: si el adulto es liso, el joven también es liso. NUNCA renderizar un adulto liso con jóvenes verrugosos — es taxonómicamente imposible.
 - Adulto: píleo extendido o aplanado, velo roto (anillo visible en Amanita), colores más maduros con posibles cambios por envejecimiento.
 
 7. FORMATO DE SALIDA (PROMPT)
+⚠️ CRÍTICO — REGLA ABSOLUTA: El prompt generado debe producir UNA ÚNICA FOTOGRAFÍA CONTINUA de un espécimen vivo e intacto en su hábitat. NUNCA incluir instrucciones que produzcan:
+- Dípticos, comparativas, paneles múltiples, cuadrículas o composiciones divididas
+- Secciones transversales, especímenes cortados, carne interna expuesta, reacciones de oxidación/azulamiento
+- Vistas "antes/después" o "exterior + corte"
+⚠️ NO INCLUYAS iluminación, configuración de cámara ni instrucciones fotográficas — esos parámetros se inyectan automáticamente en el pipeline. Tu única responsabilidad es la biología EXTERNA y la escena.
 Genera exclusivamente un único párrafo denso en inglés con esta estructura:
-Professional macro photography of [species name], 16:9. [Morfología técnica detallada con COLORES EXACTOS, texturas y proporciones verificadas]. [Composición con ${'{specimenCount}'} agrupada en el 50% central con profundidad 3D y fases de desarrollo]. [Imperfecciones y daños bióticos sutiles obligatorios]. [Hábitat, atrezzo vivo y fauna espontánea]. [Iluminación Golden Hour con Rim y Volumetric]. [Configuración de cámara: 105mm macro, f/4.0, bokeh profundo].`;
+Professional macro photography of [species name], 16:9. [Morfología técnica detallada con COLORES EXACTOS, texturas y proporciones verificadas]. [Composición agrupada en el 50% central con profundidad 3D y fases de desarrollo]. [Imperfecciones y daños bióticos sutiles obligatorios]. [Hábitat, atrezzo vivo y fauna espontánea]. [Rasgo diagnóstico crítico al final].`;
 
 const TAXONOMY_GOLDEN_RULES = {
   "Hydnaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por miles de PEQUEÑOS AGUIJONES (púas) cilíndricos, carnosos y frágiles que cuelgan verticalmente como diminutos dedos.",
@@ -156,6 +168,24 @@ const TAXONOMY_GOLDEN_RULES = {
   "Hericiaceae": "Sin sombrero convencional definido. Aspecto de cascada de largos dientes o espinas blancas que cuelgan verticalmente, parecido a una melena o coral.",
   "Phallaceae": "Forma fálica con una cabeza (gleba) viscosa, fétida y de color verde oliva oscuro. Base emergiendo de un huevo membranoso blanco.",
   "Tuberaceae": "Aspecto de tubérculo irregular hipogeo (subterráneo), carne veteada (marmórea), sin estructuras externas visibles."
+};
+
+// Visual hymenium descriptions for the image model prefix.
+// These override the strongest visual prior image models have (gills by default).
+// Phrased as POSITIVE descriptions of what must be visible, not just prohibitions.
+const HYMENIUM_VISUAL_FOR_IMAGE_MODEL = {
+  // Positive-only descriptions — naming the concept to avoid (gills, etc.) can reinforce it.
+  // Instead, anchor to well-known reference specimens the model has in training.
+  "Boletaceae": `INTACT LIVING BOLETE SPECIMEN — THREE ABSOLUTE RULES:
+1. PORE SURFACE: The only visible underside is a pale cream to yellow-olive-green sponge-like rim at the cap edge, as seen from the side in a porcini / cep (Boletus edulis) field photo. That thin spongy band is the ONLY underside detail visible. No gills, no blades, no separation lines under the cap.
+2. DEVELOPMENT STAGES — BOLETACEAE ONLY: Boletes have NO eggs and NO volvas. Every developmental stage already has a recognisable differentiated cap AND stipe. The smallest primordium looks like a miniature adult — a tiny dark brownish hemispheric cap (1–2 cm) sitting on a short stubby pale stipe with the same coloration pattern as the adult. ALL stages share the same brownish cap surface and characteristic stipe. NO white egg shape, NO volva membrane, NO universal veil wrapping, NO Amanita-like structures at any stage whatsoever.
+3. INTACT: Render whole specimens in the forest. No cross-sections, no cut surfaces, no internal flesh visible.`,
+  "Hydnaceae":      "HYMENIUM — TOOTHED FUNGI (CRITICAL): The cap underside is covered by hundreds of short downward-pointing spines or teeth, pale cream to buff, like tiny fragile icicles or inverted pins hanging uniformly from the cap surface. Render exactly as seen in Hydnum repandum field photography.",
+  "Bankeraceae":    "HYMENIUM — TOOTHED FUNGI (CRITICAL): The cap underside is densely covered by fragile pale gray cylindrical spines or teeth pointing downward, like a fine-toothed comb viewed from below. Render as seen in Sarcodon imbricatus field photography.",
+  "Cantharellaceae":"HYMENIUM — CHANTERELLE FOLDS (CRITICAL): The cap underside shows thick, blunt, forking ridges (not thin blades) the same color as the cap, running from the margin down into the stem, like the branching veins on a leaf. Render exactly as seen in Cantharellus cibarius field photography — shallow blunt forking folds, not sharp separate blades.",
+  "Morchellaceae":  "CAP SURFACE — MOREL (CRITICAL): The entire cap is covered by deep irregular honeycomb-shaped pits and ridges, like a waffle or brain coral texture. The interior appears hollow when cut. Render exactly as seen in Morchella esculenta field photography.",
+  "Hericiaceae":    "FRUITING BODY — LION'S MANE (CRITICAL): No cap, no stem in the conventional sense. The entire fruiting body is a cascading waterfall of long white icicle-like spines or teeth hanging downward, pure white, resembling a lion's mane or white coral. Render as seen in Hericium erinaceus field photography.",
+  "Phallaceae":     "FRUITING BODY — STINKHORN (CRITICAL): Phallic white stem emerging from a white egg-like base in the soil. The tip (gleba) is covered in dark olive-green slimy viscous material. Render as seen in Phallus impudicus field photography.",
 };
 
 const FOREST_TYPE_LABELS = {
@@ -395,6 +425,44 @@ async function fetchInatReferences(scientificName, maxPhotos = 3) {
   return results;
 }
 
+/**
+ * Calls the ListModels API to discover which image generation models are
+ * available for the given API key, then returns them ready for the selector.
+ * Gemini image models use SDK generateContent; Imagen models use Predict API.
+ */
+async function fetchAvailableImageModels(apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=200`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData?.error?.message || `ListModels error ${res.status}`);
+  }
+  const data = await res.json();
+  const allModels = data.models ?? [];
+
+  return allModels
+    .filter(m => {
+      const name = (m.name ?? '').toLowerCase();
+      const methods = m.supportedGenerationMethods ?? [];
+      // Gemini native image generation models
+      if (name.includes('image-generation') || name.includes('imagegen')) return true;
+      // Imagen predict models
+      if (name.includes('imagen') && methods.includes('predict')) return true;
+      return false;
+    })
+    .map(m => {
+      const rawName = m.name ?? '';
+      const id = rawName.replace('models/', '');
+      const methods = m.supportedGenerationMethods ?? [];
+      return {
+        id,
+        displayName: m.displayName ?? id,
+        method: methods.includes('predict') ? 'predict' : 'generateContent',
+      };
+    })
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
 export default function ImageGenerator() {
   return (
     <ErrorBoundary>
@@ -520,8 +588,8 @@ function App() {
     shotType: SHOT_TYPES[4],
     description: '',
     aspectRatio: '16:9',
-    fileFormat: 'image/jpeg',
-    quality: 0.8,
+    fileFormat: 'image/webp',
+    quality: 0.85,
   });
 
   // specimenId is now always set by the combobox (derived from selected species DB id).
@@ -543,6 +611,7 @@ function App() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkFormat, setBulkFormat] = useState('image/jpeg');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState(''); // prompt shown in viewer while image loads
   const [generationTime, setGenerationTime] = useState(0);
   const [retryStatus, setRetryStatus] = useState(null);
   const [generationStep, setGenerationStep] = useState(null);
@@ -559,6 +628,10 @@ function App() {
   const copyLog = () => {
     const logText = statusLog.join('\n');
     navigator.clipboard.writeText(logText);
+  };
+
+  const copyPrompt = () => {
+    if (currentPrompt) navigator.clipboard.writeText(currentPrompt);
   };
 
   const downloadLog = () => {
@@ -700,6 +773,13 @@ function App() {
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isExportExpanded, setIsExportExpanded] = useState(false);
   const [isSceneExpanded, setIsSceneExpanded] = useState(false);
+
+  // ── Image model discovery ─────────────────────────────────────────────────
+  // Populated by fetchAvailableImageModels when the API key is first confirmed.
+  const [availableImageModels, setAvailableImageModels] = useState([]);
+  const [imageModel, setImageModel] = useState('');       // '' → not yet discovered
+  const [loadingModels, setLoadingModels] = useState(false);
+  // ─────────────────────────────────────────────────────────────────────────
   const [isDragging, setIsDragging] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
 
@@ -822,6 +902,36 @@ function App() {
     setHasKey(!!(envKey || _moduleApiKey));
   };
 
+  // Discover available image generation models as soon as we have a valid API key.
+  // Runs once on mount (if key is already set) and whenever hasKey transitions to true.
+  useEffect(() => {
+    if (!hasKey) return;
+    const key = getApiKey();
+    if (!key || availableImageModels.length > 0) return; // already loaded
+    setLoadingModels(true);
+    fetchAvailableImageModels(key)
+      .then(models => {
+        setAvailableImageModels(models);
+        // Auto-select: prefer gemini image-generation models, fallback to first available
+        if (models.length > 0) {
+          const preferred = models.find(m => m.id.includes('gemini') && m.id.includes('image')) ?? models[0];
+          setImageModel(preferred.id);
+        }
+      })
+      .catch(err => {
+        console.warn('[ImageGen] fetchAvailableImageModels failed:', err.message);
+        // Fallback: populate with known models so the selector still shows something
+        const fallback = [
+          { id: 'gemini-2.0-flash-preview-image-generation', displayName: 'Gemini 2.0 Flash Preview Image', method: 'generateContent' },
+          { id: 'imagen-3.0-generate-001', displayName: 'Imagen 3', method: 'predict' },
+          { id: 'imagen-4.0-generate-001', displayName: 'Imagen 4', method: 'predict' },
+        ];
+        setAvailableImageModels(fallback);
+        setImageModel('gemini-2.0-flash-preview-image-generation');
+      })
+      .finally(() => setLoadingModels(false));
+  }, [hasKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Returns the active API key: env var takes priority, module-level key is the manual fallback
   const getApiKey = () => import.meta.env?.VITE_GEMINI_API_KEY || _moduleApiKey || '';
 
@@ -891,9 +1001,29 @@ function App() {
     }
   };
 
-  // Imagen 4 uses the :predict endpoint, not :generateContent
+  // Generates an image using the model currently selected in imageModel state.
+  // Routing is done by name prefix:
+  //   'gemini-*' → SDK generateContent + responseModalities (native image gen)
+  //   'imagen-*' → Predict REST API
   const callImagen3 = async (prompt, apiKey, aspectRatio = '16:9') => {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+    const model = imageModel || 'gemini-2.0-flash-preview-image-generation';
+
+    if (model.startsWith('gemini')) {
+      // Gemini native image generation via SDK
+      const genAILocal = new GoogleGenerativeAI(apiKey);
+      const geminiModel = genAILocal.getGenerativeModel({ model });
+      const response = await geminiModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+      });
+      const parts = response.response?.candidates?.[0]?.content?.parts ?? [];
+      const imagePart = parts.find(p => p.inlineData);
+      if (!imagePart) throw new Error('El modelo Gemini no devolvió imagen.');
+      return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+    }
+
+    // Imagen Predict API
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -909,9 +1039,7 @@ function App() {
     return `data:${pred.mimeType || 'image/png'};base64,${pred.bytesBase64Encoded}`;
   };
 
-  // Real image-to-image editing via Gemini 2.0 Flash Preview (multimodal input → image output).
-  // Sends the current image + instruction text; the model edits the image directly.
-  // Falls back to callImagen3 (text-to-image) if the model is unavailable.
+  // Real image-to-image editing via Gemini multimodal (image input → image output).
   const callGeminiRefine = async (imageBase64, mimeType, instruction, apiKey) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-preview-image-generation' });
@@ -1059,6 +1187,7 @@ function App() {
     setError(null);
     setRetryStatus(null);
     setPromptParts([]);
+    setCurrentPrompt('');
     setIsRefining(false);
     setRecentBatchIds([]);
     setGeneratedImage(null);
@@ -1106,7 +1235,9 @@ function App() {
 
           const speciesData = findSpeciesData(currentName);
           const habitatContext = speciesData ? speciesData.habitat : "its natural forest habitat";
-          const family = speciesData?.family;
+          // Use referenceSpecies.family as authoritative fallback — findSpeciesData may
+          // miss if the name format doesn't match exactly (e.g. gallery-first mode).
+          const family = speciesData?.family ?? referenceSpecies?.family ?? null;
           const goldenRule = family ? TAXONOMY_GOLDEN_RULES[family] : null;
 
           // Extract scientific name for the prompt
@@ -1117,26 +1248,64 @@ function App() {
             extraTaxonomicCommand = `\nESCUDO DE VERDAD (TAXONOMY GOLDEN RULE): ${goldenRule}`;
           }
 
-          // Build species-specific morphology block from referenceSpecies.extra_data
-          // This overrides generic family-level knowledge with actual verified data.
+          // Build species-specific data blocks from referenceSpecies.extra_data.
+          // diagnosticBlock → goes FIRST in enginePrompt.
+          // morphologyBlock → general morphology reference.
+          // antiConf → drives both the antiConfusionBlock in Gemini prompt AND
+          //            the Imagen 4 genus-name replacement (post-processing).
+          let diagnosticBlock = "";
           let morphologyBlock = "";
+          let diagParts = [];  // exposed outside if-block for Imagen 4 alias construction
           const refData = referenceSpecies?.extra_data ?? referenceSpecies;
           if (refData) {
             const cap   = refData.cap;
             const stem  = refData.stem;
             const flesh = refData.flesh;
             const spore = refData.sporePrint ?? refData.spore_print;
-            const lines = [];
-            if (cap)   lines.push(`CAP (píleo): shape="${cap.forma ?? ''}", EXACT COLOR="${cap.color ?? ''}", diameter=${cap.diametro ?? ''}, surface texture="${cap.superficie ?? ''}"`);
-            if (stem)  lines.push(`STIPE (pie): shape="${stem.forma ?? ''}", EXACT COLOR="${stem.color ?? ''}", height=${stem.altura ?? ''}, diameter=${stem.diametro ?? ''}`);
-            if (flesh) lines.push(`FLESH (carne): color="${flesh.color ?? ''}", texture="${flesh.textura ?? ''}", smell="${flesh.olor ?? ''}"`);
-            if (spore) lines.push(`SPORE PRINT color: ${spore}`);
-            if (lines.length > 0) {
-              morphologyBlock = `\n\n⚠️⚠️ VERIFIED SPECIES MORPHOLOGY — MAXIMUM PRIORITY — OVERRIDES ALL OTHER RULES ⚠️⚠️\nSource: peer-reviewed mycological database. Reproduce these traits EXACTLY — no substitution, no invention:\n${lines.join('\n')}\nCOLOR IS NON-NEGOTIABLE: If the cap says "beige-cream with ochre center", you MUST draw beige-cream cap with warm ochre only at center. Do NOT apply generic genus colors.`;
+            const morphLines = [];
+
+            if (cap) {
+              morphLines.push(`CAP: shape="${cap.forma ?? ''}", COLOR="${cap.color ?? ''}", diameter=${cap.diametro ?? ''}`);
+              const sup = cap.superficie ?? '';
+              if (sup) {
+                const diagMatch = sup.match(/\b(RASGO\b|DISTINTIVO\b|DIAGNOSTIC\b|DISTINCTIVE\b)/i);
+                if (diagMatch) {
+                  const splitIdx  = sup.indexOf(diagMatch[0]);
+                  const texPart   = sup.slice(0, splitIdx).trim().replace(/[.:,]+$/, '');
+                  const diagPart  = sup.slice(splitIdx).trim();
+                  if (texPart) morphLines.push(`CAP texture: "${texPart}"`);
+                  diagParts.push(diagPart);
+                } else {
+                  morphLines.push(`CAP texture: "${sup}"`);
+                }
+              }
+            }
+            if (stem)  morphLines.push(`STIPE: shape="${stem.forma ?? ''}", COLOR="${stem.color ?? ''}", height=${stem.altura ?? ''}, diameter=${stem.diametro ?? ''}`);
+            if (flesh) morphLines.push(`FLESH: color="${flesh.color ?? ''}", texture="${flesh.textura ?? ''}", smell="${flesh.olor ?? ''}"`);
+            if (spore) morphLines.push(`SPORE PRINT: ${spore}`);
+
+            if (diagParts.length > 0) {
+              diagnosticBlock = `
+🔴 DEFINING DIAGNOSTIC FEATURE — DESCRIBE FIRST AND LAST 🔴
+TRAIT: ${diagParts.join(' | ')}
+• Open the generated prompt with this feature. Use scale words: LARGE, PROMINENT, IMPOSSIBLE TO MISS.
+• Close the prompt with: "CRITICAL: [this feature] must be unmistakably visible."`;
+            }
+
+            if (morphLines.length > 0) {
+              morphologyBlock = `
+VERIFIED MORPHOLOGY (reproduce exactly — photos override text on color):
+${morphLines.join('\n')}`;
             }
           }
 
-          // Build seasonal context from fruitingMonths for realistic fauna/flora
+          // antiConf drives both Gemini hint and Imagen 4 post-processing
+          const antiConf = refData?.antiConfusion ?? [];
+          const antiConfusionBlock = antiConf.length > 0
+            ? `\n🚫 FORBIDDEN FEATURES — TRAINING DATA BIAS OVERRIDE (applies to ALL specimens: adult, young, AND primordium):\n${antiConf.map(f => `• NEVER render: ${f}`).join('\n')}\nThese constraints override any learned genus-level defaults. Enforce on every specimen in the scene.`
+            : '';
+
+          // Seasonal context for realistic ground cover and fauna
           const fruitingMonths = referenceSpecies?.fruiting_months ?? refData?.fruitingMonths ?? [];
           let seasonalContext = "";
           if (fruitingMonths.length > 0) {
@@ -1144,54 +1313,42 @@ function App() {
             const avg = Math.round(fruitingMonths.reduce((a,b)=>a+b,0) / fruitingMonths.length);
             const season = avg <= 3 || avg === 12 ? "winter" : avg <= 5 ? "spring" : avg <= 8 ? "summer" : "autumn";
             const monthList = fruitingMonths.map(m => monthNames[m-1]).join(', ');
-            seasonalContext = `\nSEASONAL CONTEXT: This species fruits in ${season} (${monthList}). Ground cover, lighting angle, and any fauna must be coherent with this season.`;
+            seasonalContext = `\nSEASON: ${season} (${monthList}) — ground cover, light angle, and fauna must match.`;
           }
 
-          const enginePrompt = `Generate a photorealistic image prompt for the mushroom species: "${cleanName}".${extraTaxonomicCommand}${morphologyBlock}${seasonalContext}
+          // enginePrompt: antiConfusion FIRST, then diagnostic, then morphology.
+          // Generic aesthetics, biotic realism, and composition rules live in MYCOLOGICAL_ENGINE_INSTRUCTIONS.
+          const enginePrompt = `Generate a photorealistic mycological image prompt for: "${cleanName}".${extraTaxonomicCommand}
+${antiConfusionBlock}
+${diagnosticBlock}
+${morphologyBlock}
+${seasonalContext}
 
-COMPOSITION: ${settings.specimenCount} specimen(s) showing different development stages if >1.
-HABITAT: ${habitatContext}.
-SHOT TYPE: ${settings.shotType}.
-EXTRA DETAILS: ${settings.description || 'None'}.
+SCENE FORMAT: ONE single continuous photographic frame — ABSOLUTELY NO diptychs, split screens, panels, collages, before/after comparisons, or multi-image composites. The entire image must be a single uninterrupted scene.
+SCENE CONTENT: ${settings.specimenCount >= 4 ? '4 or more' : settings.specimenCount} specimen(s).
+- CENTERING (CRITICAL for card crop): All specimens grouped in the CENTRAL ~50% of the frame width. The left and right 25% of the frame are background/habitat only — never cut off specimens at card edges.
+- 3D DEPTH (MANDATORY): Specimens at GENUINELY DIFFERENT DEPTHS with realistic separation — foreground specimen noticeably closer (larger, sharper), mid specimen at ~1.5–2× distance, background specimen at ~2.5–3× distance. NEVER lined up at the same depth plane. The depth difference must be VISIBLE and PRONOUNCED, not subtle.
+${settings.specimenCount >= 4 ? `- DEVELOPMENT STAGES (4+ specimens): a natural family group — one primordium (compact, emergent), one or two young specimens (caps still convex), two or more fully open adults (caps fully extended, all diagnostic features at maximum expression). Dispersed naturally at genuinely different depths within the central zone. NOT lined up. Feels like a spontaneous forest discovery.` : settings.specimenCount >= 3 ? `- DEVELOPMENT STAGES (3 specimens): ONE egg/primordium (compact sphere or ovoid, no developed structures visible), ONE immature young specimen (cap still fully convex, all features forming), ONE fully open adult specimen (cap extended/flattened, all diagnostic features at maximum expression). These are THREE DISTINCT DEVELOPMENTAL STAGES — do NOT show two adults and one young.` : settings.specimenCount === 2 ? `- DEVELOPMENT STAGES (2 specimens): adult (fully open, diagnostic features prominent) + young (cap still convex).` : `- DEVELOPMENT STAGE (1 specimen): fully open adult with all diagnostic features at maximum expression.`}
+- Habitat: ${habitatContext}. Shot: ${settings.shotType}.${settings.description ? ` Scene notes: ${settings.description}.` : ''}
 
-MANDATORY REQUIREMENTS — these must appear in the output prompt:
-1. COLOR FIDELITY: Reproduce the EXACT colors from the morphology block above. Do NOT default to genus-level colors.
-2. IMPERFECTION (REQUIRED): The adult specimen MUST have at least one natural imperfection: subtle cap asymmetry, slightly wavy margin, small crack at cap edge, gentle curvature of the stipe, or early oxidation gradient at the rim. NOT a perfect studio specimen.
-3. BIOTIC DAMAGE (REQUIRED for adult): At least one of: small slug bite at cap margin, soil particle at stipe base, dew drop on cap surface, or tiny insect feeding mark.
-4. LIVING ENVIRONMENT (REQUIRED): Include 2–3 ground elements coherent with the habitat: fresh moss, pine needles, lichens, dry leaves, fallen bark, or small stones covered in moss.
-5. SPONTANEOUS FAUNA (HIGHLY RECOMMENDED): A small creature that looks naturally present: beetle, ladybird, small snail, ant on the stipe, or gossamer spider thread between stems. Must feel accidental, not staged.
-6. MYCOLOGICAL ACCURACY: All morphological details from the verified block above take absolute precedence over training data bias or internet imagery.`;
+OUTPUT STRUCTURE — write the prompt in this exact order (focus ONLY on biology and scene; photography style is handled separately):
+1. OPEN with the diagnostic feature (if any): "DEFINING VISUAL CHARACTERISTIC: [trait with precise size/scale words]..."
+2. DESCRIBE morphology: exact colors, textures, proportions, all key structures.
+3. SPECIFY composition: ${settings.specimenCount >= 4 ? '4 or more' : settings.specimenCount} specimen(s) in the central 50% of the frame, pronounced 3D depth, development stages as specified above.
+4. DESCRIBE habitat and ground cover (moss, pine needles, leaves, lichen, etc.).
+5. FAUNA (optional but encouraged): one small animal exploring the scene — choose naturally from: a beetle, a snail, a slug, a centipede, a spider on silk thread, a small grasshopper, an ant, a tiny moth, a woodlouse, a forest fly, a caterpillar on nearby vegetation — whatever fits the habitat. NEVER force it; it must feel like a casual discovery.
+6. CLOSE with: "CRITICAL: [one visible external diagnostic trait — e.g. stipe color, cap texture, pore/tooth/ridge structure at cap margin] must be unmistakably prominent in the final image."
+   ⚠️ The CRITICAL trait MUST be something visible on the INTACT LIVING exterior of the mushroom.
+   NEVER mention: bluing reactions, internal flesh color, cut surfaces, cross-sections, or any preparation requiring damage to the specimen. Those cannot be shown in a forest field photo.
 
-          setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Buscando referencias visuales (iNaturalist)...`]);
-
-          // Fetch up to 3 reference photos from iNaturalist — more photos → more accurate color averaging
-          const inatRefs = await fetchInatReferences(cleanName, 3);
-          if (inatRefs.length > 0) {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${inatRefs.length} referencia(s) iNat obtenida(s) ✓`]);
-          } else {
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Sin referencias iNat — usando solo datos morfológicos`]);
-          }
+DO NOT include any lighting, camera settings, or photography style instructions — those are injected automatically.
+If no diagnostic feature: skip step 1 and open with step 2.`;
 
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando prompt taxonómico...`]);
 
-          // Build Gemini content parts: visual references (photos) + text prompt.
-          // ⚠️ VISUAL PRIORITY RULE: if photos and text descriptions conflict on color,
-          //    the photos are the ground truth — they show the real species.
-          let geminiParts;
-          if (inatRefs.length > 0) {
-            const photoParts = [];
-            inatRefs.forEach((ref, idx) => {
-              photoParts.push({ text: `Reference photo ${idx + 1} of ${inatRefs.length} — real ${cleanName} specimen from iNaturalist:` });
-              photoParts.push({ inlineData: { mimeType: ref.mimeType, data: ref.base64 } });
-            });
-            geminiParts = [
-              { text: `⚠️ VISUAL REFERENCE PRIORITY RULE: The following ${inatRefs.length} photograph(s) show REAL specimens of ${cleanName} documented by the scientific community on iNaturalist. Study all photos carefully and extract: the exact cap color (note any color variation between photos — average them), stipe color and texture, veil remnants, surface texture, and overall proportions. IF THERE IS ANY CONFLICT between the photo colors and the text morphology description below, THE PHOTOS ARE ALWAYS CORRECT — the text may contain errors. Use the photos as the primary color reference.` },
-              ...photoParts,
-              { text: enginePrompt },
-            ];
-          } else {
-            geminiParts = enginePrompt;
-          }
+          // iNaturalist fetch disabled — morphology data is sufficient and
+          // reference photos from iNat were adding noise rather than signal.
+          const geminiParts = enginePrompt;
 
           let prompt = "";
           try {
@@ -1209,6 +1366,74 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
           }
 
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Prompt OK: ${prompt.substring(0, 30)}...`]);
+
+          // ── Anti-bias post-processing ──────────────────────────────────────────
+          // When antiConfusion is defined, the scientific name (especially genus)
+          // triggers learned visual priors in Imagen 4 that override all text instructions.
+          // Replace it with a purely visual description (in English) to break the bias chain.
+          if (antiConf.length > 0 && refData?.cap) {
+            // Translate common Spanish cap color/texture terms to English
+            const ES_COLOR = {
+              'blanco': 'white', 'blanca': 'white', 'blanco a crema': 'white to cream',
+              'crema': 'cream', 'crema a blanco': 'cream white', 'amarillo': 'yellow',
+              'amarillo a naranja': 'yellow-orange', 'naranja': 'orange', 'rojo': 'red',
+              'rojo a marrón': 'reddish brown', 'marrón': 'brown', 'pardo': 'brown',
+              'gris': 'gray', 'gris a marrón': 'grayish brown', 'negro': 'black',
+              'verde': 'green', 'violeta': 'violet', 'lila': 'lilac', 'rosa': 'pink',
+              'ocre': 'ochre', 'beige': 'beige',
+            };
+            const ES_TEXTURE = {
+              'lisa': 'smooth', 'liso': 'smooth', 'sedosa': 'silky', 'sedoso': 'silky',
+              'seca': 'dry', 'seco': 'dry', 'viscosa': 'viscid', 'viscoso': 'viscid',
+              'escamosa': 'scaly', 'escamoso': 'scaly', 'fibrosa': 'fibrous',
+              'fibrilosa': 'fibrous', 'tomentosa': 'tomentose', 'rugosa': 'rough',
+              'granulosa': 'granular', 'lustrosa': 'glossy', 'mate': 'matte',
+            };
+            const rawColor = (refData.cap.color ?? 'white').split(/[,;]/)[0].trim().toLowerCase();
+            const capColor = ES_COLOR[rawColor] ?? rawColor;
+            const sup = refData.cap.superficie ?? '';
+            const diagIdx = sup.search(/\b(RASGO|DISTINTIVO|DIAGNOSTIC|DISTINCTIVE)\b/i);
+            const texPart = diagIdx > 0 ? sup.slice(0, diagIdx).trim().replace(/[.:,]+$/, '') : sup;
+            const rawTexture = texPart.split(/[,;]/)[0].trim().toLowerCase();
+            const textureWord = ES_TEXTURE[rawTexture] ?? rawTexture;
+            const genus = cleanName.split(' ')[0]; // e.g. "Amanita"
+            const visualAlias = `a large ${capColor} ${textureWord}-capped forest mushroom`;
+            // Replace "Genus species" and standalone genus references in the Imagen 4 prompt
+            const nameRx = new RegExp(
+              `${genus}\\s+\\w+|${cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+              'gi'
+            );
+            prompt = prompt.replace(nameRx, visualAlias);
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🔄 Nombre científico → descripción visual (anti-bias Imagen 4)`]);
+          }
+          // ─────────────────────────────────────────────────────────────────────
+
+          // ── Mandatory photo specs — PREPENDED so image model reads them first ───
+          // Image models weight the START of the prompt far more than the end.
+          // Hymenium visual constraints are also injected here to override the
+          // strong "gills by default" visual prior image models have from training data.
+          const hymeniumConstraint = family ? (HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family] ?? '') : '';
+          if (hymeniumConstraint) {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🍄 Himeneo especial: ${family} → constraint inyectado`]);
+          } else if (family) {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Familia: ${family} (sin constraint de himeneo)`]);
+          } else {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Familia no detectada — sin constraint de himeneo`]);
+          }
+          const MANDATORY_PHOTO_PREFIX = [
+            // Anti-diptych FIRST — absolute highest priority before anything else
+            `OUTPUT FORMAT (ABSOLUTE RULE — OVERRIDES EVERYTHING): ONE single photograph. A single continuous uninterrupted rectangular image with no divisions. NOT a diptych. NOT side-by-side panels. NOT a grid. NOT before/after. NOT cross-section + exterior. ONE scene, one frame, one photo.`,
+            hymeniumConstraint,
+            `PHOTOGRAPHY STYLE: Hyper-realistic field photograph. Golden hour backlit forest — warm low-angle dawn or dusk sun partially hidden behind tree trunks, volumetric crepuscular rays piercing the understory, pronounced rim lighting separating mushrooms from background. Soft warm diffused light with no harsh shadows. All specimens centered in the MIDDLE 50% of the frame width — wide forest floor fills left and right thirds. Macro lens 105mm, f/4.0, razor-sharp focus on adult cap, deep creamy bokeh on background. Subsurface scattering through mushroom flesh.`,
+          ].filter(Boolean).join('\n\n') + '\n\n';
+          // Remove trailing duplicate lighting/lens blocks Gemini may have appended
+          prompt = prompt
+            .replace(/[\.\s]*(Golden hour lighting[^]*?no panels\.?)\s*$/i, '')
+            .replace(/[\.\s]*(Hyper-realistic field photograph[^]*?no panels\.?)\s*$/i, '')
+            .trim();
+          prompt = MANDATORY_PHOTO_PREFIX + prompt;
+
+          setCurrentPrompt(prompt); // show in viewer while image generates
 
           setGenerationStep(`Enviando diseño de ${currentName}...`);
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando imagen a Google...`]);
@@ -1429,11 +1654,29 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
             errMsg.includes("unavailable");
 
           if (isTimeout || isUnavailable) {
-            // Fallback: text-to-image (no real editing, but show a visible warning to the user)
+            // Fallback: text-to-image regeneration with full species context + refinement instruction.
+            // We can't edit the image directly, but we can regenerate from scratch respecting the species
+            // morphology and applying only the requested change on top.
             const reason = isTimeout ? 'lento' : 'no disponible';
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini Edit ${reason}. Usando generación de respaldo (Imagen 4)...`]);
-            setRefineWarning(`El modo de edición real no está disponible ahora mismo. La imagen se ha generado de nuevo desde el texto, no a partir de la original.`);
-            return await withTimeout(callImagen3(refinementText, apiKey), 90000);
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini Edit ${reason}. Regenerando con contexto completo de especie (Imagen 4)...`]);
+            setRefineWarning(`El modo de edición real no está disponible ahora mismo. La imagen se ha regenerado desde texto conservando la morfología de la especie.`);
+
+            // Rebuild species context for the fallback prompt
+            const fallbackName = currentSettings.scientificName.includes(' - ')
+              ? currentSettings.scientificName.split(' - ')[1]
+              : currentSettings.scientificName;
+            const refData = referenceSpecies?.extra_data ?? referenceSpecies;
+            let fallbackMorphology = "";
+            if (refData) {
+              const cap = refData.cap;
+              const stem = refData.stem;
+              const lines = [];
+              if (cap)  lines.push(`CAP: shape="${cap.forma ?? ''}", EXACT COLOR="${cap.color ?? ''}", surface="${cap.superficie ?? ''}"`);
+              if (stem) lines.push(`STIPE: shape="${stem.forma ?? ''}", EXACT COLOR="${stem.color ?? ''}"`);
+              if (lines.length > 0) fallbackMorphology = `\nVERIFIED MORPHOLOGY (DO NOT ALTER):\n${lines.join('\n')}`;
+            }
+            const fallbackPrompt = `Photorealistic mycological photograph of ${fallbackName}.${fallbackMorphology}\n\nSHOT: ${settings.shotType}. SPECIMENS: ${settings.specimenCount}.\n\nAPPLY ONLY THIS CHANGE to the baseline species description above: ${refinementText}\n\nAll other species characteristics remain as described. The result must be a real-looking scientific photograph with natural imperfections.`;
+            return await withTimeout(callImagen3(fallbackPrompt, apiKey), 90000);
           }
           throw err;
         }
@@ -1580,122 +1823,88 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
       <main className="max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-12 gap-8">
           {/* Controls - SIDEBAR_MARKER */}
-          <div className="lg:col-span-4 flex flex-col h-full">
-            <div className="space-y-10 flex flex-col h-full">
-              {isGenerating && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6"
-                >
-                  {/* Consola de Registro */}
-                  <div className="bg-black/40 rounded-2xl p-5 border border-white/5 shadow-inner flex flex-col">
-                    <div className="text-[9px] font-mono text-[#d9cda1]/30 uppercase tracking-widest mb-3 flex justify-between items-center">
-                      <span className="text-emerald-500/60 flex items-center gap-2">
+          <div className="lg:col-span-4 flex flex-col gap-6">
+
+              {/* ── Gallery-first: cabecera especie — visible siempre (generando o no) ── */}
+              {isGalleryFirst && settings.scientificName && (
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9cda1]/40 mb-1">Generando para</p>
+                    <p className="font-display text-3xl font-semibold text-cream leading-tight truncate">{settings.scientificName}</p>
+                    <p className="text-cream/30 text-sm font-mono mt-0.5">{searchParams.get('especie')}</p>
+                  </div>
+                  <button
+                    onClick={() => window.history.back()}
+                    className="shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-cream/40 hover:text-cream transition-colors mt-1"
+                    title="Volver a la galería"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Galería
+                  </button>
+                </div>
+              )}
+
+              {/* ── Consola — visible durante Y después de la generación ── */}
+              {(isGenerating || statusLog.length > 0) && (
+                <div className="bg-black/40 rounded-2xl p-4 border border-white/5 shadow-inner flex flex-col gap-3">
+
+                  {/* Sección Registro */}
+                  <div className="flex flex-col">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[9px] font-mono text-emerald-500/60 uppercase tracking-widest flex items-center gap-2">
                         <History size={10} />
-                        Registro de Actividad
-                        <span className="text-emerald-500/30 font-mono text-[9px] uppercase tracking-widest ml-2">
-                          T+ {Math.floor(generationTime / 60)}:{(generationTime % 60).toString().padStart(2, '0')}
-                        </span>
+                        Registro
+                        {isGenerating && (
+                          <span className="text-emerald-500/30 font-mono text-[9px]">
+                            T+ {Math.floor(generationTime / 60)}:{(generationTime % 60).toString().padStart(2, '0')}
+                          </span>
+                        )}
                       </span>
-                      <div className="flex gap-3">
-                        <button onClick={copyLog} className="hover:text-emerald-400 transition-colors p-1" title="Copiar Log"><Copy size={12} /></button>
-                      </div>
+                      <button onClick={copyLog} className="text-[#d9cda1]/30 hover:text-emerald-400 transition-colors p-1" title="Copiar registro"><Copy size={11} /></button>
                     </div>
-                    <div ref={logContainerRef} className="space-y-1 overflow-y-auto custom-scrollbar pr-2 font-mono max-h-[220px]">
+                    <div ref={logContainerRef} className="max-h-[130px] overflow-y-auto custom-scrollbar space-y-0.5 font-mono pr-1">
                       {statusLog.map((log, idx) => (
-                        <div key={idx} className="text-[10px] text-[#d9cda1]/55 text-left leading-snug border-l border-white/5 pl-3 py-0.5">
-                          <span className="text-emerald-500/40 mr-2">›</span>
-                          {log}
+                        <div key={idx} className="text-[10px] text-[#d9cda1]/50 leading-snug border-l border-white/5 pl-2 py-0.5">
+                          <span className="text-emerald-500/40 mr-1.5">›</span>{log}
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Cola de Lote Detallada */}
-                  {batchQueue.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="px-4 py-3 bg-black/20 rounded-xl border border-white/5 space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-bold text-[#d9cda1]/40 uppercase tracking-widest">Cola de Producción</span>
-                          <span className="text-xs font-mono text-emerald-500">
-                            {batchProgress ? `${batchProgress.current} / ${batchProgress.total}` : batchQueue.length}
-                          </span>
-                        </div>
-
-                        <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                          {batchQueue.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5 border border-white/5 group transition-colors hover:bg-white/10">
-                              <div className="flex items-center gap-3 overflow-hidden">
-                                {item.status === 'completed' ? <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" /> :
-                                  item.status === 'failed' ? <AlertCircle className="w-3 h-3 text-red-500 shrink-0" /> :
-                                    item.status === 'processing' ? <Loader2 className="w-3 h-3 text-emerald-500 animate-spin shrink-0" /> :
-                                      <Clock className="w-3 h-3 text-[#d9cda1]/30 shrink-0" />}
-                                <div className="flex flex-col truncate">
-                                  <span className={`text-xs font-bold truncate ${item.status === 'processing' ? 'text-emerald-400' : 'text-[#d9cda1]/80'}`}>
-                                    {item.name}
-                                  </span>
-                                  <span className="text-[8px] text-[#d9cda1]/40 font-mono">ID: {item.id}</span>
-                                </div>
-                              </div>
-                              {item.status === 'failed' && (
-                                <div className="group/error relative">
-                                  <Info className="w-3 h-3 text-red-400/50 cursor-help" />
-                                  <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-red-900/95 backdrop-blur-md rounded-lg text-[8px] text-white opacity-0 group-hover/error:opacity-100 transition-opacity pointer-events-none z-50 border border-red-500/20 shadow-xl">
-                                    {item.error}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        {batchProgress && (
-                          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-emerald-500/50 transition-all duration-500"
-                              style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
-                            />
-                          </div>
-                        )}
+                  {/* Sección Prompt */}
+                  {currentPrompt && (
+                    <div className="flex flex-col border-t border-white/5 pt-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[9px] font-mono text-emerald-400/50 uppercase tracking-widest">
+                          Prompt → {imageModel ? imageModel.replace('models/', '') : 'modelo'}
+                        </span>
+                        <button onClick={copyPrompt} className="text-[#d9cda1]/30 hover:text-emerald-400 transition-colors p-1" title="Copiar prompt"><Copy size={11} /></button>
+                      </div>
+                      <div className="max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
+                        <p className="text-[10px] text-[#d9cda1]/40 italic leading-relaxed font-mono whitespace-pre-wrap">{currentPrompt}</p>
                       </div>
                     </div>
                   )}
 
-                  {/* Botón Detener */}
-                  <button
-                    onClick={stopGeneration}
-                    className="w-full bg-red-500/10 text-red-400 border border-red-500/10 rounded-xl py-4 font-bold text-xs uppercase tracking-[0.2em] hover:bg-red-500/20 transition-all flex items-center justify-center gap-3"
-                  >
-                    <X size={14} />
-                    Detener Captura
-                  </button>
-                </motion.div>
+                </div>
               )}
 
-              {!isGenerating && (
-                <div className="space-y-10">
+              {/* ── Botón Detener — solo durante generación ── */}
+              {isGenerating && (
+                <button
+                  onClick={stopGeneration}
+                  className="w-full bg-red-500/10 text-red-400 border border-red-500/10 rounded-xl py-3.5 font-bold text-xs uppercase tracking-[0.2em] hover:bg-red-500/20 transition-all flex items-center justify-center gap-3"
+                >
+                  <X size={14} />
+                  Detener Captura
+                </button>
+              )}
 
-                  {/* ── Gallery-first: species title (replaces selector in generar=1 mode) ── */}
-                  {isGalleryFirst && settings.scientificName && (
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9cda1]/40 mb-1">Generando para</p>
-                        <p className="font-display text-3xl font-semibold text-cream leading-tight truncate">{settings.scientificName}</p>
-                        <p className="text-cream/30 text-sm font-mono mt-0.5">{searchParams.get('especie')}</p>
-                      </div>
-                      <button
-                        onClick={() => window.history.back()}
-                        className="shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-cream/40 hover:text-cream transition-colors mt-1"
-                        title="Volver a la galería"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Galería
-                      </button>
-                    </div>
-                  )}
+              {/* ── Ajustes + botón generar — solo antes de la primera generación ── */}
+              {!isGenerating && statusLog.length === 0 && (
+                <div className="space-y-10">
 
                   <section className="transition-all duration-500">
                     <div className="space-y-8">
@@ -1792,6 +2001,36 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
                       </div>}
                       {/* ── /Selector especie + ID ── */}
 
+                      {/* ── Model selector ───────────────────────────────── */}
+                      <div className="pt-2 border-t border-white/5">
+                        <label className="block text-xs font-bold uppercase tracking-[0.2em] mb-3 text-[#d9cda1] flex items-center gap-2">
+                          <Settings2 className="w-3 h-3" />
+                          Modelo de Imagen
+                          {loadingModels && <span className="text-[#d9cda1]/40 normal-case tracking-normal font-normal">descubriendo…</span>}
+                        </label>
+                        {availableImageModels.length > 0 ? (
+                          <div className="relative">
+                            <select
+                              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all appearance-none text-xs font-bold text-[#f4ebe1] truncate"
+                              value={imageModel}
+                              onChange={(e) => setImageModel(e.target.value)}
+                            >
+                              {availableImageModels.map(m => (
+                                <option key={m.id} value={m.id} className="bg-[#2b3529] font-normal">
+                                  {m.displayName}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#d9cda1]">
+                              <ChevronRight className="w-3 h-3 rotate-90" />
+                            </div>
+                          </div>
+                        ) : !loadingModels ? (
+                          <p className="text-xs text-[#d9cda1]/40">Sin clave API — los modelos se cargan al confirmar la clave.</p>
+                        ) : null}
+                      </div>
+                      {/* ── /Model selector ──────────────────────────────── */}
+
                       <div className="space-y-6">
                         <div className="pt-2 border-t border-white/5">
                           <button
@@ -1817,7 +2056,7 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
                                   <div>
                                     <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Número de Ejemplares</label>
                                     <div className="flex gap-2">
-                                      {[1, 2, 3].map((num) => (
+                                      {[1, 2, 3, 5].map((num) => (
                                         <button
                                           key={num}
                                           onClick={() => setSettings({ ...settings, specimenCount: num })}
@@ -1826,7 +2065,7 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
                                             : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
                                             }`}
                                         >
-                                          {num}
+                                          {num === 5 ? '4+' : num}
                                         </button>
                                       ))}
                                     </div>
@@ -2058,13 +2297,12 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-5 bg-amber-900/20 border border-amber-500/30 rounded-2xl flex items-start gap-3 text-amber-200 text-xs leading-relaxed mt-4"
+                  className="p-5 bg-amber-900/20 border border-amber-500/30 rounded-2xl flex items-start gap-3 text-amber-200 text-xs leading-relaxed"
                 >
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
                   <p>{refineWarning}</p>
                 </motion.div>
               )}
-            </div>
           </div>
 
           {/* Display */}
@@ -2072,7 +2310,20 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
             <div className="bg-black/20 rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden min-h-[700px] flex flex-col backdrop-blur-sm">
               <div className="flex-1 relative flex items-center justify-center p-12 bg-black/10">
                 <AnimatePresence mode="wait">
-                  {generatedImage ? (
+                  {isGenerating && !generatedImage ? (
+                    <motion.div
+                      key="generating"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-center flex flex-col items-center gap-5"
+                    >
+                      <Loader2 className="w-14 h-14 text-emerald-500/60 animate-spin" />
+                      <p className="text-[#d9cda1]/30 text-xs font-bold uppercase tracking-[0.3em]">
+                        {currentPrompt ? 'Imagen 4 procesando…' : settings.scientificName ? `Generando ${settings.scientificName}…` : 'Generando…'}
+                      </p>
+                    </motion.div>
+                  ) : generatedImage ? (
                     <motion.div
                       key="image"
                       initial={{ opacity: 0, scale: 0.98 }}
@@ -2163,7 +2414,7 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
                         Introduce un nombre científico y configura los parámetros para generar un espécimen fotorrealista.
                       </p>
                     </motion.div>
-                  )}
+                  ) /* end isGenerating / generatedImage / empty */}
                 </AnimatePresence>
               </div>
 
@@ -2370,8 +2621,11 @@ MANDATORY REQUIREMENTS — these must appear in the output prompt:
               }
               const updated = await res.json();
               setReferenceSpecies(updated);
-              loadedReferenceIdRef.current = referenceSpecies.id; // mark as fresh — skip re-fetch after invalidateSpeciesListCache
-              // Bust list cache so the species thumbnail reflects the new order on next load.
+              loadedReferenceIdRef.current = referenceSpecies.id; // mark as fresh — skip re-fetch after cache patch
+              // 1. Patch inmediato: actualiza la foto en caché sin recargar toda la lista (feedback visual instantáneo).
+              // 2. Invalidación garantizada: fuerza re-fetch en el siguiente render para que la card
+              //    refleje el estado real de la BD, incluso si la especie no estaba en caché al parchear.
+              patchSpeciesPhotoInCache(updated);
               invalidateSpeciesListCache();
               if (catalogModal.newImageDataUrl) setSavedToCatalog(true);
               setApplyStatus('success');

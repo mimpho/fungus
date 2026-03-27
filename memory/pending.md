@@ -99,6 +99,14 @@ Solución: sustituir los archivos de imagen en `assets/images/content/species/` 
 - Añadir más especies representativas de cada tipo de bosque
 - Valorar tipos adicionales: abetosas, coníferas mixtas, etc.
 
+### Auditoría morfológica orientada a identificación (ALTA PRIORIDAD cuando se aborde)
+Las descripciones actuales de `cap`, `stem`, `flesh` están redactadas como fichas enciclopédicas. Para que sean útiles en identificación de campo (y para el generador de imágenes), cada especie debería tener:
+- **Rasgos diagnósticos explicitados** — los 1-3 rasgos que la distinguen de todas las demás, marcados con `RASGO DIAGNÓSTICO:` para que el morfologyBlock del generador los detecte y los priorice.
+- **Rasgos de confusión negativos** — lo que NO tiene (ej. "SIN rosado en la carne, SIN volva membranosa"), especialmente respecto a sus especies de confusión del `ConfusionesBlock`.
+- **Escala y prominencia** — no "apéndices pendulares" sino "fragmentos de 1-3 cm, conspicuos, imposibles de ignorar". Los modelos de imagen (y los recolectores novatos) necesitan vocabulario de magnitud.
+
+Alcance: 202 especies en BD + `species.js`. El trabajo debería hacerse directamente en Supabase (SQL batch por familia) más actualización paralela en `species.js`. Ver patrón ya aplicado en `esp-062` (*Amanita ovoidea*) como referencia.
+
 ### Zonas sin especies en temporada
 Si no hay especies que coincidan con una zona/mes, el score meteorológico queda sin ajustar. Considerar penalización por "zona sin interés micológico este mes".
 

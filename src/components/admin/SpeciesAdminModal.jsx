@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   X, Wand2, ChevronLeft, ChevronRight, Camera,
-  Move, Save, CheckCircle2, Loader2, AlertCircle,
+  Move, Save, CheckCircle2, Loader2, AlertCircle, Trash2, Check,
 } from 'lucide-react'
 import { moveItem } from './CatalogImagesModal'
 import { resolveUrl } from '../../lib/helpers'
@@ -59,10 +59,12 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
   }, [rawSpecies])
 
   // ── UI state ─────────────────────────────────────────────────────────────
-  const [lightboxIdx,   setLightboxIdx]   = useState(null)
-  const [reorderMode,   setReorderMode]   = useState(false)
-  const [reorderedUrls, setReorderedUrls] = useState([])
-  const [applyStatus,   setApplyStatus]   = useState(null)
+  const [lightboxIdx,     setLightboxIdx]     = useState(null)
+  const [reorderMode,     setReorderMode]     = useState(false)
+  const [reorderedUrls,   setReorderedUrls]   = useState([])
+  const [deleteMode,      setDeleteMode]      = useState(false)
+  const [selectedToDelete, setSelectedToDelete] = useState(new Set())
+  const [applyStatus,     setApplyStatus]     = useState(null)
 
   // ── DnD ──────────────────────────────────────────────────────────────────
   const [dragIdx,  setDragIdx]  = useState(null)
@@ -166,6 +168,43 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
     }
   }
 
+  // ── Delete actions ────────────────────────────────────────────────────────
+  const startDelete = () => {
+    setDeleteMode(true)
+    setSelectedToDelete(new Set())
+    setApplyStatus(null)
+  }
+  const cancelDelete = () => {
+    setDeleteMode(false); setSelectedToDelete(new Set()); setApplyStatus(null)
+  }
+  const toggleDeleteSelect = (idx) => {
+    setSelectedToDelete(prev => {
+      const next = new Set(prev)
+      next.has(idx) ? next.delete(idx) : next.add(idx)
+      return next
+    })
+  }
+  const confirmDelete = async () => {
+    if (!rawSpecies || selectedToDelete.size === 0) return
+    const remaining = committedPhotos.filter((_, i) => !selectedToDelete.has(i))
+    setApplyStatus('saving')
+    try {
+      const res = await fetch(`${API_BASE}/species/${rawSpecies.id}/images/set-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ photos: remaining }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Error ${res.status}`)
+      setRawSpecies(await res.json())
+      invalidateSpeciesListCache()
+      setApplyStatus('success')
+      setTimeout(() => { setDeleteMode(false); setSelectedToDelete(new Set()); setApplyStatus(null) }, 1200)
+    } catch (err) {
+      console.error('Error deleting photos:', err)
+      setApplyStatus('error')
+    }
+  }
+
   // ── Lightbox navigation ───────────────────────────────────────────────────
   const lightboxPrev = useCallback(() =>
     setLightboxIdx(i => (i > 0 ? i - 1 : committedPhotos.length - 1)),
@@ -180,6 +219,7 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
       if (e.key === 'Escape') {
         if (lightboxIdx !== null) { setLightboxIdx(null); return }
         if (reorderMode) { cancelReorder(); return }
+        if (deleteMode) { cancelDelete(); return }
         onClose()
       }
       if (lightboxIdx !== null) {
@@ -190,7 +230,7 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
     document.addEventListener('keydown', h)
     return () => document.removeEventListener('keydown', h)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lightboxIdx, reorderMode, lightboxPrev, lightboxNext, onClose])
+  }, [lightboxIdx, reorderMode, deleteMode, lightboxPrev, lightboxNext, onClose])
 
   const busy = applyStatus === 'saving' || applyStatus === 'success'
 
@@ -204,7 +244,7 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
       <div
         className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center modal-outer"
         style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)', overflowY: 'auto' }}
-        onClick={() => { if (!reorderMode) onClose() }}
+        onClick={() => { if (!reorderMode && !deleteMode) onClose() }}
       >
         <div
           className="sm:my-8 w-full max-w-3xl rounded-t-3xl sm:rounded-3xl overflow-hidden anim-scale modal-inner"
@@ -224,7 +264,7 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
               <p className="text-cream/30 text-xs font-mono mt-0.5">{species?.id}</p>
             </div>
             <button
-              onClick={() => { if (reorderMode) cancelReorder(); else onClose() }}
+              onClick={() => { if (reorderMode) cancelReorder(); else if (deleteMode) cancelDelete(); else onClose() }}
               className="shrink-0 ml-4 p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all"
             >
               <X className="w-4 h-4" />
@@ -234,11 +274,17 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
           {/* Body */}
           <div className="p-6 space-y-5">
 
-            {/* Reorder hint */}
+            {/* Mode hints */}
             {reorderMode && (
               <p className="text-[10px] text-cream/40 text-center uppercase tracking-widest flex items-center justify-center gap-1.5">
                 <Move className="w-3 h-3" />
                 Arrastra para reordenar
+              </p>
+            )}
+            {deleteMode && (
+              <p className="text-[10px] text-cream/40 text-center uppercase tracking-widest flex items-center justify-center gap-1.5">
+                <Trash2 className="w-3 h-3" />
+                Toca las imágenes que quieres eliminar
               </p>
             )}
 
@@ -296,11 +342,18 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
                           'group relative aspect-[4/3] rounded-2xl overflow-hidden bg-black/30 select-none',
                           reorderMode
                             ? (busy ? 'cursor-default' : 'cursor-grab active:cursor-grabbing')
+                            : deleteMode
+                            ? 'cursor-pointer'
                             : 'cursor-pointer hover-lift',
                           reorderMode && isDragging ? 'ring-1 ring-white/20' : '',
+                          deleteMode && selectedToDelete.has(visualIdx) ? 'ring-2 ring-red-500/70' : '',
                         ].join(' ')}
                         style={!reorderMode ? { transition: 'transform 0.2s ease, box-shadow 0.2s ease' } : undefined}
-                        onClick={!reorderMode ? () => setLightboxIdx(visualIdx) : undefined}
+                        onClick={
+                          reorderMode ? undefined
+                          : deleteMode ? () => toggleDeleteSelect(visualIdx)
+                          : () => setLightboxIdx(visualIdx)
+                        }
                       >
                         <img
                           src={resolveUrl(url)}
@@ -319,11 +372,29 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
                         )}
 
                         {/* Position label */}
-                        <div className={`absolute bottom-2 left-2 transition-opacity ${reorderMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                        <div className={`absolute bottom-2 left-2 transition-opacity ${reorderMode ? 'opacity-100' : deleteMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
                           <span className="text-[8px] font-bold uppercase tracking-widest text-white/70 bg-black/50 px-2 py-0.5 rounded-full">
                             {visualIdx === 0 ? 'Principal' : `Foto ${visualIdx}`}
                           </span>
                         </div>
+
+                        {/* Delete mode — selection overlay */}
+                        {deleteMode && (
+                          <>
+                            {selectedToDelete.has(visualIdx) && (
+                              <div className="absolute inset-0 bg-red-500/25 pointer-events-none" />
+                            )}
+                            <div className="absolute top-2 right-2 pointer-events-none">
+                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                selectedToDelete.has(visualIdx)
+                                  ? 'bg-red-500 border-red-400 shadow-lg'
+                                  : 'bg-black/50 border-white/40'
+                              }`}>
+                                {selectedToDelete.has(visualIdx) && <Check className="w-3.5 h-3.5 text-white" />}
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </motion.div>
                     )
                   })}
@@ -363,8 +434,33 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
                   }
                 </button>
               </div>
-            ) : (
+            ) : deleteMode ? (
               <div className="grid grid-cols-2 gap-3 pt-1">
+                <button
+                  onClick={cancelDelete}
+                  disabled={busy}
+                  className="flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-2xl py-4 text-xs font-bold uppercase tracking-widest text-cream/70 hover:text-cream hover:bg-white/10 transition-all disabled:opacity-40"
+                >
+                  <X className="w-4 h-4" />
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={busy || selectedToDelete.size === 0}
+                  className="flex items-center justify-center gap-2 bg-red-700/80 hover:bg-red-600/80 text-white rounded-2xl py-4 text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-black/20"
+                >
+                  {applyStatus === 'saving'
+                    ? <><Loader2 className="w-4 h-4 animate-spin" />Eliminando...</>
+                    : applyStatus === 'success'
+                    ? <><CheckCircle2 className="w-4 h-4" />Eliminado</>
+                    : <><Trash2 className="w-4 h-4" />
+                        Eliminar{selectedToDelete.size > 0 ? ` (${selectedToDelete.size})` : ''}
+                      </>
+                  }
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3 pt-1">
                 <button
                   onClick={startReorder}
                   disabled={loadingRaw || committedPhotos.length < 2}
@@ -375,11 +471,19 @@ export default function SpeciesAdminModal({ species, onClose, onGenerate }) {
                   Reordenar
                 </button>
                 <button
+                  onClick={startDelete}
+                  disabled={loadingRaw || committedPhotos.length === 0}
+                  className="flex items-center justify-center gap-2 bg-white/5 border border-white/10 rounded-2xl py-4 text-xs font-bold uppercase tracking-widest text-red-400/70 hover:text-red-300 hover:bg-red-500/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Borrar
+                </button>
+                <button
                   onClick={() => onGenerate(species.id)}
                   className="flex items-center justify-center gap-2 bg-[#f4ebe1] text-[#1a1a1a] rounded-2xl py-4 text-xs font-bold uppercase tracking-widest hover:bg-white transition-all shadow-lg shadow-black/30 active:scale-[0.98]"
                 >
                   <Wand2 className="w-4 h-4" />
-                  Generar imagen
+                  Generar
                 </button>
               </div>
             )}

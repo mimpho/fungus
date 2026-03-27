@@ -13,7 +13,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Save, Camera, CheckCircle2, X, Move, Loader2, AlertCircle,
+  Save, Camera, CheckCircle2, X, Move, Loader2, AlertCircle, Trash2,
 } from 'lucide-react'
 import { resolveUrl } from '../../lib/helpers'
 import { MODAL } from '../../lib/constants'
@@ -204,20 +204,6 @@ export function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType,
         {/* Body */}
         <div className="p-6 space-y-5">
 
-          {/* New image preview strip */}
-          {newImageDataUrl && (
-            <div className="flex items-start gap-4 p-4 bg-emerald-900/10 border border-emerald-500/20 rounded-xl">
-              <div className="shrink-0">
-                <div className="w-24 aspect-[4/3] rounded-xl overflow-hidden bg-black/30 ring-2 ring-emerald-500/60">
-                  <img src={newImageDataUrl} alt="Nueva" className="w-full h-full object-cover" />
-                </div>
-              </div>
-              <p className="text-sm text-[#d9cda1]/70 leading-relaxed pt-1">
-                La nueva imagen aparece en primera posición. Arrástrala donde quieras o déjala como principal.
-              </p>
-            </div>
-          )}
-
           {/* Hint */}
           <p className="text-[10px] text-[#d9cda1]/40 text-center uppercase tracking-widest flex items-center justify-center gap-1.5">
             <Move className="w-3 h-3" />
@@ -291,6 +277,19 @@ export function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType,
                     </span>
                     {isNewImg && !isDragging && (
                       <span className="text-[9px] text-emerald-400/80 font-bold uppercase tracking-widest">nueva</span>
+                    )}
+                    {!busy && (
+                      <button
+                        title="Eliminar imagen"
+                        draggable={false}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPhotos(prev => prev.filter((_, i) => i !== origIdx));
+                        }}
+                        className="p-1.5 rounded-lg text-red-400 hover:text-white hover:bg-red-500/70 transition-all shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                 </motion.div>
