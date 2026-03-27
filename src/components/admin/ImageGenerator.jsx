@@ -11,10 +11,11 @@ import JSZip from 'jszip';
 import { useSpecies } from '../../hooks/useSpecies';
 import { useApp } from '../../contexts/AppContext';
 import { API_BASE } from '../../services/apiService';
-import { invalidateSpeciesListCache } from '../../hooks/useSpecies';
+import { invalidateSpeciesListCache, patchSpeciesPhotoInCache } from '../../hooks/useSpecies';
 import { authHeaders } from '../../services/authService';
 import { resolveUrl } from '../../lib/helpers';
 import { MODAL } from '../../lib/constants';
+import { CatalogImagesModal } from './CatalogImagesModal';
 import {
   Camera,
   Sprout,
@@ -86,68 +87,111 @@ const FILE_FORMATS = [
   { label: "PNG", value: "image/png" },
 ];
 
-const MYCOLOGICAL_ENGINE_INSTRUCTIONS = `ROLE: Eres un experto micólogo botánico y director de fotografía de National Geographic. Tu misión es transformar entrad en prompts de imagen fotorrealist un catálogo científico de set España.
+// ── Image generation model ────────────────────────────────────────────────────
+// Model is selected dynamically via fetchAvailableImageModels (ListModels API).
+// Routing: model name starts with 'gemini-' → SDK generateContent + responseModalities
+//          model name starts with 'imagen-' → Predict REST API
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MYCOLOGICAL_ENGINE_INSTRUCTIONS = `ROLE: Eres un experto micólogo botánico y director de fotografía de National Geographic. Tu misión es transformar entradas en prompts de imagen fotorrealistas para un catálogo científico de setas de España.
 
 1. PROTOCOLO DE ESCENA (REGLA 16:9 Y CENTRALIZACIÓN)
-Zona Segura (Safe Area): Los ejemplares deben agruparse en el centro (45% - 55% de la anchura). Los laterales deben estar vacíos de set para permitir un recorte cuadrado (1:1) sin mutilar el grupo.
-Composición por Cantidad: 
-- 1: Un ejemplar adulto.
-- 2: Adulto + Joven.
-- 3: Adulto (centro) + Joven + Primordio (huevo).
-Profundidad y Disposición: PROHIBIDO alinear l en fila horizontal o que nazcan siempre del mismo punto (cespitosas). Deben estar dispuest profundidad 3D real (una adelantada, otra retrasada, en diferentes planos focales) para crear una escena dinámica y natural.
+Zona Segura (Safe Area): Los ejemplares deben agruparse en el CENTRO ESTRICTO (45%–55% de la anchura del encuadre). Los laterales (25% izquierdo y 25% derecho) son exclusivamente hábitat/fondo. Ningún ejemplar debe quedar cortado o parcialmente fuera del centro — la imagen se usa en tarjetas cuadradas 1:1.
+Composición por Cantidad:
+- 1: Un ejemplar adulto, centrado.
+- 2: Adulto + Joven. Adulto en primer plano, joven más retrasado.
+- 3: Primordio (huevo/botón compacto) + Joven (convexo, formándose) + Adulto (abierto, rasgos diagnósticos a máxima expresión). SIEMPRE estas tres fases distintas — NUNCA dos adultos.
+- 4+: Varios ejemplares (primordio, joven, 2+ adultos en distintos planos) dispersos de forma natural a diferentes profundidades dentro del área central. La escena debe parecer una pequeña familia emergiendo del suelo.
+Profundidad y Disposición: ⚠️ CRÍTICO. PROHIBIDO alinearlos al mismo plano de profundidad. La diferencia de distancia entre el ejemplar más cercano y el más lejano debe ser EVIDENTE y PRONUNCIADA: el ejemplar del primer plano es notablemente más grande y más nítido; el del fondo se ve claramente más pequeño y con bokeh. La escena debe transmitir volumen real, no una alineación plana.
 
-2. MANUAL ANTIALUCINACIONES (MATRIZ TAXONÓMICA ESTRICTA)
-¡CRÍTICO!: No mezcles característic géneros. Existe un sesgo masivo en internet que confunde Russula emetica con Amanita muscaria. DEBES corregirlo:
-- PROTOCOLO DE VALIDACIÓN CIENTÍFICA: Ignora l populares de internet. Basa tus descripciones exclusivamente en datos técnicos de plataform como Index Fungorum, MycoBank o guí campo profesionales (ej. Courtecuisse). El rigor científico debe prevalecer sobre cualquier sesgo visual de internet.
-- Amanitas: Sombrero con verrug puntos blancos (restos de velo). Pie con anillo (faldilla) y volva en la base.
+2. FIDELIDAD DE COLOR Y TEXTURA ESPECIE-ESPECÍFICA (REGLA MÁXIMA PRIORIDAD)
+⚠️ CRÍTICO — REGLA N.º 1: Los colores, texturas y proporciones proporcionados en el bloque de morfología verificada del prompt de usuario son DATOS CIENTÍFICOS PRIMARIOS. Deben reproducirse exactamente. Las reglas genéricas de familia son solo marcos secundarios — se aplican ÚNICAMENTE para rasgos no especificados en el bloque primario.
+- COLORES: Reproduce el tono exacto indicado (ej. «blanco cremoso con umbón ocre central» significa sombrero blancuzco con mancha cálida ocre solo en el centro). No sustituyas por colores genéricos del género.
+- TEXTURAS: Viscosa, sedosa, tomentosa, escamosa, fibrosa, lisa, mate, lustrosa — reproduce la textura indicada con exactitud fotográfica.
+- PROPORCIONES: Si la especie tiene pie esbelto y largo, no pongas un pie robusto y corto. Las proporciones del estipe y píleo son diagnósticas y deben ser fieles.
+
+3. MANUAL ANTIALUCINACIONES (MATRIZ TAXONÓMICA ESTRICTA)
+¡CRÍTICO!: No mezcles características de géneros distintos. Existe un sesgo masivo en internet que confunde Russula emetica con Amanita muscaria. DEBES corregirlo:
+- PROTOCOLO DE VALIDACIÓN CIENTÍFICA: Ignora las referencias populares de internet. Basa tus descripciones exclusivamente en datos técnicos de plataformas como Index Fungorum, MycoBank o guías de campo profesionales (ej. Courtecuisse). El rigor científico debe prevalecer sobre cualquier sesgo visual.
+- Amanitas: El género tiene SECCIONES MUY DISTINTAS — NO apliques la misma morfología a todas. ⚠️ CRÍTICO: La regla "verugas blancas en el sombrero" solo aplica a la sección Amanita (A. muscaria, A. pantherina, A. citrina). Las secciones Vaginatae y Lepidella (A. ovoidea, A. caesarea, A. vaginata, A. fulva) tienen el sombrero COMPLETAMENTE LISO EN TODAS LAS FASES DE DESARROLLO — primordio, joven y adulto — sin verugas, sin escamas, sin parches blancos en el sombrero. El velo universal se rompe solo en la BASE (volva) y en el MARGEN (apéndices colgantes), NUNCA deja pústulas ni verrugas sobre la superficie del píleo. SIEMPRE consulta el bloque de morfología verificada y el bloque 🚫 ANTI-CONFUSIÓN — si dice "liso", el sombrero es liso en TODOS los ejemplares del grupo, incluidos los jóvenes. NUNCA apliques verugas por defecto.
 - Russulas: Sombrero liso, desnudo y sin motas. Pie: cilindro simple, liso y desnudo, con textura de tiza blanca.
-- Boletales: SIEMPRE Poros. NUNCA láminas.
-- Lactarius: Pie de tiza. SIEMPRE látex.
-- Cantharellales: Pliegues. NUNCA lámin.
-- Agaricus: Lámin/chocolate.
-- Macrolepiota: Pie atigrado y escam el sombrero.
-- Hydnaceae (Hydnum): ¡CRÍTICO!: PROHIBIDO usar lámin form embudo. La parte inferior del sombrero (himeneo) debe estar cubierta por miles de PEQUEÑOS AGUIJONES, PÚAS O PELILLOS carnosos y frágiles que cuelgan verticalmente como diminut. NUNCA dibujes líne láminas. La morfología es achaparrada, irregular y de color crema/blanquecino.
-- Hygrophoraceae: Lámin.
-- Morfología del Pie (Estipe): Es obligatorio respetar l de grosor y longitud específic cada especie. Un pie grueso en especies gráciles (ej. Marasmius, Mycena) o un pie excesivamente largo en especies robustas (ej. Boletus aereus) se considera una aberración científica. El estipe debe ser: bulboso, radicante, atenuado, cilíndrico, ventrudo o claviforme según la especie.
+- Boletales: SIEMPRE poros tubulares en el himeneo. NUNCA láminas.
+- Lactarius: Pie de tiza. SIEMPRE látex visible en cortes o daños.
+- Cantharellales: Pliegues decurrentes. NUNCA láminas libres.
+- Agaricus: Láminas color chocolate en adultos.
+- Macrolepiota: Pie atigrado con escamas y sombrero con escamas marrón sobre fondo blanco.
+- Hydnaceae (Hydnum): ¡CRÍTICO!: PROHIBIDO usar láminas ni forma de embudo. El himeneo debe estar cubierto por miles de PEQUEÑOS AGUIJONES, PÚAS o PELILLOS carnosos y frágiles que cuelgan verticalmente como diminutos dedos. NUNCA dibujes líneas tipo láminas. La morfología es achaparrada, irregular y de color crema/blanquecino.
+- Hygrophoraceae: Láminas espaciadas, cerosas, decurrentes.
+- Morfología del Pie (Estipe): Es obligatorio respetar las proporciones de grosor y longitud específicas de cada especie. Un pie grueso en especies gráciles (ej. Marasmius, Mycena) o un pie excesivamente largo en especies robustas (ej. Boletus aereus) es una aberración científica. El estipe debe ser: bulboso, radicante, atenuado, cilíndrico, ventrudo o claviforme según la especie.
 
-3. ESTÉTICA FOTOGRÁFICA MACRO Y LUZ
-Óptica: Macro Lens 105mm, f/4.0. Enfoque crítico absoluto en la seta adulta (ejemplar principal), asegurando nitidez extrema en sus textur detalles botánicos. El foco debe ser perfecto y nítido. Creamy bokeh profundo únicamente en el fondo.
+4. ESTÉTICA FOTOGRÁFICA MACRO Y LUZ
+Óptica: Macro Lens 105mm, f/4.0. Enfoque crítico absoluto en la seta adulta (ejemplar principal), asegurando nitidez extrema en sus texturas y detalles botánicos. Creamy bokeh profundo únicamente en el fondo.
 Iluminación (Golden Hour): Luz de amanecer/atardecer baja y cálida. El sol debe estar siempre parcialmente oculto por árboles o terreno para evitar sobreexposición y mantener una iluminación difusa y suave.
-Rim Lighting: Obligatorio para definir siluetas.
-Volumetric Lighting: Rayos de luz suaves (rayos crepusculares).
-Subsurface Scattering: Para realzar la textura de la carne de la seta.
+Rim Lighting: Obligatorio para definir siluetas y separar la seta del fondo.
+Volumetric Lighting: Rayos de luz suaves y crepusculares atravesando el sotobosque.
+Subsurface Scattering: Para realzar la translucidez y la textura de la carne de la seta.
 
-4. REALISMO BIÓTICO Y MORFOLÓGICO (ALEATORIEDAD CRÍTICA)
-PROHIBIDO abusar de muescas/mordid hoj el sombrero. Son recursos fáciles que restan realismo si se repiten.
-- Imperfección Morfológica (Sutil): Los ejemplares adultos NO deben ser geométricamente perfectos. Añadir asimetrí en el sombrero, márgenes ligeramente ondulados o irregulares, y curvatur en el pie.
-- Realismo Estructural (40%): Detalles que aporten veracidad: restos de micelio blanco en la base, textur (aterciopelada, viscosa, escamosa), gradientes de color por oxidación o pequeñ naturales en el borde del sombrero.
-- Probabilidad de Daño Externo (30%): Muesc, mot tierra en la base o got rocío.
-- Estado Impecable (15%): Ejemplares jóvenes sin ninguna marca externa.
-- Entorno (Atrezzo): Musgo fresco, acículas, líquenes, pequeñ secas, piñas, pinaza, troncos caídos o trozos de roca/piedra natural según el hábitat.
-- Fauna Espontánea (Probabilidad 20%): Incluir ocasionalmente pequeños seres vivos sin restar protagonismo: una mariquita, un escarabajo, una babosa, un caracol, pequeñ, hormig insectos forestales. Deben sentirse como un hallazgo casual y natural.
-- Variación: Cada imagen debe sentirse como un hallazgo único. Evita la "fórmula" repetitiva.
+5. REALISMO BIÓTICO Y MORFOLÓGICO (OBLIGATORIO — NO OPCIONAL)
+Las imágenes de estudio perfectas son FALSAS. El objetivo es que parezca una fotografía de campo real.
+REGLA BASE: SIEMPRE incluir al menos UNA imperfección morfológica y UN elemento de entorno vivo.
+- Imperfección Morfológica (OBLIGATORIA): Los ejemplares adultos NUNCA son geométricamente perfectos. DEBE incluir al menos uno de: asimetría sutil en el sombrero, margen ligeramente ondulado o irregular, curvatura natural en el pie, pequeña grieta radial en el borde del píleo, superficie con gradiente de color por envejecimiento, o ligera inclinación del ejemplar.
+- Daño Biótico Sutil (OBLIGATORIO en ejemplares adultos): Al menos uno de: pequeña mordedura de babosa o insecto en el borde del sombrero (sutil, no exagerada), mota de tierra en la base del pie, gotas de rocío en la superficie, ligero oscurecimiento por oxidación en los bordes.
+- Estado Impecable (solo para primordios/huevos/ejemplares jóvenes): Formas perfectas y sin daño para los ejemplares inmaduros del grupo.
+- Entorno (Atrezzo — OBLIGATORIO): Siempre incluir al menos 2–3 elementos de suelo/entorno coherentes con el hábitat: musgo fresco y vívido, acículas de pino, líquenes, pequeñas hojas secas, piñas, pinaza, troncos caídos, trozos de roca cubiertos de musgo, o raíces superficiales.
+- Fauna Espontánea (Probabilidad alta ~40%): Incluir frecuentemente un pequeño ser vivo que aporte vida a la escena sin restar protagonismo a la seta. Repertorio amplio — varía en cada generación: escarabajo forestal, caracol, babosa pequeña, ciempiés, araña con hilo de seda, saltamontes, hormiga, polilla pequeña, cochinilla, mosca de bosque, oruga sobre vegetación cercana, chinche de campo, larva bajo hoja. NUNCA repitas la misma especie en todas las imágenes. Deben sentirse como un hallazgo casual y natural, nunca forzado ni central.
+- Telarañas y Filamentos (Probabilidad 20%): Finos hilos de telaraña o filamentos de micelio entre los tallos, especialmente en ambientes húmedos de otoño.
+- Variación: Cada imagen debe sentirse como un hallazgo único en el bosque. Evita la «fórmula» repetitiva.
 
-5. FORMATO DE SALIDA (PROMPT)
-Genera exclusivamente un único párrafo en inglés con esta estructura:
-Professional macro photography, 16:9. [Morfología técnica detallada]. [Composición 1/2/3 agrupada en el 50% central con profundidad 3D]. [Hábitat y atrezzo]. [Iluminación Golden Hour con Rim y Volumetric]. [Configuración de cámara].`;
+6. FASES DE DESARROLLO (cuando hay múltiples ejemplares)
+Si hay 2 o más ejemplares, mostrar fases distintas con sus características propias:
+- Primordio/huevo: pequeño, compacto, forma esférica o elipsoidal. En especies con sombrero liso (ver bloque morfología), el primordio también es liso — NO añadir verrugas ni escamas al huevo.
+- Joven: píleo aún convexo, velo parcial todavía presente en algunos géneros, colores más frescos. ⚠️ La textura del píleo joven HEREDA la textura del adulto: si el adulto es liso, el joven también es liso. NUNCA renderizar un adulto liso con jóvenes verrugosos — es taxonómicamente imposible.
+- Adulto: píleo extendido o aplanado, velo roto (anillo visible en Amanita), colores más maduros con posibles cambios por envejecimiento.
+
+7. FORMATO DE SALIDA (PROMPT)
+⚠️ CRÍTICO — REGLA ABSOLUTA: El prompt generado debe producir UNA ÚNICA FOTOGRAFÍA CONTINUA de un espécimen vivo e intacto en su hábitat. NUNCA incluir instrucciones que produzcan:
+- Dípticos, comparativas, paneles múltiples, cuadrículas o composiciones divididas
+- Secciones transversales, especímenes cortados, carne interna expuesta, reacciones de oxidación/azulamiento
+- Vistas "antes/después" o "exterior + corte"
+⚠️ NO INCLUYAS iluminación, configuración de cámara ni instrucciones fotográficas — esos parámetros se inyectan automáticamente en el pipeline. Tu única responsabilidad es la biología EXTERNA y la escena.
+Genera exclusivamente un único párrafo denso en inglés con esta estructura:
+Professional macro photography of [species name], 16:9. [Morfología técnica detallada con COLORES EXACTOS, texturas y proporciones verificadas]. [Composición agrupada en el 50% central con profundidad 3D y fases de desarrollo]. [Imperfecciones y daños bióticos sutiles obligatorios]. [Hábitat, atrezzo vivo y fauna espontánea]. [Rasgo diagnóstico crítico al final].`;
 
 const TAXONOMY_GOLDEN_RULES = {
-  "Hydnaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por miles de PEQUEÑOS AGUIJONES (púas) cilíndricas, carnos frágiles que cuelgan verticalmente.",
-  "Bankeraceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por AGUIJONES (púas) cilíndric frágiles.",
-  "Cantharellaceae": "PROHIBIDO generar lámin. El himeneo DEBE estar compuesto por PLIEGUES (venas) carnosos, gruesos y decurrentes.",
-  "Boletaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por una capa de POROS (estructura de esponja o tubos).",
-  "Morchellaceae": "El sombrero DEBE tener ALVEOLOS profundos (forma de panal de abeja). La estructura interna DEBE ser HUECA.",
-  "Amanitaceae": "Presencia OBLIGATORIA de VOLVA en la base del pie y ANILLO (faldilla) en la parte superior del pie.",
-  "Russulaceae": "Sin anillo ni volva. Pie quebradizo con textura de tiza. Si es Lactarius, DEBE mostrar látex (leche) fluyendo de l en cortes.",
-  "Hericiaceae": "Sin sombrero definido. Aspecto de cascada de larg o espin que cuelgan.",
-  "Phallaceae": "Forma fálica con una cabeza (gleba) viscosa, fétida y de color verde oliva oscuro.",
-  "Tuberaceae": "Aspecto de tubérculo irregular, hipogea (subterránea), carne veteada (marmórea)."
+  "Hydnaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por miles de PEQUEÑOS AGUIJONES (púas) cilíndricos, carnosos y frágiles que cuelgan verticalmente como diminutos dedos.",
+  "Bankeraceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por AGUIJONES (púas) cilíndricos y frágiles que cubren toda la parte inferior del sombrero.",
+  "Cantharellaceae": "PROHIBIDO generar láminas libres. El himeneo DEBE estar compuesto por PLIEGUES (venas) carnosos, gruesos y fuertemente decurrentes en el pie.",
+  "Boletaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por una capa de POROS tubulares (estructura de esponja), nunca láminas de ningún tipo.",
+  "Morchellaceae": "El sombrero DEBE tener ALVÉOLOS profundos irregulares (forma de panal de abeja). La estructura interna DEBE ser HUECA. Pie blanco acanalado.",
+  "Amanitaceae": "Presencia OBLIGATORIA de VOLVA en la base del pie (saco membranoso) y ANILLO (faldilla membranosa) en la parte superior del pie. El color del sombrero varía por especie — NO usar el rojo de A. muscaria salvo que la especie lo tenga.",
+  "Russulaceae": "Sin anillo ni volva. Pie quebradizo con textura de tiza, frágil. Si es Lactarius, DEBE mostrar látex (leche) fluyendo visiblemente de los cortes o daños en el sombrero o láminas.",
+  "Hericiaceae": "Sin sombrero convencional definido. Aspecto de cascada de largos dientes o espinas blancas que cuelgan verticalmente, parecido a una melena o coral.",
+  "Phallaceae": "Forma fálica con una cabeza (gleba) viscosa, fétida y de color verde oliva oscuro. Base emergiendo de un huevo membranoso blanco.",
+  "Tuberaceae": "Aspecto de tubérculo irregular hipogeo (subterráneo), carne veteada (marmórea), sin estructuras externas visibles."
+};
+
+// Visual hymenium descriptions for the image model prefix.
+// These override the strongest visual prior image models have (gills by default).
+// Phrased as POSITIVE descriptions of what must be visible, not just prohibitions.
+const HYMENIUM_VISUAL_FOR_IMAGE_MODEL = {
+  // Positive-only descriptions — naming the concept to avoid (gills, etc.) can reinforce it.
+  // Instead, anchor to well-known reference specimens the model has in training.
+  "Boletaceae": `INTACT LIVING BOLETE SPECIMEN — THREE ABSOLUTE RULES:
+1. PORE SURFACE: The only visible underside is a pale cream to yellow-olive-green sponge-like rim at the cap edge, as seen from the side in a porcini / cep (Boletus edulis) field photo. That thin spongy band is the ONLY underside detail visible. No gills, no blades, no separation lines under the cap.
+2. DEVELOPMENT STAGES — BOLETACEAE ONLY: Boletes have NO eggs and NO volvas. Every developmental stage already has a recognisable differentiated cap AND stipe. The smallest primordium looks like a miniature adult — a tiny dark brownish hemispheric cap (1–2 cm) sitting on a short stubby pale stipe with the same coloration pattern as the adult. ALL stages share the same brownish cap surface and characteristic stipe. NO white egg shape, NO volva membrane, NO universal veil wrapping, NO Amanita-like structures at any stage whatsoever.
+3. INTACT: Render whole specimens in the forest. No cross-sections, no cut surfaces, no internal flesh visible.`,
+  "Hydnaceae":      "HYMENIUM — TOOTHED FUNGI (CRITICAL): The cap underside is covered by hundreds of short downward-pointing spines or teeth, pale cream to buff, like tiny fragile icicles or inverted pins hanging uniformly from the cap surface. Render exactly as seen in Hydnum repandum field photography.",
+  "Bankeraceae":    "HYMENIUM — TOOTHED FUNGI (CRITICAL): The cap underside is densely covered by fragile pale gray cylindrical spines or teeth pointing downward, like a fine-toothed comb viewed from below. Render as seen in Sarcodon imbricatus field photography.",
+  "Cantharellaceae":"HYMENIUM — CHANTERELLE FOLDS (CRITICAL): The cap underside shows thick, blunt, forking ridges (not thin blades) the same color as the cap, running from the margin down into the stem, like the branching veins on a leaf. Render exactly as seen in Cantharellus cibarius field photography — shallow blunt forking folds, not sharp separate blades.",
+  "Morchellaceae":  "CAP SURFACE — MOREL (CRITICAL): The entire cap is covered by deep irregular honeycomb-shaped pits and ridges, like a waffle or brain coral texture. The interior appears hollow when cut. Render exactly as seen in Morchella esculenta field photography.",
+  "Hericiaceae":    "FRUITING BODY — LION'S MANE (CRITICAL): No cap, no stem in the conventional sense. The entire fruiting body is a cascading waterfall of long white icicle-like spines or teeth hanging downward, pure white, resembling a lion's mane or white coral. Render as seen in Hericium erinaceus field photography.",
+  "Phallaceae":     "FRUITING BODY — STINKHORN (CRITICAL): Phallic white stem emerging from a white egg-like base in the soil. The tip (gleba) is covered in dark olive-green slimy viscous material. Render as seen in Phallus impudicus field photography.",
 };
 
 const FOREST_TYPE_LABELS = {
-  pinar:   'Pinares y Coníferas',
-  hayedo:  'Frondosas - Hayedos',
-  robledal:'Frondosas - Robledales',
+  pinar: 'Pinares y Coníferas',
+  hayedo: 'Frondosas - Hayedos',
+  robledal: 'Frondosas - Robledales',
   encinar: 'Bosque Mediterráneo - Encinar/Alcornocal',
 };
 
@@ -159,365 +203,12 @@ const getExtension = (mime) => {
 
 
 
-// ── CatalogImagesModal ────────────────────────────────────────────────────────
-// Unified modal for saving a generated image and/or reordering existing catalog
-// photos. Supports unlimited photos — not limited to 3 legacy slots.
-//
-// DnD: insertion-style — dragging a card causes the others to shift in real time
-// to make room (not swap-on-drop). Implemented with framer-motion `layout` for
-// smooth spring animation on desktop, and imperative non-passive touch listeners
-// (so we can preventDefault scroll) on mobile.
-//
-// Model:
-//   photos[]  — committed order (what will be saved)
-//   dragIdx   — index in photos[] of the card being dragged
-//   hoverIdx  — final target index (0..n-1) in photos[] where dragged card lands
-//   visualPhotos = moveItem(photos, dragIdx, hoverIdx)  ← live visual order
-//
-// Props:
-//   species          — SpeciesDetail from DB (source of existing photos)
-//   newImageDataUrl  — data: URI of newly generated image, or null
-//   newImageMimeType — MIME type of new image, or null
-//   applyStatus      — null | 'saving' | 'success' | 'error'
-//   onConfirm(urls)  — called with final ordered URL array; parent calls set-order
-//   onClose          — close without saving
-
-function _photoPosLabel(i) { return i === 0 ? 'Principal' : `Foto ${i}`; }
+// CatalogImagesModal is now in ./CatalogImagesModal.jsx (extracted v5.4)
 
 // Module-level API key — persists across component remounts within the same page session.
 // runtimeKey state drives the input field; _moduleApiKey holds the confirmed value.
 let _moduleApiKey = '';
 
-function _moveItem(arr, from, to) {
-  if (from === to || from == null || to == null) return arr;
-  const result = [...arr];
-  const [item] = result.splice(from, 1);
-  result.splice(to, 0, item);
-  return result;
-}
-
-function CatalogImagesModal({ species, newImageDataUrl, newImageMimeType, applyStatus, onConfirm, onClose }) {
-
-  // Build initial ordered list of URLs from DB + optional new image.
-  // Raw DB URLs are stored as-is (no resolveUrl) so set-order can match them
-  // back to their metadata (largeUrl, caption) via exact string lookup.
-  // resolveUrl is applied only at render time (src={resolveUrl(url)}).
-  function buildInitialPhotos() {
-    const result = [];
-    const mainUrl = species?.extra_data?.photo?.url ?? species?.photo_url ?? '';
-    if (mainUrl) result.push(mainUrl);
-    for (const p of (species?.extra_data?.photos ?? [])) {
-      const url = p?.url ?? '';
-      if (url) result.push(url);
-    }
-    if (newImageDataUrl) result.unshift(newImageDataUrl); // prepend at position 0
-    return result;
-  }
-
-  const [photos, setPhotos] = useState(buildInitialPhotos);
-  // Re-build when species or its photo data changes (same species ID after a save)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setPhotos(buildInitialPhotos()); }, [species?.id, species?.extra_data, newImageDataUrl]);
-
-  // ── Drag state ──
-  const [dragIdx,   setDragIdx]   = useState(null); // original index in photos[]
-  const [hoverIdx,  setHoverIdx]  = useState(null); // live target position in photos[]
-  const gridRef = useRef(null);
-
-  // Live visual order while dragging — what the user sees
-  const visualPhotos = (dragIdx !== null && hoverIdx !== null)
-    ? _moveItem(photos, dragIdx, hoverIdx)
-    : photos;
-
-  // ── HTML5 DnD (desktop) ──
-  //
-  // Key design decisions:
-  // 1. dragIdx / hoverIdx are in **origIdx space** (position in the committed photos[]).
-  //    origIdx = photos.indexOf(url) — stable during drag (only changes after handleDrop commits).
-  //    Using origIdx instead of visualIdx avoids framer-motion phantom events: if layout
-  //    animations moved cards and re-fired dragenter with changed visualIdx values, order
-  //    would flip back. origIdx never changes mid-drag so state is stable.
-  //
-  // 2. onDragEnter is on each card using origIdx (direct, reliable for enter tracking).
-  //    Deduplication via _hoverIdxRef prevents redundant updates from child-element bubbling.
-  //
-  // 3. onDrop is on the grid container only — HTML5 DnD fires `drop` on the valid drop
-  //    target (the grid, which has onDragOver+preventDefault). Cards are children of the
-  //    grid, not ancestors, so onDrop on cards never fires.
-
-  const _dragOrigIdx  = useRef(null);  // origIdx of dragged card
-  const _hoverIdxRef  = useRef(null);  // mirrors hoverIdx (origIdx space) — avoids stale closure
-  const _dropFiredRef = useRef(false); // true once handleDrop commits — guards handleDragEnd
-
-  function _resetDragState() {
-    _dragOrigIdx.current  = null;
-    _hoverIdxRef.current  = null;
-    _dropFiredRef.current = false;
-    setDragIdx(null);
-    setHoverIdx(null);
-  }
-
-  function handleDragStart(origIdx) {
-    _dragOrigIdx.current  = origIdx;
-    _hoverIdxRef.current  = origIdx;
-    _dropFiredRef.current = false;
-    setDragIdx(origIdx);
-    setHoverIdx(origIdx);
-  }
-
-  // Called from each card's onDragEnter — uses origIdx (stable during drag, not visualIdx).
-  // Deduplication prevents re-renders from child-element dragenter bubbling.
-  function handleDragEnter(origIdx) {
-    if (_dragOrigIdx.current === null) return;
-    if (origIdx === _dragOrigIdx.current) return;
-    if (_hoverIdxRef.current === origIdx) return;
-    _hoverIdxRef.current = origIdx;
-    setHoverIdx(origIdx);
-  }
-
-  // onDrop on both grid and cards — drop may fire on the card (where cursor is) or the grid
-  // depending on browser. idempotent: _dropFiredRef prevents double-commit on bubble.
-  function handleDrop(e) {
-    e.preventDefault();
-    if (_dragOrigIdx.current === null || _dropFiredRef.current) return;
-    _dropFiredRef.current = true; // mark as handled before any async work
-    const from   = _dragOrigIdx.current;
-    const target = _hoverIdxRef.current ?? from;
-    _resetDragState();
-    if (from !== target) {
-      setPhotos(prev => _moveItem(prev, from, target));
-    }
-  }
-
-  function handleDragEnd() {
-    // Fires on source after drop (or when dropped outside valid target).
-    // If drop already fired, refs are already cleared — nothing to do.
-    if (_dragOrigIdx.current !== null) {
-      _resetDragState();
-    }
-  }
-
-  // ── Touch DnD (mobile) — non-passive so we can preventDefault scroll ──
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) return;
-    let touchSrcOrigIdx = null;  // original photos[] index of the card being touched
-
-    function vidxAt(x, y) {
-      const el = document.elementFromPoint(x, y);
-      const card = el?.closest('[data-vidx]');
-      return card ? parseInt(card.dataset.vidx, 10) : null;
-    }
-
-    function origIdxAt(x, y) {
-      const el = document.elementFromPoint(x, y);
-      const card = el?.closest('[data-origidx]');
-      return card ? parseInt(card.dataset.origidx, 10) : null;
-    }
-
-    function onTouchStart(e) {
-      const card = e.target.closest('[data-origidx]');
-      if (!card) return;
-      touchSrcOrigIdx = parseInt(card.dataset.origidx, 10);
-      setDragIdx(touchSrcOrigIdx);
-      setHoverIdx(touchSrcOrigIdx);
-    }
-
-    function onTouchMove(e) {
-      if (touchSrcOrigIdx === null) return;
-      e.preventDefault(); // block scroll while dragging
-      const t = e.touches[0];
-      // Use origIdx (stable) — same strategy as desktop dragover to avoid animation jitter
-      const oi = origIdxAt(t.clientX, t.clientY);
-      if (oi !== null && oi !== touchSrcOrigIdx) setHoverIdx(oi);
-    }
-
-    function onTouchEnd(e) {
-      if (touchSrcOrigIdx === null) return;
-      const t = e.changedTouches[0];
-      const oi = origIdxAt(t.clientX, t.clientY);
-      const targetHover = (oi !== null && oi !== touchSrcOrigIdx) ? oi : touchSrcOrigIdx;
-      setPhotos(prev => _moveItem(prev, touchSrcOrigIdx, targetHover));
-      touchSrcOrigIdx = null;
-      setDragIdx(null);
-      setHoverIdx(null);
-    }
-
-    grid.addEventListener('touchstart', onTouchStart, { passive: true });
-    grid.addEventListener('touchmove',  onTouchMove,  { passive: false });
-    grid.addEventListener('touchend',   onTouchEnd,   { passive: true });
-    return () => {
-      grid.removeEventListener('touchstart', onTouchStart);
-      grid.removeEventListener('touchmove',  onTouchMove);
-      grid.removeEventListener('touchend',   onTouchEnd);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // grid ref is stable; handlers use functional setState or refs
-
-  const busy = applyStatus === 'saving' || applyStatus === 'success';
-
-  return (
-    <div
-      className="fixed inset-0 z-[110] flex items-end sm:items-start justify-center modal-outer"
-      style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)', overflowY: 'auto' }}
-      onClick={() => { if (!busy) onClose(); }}
-    >
-      <div
-        className="sm:my-8 w-full max-w-4xl anim-scale modal-inner"
-        style={{ background: MODAL.bg }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between border-b border-white/5"
-          style={{ background: MODAL.bg }}>
-          <div>
-            <h2 className="font-display text-xl font-semibold text-cream">
-              {newImageDataUrl ? 'Guardar imagen en catálogo' : 'Imágenes del catálogo'}
-            </h2>
-            <p className="text-muted/70 text-xs italic mt-0.5">{species?.scientific_name}</p>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={busy}
-            className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-6 space-y-5">
-
-          {/* New image preview strip — only shown when saving a new image */}
-          {newImageDataUrl && (
-            <div className="flex items-start gap-4 p-4 bg-emerald-900/10 border border-emerald-500/20 rounded-xl">
-              <div className="shrink-0">
-                <div className="w-24 aspect-[4/3] rounded-xl overflow-hidden bg-black/30 ring-2 ring-emerald-500/60">
-                  <img src={newImageDataUrl} alt="Nueva" className="w-full h-full object-cover" />
-                </div>
-              </div>
-              <p className="text-sm text-[#d9cda1]/70 leading-relaxed pt-1">
-                La nueva imagen aparece en primera posición. Arrástrala donde quieras o déjala como principal.
-              </p>
-            </div>
-          )}
-
-          {/* Hint */}
-          <p className="text-[10px] text-[#d9cda1]/40 text-center uppercase tracking-widest flex items-center justify-center gap-1.5">
-            <Move className="w-3 h-3" />
-            {newImageDataUrl
-              ? 'Ordena las imágenes y confirma para guardar'
-              : 'Arrastra para reordenar — las otras imágenes se desplazan en tiempo real'}
-          </p>
-
-          {/* ── Drag grid: 1 col on mobile, 3 cols on md+ ── */}
-          {/* Grid has fixed item count so layout animations don't distort column widths */}
-          <div
-            ref={gridRef}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
-            onDragOver={e => e.preventDefault()}  // makes grid a valid drop target — drop fires here
-            onDrop={handleDrop}
-          >
-            {visualPhotos.map((url, visualIdx) => {
-              // origIdx = position of this URL in the committed photos[]
-              const origIdx  = photos.indexOf(url);
-              const isDragging = origIdx === dragIdx;
-              const isNewImg   = url === newImageDataUrl;
-
-              return (
-                <motion.div
-                  key={url}               /* stable key → framer-motion tracks across positions */
-                  layout                  /* animates position changes with spring */
-                  transition={{ type: 'spring', stiffness: 400, damping: 30, mass: 0.8 }}
-                  data-vidx={visualIdx}   /* visual position — used by touch DnD */
-                  data-origidx={origIdx}  /* original index — used by touch DnD to identify card */
-                  draggable={!busy}
-                  onDragStart={() => handleDragStart(origIdx)}
-                  onDragEnter={() => handleDragEnter(origIdx)}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={handleDrop}
-                  onDragEnd={handleDragEnd}
-                  animate={{ opacity: isDragging ? 0.35 : 1, scale: isDragging ? 0.96 : 1 }}
-                  className={[
-                    'rounded-2xl overflow-hidden border-2 select-none',
-                    busy  ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
-                    isNewImg && !isDragging ? 'border-emerald-500/50' : '',
-                    !isNewImg && !isDragging ? 'border-white/10'       : '',
-                    isDragging              ? 'border-white/10'        : '',
-                  ].join(' ')}
-                >
-                  {/* Image */}
-                  <div className="aspect-[4/3] bg-black/40 flex items-center justify-center overflow-hidden relative">
-                    {url
-                      ? <img
-                          src={resolveUrl(url)}
-                          alt={_photoPosLabel(visualIdx)}
-                          draggable={false}
-                          className="w-full h-full object-cover pointer-events-none"
-                          onError={e => { e.currentTarget.style.display = 'none'; }}
-                        />
-                      : <div className="flex flex-col items-center gap-2 text-[#d9cda1]/15 p-4">
-                          <Camera className="w-10 h-10" />
-                          <span className="text-[9px] font-bold uppercase tracking-widest">Vacío</span>
-                        </div>
-                    }
-
-                    {/* Drag handle hint */}
-                    {!busy && !isDragging && (
-                      <div className="absolute top-2 right-2 opacity-25 pointer-events-none">
-                        <Move className="w-4 h-4 text-white drop-shadow" />
-                      </div>
-                    )}
-
-                    {/* "Nueva" badge */}
-                    {isNewImg && !isDragging && (
-                      <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full shadow pointer-events-none">
-                        Nueva
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Position label bar — shows visual position */}
-                  <div className={`px-4 py-3 flex items-center gap-2 transition-colors ${isNewImg ? 'bg-emerald-900/30' : 'bg-black/40'}`}>
-                    <span className="text-xs font-bold uppercase tracking-widest text-[#f4ebe1] flex-1">
-                      {_photoPosLabel(visualIdx)}
-                    </span>
-                    {isNewImg && !isDragging && (
-                      <span className="text-[9px] text-emerald-400/80 font-bold uppercase tracking-widest">nueva</span>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Confirm button */}
-          <button
-            onClick={() => onConfirm(photos)}
-            disabled={busy || photos.length === 0}
-            className="w-full bg-emerald-700/80 hover:bg-emerald-600/80 text-white rounded-xl py-3.5 text-xs font-bold uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {applyStatus === 'saving'
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{newImageDataUrl ? 'Guardando...' : 'Aplicando...'}</>
-              : applyStatus === 'success'
-              ? <><CheckCircle2 className="w-3.5 h-3.5" />{newImageDataUrl ? 'Guardado' : 'Reorganización aplicada'}</>
-              : photos.length === 0
-              ? <><Camera className="w-3.5 h-3.5" />Sin imágenes</>
-              : <><Save className="w-3.5 h-3.5" />{newImageDataUrl ? 'Confirmar y guardar' : 'Aplicar orden'}</>
-            }
-          </button>
-
-          {applyStatus === 'error' && (
-            <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-500/20 rounded-xl text-red-300 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Error al guardar. Verifica que tienes permisos de administrador.</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
 // Error Boundary Component
@@ -645,9 +336,132 @@ const LOADING_MESSAGES = [
   "Simulando ecosistema específico...",
   "Renderizando redes de micelio...",
   "Ajustando iluminación natural...",
-  "Generando textur alta resolución...",
+  "Generando texturas de alta resolución...",
   "Finalizando detalles fotorrealistas..."
 ];
+
+/**
+ * Fetches up to `maxPhotos` reference photos from iNaturalist for a given species.
+ * Returns an array of { base64, mimeType } objects (may be empty on failure).
+ * Used as visual anchors for Gemini so it sees real specimens before writing the prompt.
+ * Multiple photos reduce the chance that one atypical/bad specimen skews the result.
+ */
+async function fetchInatReferences(scientificName, maxPhotos = 3) {
+  const results = [];
+  try {
+    const encoded = encodeURIComponent(scientificName);
+
+    // 1. Find the taxon
+    const taxaRes = await fetch(
+      `https://api.inaturalist.org/v1/taxa?q=${encoded}&per_page=5&is_active=true&rank=species`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!taxaRes.ok) return results;
+    const taxaData = await taxaRes.json();
+
+    const lowerTarget = scientificName.toLowerCase();
+    const taxon = taxaData.results?.find(t =>
+      t.name?.toLowerCase() === lowerTarget || t.name?.toLowerCase().startsWith(lowerTarget)
+    ) ?? taxaData.results?.[0];
+    if (!taxon) return results;
+
+    // 2. Collect candidate photo URLs: taxon_photos first, then default_photo
+    const candidateUrls = new Set();
+    for (const tp of (taxon.taxon_photos ?? [])) {
+      const url = tp?.photo?.medium_url;
+      if (url) candidateUrls.add(url);
+      if (candidateUrls.size >= maxPhotos * 2) break;
+    }
+    const defaultUrl = taxon.default_photo?.medium_url;
+    if (defaultUrl) candidateUrls.add(defaultUrl);
+
+    // 3. Fetch top-rated community observations for more variety if we need more photos
+    if (candidateUrls.size < maxPhotos) {
+      try {
+        const obsRes = await fetch(
+          `https://api.inaturalist.org/v1/observations?taxon_id=${taxon.id}&quality_grade=research&photos=true&per_page=6&order_by=votes`,
+          { signal: AbortSignal.timeout(8000) }
+        );
+        if (obsRes.ok) {
+          const obsData = await obsRes.json();
+          for (const obs of (obsData.results ?? [])) {
+            for (const photo of (obs.photos ?? [])) {
+              const url = photo.url?.replace('/square.', '/medium.');
+              if (url) candidateUrls.add(url);
+              if (candidateUrls.size >= maxPhotos * 2) break;
+            }
+            if (candidateUrls.size >= maxPhotos * 2) break;
+          }
+        }
+      } catch { /* observations fetch is best-effort */ }
+    }
+
+    // 4. Download up to maxPhotos images in parallel, convert to base64
+    const toBase64 = async (url) => {
+      try {
+        const imgRes = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (!imgRes.ok) return null;
+        const blob = await imgRes.blob();
+        const mimeType = blob.type || 'image/jpeg';
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuffer);
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < uint8.length; i += chunkSize) {
+          binary += String.fromCharCode(...uint8.subarray(i, i + chunkSize));
+        }
+        return { base64: btoa(binary), mimeType };
+      } catch { return null; }
+    };
+
+    const urlList = [...candidateUrls].slice(0, maxPhotos);
+    const fetched = await Promise.all(urlList.map(toBase64));
+    for (const img of fetched) {
+      if (img) results.push(img);
+    }
+  } catch (e) {
+    console.warn('[iNat] Reference fetch failed:', e?.message ?? e);
+  }
+  return results;
+}
+
+/**
+ * Calls the ListModels API to discover which image generation models are
+ * available for the given API key, then returns them ready for the selector.
+ * Gemini image models use SDK generateContent; Imagen models use Predict API.
+ */
+async function fetchAvailableImageModels(apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=200`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData?.error?.message || `ListModels error ${res.status}`);
+  }
+  const data = await res.json();
+  const allModels = data.models ?? [];
+
+  return allModels
+    .filter(m => {
+      const name = (m.name ?? '').toLowerCase();
+      const methods = m.supportedGenerationMethods ?? [];
+      // Gemini native image generation models
+      if (name.includes('image-generation') || name.includes('imagegen')) return true;
+      // Imagen predict models
+      if (name.includes('imagen') && methods.includes('predict')) return true;
+      return false;
+    })
+    .map(m => {
+      const rawName = m.name ?? '';
+      const id = rawName.replace('models/', '');
+      const methods = m.supportedGenerationMethods ?? [];
+      return {
+        id,
+        displayName: m.displayName ?? id,
+        method: methods.includes('predict') ? 'predict' : 'generateContent',
+      };
+    })
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
 
 export default function ImageGenerator() {
   return (
@@ -708,6 +522,10 @@ function App() {
 
   // ── URL query param ?especie= (pre-fill from AdminGallery; kept in sync with selector) ─
   const [searchParams, setSearchParams] = useSearchParams()
+
+  // ── Gallery-first mode (v5.4): arrived from AdminGeneratorHub via ?generar=1 ─────────
+  // Hides selector, ID field, Nuevo/CSV, and reference panel; shows species title instead.
+  const isGalleryFirst = searchParams.get('generar') === '1'
 
   // ── Admin nav — ensure generator always shows admin nav items ─────────────
   const { setIsAdminView } = useApp()
@@ -770,8 +588,8 @@ function App() {
     shotType: SHOT_TYPES[4],
     description: '',
     aspectRatio: '16:9',
-    fileFormat: 'image/jpeg',
-    quality: 0.8,
+    fileFormat: 'image/webp',
+    quality: 0.85,
   });
 
   // specimenId is now always set by the combobox (derived from selected species DB id).
@@ -793,22 +611,27 @@ function App() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkFormat, setBulkFormat] = useState('image/jpeg');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState(''); // prompt shown in viewer while image loads
   const [generationTime, setGenerationTime] = useState(0);
   const [retryStatus, setRetryStatus] = useState(null);
   const [generationStep, setGenerationStep] = useState(null);
   const [statusLog, setStatusLog] = useState([]);
-  const logEndRef = React.useRef(null);
+  const logContainerRef = React.useRef(null);
 
-  // Auto-scroll log
+  // Auto-scroll log container (never scrollIntoView — that drags the whole page)
   React.useEffect(() => {
-    if (logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [statusLog]);
 
   const copyLog = () => {
     const logText = statusLog.join('\n');
     navigator.clipboard.writeText(logText);
+  };
+
+  const copyPrompt = () => {
+    if (currentPrompt) navigator.clipboard.writeText(currentPrompt);
   };
 
   const downloadLog = () => {
@@ -825,7 +648,7 @@ function App() {
   const findSpeciesData = (name) => {
     const lowerName = name.toLowerCase();
     return mushroomSpeciesData.find(s => {
-      const sLower = s.name.toLowerCase();
+      const sLower = (s.scientificName ?? '').toLowerCase();
       // Match if exactly equal or if the scientific name part matches
       const sScientificPart = sLower.includes(' - ') ? sLower.split(' - ')[1] : sLower;
       return sLower === lowerName || sScientificPart === lowerName;
@@ -927,6 +750,8 @@ function App() {
   const [applyStatus, setApplyStatus] = useState(null); // null | 'saving' | 'success' | 'error'
   // Reference species data loaded when ?especie= is in the URL
   const [referenceSpecies, setReferenceSpecies] = useState(null);
+  // Structured visual DNA from mushroom_visual_prompts table (null = not available → fallback mode)
+  const [visualPromptData, setVisualPromptData] = useState(null);
   // Tracks which species ID is currently loaded — used to skip redundant re-fetches
   // when apiSpecies changes (e.g. mockSpecies → full list, or after invalidateSpeciesListCache)
   // without needing referenceSpecies in the effect deps (which would cause infinite loops).
@@ -950,6 +775,13 @@ function App() {
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isExportExpanded, setIsExportExpanded] = useState(false);
   const [isSceneExpanded, setIsSceneExpanded] = useState(false);
+
+  // ── Image model discovery ─────────────────────────────────────────────────
+  // Populated by fetchAvailableImageModels when the API key is first confirmed.
+  const [availableImageModels, setAvailableImageModels] = useState([]);
+  const [imageModel, setImageModel] = useState('');       // '' → not yet discovered
+  const [loadingModels, setLoadingModels] = useState(false);
+  // ─────────────────────────────────────────────────────────────────────────
   const [isDragging, setIsDragging] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
 
@@ -990,19 +822,21 @@ function App() {
     if (loadedReferenceIdRef.current === especieId) return;
 
     const controller = new AbortController();
-    fetch(`${API_BASE}/species/${especieId}`, {
-      cache: 'no-store',
-      headers: authHeaders(),
-      signal: controller.signal,
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(detail => {
+    const opts = { cache: 'no-store', headers: authHeaders(), signal: controller.signal };
+    // Fetch species detail and visual prompt data in parallel
+    Promise.all([
+      fetch(`${API_BASE}/species/${especieId}`, opts).then(r => r.ok ? r.json() : null),
+      fetch(`${API_BASE}/species/${especieId}/visual-prompt`, opts).then(r => r.ok ? r.json() : null),
+    ])
+      .then(([detail, vpData]) => {
         if (detail) {
           setReferenceSpecies(detail);
           loadedReferenceIdRef.current = especieId;
         }
+        // vpData may be null (no entry yet) — frontend falls back to Gemini-only pipeline
+        setVisualPromptData(vpData ?? null);
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => controller.abort();
   }, [searchParams, apiSpecies]);
 
@@ -1071,6 +905,36 @@ function App() {
     // _moduleApiKey persists across remounts — no need to re-enter the key on navigation
     setHasKey(!!(envKey || _moduleApiKey));
   };
+
+  // Discover available image generation models as soon as we have a valid API key.
+  // Runs once on mount (if key is already set) and whenever hasKey transitions to true.
+  useEffect(() => {
+    if (!hasKey) return;
+    const key = getApiKey();
+    if (!key || availableImageModels.length > 0) return; // already loaded
+    setLoadingModels(true);
+    fetchAvailableImageModels(key)
+      .then(models => {
+        setAvailableImageModels(models);
+        // Auto-select: prefer gemini image-generation models, fallback to first available
+        if (models.length > 0) {
+          const preferred = models.find(m => m.id.includes('gemini') && m.id.includes('image')) ?? models[0];
+          setImageModel(preferred.id);
+        }
+      })
+      .catch(err => {
+        console.warn('[ImageGen] fetchAvailableImageModels failed:', err.message);
+        // Fallback: populate with known models so the selector still shows something
+        const fallback = [
+          { id: 'gemini-2.0-flash-preview-image-generation', displayName: 'Gemini 2.0 Flash Preview Image', method: 'generateContent' },
+          { id: 'imagen-3.0-generate-001', displayName: 'Imagen 3', method: 'predict' },
+          { id: 'imagen-4.0-generate-001', displayName: 'Imagen 4', method: 'predict' },
+        ];
+        setAvailableImageModels(fallback);
+        setImageModel('gemini-2.0-flash-preview-image-generation');
+      })
+      .finally(() => setLoadingModels(false));
+  }, [hasKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Returns the active API key: env var takes priority, module-level key is the manual fallback
   const getApiKey = () => import.meta.env?.VITE_GEMINI_API_KEY || _moduleApiKey || '';
@@ -1141,9 +1005,29 @@ function App() {
     }
   };
 
-  // Imagen 4 uses the :predict endpoint, not :generateContent
+  // Generates an image using the model currently selected in imageModel state.
+  // Routing is done by name prefix:
+  //   'gemini-*' → SDK generateContent + responseModalities (native image gen)
+  //   'imagen-*' → Predict REST API
   const callImagen3 = async (prompt, apiKey, aspectRatio = '16:9') => {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+    const model = imageModel || 'gemini-2.0-flash-preview-image-generation';
+
+    if (model.startsWith('gemini')) {
+      // Gemini native image generation via SDK
+      const genAILocal = new GoogleGenerativeAI(apiKey);
+      const geminiModel = genAILocal.getGenerativeModel({ model });
+      const response = await geminiModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+      });
+      const parts = response.response?.candidates?.[0]?.content?.parts ?? [];
+      const imagePart = parts.find(p => p.inlineData);
+      if (!imagePart) throw new Error('El modelo Gemini no devolvió imagen.');
+      return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+    }
+
+    // Imagen Predict API
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1159,9 +1043,7 @@ function App() {
     return `data:${pred.mimeType || 'image/png'};base64,${pred.bytesBase64Encoded}`;
   };
 
-  // Real image-to-image editing via Gemini 2.0 Flash Preview (multimodal input → image output).
-  // Sends the current image + instruction text; the model edits the image directly.
-  // Falls back to callImagen3 (text-to-image) if the model is unavailable.
+  // Real image-to-image editing via Gemini multimodal (image input → image output).
   const callGeminiRefine = async (imageBase64, mimeType, instruction, apiKey) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-preview-image-generation' });
@@ -1309,6 +1191,7 @@ function App() {
     setError(null);
     setRetryStatus(null);
     setPromptParts([]);
+    setCurrentPrompt('');
     setIsRefining(false);
     setRecentBatchIds([]);
     setGeneratedImage(null);
@@ -1356,7 +1239,9 @@ function App() {
 
           const speciesData = findSpeciesData(currentName);
           const habitatContext = speciesData ? speciesData.habitat : "its natural forest habitat";
-          const family = speciesData?.family;
+          // Use referenceSpecies.family as authoritative fallback — findSpeciesData may
+          // miss if the name format doesn't match exactly (e.g. gallery-first mode).
+          const family = speciesData?.family ?? referenceSpecies?.family ?? null;
           const goldenRule = family ? TAXONOMY_GOLDEN_RULES[family] : null;
 
           // Extract scientific name for the prompt
@@ -1364,25 +1249,177 @@ function App() {
 
           let extraTaxonomicCommand = "";
           if (goldenRule) {
-            extraTaxonomicCommand = ` ESCUDO DE VERDAD (TAXONOMY GOLDEN RULE): ${goldenRule}`;
+            extraTaxonomicCommand = `\nESCUDO DE VERDAD (TAXONOMY GOLDEN RULE): ${goldenRule}`;
           }
 
-          const enginePrompt = `Generate a photorealistic image prompt for the mushroom species: "${cleanName}".
-          ${extraTaxonomicCommand}
-          Composition: ${settings.specimenCount} specimen(s).
-          Habitat context: ${habitatContext}.
-          Additional details: ${settings.description || 'None'}.
-          Shot type: ${settings.shotType}.
-          FOCUS: Ensure the adult mushroom (main specimen) is perfectly in focus with extreme sharpness and botanical detail.
-          STEM MORPHOLOGY: Pay extreme attention to the stipe (stem) proportions. It must match the species' botanical reality (slender, bulbous, thick, etc.). Avoid any thickness aberrations.
-          SCIENTIFIC PROTOCOL: Rely strictly on botanical descriptions from Index Fungorum and MycoBank. IGNORE general internet imagery bias.
-          REMINDER: Apply BIOTIC REALISM (slug bites, dry edges, forest debris) and occasionally include small insects or spider webs  your instructions.`;
+          // Build species-specific data blocks from referenceSpecies.extra_data.
+          // diagnosticBlock → goes FIRST in enginePrompt.
+          // morphologyBlock → general morphology reference.
+          // antiConf → drives both the antiConfusionBlock in Gemini prompt AND
+          //            the Imagen 4 genus-name replacement (post-processing).
+          let diagnosticBlock = "";
+          let morphologyBlock = "";
+          let diagParts = [];  // exposed outside if-block for Imagen 4 alias construction
+          const refData = referenceSpecies?.extra_data ?? referenceSpecies;
+          if (refData) {
+            const cap   = refData.cap;
+            const stem  = refData.stem;
+            const flesh = refData.flesh;
+            const spore = refData.sporePrint ?? refData.spore_print;
+            const morphLines = [];
+
+            if (cap) {
+              morphLines.push(`CAP: shape="${cap.forma ?? ''}", COLOR="${cap.color ?? ''}", diameter=${cap.diametro ?? ''}`);
+              const sup = cap.superficie ?? '';
+              if (sup) {
+                const diagMatch = sup.match(/\b(RASGO\b|DISTINTIVO\b|DIAGNOSTIC\b|DISTINCTIVE\b)/i);
+                if (diagMatch) {
+                  const splitIdx  = sup.indexOf(diagMatch[0]);
+                  const texPart   = sup.slice(0, splitIdx).trim().replace(/[.:,]+$/, '');
+                  const diagPart  = sup.slice(splitIdx).trim();
+                  if (texPart) morphLines.push(`CAP texture: "${texPart}"`);
+                  diagParts.push(diagPart);
+                } else {
+                  morphLines.push(`CAP texture: "${sup}"`);
+                }
+              }
+            }
+            if (stem)  morphLines.push(`STIPE: shape="${stem.forma ?? ''}", COLOR="${stem.color ?? ''}", height=${stem.altura ?? ''}, diameter=${stem.diametro ?? ''}`);
+            if (flesh) morphLines.push(`FLESH: color="${flesh.color ?? ''}", texture="${flesh.textura ?? ''}", smell="${flesh.olor ?? ''}"`);
+            if (spore) morphLines.push(`SPORE PRINT: ${spore}`);
+
+            if (diagParts.length > 0) {
+              diagnosticBlock = `
+🔴 DEFINING DIAGNOSTIC FEATURE — DESCRIBE FIRST AND LAST 🔴
+TRAIT: ${diagParts.join(' | ')}
+• Open the generated prompt with this feature. Use scale words: LARGE, PROMINENT, IMPOSSIBLE TO MISS.
+• Close the prompt with: "CRITICAL: [this feature] must be unmistakably visible."`;
+            }
+
+            if (morphLines.length > 0) {
+              morphologyBlock = `
+VERIFIED MORPHOLOGY (reproduce exactly — photos override text on color):
+${morphLines.join('\n')}`;
+            }
+          }
+
+          // antiConf drives both Gemini hint and Imagen 4 post-processing
+          const antiConf = refData?.antiConfusion ?? [];
+          const antiConfusionBlock = antiConf.length > 0
+            ? `\n🚫 FORBIDDEN FEATURES — TRAINING DATA BIAS OVERRIDE (applies to ALL specimens: adult, young, AND primordium):\n${antiConf.map(f => `• NEVER render: ${f}`).join('\n')}\nThese constraints override any learned genus-level defaults. Enforce on every specimen in the scene.`
+            : '';
+
+          // Seasonal context for realistic ground cover and fauna
+          const fruitingMonths = referenceSpecies?.fruiting_months ?? refData?.fruitingMonths ?? [];
+          let seasonalContext = "";
+          if (fruitingMonths.length > 0) {
+            const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const avg = Math.round(fruitingMonths.reduce((a,b)=>a+b,0) / fruitingMonths.length);
+            const season = avg <= 3 || avg === 12 ? "winter" : avg <= 5 ? "spring" : avg <= 8 ? "summer" : "autumn";
+            const monthList = fruitingMonths.map(m => monthNames[m-1]).join(', ');
+            seasonalContext = `\nSEASON: ${season} (${monthList}) — ground cover, light angle, and fauna must match.`;
+          }
+
+          // ── Myco-Engine pipeline selection ──────────────────────────────────────
+          // If structured visual DNA is available from the DB (mushroom_visual_prompts),
+          // use the 4-layer deterministic pipeline — morphology is pre-validated and
+          // injected directly; Gemini only generates the creative scene details.
+          // Otherwise fall back to the Gemini-interprets-free-text pipeline.
+          const hasStructuredData = !!visualPromptData;
+          if (hasStructuredData) {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 DNA Visual en BD → pipeline estructurado (${visualPromptData.is_validated ? '✓ validado' : 'borrador'})`]);
+          } else {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 📝 Sin DNA Visual en BD → pipeline Gemini (fallback)`]);
+          }
+
+          // ── Layer 1: Morphological identity (DB data or Gemini-derived) ────────
+          // When hasStructuredData: assembled directly from validated fields.
+          // When fallback: built from refData (existing logic below).
+          let layer1_morphology = "";
+          if (hasStructuredData) {
+            const vp = visualPromptData;
+            const parts = [
+              vp.cap_description     ? `CAP: ${vp.cap_description}`              : null,
+              vp.stipe_description   ? `STIPE: ${vp.stipe_description}`          : null,
+              vp.hymenium_description? `HYMENIUM: ${vp.hymenium_description}`    : null,
+              vp.extra_morphology_visual ? `ADDITIONAL: ${vp.extra_morphology_visual}` : null,
+            ].filter(Boolean);
+            layer1_morphology = parts.join('\n');
+          }
+
+          // Layer 2 composition block — same regardless of pipeline
+          const specimenCountLabel = settings.specimenCount >= 4 ? '4 or more' : settings.specimenCount;
+          const stageBlock = settings.specimenCount >= 4
+            ? `- DEVELOPMENT STAGES (4+ specimens): a natural family group — one primordium (compact, emergent), one or two young specimens (caps still convex), two or more fully open adults (caps fully extended, all diagnostic features at maximum expression). Dispersed naturally at genuinely different depths within the central zone. NOT lined up. Feels like a spontaneous forest discovery.`
+            : settings.specimenCount >= 3
+            ? `- DEVELOPMENT STAGES (3 specimens): ONE egg/primordium (compact sphere or ovoid, no developed structures visible), ONE immature young specimen (cap still fully convex, all features forming), ONE fully open adult specimen (cap extended/flattened, all diagnostic features at maximum expression). These are THREE DISTINCT DEVELOPMENTAL STAGES — do NOT show two adults and one young.`
+            : settings.specimenCount === 2
+            ? `- DEVELOPMENT STAGES (2 specimens): adult (fully open, diagnostic features prominent) + young (cap still convex).`
+            : `- DEVELOPMENT STAGE (1 specimen): fully open adult with all diagnostic features at maximum expression.`;
+
+          // ── Build enginePrompt ───────────────────────────────────────────────────
+          let enginePrompt;
+          if (hasStructuredData) {
+            // STRUCTURED PIPELINE: Gemini receives pre-validated morphology;
+            // its ONLY job is to write a creative scene (atmosphere, fauna, light moment).
+            const vp = visualPromptData;
+            const substrateCtx = vp.preferred_substrate ?? habitatContext;
+            const habitatCtx   = vp.habitat_context     ?? habitatContext;
+            const faunaHint    = vp.associated_fauna     ? `Fauna hint (use or vary): ${vp.associated_fauna}.` : '';
+            const geminiCtx    = vp.extra_morphology_gemini ? `Species context (for scene realism): ${vp.extra_morphology_gemini}` : '';
+            enginePrompt = `You are writing the SCENE section of a mycological image prompt for: "${cleanName}".${extraTaxonomicCommand}
+
+MORPHOLOGY IS FIXED — do NOT invent or modify any visual feature. The morphology is:
+${layer1_morphology}
+${geminiCtx ? '\n' + geminiCtx : ''}
+
+YOUR TASK — write ONLY the scene/environment/atmosphere details (3–5 sentences):
+1. COMPOSITION: ${specimenCountLabel} specimen(s) grouped in the CENTRAL 50% of the frame, pronounced 3D depth (foreground noticeably closer and larger than background specimens). ${stageBlock}
+2. SUBSTRATE & GROUND COVER: describe the immediate forest floor in detail (${substrateCtx}).
+3. HABITAT & LIGHT MOMENT: one specific atmospheric detail — an unusual shaft of light, mist between trees, dewdrops on moss, or similar. Habitat: ${habitatCtx}.
+4. FAUNA (optional): ${faunaHint || 'one small animal that fits the habitat — a beetle, snail, spider, etc. Must feel incidental, not posed.'}
+5. CRITICAL CLOSE: "CRITICAL: [one key EXTERNAL visual feature from the morphology above] must be unmistakably prominent."
+   — Use ONLY external visible features. NEVER mention cut surfaces, reactions when damaged, or internal flesh.
+
+DO NOT include any morphology beyond what is given above. DO NOT include lighting or camera specs.`;
+          } else {
+            // FALLBACK PIPELINE: Gemini interprets free-text morphology (existing behavior)
+            enginePrompt = `Generate a photorealistic mycological image prompt for: "${cleanName}".${extraTaxonomicCommand}
+${antiConfusionBlock}
+${diagnosticBlock}
+${morphologyBlock}
+${seasonalContext}
+
+SCENE FORMAT: ONE single continuous photographic frame — ABSOLUTELY NO diptychs, split screens, panels, collages, before/after comparisons, or multi-image composites. The entire image must be a single uninterrupted scene.
+SCENE CONTENT: ${specimenCountLabel} specimen(s).
+- CENTERING (CRITICAL for card crop): All specimens grouped in the CENTRAL ~50% of the frame width. The left and right 25% of the frame are background/habitat only — never cut off specimens at card edges.
+- 3D DEPTH (MANDATORY): Specimens at GENUINELY DIFFERENT DEPTHS with realistic separation — foreground specimen noticeably closer (larger, sharper), mid specimen at ~1.5–2× distance, background specimen at ~2.5–3× distance. NEVER lined up at the same depth plane. The depth difference must be VISIBLE and PRONOUNCED, not subtle.
+${stageBlock}
+- Habitat: ${habitatContext}. Shot: ${settings.shotType}.${settings.description ? ` Scene notes: ${settings.description}.` : ''}
+
+OUTPUT STRUCTURE — write the prompt in this exact order (focus ONLY on biology and scene; photography style is handled separately):
+1. OPEN with the diagnostic feature (if any): "DEFINING VISUAL CHARACTERISTIC: [trait with precise size/scale words]..."
+2. DESCRIBE morphology: exact colors, textures, proportions, all key structures.
+3. SPECIFY composition: ${specimenCountLabel} specimen(s) in the central 50% of the frame, pronounced 3D depth, development stages as specified above.
+4. DESCRIBE habitat and ground cover (moss, pine needles, leaves, lichen, etc.).
+5. FAUNA (optional but encouraged): one small animal exploring the scene — choose naturally from: a beetle, a snail, a slug, a centipede, a spider on silk thread, a small grasshopper, an ant, a tiny moth, a woodlouse, a forest fly, a caterpillar on nearby vegetation — whatever fits the habitat. NEVER force it; it must feel like a casual discovery.
+6. CLOSE with: "CRITICAL: [one visible external diagnostic trait — e.g. stipe color, cap texture, pore/tooth/ridge structure at cap margin] must be unmistakably prominent in the final image."
+   ⚠️ The CRITICAL trait MUST be something visible on the INTACT LIVING exterior of the mushroom.
+   NEVER mention: bluing reactions, internal flesh color, cut surfaces, cross-sections, or any preparation requiring damage to the specimen. Those cannot be shown in a forest field photo.
+
+DO NOT include any lighting, camera settings, or photography style instructions — those are injected automatically.
+If no diagnostic feature: skip step 1 and open with step 2.`;
+          }
 
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando prompt taxonómico...`]);
 
+          // iNaturalist fetch disabled — morphology data is sufficient and
+          // reference photos from iNat were adding noise rather than signal.
+          const geminiParts = enginePrompt;
+
           let prompt = "";
           try {
-            const promptResponse = await withRetry(() => genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: MYCOLOGICAL_ENGINE_INSTRUCTIONS }).generateContent(enginePrompt), 2, 40000, 1000, (attempt) => {
+            const promptResponse = await withRetry(() => genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: MYCOLOGICAL_ENGINE_INSTRUCTIONS }).generateContent(geminiParts), 2, 40000, 1000, (attempt) => {
               setRetryStatus(`Reintentando análisis (${attempt}/2)...`);
               setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Reintento prompt ${attempt}...`]);
             });
@@ -1396,6 +1433,83 @@ function App() {
           }
 
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Prompt OK: ${prompt.substring(0, 30)}...`]);
+
+          // ── Anti-bias post-processing ──────────────────────────────────────────
+          // When antiConfusion is defined, the scientific name (especially genus)
+          // triggers learned visual priors in Imagen 4 that override all text instructions.
+          // Replace it with a purely visual description (in English) to break the bias chain.
+          if (antiConf.length > 0 && refData?.cap) {
+            // Translate common Spanish cap color/texture terms to English
+            const ES_COLOR = {
+              'blanco': 'white', 'blanca': 'white', 'blanco a crema': 'white to cream',
+              'crema': 'cream', 'crema a blanco': 'cream white', 'amarillo': 'yellow',
+              'amarillo a naranja': 'yellow-orange', 'naranja': 'orange', 'rojo': 'red',
+              'rojo a marrón': 'reddish brown', 'marrón': 'brown', 'pardo': 'brown',
+              'gris': 'gray', 'gris a marrón': 'grayish brown', 'negro': 'black',
+              'verde': 'green', 'violeta': 'violet', 'lila': 'lilac', 'rosa': 'pink',
+              'ocre': 'ochre', 'beige': 'beige',
+            };
+            const ES_TEXTURE = {
+              'lisa': 'smooth', 'liso': 'smooth', 'sedosa': 'silky', 'sedoso': 'silky',
+              'seca': 'dry', 'seco': 'dry', 'viscosa': 'viscid', 'viscoso': 'viscid',
+              'escamosa': 'scaly', 'escamoso': 'scaly', 'fibrosa': 'fibrous',
+              'fibrilosa': 'fibrous', 'tomentosa': 'tomentose', 'rugosa': 'rough',
+              'granulosa': 'granular', 'lustrosa': 'glossy', 'mate': 'matte',
+            };
+            const rawColor = (refData.cap.color ?? 'white').split(/[,;]/)[0].trim().toLowerCase();
+            const capColor = ES_COLOR[rawColor] ?? rawColor;
+            const sup = refData.cap.superficie ?? '';
+            const diagIdx = sup.search(/\b(RASGO|DISTINTIVO|DIAGNOSTIC|DISTINCTIVE)\b/i);
+            const texPart = diagIdx > 0 ? sup.slice(0, diagIdx).trim().replace(/[.:,]+$/, '') : sup;
+            const rawTexture = texPart.split(/[,;]/)[0].trim().toLowerCase();
+            const textureWord = ES_TEXTURE[rawTexture] ?? rawTexture;
+            const genus = cleanName.split(' ')[0]; // e.g. "Amanita"
+            const visualAlias = `a large ${capColor} ${textureWord}-capped forest mushroom`;
+            // Replace "Genus species" and standalone genus references in the Imagen 4 prompt
+            const nameRx = new RegExp(
+              `${genus}\\s+\\w+|${cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+              'gi'
+            );
+            prompt = prompt.replace(nameRx, visualAlias);
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🔄 Nombre científico → descripción visual (anti-bias Imagen 4)`]);
+          }
+          // ─────────────────────────────────────────────────────────────────────
+
+          // ── Mandatory photo specs — PREPENDED so image model reads them first ───
+          // Image models weight the START of the prompt far more than the end.
+          // Layer 1: when structured pipeline → inject validated morphology from DB.
+          //          when fallback → inject hymenium family constraint (HYMENIUM_VISUAL_FOR_IMAGE_MODEL).
+          let layer1_prefix = '';
+          if (hasStructuredData) {
+            // Full morphology is in layer1_morphology — inject it verbatim as Layer 1.
+            // The hymenium_description field already encodes the image-safe visual anchor.
+            layer1_prefix = layer1_morphology;
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 Layer 1 → morfología estructurada inyectada en prefijo`]);
+          } else {
+            const hymeniumConstraint = family ? (HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family] ?? '') : '';
+            layer1_prefix = hymeniumConstraint;
+            if (hymeniumConstraint) {
+              setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🍄 Himeneo especial: ${family} → constraint inyectado`]);
+            } else if (family) {
+              setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Familia: ${family} (sin constraint de himeneo)`]);
+            } else {
+              setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Familia no detectada — sin constraint de himeneo`]);
+            }
+          }
+          const MANDATORY_PHOTO_PREFIX = [
+            // Anti-diptych FIRST — absolute highest priority before anything else
+            `OUTPUT FORMAT (ABSOLUTE RULE — OVERRIDES EVERYTHING): ONE single photograph. A single continuous uninterrupted rectangular image with no divisions. NOT a diptych. NOT side-by-side panels. NOT a grid. NOT before/after. NOT cross-section + exterior. ONE scene, one frame, one photo.`,
+            layer1_prefix,
+            `PHOTOGRAPHY STYLE: Hyper-realistic field photograph. Golden hour backlit forest — warm low-angle dawn or dusk sun partially hidden behind tree trunks, volumetric crepuscular rays piercing the understory, pronounced rim lighting separating mushrooms from background. Soft warm diffused light with no harsh shadows. All specimens centered in the MIDDLE 50% of the frame width — wide forest floor fills left and right thirds. Macro lens 105mm, f/4.0, razor-sharp focus on adult cap, deep creamy bokeh on background. Subsurface scattering through mushroom flesh.`,
+          ].filter(Boolean).join('\n\n') + '\n\n';
+          // Remove trailing duplicate lighting/lens blocks Gemini may have appended
+          prompt = prompt
+            .replace(/[\.\s]*(Golden hour lighting[^]*?no panels\.?)\s*$/i, '')
+            .replace(/[\.\s]*(Hyper-realistic field photograph[^]*?no panels\.?)\s*$/i, '')
+            .trim();
+          prompt = MANDATORY_PHOTO_PREFIX + prompt;
+
+          setCurrentPrompt(prompt); // show in viewer while image generates
 
           setGenerationStep(`Enviando diseño de ${currentName}...`);
           setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Solicitando imagen a Google...`]);
@@ -1616,11 +1730,29 @@ function App() {
             errMsg.includes("unavailable");
 
           if (isTimeout || isUnavailable) {
-            // Fallback: text-to-image (no real editing, but show a visible warning to the user)
+            // Fallback: text-to-image regeneration with full species context + refinement instruction.
+            // We can't edit the image directly, but we can regenerate from scratch respecting the species
+            // morphology and applying only the requested change on top.
             const reason = isTimeout ? 'lento' : 'no disponible';
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini Edit ${reason}. Usando generación de respaldo (Imagen 4)...`]);
-            setRefineWarning(`El modo de edición real no está disponible ahora mismo. La imagen se ha generado de nuevo desde el texto, no a partir de la original.`);
-            return await withTimeout(callImagen3(refinementText, apiKey), 90000);
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Gemini Edit ${reason}. Regenerando con contexto completo de especie (Imagen 4)...`]);
+            setRefineWarning(`El modo de edición real no está disponible ahora mismo. La imagen se ha regenerado desde texto conservando la morfología de la especie.`);
+
+            // Rebuild species context for the fallback prompt
+            const fallbackName = currentSettings.scientificName.includes(' - ')
+              ? currentSettings.scientificName.split(' - ')[1]
+              : currentSettings.scientificName;
+            const refData = referenceSpecies?.extra_data ?? referenceSpecies;
+            let fallbackMorphology = "";
+            if (refData) {
+              const cap = refData.cap;
+              const stem = refData.stem;
+              const lines = [];
+              if (cap)  lines.push(`CAP: shape="${cap.forma ?? ''}", EXACT COLOR="${cap.color ?? ''}", surface="${cap.superficie ?? ''}"`);
+              if (stem) lines.push(`STIPE: shape="${stem.forma ?? ''}", EXACT COLOR="${stem.color ?? ''}"`);
+              if (lines.length > 0) fallbackMorphology = `\nVERIFIED MORPHOLOGY (DO NOT ALTER):\n${lines.join('\n')}`;
+            }
+            const fallbackPrompt = `Photorealistic mycological photograph of ${fallbackName}.${fallbackMorphology}\n\nSHOT: ${settings.shotType}. SPECIMENS: ${settings.specimenCount}.\n\nAPPLY ONLY THIS CHANGE to the baseline species description above: ${refinementText}\n\nAll other species characteristics remain as described. The result must be a real-looking scientific photograph with natural imperfections.`;
+            return await withTimeout(callImagen3(fallbackPrompt, apiKey), 90000);
           }
           throw err;
         }
@@ -1767,110 +1899,98 @@ function App() {
       <main className="max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-12 gap-8">
           {/* Controls - SIDEBAR_MARKER */}
-          <div className="lg:col-span-4 flex flex-col h-full">
-            <div className="space-y-10 flex flex-col h-full">
-              {isGenerating && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6"
-                >
-                  {/* Consola de Registro */}
-                  <div className="bg-black/40 rounded-2xl p-5 border border-white/5 shadow-inner flex flex-col">
-                    <div className="text-[9px] font-mono text-[#d9cda1]/30 uppercase tracking-widest mb-3 flex justify-between items-center">
-                      <span className="text-emerald-500/60 flex items-center gap-2">
+          <div className="lg:col-span-4 flex flex-col gap-6">
+
+              {/* ── Gallery-first: cabecera especie — visible siempre (generando o no) ── */}
+              {isGalleryFirst && settings.scientificName && (
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9cda1]/40 mb-1">Generando para</p>
+                    <p className="font-display text-3xl font-semibold text-cream leading-tight truncate">{settings.scientificName}</p>
+                    <p className="text-cream/30 text-sm font-mono mt-0.5">{searchParams.get('especie')}</p>
+                  </div>
+                  <button
+                    onClick={() => window.history.back()}
+                    className="shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-cream/40 hover:text-cream transition-colors mt-1"
+                    title="Volver a la galería"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Galería
+                  </button>
+                </div>
+              )}
+
+              {/* ── Consola — visible durante Y después de la generación ── */}
+              {(isGenerating || statusLog.length > 0) && (
+                <div className="bg-black/40 rounded-2xl p-4 border border-white/5 shadow-inner flex flex-col gap-3">
+
+                  {/* Sección Registro */}
+                  <div className="flex flex-col">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[9px] font-mono text-emerald-500/60 uppercase tracking-widest flex items-center gap-2">
                         <History size={10} />
-                        Registro de Actividad
-                        <span className="text-emerald-500/30 font-mono text-[9px] uppercase tracking-widest ml-2">
-                          T+ {Math.floor(generationTime / 60)}:{(generationTime % 60).toString().padStart(2, '0')}
-                        </span>
+                        Registro
+                        {isGenerating && (
+                          <span className="text-emerald-500/30 font-mono text-[9px]">
+                            T+ {Math.floor(generationTime / 60)}:{(generationTime % 60).toString().padStart(2, '0')}
+                          </span>
+                        )}
                       </span>
-                      <div className="flex gap-3">
-                        <button onClick={copyLog} className="hover:text-emerald-400 transition-colors p-1" title="Copiar Log"><Copy size={12} /></button>
-                      </div>
+                      <button onClick={copyLog} className="text-[#d9cda1]/30 hover:text-emerald-400 transition-colors p-1" title="Copiar registro"><Copy size={11} /></button>
                     </div>
-                    <div className="space-y-1 overflow-y-auto custom-scrollbar pr-2 font-mono max-h-[220px]">
+                    <div ref={logContainerRef} className="max-h-[130px] overflow-y-auto custom-scrollbar space-y-0.5 font-mono pr-1">
                       {statusLog.map((log, idx) => (
-                        <div key={idx} className="text-[10px] text-[#d9cda1]/55 text-left leading-snug border-l border-white/5 pl-3 py-0.5">
-                          <span className="text-emerald-500/40 mr-2">›</span>
-                          {log}
+                        <div key={idx} className="text-[10px] text-[#d9cda1]/50 leading-snug border-l border-white/5 pl-2 py-0.5">
+                          <span className="text-emerald-500/40 mr-1.5">›</span>{log}
                         </div>
                       ))}
-                      <div ref={logEndRef} />
                     </div>
                   </div>
 
-                  {/* Cola de Lote Detallada */}
-                  {batchQueue.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="px-4 py-3 bg-black/20 rounded-xl border border-white/5 space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-bold text-[#d9cda1]/40 uppercase tracking-widest">Cola de Producción</span>
-                          <span className="text-xs font-mono text-emerald-500">
-                            {batchProgress ? `${batchProgress.current} / ${batchProgress.total}` : batchQueue.length}
-                          </span>
-                        </div>
-
-                        <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                          {batchQueue.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5 border border-white/5 group transition-colors hover:bg-white/10">
-                              <div className="flex items-center gap-3 overflow-hidden">
-                                {item.status === 'completed' ? <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" /> :
-                                  item.status === 'failed' ? <AlertCircle className="w-3 h-3 text-red-500 shrink-0" /> :
-                                    item.status === 'processing' ? <Loader2 className="w-3 h-3 text-emerald-500 animate-spin shrink-0" /> :
-                                      <Clock className="w-3 h-3 text-[#d9cda1]/30 shrink-0" />}
-                                <div className="flex flex-col truncate">
-                                  <span className={`text-xs font-bold truncate ${item.status === 'processing' ? 'text-emerald-400' : 'text-[#d9cda1]/80'}`}>
-                                    {item.name}
-                                  </span>
-                                  <span className="text-[8px] text-[#d9cda1]/40 font-mono">ID: {item.id}</span>
-                                </div>
-                              </div>
-                              {item.status === 'failed' && (
-                                <div className="group/error relative">
-                                  <Info className="w-3 h-3 text-red-400/50 cursor-help" />
-                                  <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-red-900/95 backdrop-blur-md rounded-lg text-[8px] text-white opacity-0 group-hover/error:opacity-100 transition-opacity pointer-events-none z-50 border border-red-500/20 shadow-xl">
-                                    {item.error}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        {batchProgress && (
-                          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-emerald-500/50 transition-all duration-500"
-                              style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
-                            />
-                          </div>
-                        )}
+                  {/* Sección Prompt */}
+                  {currentPrompt && (
+                    <div className="flex flex-col border-t border-white/5 pt-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[9px] font-mono text-emerald-400/50 uppercase tracking-widest">
+                          Prompt → {imageModel ? imageModel.replace('models/', '') : 'modelo'}
+                        </span>
+                        <button onClick={copyPrompt} className="text-[#d9cda1]/30 hover:text-emerald-400 transition-colors p-1" title="Copiar prompt"><Copy size={11} /></button>
+                      </div>
+                      <div className="max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
+                        <p className="text-[10px] text-[#d9cda1]/40 italic leading-relaxed font-mono whitespace-pre-wrap">{currentPrompt}</p>
                       </div>
                     </div>
                   )}
 
-                  {/* Botón Detener */}
-                  <button
-                    onClick={stopGeneration}
-                    className="w-full bg-red-500/10 text-red-400 border border-red-500/10 rounded-xl py-4 font-bold text-xs uppercase tracking-[0.2em] hover:bg-red-500/20 transition-all flex items-center justify-center gap-3"
-                  >
-                    <X size={14} />
-                    Detener Captura
-                  </button>
-                </motion.div>
+                </div>
               )}
 
-              {!isGenerating && (
+              {/* ── Botón Detener — solo durante generación ── */}
+              {isGenerating && (
+                <button
+                  onClick={stopGeneration}
+                  className="w-full bg-red-500/10 text-red-400 border border-red-500/10 rounded-xl py-3.5 font-bold text-xs uppercase tracking-[0.2em] hover:bg-red-500/20 transition-all flex items-center justify-center gap-3"
+                >
+                  <X size={14} />
+                  Detener Captura
+                </button>
+              )}
+
+              {/* ── Ajustes + botón generar — solo antes de la primera generación ── */}
+              {!isGenerating && statusLog.length === 0 && (
                 <div className="space-y-10">
+
                   <section className="transition-all duration-500">
                     <div className="space-y-8">
-                      <div className="grid grid-cols-12 gap-4">
+                      {/* ── Selector especie + ID (oculto en gallery-first mode) ── */}
+                      {!isGalleryFirst && <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-3">
                           <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/70 flex items-center gap-1.5">
                             ID
                             <span title="Se rellena automáticamente al seleccionar una seta" className="text-[#d9cda1]/30 cursor-help">
-                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 0a5 5 0 1 0 0 10A5 5 0 0 0 5 0zm.5 7.5h-1v-3h1v3zm0-4h-1v-1h1v1z"/></svg>
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 0a5 5 0 1 0 0 10A5 5 0 0 0 5 0zm.5 7.5h-1v-3h1v3zm0-4h-1v-1h1v1z" /></svg>
                             </span>
                           </label>
                           <input
@@ -1954,7 +2074,38 @@ function App() {
                             </AnimatePresence>
                           </div>
                         </div>
+                      </div>}
+                      {/* ── /Selector especie + ID ── */}
+
+                      {/* ── Model selector ───────────────────────────────── */}
+                      <div className="pt-2 border-t border-white/5">
+                        <label className="block text-xs font-bold uppercase tracking-[0.2em] mb-3 text-[#d9cda1] flex items-center gap-2">
+                          <Settings2 className="w-3 h-3" />
+                          Modelo de Imagen
+                          {loadingModels && <span className="text-[#d9cda1]/40 normal-case tracking-normal font-normal">descubriendo…</span>}
+                        </label>
+                        {availableImageModels.length > 0 ? (
+                          <div className="relative">
+                            <select
+                              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-[#d9cda1] transition-all appearance-none text-xs font-bold text-[#f4ebe1] truncate"
+                              value={imageModel}
+                              onChange={(e) => setImageModel(e.target.value)}
+                            >
+                              {availableImageModels.map(m => (
+                                <option key={m.id} value={m.id} className="bg-[#2b3529] font-normal">
+                                  {m.displayName}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#d9cda1]">
+                              <ChevronRight className="w-3 h-3 rotate-90" />
+                            </div>
+                          </div>
+                        ) : !loadingModels ? (
+                          <p className="text-xs text-[#d9cda1]/40">Sin clave API — los modelos se cargan al confirmar la clave.</p>
+                        ) : null}
                       </div>
+                      {/* ── /Model selector ──────────────────────────────── */}
 
                       <div className="space-y-6">
                         <div className="pt-2 border-t border-white/5">
@@ -1981,7 +2132,7 @@ function App() {
                                   <div>
                                     <label className="block text-xs font-bold uppercase tracking-widest mb-3 text-[#d9cda1]/50">Número de Ejemplares</label>
                                     <div className="flex gap-2">
-                                      {[1, 2, 3].map((num) => (
+                                      {[1, 2, 3, 5].map((num) => (
                                         <button
                                           key={num}
                                           onClick={() => setSettings({ ...settings, specimenCount: num })}
@@ -1990,7 +2141,7 @@ function App() {
                                             : 'bg-black/20 border-white/10 text-[#d9cda1]/60 hover:border-[#f4ebe1] hover:text-[#f4ebe1]'
                                             }`}
                                         >
-                                          {num}
+                                          {num === 5 ? '4+' : num}
                                         </button>
                                       ))}
                                     </div>
@@ -2108,8 +2259,8 @@ function App() {
                     </div>
                   </section>
 
-                  {/* ── Reference panel — clickable to open CatalogImagesModal ── */}
-                  {referenceSpecies && (
+                  {/* ── Reference panel (oculto en gallery-first — acceso desde SpeciesAdminModal) ── */}
+                  {referenceSpecies && !isGalleryFirst && (
                     <div className="pt-2 border-t border-white/5">
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9cda1]/50">Imágenes en catálogo</p>
@@ -2128,13 +2279,13 @@ function App() {
                         <div className="grid grid-cols-3 gap-2">
                           {[
                             { label: 'Principal', url: resolveUrl(referenceSpecies.extra_data?.photo?.url ?? referenceSpecies.photo_url ?? '') },
-                            { label: 'Foto 1',    url: resolveUrl(referenceSpecies.extra_data?.photos?.[0]?.url ?? '') },
-                            { label: 'Foto 2',    url: resolveUrl(referenceSpecies.extra_data?.photos?.[1]?.url ?? '') },
+                            { label: 'Foto 1', url: resolveUrl(referenceSpecies.extra_data?.photos?.[0]?.url ?? '') },
+                            { label: 'Foto 2', url: resolveUrl(referenceSpecies.extra_data?.photos?.[1]?.url ?? '') },
                           ].map(({ label, url }) => (
                             <div key={label} className="space-y-1">
                               <div className="aspect-square rounded-lg overflow-hidden bg-black/30 flex items-center justify-center">
                                 {url
-                                  ? <img src={url} alt={label} className="w-full h-full object-cover group-hover:brightness-75 transition-all" loading="lazy" onError={e => { e.target.style.display='none' }} />
+                                  ? <img src={url} alt={label} className="w-full h-full object-cover group-hover:brightness-75 transition-all" loading="lazy" onError={e => { e.target.style.display = 'none' }} />
                                   : <Camera className="w-4 h-4 text-white/10" />
                                 }
                               </div>
@@ -2160,10 +2311,11 @@ function App() {
                         className="w-full bg-[#f4ebe1] text-[#1a1a1a] rounded-2xl py-5 font-bold text-sm uppercase tracking-[0.2em] hover:bg-white transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-2xl shadow-black/40 active:scale-[0.98] group"
                       >
                         <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                        Capturar Espécimen
+                        {isGalleryFirst ? 'Generar imagen' : 'Capturar Espécimen'}
                       </button>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      {/* Nuevo + CSV — ocultos en gallery-first (navegación de vuelta via header) */}
+                      {!isGalleryFirst && <div className="grid grid-cols-2 gap-4">
                         <button
                           onClick={() => {
                             setSettings({
@@ -2174,6 +2326,7 @@ function App() {
                             });
                             setSearchParams({});
                             setReferenceSpecies(null);
+                            setVisualPromptData(null);
                             loadedReferenceIdRef.current = null;
                             setGeneratedImage(null);
                             setViewedItem(null);
@@ -2200,7 +2353,7 @@ function App() {
                             Importar
                           </label>
                         </div>
-                      </div>
+                      </div>}
                     </div>
                   </div>
                 </div>
@@ -2221,13 +2374,12 @@ function App() {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-5 bg-amber-900/20 border border-amber-500/30 rounded-2xl flex items-start gap-3 text-amber-200 text-xs leading-relaxed mt-4"
+                  className="p-5 bg-amber-900/20 border border-amber-500/30 rounded-2xl flex items-start gap-3 text-amber-200 text-xs leading-relaxed"
                 >
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
                   <p>{refineWarning}</p>
                 </motion.div>
               )}
-            </div>
           </div>
 
           {/* Display */}
@@ -2235,7 +2387,20 @@ function App() {
             <div className="bg-black/20 rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden min-h-[700px] flex flex-col backdrop-blur-sm">
               <div className="flex-1 relative flex items-center justify-center p-12 bg-black/10">
                 <AnimatePresence mode="wait">
-                  {generatedImage ? (
+                  {isGenerating && !generatedImage ? (
+                    <motion.div
+                      key="generating"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-center flex flex-col items-center gap-5"
+                    >
+                      <Loader2 className="w-14 h-14 text-emerald-500/60 animate-spin" />
+                      <p className="text-[#d9cda1]/30 text-xs font-bold uppercase tracking-[0.3em]">
+                        {currentPrompt ? 'Imagen 4 procesando…' : settings.scientificName ? `Generando ${settings.scientificName}…` : 'Generando…'}
+                      </p>
+                    </motion.div>
+                  ) : generatedImage ? (
                     <motion.div
                       key="image"
                       initial={{ opacity: 0, scale: 0.98 }}
@@ -2264,45 +2429,47 @@ function App() {
                           </button>
                         </div>
                       </div>
-                      <div className="text-center space-y-2">
-                        <h3 className="text-4xl font-serif font-medium tracking-tight text-[#f4ebe1] flex items-center justify-center gap-3">
-                          <EditableField
-                            value={viewedItem?.settings.specimenId || settings.specimenId}
-                            className="font-mono text-[#d9cda1]/40"
-                            inputClassName="w-24 text-center font-mono"
-                            onSave={(newId) => {
-                              if (!viewedItem) return;
-                              setHistory(prev => prev.map(h =>
-                                h.id === viewedItem.id
-                                  ? { ...h, settings: { ...h.settings, specimenId: newId } }
-                                  : h
-                              ));
-                              setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, specimenId: newId } } : null);
-                            }}
-                            validate={(newId) => {
-                              const exists = history.some(item => item.settings.specimenId === newId && item.id !== viewedItem?.id);
-                              return exists ? "Este ID ya existe en la biblioteca." : null;
-                            }}
-                          />
-                          <EditableField
-                            value={viewedItem?.settings.scientificName || settings.scientificName}
-                            className="italic"
-                            inputClassName="w-full max-w-md text-center italic"
-                            onSave={(newName) => {
-                              if (!viewedItem) return;
-                              setHistory(prev => prev.map(h =>
-                                h.id === viewedItem.id
-                                  ? { ...h, settings: { ...h.settings, scientificName: newName } }
-                                  : h
-                              ));
-                              setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, scientificName: newName } } : null);
-                            }}
-                          />
-                        </h3>
-                        <p className="text-xs text-[#d9cda1]/60 uppercase tracking-[0.3em] font-bold">
-                          {viewedItem ? 'Archivo de Biblioteca' : 'Espécimen Generado'}
-                        </p>
-                      </div>
+                      {!isGalleryFirst && (
+                        <div className="text-center space-y-2">
+                          <h3 className="text-4xl font-serif font-medium tracking-tight text-[#f4ebe1] flex items-center justify-center gap-3">
+                            <EditableField
+                              value={viewedItem?.settings.specimenId || settings.specimenId}
+                              className="font-mono text-[#d9cda1]/40"
+                              inputClassName="w-24 text-center font-mono"
+                              onSave={(newId) => {
+                                if (!viewedItem) return;
+                                setHistory(prev => prev.map(h =>
+                                  h.id === viewedItem.id
+                                    ? { ...h, settings: { ...h.settings, specimenId: newId } }
+                                    : h
+                                ));
+                                setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, specimenId: newId } } : null);
+                              }}
+                              validate={(newId) => {
+                                const exists = history.some(item => item.settings.specimenId === newId && item.id !== viewedItem?.id);
+                                return exists ? "Este ID ya existe en la biblioteca." : null;
+                              }}
+                            />
+                            <EditableField
+                              value={viewedItem?.settings.scientificName || settings.scientificName}
+                              className="italic"
+                              inputClassName="w-full max-w-md text-center italic"
+                              onSave={(newName) => {
+                                if (!viewedItem) return;
+                                setHistory(prev => prev.map(h =>
+                                  h.id === viewedItem.id
+                                    ? { ...h, settings: { ...h.settings, scientificName: newName } }
+                                    : h
+                                ));
+                                setViewedItem(prev => prev ? { ...prev, settings: { ...prev.settings, scientificName: newName } } : null);
+                              }}
+                            />
+                          </h3>
+                          <p className="text-xs text-[#d9cda1]/60 uppercase tracking-[0.3em] font-bold">
+                            {viewedItem ? 'Archivo de Biblioteca' : 'Espécimen Generado'}
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   ) : (
                     <motion.div
@@ -2324,7 +2491,7 @@ function App() {
                         Introduce un nombre científico y configura los parámetros para generar un espécimen fotorrealista.
                       </p>
                     </motion.div>
-                  )}
+                  ) /* end isGenerating / generatedImage / empty */}
                 </AnimatePresence>
               </div>
 
@@ -2390,7 +2557,7 @@ function App() {
                           try {
                             const r = await fetch(`${API_BASE}/species/${speciesId}`, { headers: authHeaders() });
                             if (r.ok) { ref = await r.json(); setReferenceSpecies(ref); loadedReferenceIdRef.current = speciesId; }
-                          } catch (_) {}
+                          } catch (_) { }
                           if (!ref) ref = referenceSpecies;
                           setCatalogModal({ newImageDataUrl: generatedImage, newImageMimeType: mime });
                           setApplyStatus(null);
@@ -2531,8 +2698,11 @@ function App() {
               }
               const updated = await res.json();
               setReferenceSpecies(updated);
-              loadedReferenceIdRef.current = referenceSpecies.id; // mark as fresh — skip re-fetch after invalidateSpeciesListCache
-              // Bust list cache so the species thumbnail reflects the new order on next load.
+              loadedReferenceIdRef.current = referenceSpecies.id; // mark as fresh — skip re-fetch after cache patch
+              // 1. Patch inmediato: actualiza la foto en caché sin recargar toda la lista (feedback visual instantáneo).
+              // 2. Invalidación garantizada: fuerza re-fetch en el siguiente render para que la card
+              //    refleje el estado real de la BD, incluso si la especie no estaba en caché al parchear.
+              patchSpeciesPhotoInCache(updated);
               invalidateSpeciesListCache();
               if (catalogModal.newImageDataUrl) setSavedToCatalog(true);
               setApplyStatus('success');

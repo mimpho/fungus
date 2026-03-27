@@ -33,6 +33,58 @@ export function invalidateSpeciesListCache() {
   window.dispatchEvent(new Event(SPECIES_REFRESH_EVENT))
 }
 
+/**
+ * Actualiza en el caché la foto principal Y la galería de una especie concreta
+ * sin vaciar ni recargar toda la lista. Evita el flash de mockSpecies al guardar
+ * desde el generador admin.
+ *
+ * Si la especie no se encuentra en ningún idioma del caché, invalida el caché
+ * entero como fallback garantizado (fuerza un re-fetch).
+ *
+ * @param {object} updatedSpecies - Raw SpeciesDetail del API (snake_case)
+ *   Debe tener: id, extra_data.photo.url (o photo_url como fallback)
+ */
+export function patchSpeciesPhotoInCache(updatedSpecies) {
+  const newPhotoUrl =
+    updatedSpecies?.extra_data?.photo?.url ??
+    updatedSpecies?.photo_url ??
+    null
+  // If no main photo to patch, just invalidate and let the list re-fetch
+  if (!newPhotoUrl) {
+    invalidateSpeciesListCache()
+    return
+  }
+
+  const newPhotos = updatedSpecies?.extra_data?.photos ?? []
+  let patched = false
+
+  Object.keys(_speciesCache).forEach(lang => {
+    if (!_speciesCache[lang]) return
+    const idx = _speciesCache[lang].findIndex(s => s.id === updatedSpecies.id)
+    if (idx < 0) return
+    patched = true
+    const existing = _speciesCache[lang][idx]
+    _speciesCache[lang] = [
+      ..._speciesCache[lang].slice(0, idx),
+      {
+        ...existing,
+        photo:  { url: newPhotoUrl },  // main photo — drives SpeciesCard
+        photos: newPhotos,             // gallery — drives GallerySection
+      },
+      ..._speciesCache[lang].slice(idx + 1),
+    ]
+  })
+
+  if (!patched) {
+    // Species was not in any lang cache — invalidate so the next render re-fetches
+    invalidateSpeciesListCache()
+    return
+  }
+
+  // Notify mounted useSpecies instances to read the patched cache
+  window.dispatchEvent(new Event(SPECIES_REFRESH_EVENT))
+}
+
 export function useSpecies() {
   const { lang } = useApp()
   const [species, setSpecies] = useState(_speciesCache[lang] ?? mockSpecies)

@@ -1,10 +1,12 @@
 """Species routes: list and detail.
 
-GET /species               → paginated list (replaces mockSpecies on frontend)
-GET /species/{id}          → full detail (replaces SpeciesModal data)
-PATCH /species/{id}/images → save generated image to a slot (admin only)
-POST /species/{id}/images/reorder   → rearrange existing slot images (admin only)
-POST /species/{id}/images/set-order → write ordered photo list (admin only)
+GET /species                          → paginated list (replaces mockSpecies on frontend)
+GET /species/{id}                     → full detail (replaces SpeciesModal data)
+GET /species/{id}/visual-prompt       → structured visual DNA for image generation (admin)
+PATCH /species/{id}/images            → save generated image to a slot (admin only)
+POST /species/{id}/images/reorder     → rearrange existing slot images (admin only)
+POST /species/{id}/images/set-order   → write ordered photo list (admin only)
+PUT  /species/{id}/visual-prompt      → upsert visual prompt data (admin only)
 """
 import copy
 import logging
@@ -16,6 +18,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.database import get_db
 from app.dependencies import get_admin_user
+from app.models.mushroom_visual_prompt import MushroomVisualPrompt
 from app.models.species import Species
 from app.models.user import User
 from app.schemas.species import (
@@ -25,6 +28,8 @@ from app.schemas.species import (
     SpeciesImageUpdate,
     SpeciesListItem,
     SpeciesOIParams,
+    VisualPromptData,
+    VisualPromptUpsertBody,
 )
 
 log = logging.getLogger(__name__)
@@ -433,3 +438,81 @@ async def set_species_photos_order(
 
     log.info("Admin set photo order for %s: %d photo(s)", species_id, len(body.photos))
     return _to_detail(species)
+
+
+# ── Myco-Engine visual prompt (structured image-model data) ───────────────────
+
+@router.get("/{species_id}/visual-prompt", response_model=VisualPromptData | None)
+async def get_species_visual_prompt(
+    species_id: str,
+    _admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> VisualPromptData | None:
+    """
+    Return the structured visual DNA for a species (admin only).
+
+    Used by the Myco-Engine (ImageGenerator) to assemble deterministic,
+    botanically-accurate prompts for text-to-image models.
+
+    Returns null (HTTP 200 with null body) if no entry exists yet for this
+    species — the frontend falls back to the Gemini-only pipeline in that case.
+    """
+    # Verify the species exists
+    sp = await db.execute(select(Species.id).where(Species.id == species_id))
+    if sp.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail=f"Species '{species_id}' not found")
+
+    result = await db.execute(
+        select(MushroomVisualPrompt).where(MushroomVisualPrompt.species_id == species_id)
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        return None
+
+    return VisualPromptData.model_validate(row)
+
+
+@router.put("/{species_id}/visual-prompt", response_model=VisualPromptData)
+async def upsert_species_visual_prompt(
+    species_id: str,
+    body: VisualPromptUpsertBody,
+    _admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+) -> VisualPromptData:
+    """
+    Create or update the visual prompt data for a species (admin only).
+
+    Full replace semantics: all provided fields overwrite existing values.
+    Fields omitted from the body are set to null.
+    """
+    # Verify the species exists
+    sp = await db.execute(select(Species.id).where(Species.id == species_id))
+    if sp.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail=f"Species '{species_id}' not found")
+
+    result = await db.execute(
+        select(MushroomVisualPrompt).where(MushroomVisualPrompt.species_id == species_id)
+    )
+    row = result.scalar_one_or_none()
+
+    if row is None:
+        row = MushroomVisualPrompt(species_id=species_id)
+        db.add(row)
+
+    row.cap_description = body.cap_description
+    row.stipe_description = body.stipe_description
+    row.hymenium_description = body.hymenium_description
+    row.extra_morphology_visual = body.extra_morphology_visual
+    row.extra_morphology_gemini = body.extra_morphology_gemini
+    row.preferred_substrate = body.preferred_substrate
+    row.habitat_context = body.habitat_context
+    row.associated_fauna = body.associated_fauna
+    row.is_validated = body.is_validated
+
+    await db.commit()
+    await db.refresh(row)
+
+    log.info(
+        "Admin upserted visual prompt for %s (validated=%s)", species_id, row.is_validated
+    )
+    return VisualPromptData.model_validate(row)

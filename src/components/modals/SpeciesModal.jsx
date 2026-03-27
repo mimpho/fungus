@@ -238,7 +238,11 @@ export function SpeciesModal({ species, onClose }) {
           className={`relative min-h-[50vh] aspect-video w-full overflow-hidden sm:rounded-t-2xl modal-header group ${heroPhotos.length > 0 ? 'cursor-zoom-in' : ''}`}
           onClick={heroPhotos.length > 0 ? (e) => { e.stopPropagation(); handleOpenLightbox(heroPhotos, 0) } : undefined}
         >
-          <SpeciesImg localSrc={detail.photo?.largeUrl || detail.photo?.url} scientificName={detail.scientificName} className="w-full h-full transition-transform duration-300 group-hover:scale-[1.02]" objectFit="cover" objectPosition="top" />
+          {/* Fade-in once the full detail is loaded — avoids the stale-photo flash
+              caused by setDetail(species) using the partial list-cache entry.      */}
+          <div className={`absolute inset-0 transition-opacity duration-500 ${detailLoading ? 'opacity-0' : 'opacity-100'}`}>
+            <SpeciesImg localSrc={detail.photo?.largeUrl || detail.photo?.url} scientificName={detail.scientificName} className="w-full h-full transition-transform duration-300 group-hover:scale-[1.02]" objectFit="cover" objectPosition="top" />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-modal via-modal/0 to-transparent" />
           {heroPhotos.length > 0 && (
             <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/40 rounded-lg px-2 py-1 flex items-center gap-1.5 text-white/80 text-xs pointer-events-none">

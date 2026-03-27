@@ -309,3 +309,47 @@ useEffect(() => {
 
 **Deuda técnica conocida:** `VITE_GEMINI_API_KEY` está expuesta en el bundle del frontend. Es aceptable porque la herramienta está detrás de `AdminGuard` (solo usuarios con `role = 'admin'`), pero el único argumento real a favor de un microservicio en el futuro sería mover las API keys al backend FastAPI y convertir el generador en un endpoint autenticado server-side. No es urgente mientras el acceso admin sea fiable.
 ```
+
+---
+
+## Renaming de imágenes de especies (decidido v5.4, pendiente implementar)
+
+**Decisión:** Migrar de la nomenclatura `main`/`foto1`/`foto2` a un sistema de posición numérica explícita. Las imágenes de una especie se numeran `esp-XXX-01`, `esp-XXX-02`, etc. La primera posición (01) actúa como imagen principal en listados y header de SpeciesModal.
+
+**Estado actual:**
+- Imágenes seed (estáticas): `esp-001-main.jpg`, `esp-001-main-large.jpg`, `esp-001-foto1.jpg`, `esp-001-foto1-large.jpg`, etc.
+- Imágenes generadas por IA: almacenadas como `data:image/jpeg;base64,...` en `extra_data.photo.url` y `extra_data.photos[].url` (sin filename real)
+- Ordenación: `set-order` ya gestiona un array ordenado donde posición 0 = main. Concepto correcto, naming de archivos legacy.
+
+**Naming objetivo:**
+- `esp-161-01.jpg` + `esp-161-01-lg.jpg` (main)
+- `esp-161-02.jpg` + `esp-161-02-lg.jpg` (segunda foto)
+- etc. sin límite
+
+**Plan de implementación en 3 fases:**
+
+### Fase A — Conceptual (ya implementada en v5.4)
+- `set-order` como única fuente de verdad para ordenación
+- El concepto de slot (`main`/`photo1`/`photo2`) desaparece del frontend
+- `CatalogImagesModal` ya usa posición implícita (índice 0 = main)
+- El endpoint `PATCH /species/{id}/images` (slot-based) queda deprecated
+
+### Fase B — Rename de archivos estáticos seed (pendiente, requiere migración)
+1. Script Python (`scripts/rename_images.py`) que recorre todas las especies en DB:
+   - Lee `extra_data.photo.url` → renombra a `esp-XXX-01.jpg` / `esp-XXX-01-lg.jpg`
+   - Lee `extra_data.photos[0].url` → renombra a `esp-XXX-02.jpg` / `esp-XXX-02-lg.jpg`
+   - Actualiza los URLs en `extra_data` en Supabase DB
+2. Los archivos estáticos del frontend (`/assets/images/content/species/`) se renombran localmente y se redesplegan
+3. Paso manual: sincronizar archivos físicos en el servidor (Vercel public assets)
+
+### Fase C — File storage para imágenes generadas (backlog, requiere infraestructura)
+- Migrar de `data:` URIs en DB a URLs en Supabase Storage
+- Cuando el generador guarda, el backend sube a `species-images/esp-XXX-NN.jpg` y devuelve la URL pública
+- Reduce el tamaño de `extra_data` drásticamente (actualmente las `data:` URIs pueden ser ~200KB por imagen en base64)
+- Requiere: `SUPABASE_SERVICE_KEY` en el backend, bucket público, lógica de numeración al subir
+
+**Alternativas descartadas:**
+- *Slug en el nombre de archivo* (`esp-boletus-edulis-01.jpg`): más legible pero el `scientificName` puede cambiar; el ID numérico es estable.
+- *Hash del contenido* (`esp-001-a3f2c8.jpg`): no es determinista para el administrador.
+
+**Acción inmediata:** Fase A ya lista. Crear issue/milestone para Fase B cuando se vayan a redesplegar los assets del frontend. Fase C cuando se decida monetización y se necesite optimizar el tamaño de la DB.

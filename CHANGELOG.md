@@ -9,6 +9,28 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Añadido — v5.5 Myco-Engine DNA Visual
+
+- **`mushroom_visual_prompts` (migración 009)**: nueva tabla en Supabase con DNA Visual por especie — campos separados para píleo, estipe, himenio (lenguaje visual de imagen, no botánico raw), morfología extra imagen-safe, morfología para Gemini (interna/reacciones), sustrato, hábitat y fauna asociada. Campo `is_validated` para control de calidad.
+- **`MushroomVisualPrompt` (modelo SQLAlchemy)**: modelo async con FK a `species.id`, campos Text para todos los descriptores visuales, `is_validated: bool`, `updated_at` auto.
+- **`VisualPromptData` + `VisualPromptUpsertBody` (schemas Pydantic)**: respuesta y body de upsert para el nuevo endpoint. `VisualPromptData` incluye `is_validated`.
+- **`GET /species/{id}/visual-prompt`** (admin only): devuelve el DNA Visual estructurado o `null` si no hay entrada todavía. 200 + null = sin datos = fallback pipeline.
+- **`PUT /species/{id}/visual-prompt`** (admin only): crea o reemplaza el DNA Visual de una especie. Semántica full-replace.
+- **`scripts/seed_visual_prompts.py`**: script de seeding con 10 especies piloto cubriendo todos los tipos de himenio: Boletaceae (poros), Amanitaceae (láminas + volva), Cantharellaceae (pliegues), Morchellaceae (alveolada), Russulaceae (láminas frágiles), Hydnaceae, Bankeraceae (dientes), Hericiaceae (coral). Todas marcadas `is_validated=True`.
+- **`ImageGenerator.jsx` — pipeline estructurado**: cuando el backend devuelve DNA Visual para la especie seleccionada, el generador usa el pipeline de 4 capas (Layer 0: anti-díptico → Layer 1: morfología validada de BD → Layer 3: óptica → output Gemini de solo escena). Gemini recibe morfología pre-ensamblada y solo genera la escena/atmósfera. Fallback automático al pipeline Gemini-interpreta-morfología cuando no hay datos en BD. Log muestra `🧬 DNA Visual en BD` vs `📝 Sin DNA Visual`.
+
+### Añadido — v5.4 Rediseño generador admin (galería-first)
+
+- **`CatalogImagesModal.jsx`**: extraído de `ImageGenerator.jsx` a su propio archivo (`src/components/admin/`) para que pueda reutilizarse desde `SpeciesAdminModal` sin cargar el bundle completo del generador. Exports: `CatalogImagesModal` (default + named), `photoPosLabel`, `moveItem`.
+- **`SpeciesAdminModal.jsx`**: nuevo modal de especie abierto desde la galería admin. Muestra miniaturas de todas las fotos con lightbox navegable (←/→, dots, ESC). Dos acciones: "Reordenar" (abre `CatalogImagesModal` DnD) y "Generar imagen" (navega al generador simplificado vía `?especie=XXX&generar=1`). Fetch del detalle raw al montar para alimentar `CatalogImagesModal`.
+- **`AdminGeneratorHub.jsx`**: hub unificado para `/admin/generator`. Modo galería (default): renderiza `AdminGallery` + `SpeciesAdminModal` cuando hay `?especie=`. Modo generador: lazy-load de `ImageGenerator` cuando hay `?especie=XXX&generar=1`. Gestión URL: `replace: true` para modal open/close (no ensucia el historial), push para navegar al generador (back button funciona).
+
+### Cambiado
+
+- **`AdminGallery`**: acepta prop `onOpen` opcional. Cuando se provee (hub mode), lo usa en lugar de `navigate()`. Retrocompatible — sin prop, comportamiento anterior.
+- **`ImageGenerator`**: modo gallery-first activado con `?generar=1`. Oculta selector de especie + campo ID, botones "Nuevo" y "Importar CSV", y bloque "Imágenes en catálogo" del sidebar. Muestra título con nombre científico + botón "← Galería" en su lugar. Botón principal renombrado a "Generar imagen". Elimina la definición inline de `CatalogImagesModal` y sus helpers; usa import de `./CatalogImagesModal`.
+- **`App.jsx`**: ruta `/admin/generator` apunta a `AdminGeneratorHub` (lazy). Ruta `/admin/gallery` redirige a `/admin/generator` (redirect permanente). Eliminado el lazy de `ImageGenerator` del router raíz — ahora está dentro del hub.
+
 ---
 
 ## [5.3.1] - 2026-03-22 — Bug fixes: caché fotos, generador admin

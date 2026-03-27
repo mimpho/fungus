@@ -8,11 +8,11 @@ import Species    from './pages/Species'
 import Family     from './pages/Family'
 import Articles   from './pages/Articles'
 import Profile    from './pages/Profile'
-import AdminGallery from './pages/AdminGallery'
 import Layout          from './components/Layout'
 import { ModalRenderer } from './components/modals/ModalRenderer'
 
-const ImageGenerator = lazy(() => import('./components/admin/ImageGenerator'))
+// AdminGeneratorHub = galería + modal especie + generador simplificado (v5.4)
+const AdminGeneratorHub = lazy(() => import('./pages/AdminGeneratorHub'))
 
 // Scroll to top on page navigation — EXCEPTO rutas de modal.
 // Las rutas de modal (con segundo segmento) son /zonas/:id, /especies/:id,
@@ -44,18 +44,16 @@ export default function App() {
           <Route path="micologia"       element={<Articles />} />
           <Route path="micologia/:slug" element={<Articles />} />
           <Route path="perfil"          element={<Profile />} />
+          {/* /admin/generator = hub galería-first (v5.4): galería → modal → generador */}
           <Route path="admin/generator" element={
             <AdminGuard>
               <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#4a7c59] border-t-transparent rounded-full animate-spin" /></div>}>
-                <ImageGenerator />
+                <AdminGeneratorHub />
               </Suspense>
             </AdminGuard>
           } />
-          <Route path="admin/gallery"   element={
-            <AdminGuard>
-              <AdminGallery />
-            </AdminGuard>
-          } />
+          {/* /admin/gallery → redirige al hub unificado */}
+          <Route path="admin/gallery" element={<Navigate to="/admin/generator" replace />} />
           <Route path="*"               element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

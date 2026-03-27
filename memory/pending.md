@@ -4,19 +4,40 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚀 Próximo — v5.4 Rediseño generador admin (galería-first)
+## 🚧 En progreso — v5.5 Myco-Engine: DNA Visual en BD
 
-**Motivación:** el flujo actual del generador tiene bugs acumulados difíciles de aislar y una UX poco coherente con el objetivo real de la herramienta (gestionar imágenes de especies del catálogo). Se rediseña desde cero reutilizando los bloques ya construidos.
+Implementación completada en `feat/v5.4-generator-redesign` (rama compartida). Pendiente:
+- Ejecutar migración 009 en Supabase prod
+- Ejecutar `python -m scripts.seed_visual_prompts` en Render (o local con DATABASE_URL) para las 10 especies piloto
+- Validar en el generador: las especies piloto deben mostrar "🧬 DNA Visual en BD → pipeline estructurado" en el log
+- Evaluar calidad de generación vs. pipeline anterior (Boletus edulis, Amanita muscaria, Cantharellus cibarius)
+- Ampliar seed a más especies si la prueba piloto es satisfactoria
+- PR + merge + bump de versión
 
-**Alcance:**
+**10 especies piloto cubiertas:**
+Boletus edulis, Neoboletus luridiformis (Boletaceae), Amanita muscaria, Amanita phalloides (Amanitaceae), Cantharellus cibarius (Cantharellaceae), Morchella esculenta (Morchellaceae), Russula virescens (Russulaceae), Hydnum repandum (Hydnaceae), Sarcodon imbricatus (Bankeraceae), Hericium erinaceus (Hericiaceae).
 
-- **Entrada: AdminGallery como pantalla principal** de `/admin/generator`. Sin `?especie=` → galería con buscador + filtros ya existentes. Con `?especie=XXX` → abre modal de esa especie directamente.
-- **Modal de especie** (nuevo componente): clic en tarjeta de galería → modal con miniaturas de todas las fotos de la especie + lightbox navegable entre fotos. Dos acciones: "Reordenar" y "Generar imagen".
-- **Modo reordenar**: el modal cambia a DnD con el `CatalogImagesModal` ya existente. "Reordenar" → "Guardar orden".
-- **Vista generador simplificada**: selector de especie + input ID eliminados → título con nombre de la especie. Se mantienen los desplegables de ajustes de escena. Se elimina el bloque "Imágenes en catálogo" del sidebar (redundante — acceso desde galería). Se eliminan los botones "Nuevo" y "Cargar CSV". "Capturar espécimen" → "Generar imagen". Panel derecho (visor + historial + consola) sin cambios.
-- **Reutilizar sin reescribir**: `AdminGallery` + `GalleryCard`, `CatalogImagesModal` (DnD), panel derecho del generador, lógica de generación (`generateImage`, `callImagen3`, `callGeminiRefine`), consola de estado.
+---
 
-**Nueva branch:** `feat/v5.4-generator-redesign` desde `main` tras mergear `fix/generator-apikey-cache`.
+## ✅ Completado — v5.4 Rediseño generador admin (galería-first)
+
+Implementación completada en `feat/v5.4-generator-redesign`. Pendiente: PR + merge + bump de versión.
+
+**Testing manual recomendado antes del merge:**
+- `/admin/generator` sin params → galería con filtros
+- Clic en tarjeta → skeleton → todas las fotos (sin flash/salto)
+- Lightbox abre con versión `-large`; navegar ←/→
+- "Reordenar" → DnD inline en el mismo modal, guardar actualiza la galería
+- "Generar imagen" → navega a `?especie=XXX&generar=1` → generador simplificado (sin selector, sin Nuevo/CSV, sin catálogo sidebar, sin ID/nombre editables, botón "Generar imagen")
+- Generación: no arrastra la página (scroll queda en el log interno)
+- Prompt de generación incluye morfología verificada de la especie (cap/stem/flesh)
+- Back button desde generador → vuelve al modal de especie
+- Guardar imagen generada → nueva imagen queda como primera (main)
+- `/admin/gallery` → redirige a `/admin/generator`
+
+**Backlog relacionado — Renaming de imágenes (ver `memory/decisions.md`):**
+- Fase B: script para renombrar assets estáticos `esp-XXX-main.jpg` → `esp-XXX-01.jpg`
+- Fase C: migrar `data:` URIs de generación a Supabase Storage con filenames numerados
 
 ---
 
@@ -92,6 +113,14 @@ Solución: sustituir los archivos de imagen en `assets/images/content/species/` 
 - Verificar que `forestTypes` y `fruitingMonths` sean correctos para todas las especies
 - Añadir más especies representativas de cada tipo de bosque
 - Valorar tipos adicionales: abetosas, coníferas mixtas, etc.
+
+### Auditoría morfológica orientada a identificación (ALTA PRIORIDAD cuando se aborde)
+Las descripciones actuales de `cap`, `stem`, `flesh` están redactadas como fichas enciclopédicas. Para que sean útiles en identificación de campo (y para el generador de imágenes), cada especie debería tener:
+- **Rasgos diagnósticos explicitados** — los 1-3 rasgos que la distinguen de todas las demás, marcados con `RASGO DIAGNÓSTICO:` para que el morfologyBlock del generador los detecte y los priorice.
+- **Rasgos de confusión negativos** — lo que NO tiene (ej. "SIN rosado en la carne, SIN volva membranosa"), especialmente respecto a sus especies de confusión del `ConfusionesBlock`.
+- **Escala y prominencia** — no "apéndices pendulares" sino "fragmentos de 1-3 cm, conspicuos, imposibles de ignorar". Los modelos de imagen (y los recolectores novatos) necesitan vocabulario de magnitud.
+
+Alcance: 202 especies en BD + `species.js`. El trabajo debería hacerse directamente en Supabase (SQL batch por familia) más actualización paralela en `species.js`. Ver patrón ya aplicado en `esp-062` (*Amanita ovoidea*) como referencia.
 
 ### Zonas sin especies en temporada
 Si no hay especies que coincidan con una zona/mes, el score meteorológico queda sin ajustar. Considerar penalización por "zona sin interés micológico este mes".
