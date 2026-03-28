@@ -119,7 +119,9 @@ Analyze the photos carefully and respond with corrections in this exact JSON for
   "extra_visual_fix": "..."
 }}
 
-Be strict — if you see any colour, texture or proportion that contradicts the description, flag it."""
+Be strict — if you see any colour, texture or proportion that contradicts the description, flag it.
+
+IMPORTANT: All string values in the JSON must be on a single line (no newlines inside strings). Use a period and space to separate sentences. Do not use apostrophes inside string values — use alternative phrasing instead."""
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -191,7 +193,7 @@ async def call_gemini_vision(
         "contents": [{"role": "user", "parts": parts}],
         "generationConfig": {
             "temperature": 0.2,
-            "maxOutputTokens": 2048,
+            "maxOutputTokens": 4096,
             "responseMimeType": "application/json",
         },
     }
@@ -206,11 +208,16 @@ async def call_gemini_vision(
                     print(f"  ⚠️  {species_name}: no candidates returned")
                     return None
                 raw = candidates[0]["content"]["parts"][0]["text"]
-                return json.loads(strip_fences(raw))
-            except json.JSONDecodeError as e:
-                print(f"  ⚠️  {species_name}: JSON parse error ({e}) — attempt {attempt+1}")
-                if attempt == 2:
-                    return None
+                cleaned = strip_fences(raw)
+                try:
+                    return json.loads(cleaned)
+                except json.JSONDecodeError as e:
+                    print(f"  ⚠️  {species_name}: JSON parse error ({e}) — attempt {attempt+1}")
+                    print(f"  📄 Raw response (first 400 chars): {cleaned[:400]}")
+                    if attempt == 2:
+                        return None
+                    await asyncio.sleep(3)
+                    continue
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 429:
                     wait = 30 * (attempt + 1)
