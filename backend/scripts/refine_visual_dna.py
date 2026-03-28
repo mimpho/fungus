@@ -234,7 +234,7 @@ async def load_species_with_visual(
     species_id_filter: str | None = None,
 ) -> list[dict]:
     """Load species that have DNA Visual + at least one real photo."""
-    query = text("""
+    base = """
         SELECT
             s.id,
             s.scientific_name,
@@ -247,10 +247,14 @@ async def load_species_with_visual(
             vp.is_validated
         FROM species s
         JOIN mushroom_visual_prompts vp ON vp.species_id = s.id
-        WHERE (:sid IS NULL OR s.id = :sid)
-        ORDER BY s.id
-    """)
-    result = await session.execute(query, {"sid": species_id_filter})
+    """
+    if species_id_filter:
+        result = await session.execute(
+            text(base + " WHERE s.id = :sid ORDER BY s.id"),
+            {"sid": species_id_filter},
+        )
+    else:
+        result = await session.execute(text(base + " ORDER BY s.id"))
     rows = result.mappings().all()
     return [dict(r) for r in rows]
 
