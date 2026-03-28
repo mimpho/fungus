@@ -13,6 +13,7 @@ import { useApp } from '../../contexts/AppContext';
 import { API_BASE } from '../../services/apiService';
 import { invalidateSpeciesListCache, patchSpeciesPhotoInCache } from '../../hooks/useSpecies';
 import { authHeaders } from '../../services/authService';
+import { applyVisualGlossary } from '../../lib/visualGlossary';
 import { resolveUrl } from '../../lib/helpers';
 import { MODAL } from '../../lib/constants';
 import { CatalogImagesModal } from './CatalogImagesModal';
@@ -1338,11 +1339,12 @@ ${morphLines.join('\n')}`;
           let layer1_morphology = "";
           if (hasStructuredData) {
             const vp = visualPromptData;
+            const g = applyVisualGlossary;
             const parts = [
-              vp.cap_description     ? `CAP: ${vp.cap_description}`              : null,
-              vp.stipe_description   ? `STIPE: ${vp.stipe_description}`          : null,
-              vp.hymenium_description? `HYMENIUM: ${vp.hymenium_description}`    : null,
-              vp.extra_morphology_visual ? `ADDITIONAL: ${vp.extra_morphology_visual}` : null,
+              vp.cap_description     ? `CAP: ${g(vp.cap_description)}`              : null,
+              vp.stipe_description   ? `STIPE: ${g(vp.stipe_description)}`          : null,
+              vp.hymenium_description? `HYMENIUM: ${g(vp.hymenium_description)}`    : null,
+              vp.extra_morphology_visual ? `ADDITIONAL: ${g(vp.extra_morphology_visual)}` : null,
             ].filter(Boolean);
             layer1_morphology = parts.join('\n');
           }
