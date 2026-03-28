@@ -1500,11 +1500,19 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
               setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Familia no detectada — sin constraint de himeneo`]);
             }
           }
+          // Prompt order follows Google Imagen best practices: composition constraints FIRST
+          // (image models weight early tokens heavily), then morphology, then scene details.
           const MANDATORY_PHOTO_PREFIX = [
-            // Anti-diptych FIRST — absolute highest priority before anything else
-            `OUTPUT FORMAT (ABSOLUTE RULE — OVERRIDES EVERYTHING): ONE single photograph. A single continuous uninterrupted rectangular image with no divisions. NOT a diptych. NOT side-by-side panels. NOT a grid. NOT before/after. NOT cross-section + exterior. ONE scene, one frame, one photo.`,
+            // 1. CENTERING FIRST — most important layout constraint, must be weighted early
+            `CENTERING (MANDATORY — image is unusable if violated): ALL specimens grouped in the STRICT CENTER BAND of the frame (40%–60% of frame width). The left 30% and right 30% of the frame are background forest floor only — NO specimens there. This image is cropped to a 1:1 square for the catalog card; any specimen touching the left or right edge will be cut off.`,
+            // 2. Anti-diptych — format constraint before subject content
+            `OUTPUT FORMAT (ABSOLUTE RULE): ONE single continuous photograph. NOT a diptych. NOT side-by-side panels. NOT a grid. NOT before/after. NOT cross-section + exterior. ONE scene, one frame, one photo.`,
+            // 3. Morphology from DNA Visual (subject content)
             layer1_prefix,
-            `PHOTOGRAPHY STYLE: Hyper-realistic field photograph. Camera positioned at ground level, lens at 5–10 cm above the forest floor, shooting slightly upward so the mushroom base and substrate fill the lower third of the frame and the forest canopy fills the upper third. Specimens occupy the central vertical band — stipe base visible at bottom, cap in the middle third, bokeh canopy above. Golden hour backlit forest — warm low-angle dawn or dusk sun partially hidden behind tree trunks, volumetric crepuscular rays piercing the understory, pronounced rim lighting separating mushrooms from background. Soft warm diffused light with no harsh shadows. All specimens centered in the MIDDLE 50% of the frame width — wide forest floor fills left and right thirds. Macro lens 105mm, f/4.0, razor-sharp focus on adult cap, deep creamy bokeh on background. Subsurface scattering through mushroom flesh.`,
+            // 4. Fauna floor constraint — counters strong model prior of "insect on cap"
+            `FAUNA (IF PRESENT): Any animal — insect, snail, slug, spider, worm — must be on the forest floor, on leaf litter at ground level, or on a nearby twig or stone. NEVER on the cap surface. NEVER perched on top of the stipe. NEVER touching the gills.`,
+            // 5. Camera + lighting specs last (supporting context, not subject)
+            `PHOTOGRAPHY STYLE: Hyper-realistic field photograph. Camera at ground level, lens 5–10 cm above the forest floor, shooting slightly upward — stipe base visible at the bottom of frame, cap in the middle third, bokeh canopy in the upper third. Golden hour backlit forest — warm low-angle dawn or dusk sun partially hidden behind tree trunks, volumetric crepuscular rays, pronounced rim lighting separating mushrooms from background. Soft warm diffused light, no harsh shadows. Macro lens 105mm, f/4.0, razor-sharp focus on the adult cap, deep creamy bokeh on background. Subsurface scattering through mushroom flesh.`,
           ].filter(Boolean).join('\n\n') + '\n\n';
           // Remove trailing duplicate lighting/lens blocks Gemini may have appended
           prompt = prompt
