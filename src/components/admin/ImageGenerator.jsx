@@ -101,7 +101,7 @@ Zona Segura (Safe Area): Los ejemplares deben agruparse en el CENTRO ESTRICTO (4
 Composición por Cantidad:
 - 1: Un ejemplar adulto, centrado.
 - 2: Adulto + Joven. Adulto en primer plano, joven más retrasado.
-- 3: Primordio (huevo/botón compacto) + Joven (convexo, formándose) + Adulto (abierto, rasgos diagnósticos a máxima expresión). SIEMPRE estas tres fases distintas — NUNCA dos adultos.
+- 3: ADULTO (abierto, rasgos diagnósticos a máxima expresión) en el CENTRO del encuadre y en el PRIMER PLANO (más cercano a la cámara). Joven (convexo, formándose) detrás y ligeramente a un lado. Primordio (huevo/botón compacto) al fondo, más pequeño y más borroso. SIEMPRE estas tres fases distintas — NUNCA dos adultos. El adulto es el sujeto principal: debe ser el más grande y estar centrado horizontalmente.
 - 4+: Varios ejemplares (primordio, joven, 2+ adultos en distintos planos) dispersos de forma natural a diferentes profundidades dentro del área central. La escena debe parecer una pequeña familia emergiendo del suelo.
 Profundidad y Disposición: ⚠️ CRÍTICO. PROHIBIDO alinearlos al mismo plano de profundidad. La diferencia de distancia entre el ejemplar más cercano y el más lejano debe ser EVIDENTE y PRONUNCIADA: el ejemplar del primer plano es notablemente más grande y más nítido; el del fondo se ve claramente más pequeño y con bokeh. La escena debe transmitir volumen real, no una alineación plana.
 
@@ -1368,7 +1368,7 @@ ${morphLines.join('\n')}`;
           const stageBlock = settings.specimenCount >= 4
             ? `- DEVELOPMENT STAGES (4+ specimens): a natural family group — one primordium (compact, emergent), one or two young specimens (caps still convex), two or more fully open adults (caps fully extended, all diagnostic features at maximum expression). Dispersed naturally at genuinely different depths within the central zone. NOT lined up. Feels like a spontaneous forest discovery.`
             : settings.specimenCount >= 3
-            ? `- DEVELOPMENT STAGES (3 specimens): THREE DISTINCT DEVELOPMENTAL STAGES at genuinely different distances from the camera. DEPTH ORDER IS MANDATORY: (1) ADULT — in the FOREGROUND, razor-sharp focus, largest in frame, cap fully extended with all diagnostic features visible; (2) YOUNG — in the MIDGROUND, cap still fully convex, noticeably smaller and slightly blurred; (3) PRIMORDIUM — in the BACKGROUND, compact sphere or ovoid, smallest and most blurred. The adult must appear at least 2–3× larger than the primordium. They must NOT be in a straight line — stagger them naturally so the young offsets sideways from the adult-primordium axis.`
+            ? `- DEVELOPMENT STAGES (3 specimens): THREE DISTINCT DEVELOPMENTAL STAGES. STAGING ORDER IS ABSOLUTE: (1) ADULT — horizontally CENTERED in the frame AND closest to the camera (FOREGROUND), razor-sharp focus, largest in frame by far, cap fully extended; (2) YOUNG — in the MIDGROUND, behind the adult and offset to one side, noticeably smaller and slightly blurred; (3) PRIMORDIUM — in the BACKGROUND, farthest from camera, compact and most blurred. The adult must appear at least 2–3× larger than the primordium. The three specimens must NOT form a horizontal line — the adult is the anchor in the center-front, the others are staggered behind it at different depths and lateral positions.`
             : settings.specimenCount === 2
             ? `- DEVELOPMENT STAGES (2 specimens): adult (fully open, diagnostic features prominent) + young (cap still convex).`
             : `- DEVELOPMENT STAGE (1 specimen): fully open adult with all diagnostic features at maximum expression.`;
@@ -1516,8 +1516,18 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
           }
           // Prompt order follows Google Imagen best practices: composition constraints FIRST
           // (image models weight early tokens heavily), then morphology, then scene details.
+
+          // For 3+ specimens: explicit adult-center-foreground staging injected as the
+          // FIRST token block Imagen 4 reads (strongest weight position).
+          const stagingPrefix = settings.specimenCount >= 3
+            ? `SUBJECT PLACEMENT (ABSOLUTE — violations make the image unusable): This image shows THREE developmental stages. The ADULT mushroom (largest specimen, fully open cap with all diagnostic features) is the PRIMARY SUBJECT. It must occupy the CENTER of the horizontal frame AND be the CLOSEST specimen to the camera (foreground). The young specimen is positioned behind the adult and slightly offset to one side. The primordium is the farthest specimen from the camera (background). Depth order is non-negotiable: ADULT = FRONT and CENTER. Others recede behind it. The adult must appear at least 2× larger than the primordium in the final image.`
+            : null;
+
           const MANDATORY_PHOTO_PREFIX = [
-            // 1. CENTERING FIRST — most important layout constraint, must be weighted early
+            // 0. STAGING FIRST for multi-specimen shots — adult center+foreground rule
+            //    (must be the very first tokens Imagen 4 reads for maximum weight)
+            stagingPrefix,
+            // 1. CENTERING — all specimens in the safe center band
             `CENTERING (MANDATORY — image is unusable if violated): ALL specimens grouped in the STRICT CENTER BAND of the frame (40%–60% of frame width). The left 30% and right 30% of the frame are background forest floor only — NO specimens there. This image is cropped to a 1:1 square for the catalog card; any specimen touching the left or right edge will be cut off.`,
             // 2. Single-frame constraint — purely positive language, no forbidden keywords
             // (mentioning "diptych" even negatively activates the concept in image models)
