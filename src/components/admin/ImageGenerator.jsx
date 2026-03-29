@@ -445,6 +445,8 @@ async function fetchAvailableImageModels(apiKey) {
     .filter(m => {
       const name = (m.name ?? '').toLowerCase();
       const methods = m.supportedGenerationMethods ?? [];
+      // Exclude fast/lite variants — they don't follow complex composition instructions reliably
+      if (name.includes('fast') || name.includes('lite')) return false;
       // Gemini native image generation models
       if (name.includes('image-generation') || name.includes('imagegen')) return true;
       // Imagen predict models
@@ -917,22 +919,25 @@ function App() {
     fetchAvailableImageModels(key)
       .then(models => {
         setAvailableImageModels(models);
-        // Auto-select: prefer gemini image-generation models, fallback to first available
+        // Auto-select: prefer Imagen 4, fallback to first available
         if (models.length > 0) {
-          const preferred = models.find(m => m.id.includes('gemini') && m.id.includes('image')) ?? models[0];
+          const preferred = models.find(m => m.id === 'imagen-4.0-generate-001')
+            ?? models.find(m => m.id.includes('imagen-4'))
+            ?? models[0];
           setImageModel(preferred.id);
         }
       })
       .catch(err => {
         console.warn('[ImageGen] fetchAvailableImageModels failed:', err.message);
         // Fallback: populate with known models so the selector still shows something
+        // Fast/lite variants excluded — they don't follow complex composition instructions
         const fallback = [
-          { id: 'gemini-2.0-flash-preview-image-generation', displayName: 'Gemini 2.0 Flash Preview Image', method: 'generateContent' },
-          { id: 'imagen-3.0-generate-001', displayName: 'Imagen 3', method: 'predict' },
           { id: 'imagen-4.0-generate-001', displayName: 'Imagen 4', method: 'predict' },
+          { id: 'imagen-3.0-generate-001', displayName: 'Imagen 3', method: 'predict' },
+          { id: 'gemini-2.0-flash-preview-image-generation', displayName: 'Gemini 2.0 Flash Preview Image', method: 'generateContent' },
         ];
         setAvailableImageModels(fallback);
-        setImageModel('gemini-2.0-flash-preview-image-generation');
+        setImageModel('imagen-4.0-generate-001');
       })
       .finally(() => setLoadingModels(false));
   }, [hasKey]); // eslint-disable-line react-hooks/exhaustive-deps
