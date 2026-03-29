@@ -753,8 +753,10 @@ function App() {
   const [applyStatus, setApplyStatus] = useState(null); // null | 'saving' | 'success' | 'error'
   // Reference species data loaded when ?especie= is in the URL
   const [referenceSpecies, setReferenceSpecies] = useState(null);
-  // Structured visual DNA from mushroom_visual_prompts table (null = not available → fallback mode)
+  // Structured visual DNA from mushroom_visual_prompts table (null = not loaded yet or unavailable)
   const [visualPromptData, setVisualPromptData] = useState(null);
+  // 'loading' | 'loaded' | 'missing' | 'error' — shown as a badge next to the species name
+  const [vpStatus, setVpStatus] = useState('loading');
   // Tracks which species ID is currently loaded — used to skip redundant re-fetches
   // when apiSpecies changes (e.g. mockSpecies → full list, or after invalidateSpeciesListCache)
   // without needing referenceSpecies in the effect deps (which would cause infinite loops).
@@ -826,6 +828,7 @@ function App() {
 
     const controller = new AbortController();
     const opts = { cache: 'no-store', headers: authHeaders(), signal: controller.signal };
+    setVpStatus('loading');
     // Fetch species detail and visual prompt data in parallel
     Promise.all([
       fetch(`${API_BASE}/species/${especieId}`, opts).then(r => r.ok ? r.json() : null),
@@ -838,8 +841,14 @@ function App() {
         }
         // vpData may be null (no entry yet) — frontend falls back to Gemini-only pipeline
         setVisualPromptData(vpData ?? null);
+        setVpStatus(vpData ? 'loaded' : 'missing');
       })
-      .catch(() => { });
+      .catch((err) => {
+        if (err?.name === 'AbortError') return;
+        // Network/API failure — mark as error so user can see and retry
+        setVisualPromptData(null);
+        setVpStatus('error');
+      });
     return () => controller.abort();
   }, [searchParams, apiSpecies]);
 
@@ -1925,7 +1934,28 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
                   <div className="min-w-0">
                     <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9cda1]/40 mb-1">Generando para</p>
                     <p className="font-display text-3xl font-semibold text-cream leading-tight truncate">{settings.scientificName}</p>
-                    <p className="text-cream/30 text-sm font-mono mt-0.5">{searchParams.get('especie')}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-cream/30 text-sm font-mono">{searchParams.get('especie')}</p>
+                      {/* DNA Visual status badge */}
+                      {vpStatus === 'loading' && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-cream/30 animate-pulse">🧬 cargando…</span>
+                      )}
+                      {vpStatus === 'loaded' && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400/70">🧬 DNA Visual ✓</span>
+                      )}
+                      {vpStatus === 'missing' && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400/70">⚠ Sin DNA Visual</span>
+                      )}
+                      {vpStatus === 'error' && (
+                        <button
+                          onClick={() => { loadedReferenceIdRef.current = null; setVpStatus('loading'); }}
+                          className="text-[9px] font-bold uppercase tracking-wider text-red-400/80 hover:text-red-400 transition-colors"
+                          title="Error cargando DNA Visual — click para reintentar"
+                        >
+                          ✗ DNA Visual (reintentar)
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => window.history.back()}
