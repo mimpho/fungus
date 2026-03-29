@@ -1394,8 +1394,8 @@ ${compositionRule}
 YOUR TASK — write ONLY the scene/environment/atmosphere details (3–5 sentences):
 1. COMPOSITION: ${specimenCountLabel} specimen(s) grouped in the CENTRAL 50% of the frame, pronounced 3D depth (foreground noticeably closer and larger than background specimens). ${stageBlock}${vp.composition_notes ? ' Apply the SPECIES-SPECIFIC COMPOSITION RULE above.' : ''}
 2. SUBSTRATE & GROUND COVER: describe the immediate forest floor in detail (${substrateCtx}).
-3. HABITAT & LIGHT MOMENT: one specific atmospheric detail — an unusual shaft of light, mist between trees, dewdrops on moss, or similar. Habitat: ${habitatCtx}.
-4. FAUNA (optional): ${faunaHint || 'one small animal that fits the habitat — a beetle, snail, spider, etc. Must feel incidental, not posed.'}
+3. HABITAT & LIGHT MOMENT: choose ONE atmospheric element that is NOT plain shafts of light — rotate through: early morning mist threading between tree trunks, dewdrops on nearby moss, a single spider web catching the backlight, a thin veil of ground fog, condensation on the cap surface, or a fallen dew-covered leaf. Habitat: ${habitatCtx}.
+4. FAUNA (optional): ${faunaHint || 'one small ground-dwelling animal — a snail, woodlouse, spider, or small worm on the leaf litter. Must feel incidental, not posed. Beetles are allowed only on the forest floor, never on the cap.'}
 5. CRITICAL CLOSE: "CRITICAL: [one key EXTERNAL visual feature from the morphology above] must be unmistakably prominent."
    — Use ONLY external visible features. NEVER mention cut surfaces, reactions when damaged, or internal flesh.
 
