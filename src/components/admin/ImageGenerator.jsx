@@ -757,6 +757,10 @@ function App() {
   const [visualPromptData, setVisualPromptData] = useState(null);
   // 'loading' | 'loaded' | 'missing' | 'error' — shown as a badge next to the species name
   const [vpStatus, setVpStatus] = useState('loading');
+  // When true: skip DNA Visual morphology injection into Imagen 4 layer1_prefix.
+  // Imagen 4 uses its own trained visual knowledge of the species.
+  // Useful for well-known species where descriptions compete with model priors.
+  const [trustModelMode, setTrustModelMode] = useState(false);
   // Tracks which species ID is currently loaded — used to skip redundant re-fetches
   // when apiSpecies changes (e.g. mockSpecies → full list, or after invalidateSpeciesListCache)
   // without needing referenceSpecies in the effect deps (which would cause infinite loops).
@@ -1340,8 +1344,12 @@ ${morphLines.join('\n')}`;
           // use the 4-layer deterministic pipeline — morphology is pre-validated and
           // injected directly; Gemini only generates the creative scene details.
           // Otherwise fall back to the Gemini-interprets-free-text pipeline.
-          const hasStructuredData = !!visualPromptData;
-          if (hasStructuredData) {
+          // trustModelMode: bypasses morphology injection into Imagen 4 layer1_prefix —
+          // Imagen 4 uses its own visual priors for the species name instead.
+          const hasStructuredData = !!visualPromptData && !trustModelMode;
+          if (trustModelMode && !!visualPromptData) {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧠 Modo "confiar en el modelo" — DNA Visual omitido del prefijo`]);
+          } else if (hasStructuredData) {
             setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 DNA Visual en BD → pipeline estructurado (${visualPromptData.is_validated ? '✓ validado' : 'borrador'})`]);
           } else {
             setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 📝 Sin DNA Visual en BD → pipeline Gemini (fallback)`]);
@@ -1963,6 +1971,16 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
                           title="Error cargando DNA Visual — click para reintentar"
                         >
                           ✗ DNA Visual (reintentar)
+                        </button>
+                      )}
+                      {/* Trust-model toggle — only shown when DNA Visual is loaded */}
+                      {vpStatus === 'loaded' && (
+                        <button
+                          onClick={() => setTrustModelMode(v => !v)}
+                          className={`text-[9px] font-bold uppercase tracking-wider transition-colors ${trustModelMode ? 'text-violet-400' : 'text-cream/25 hover:text-cream/50'}`}
+                          title={trustModelMode ? 'Modo "confiar en el modelo" activo — DNA Visual omitido del prefijo de Imagen 4. Click para volver al pipeline estructurado.' : 'Activar modo "confiar en el modelo" — omite el DNA Visual del prefijo y deja que Imagen 4 use su propio conocimiento visual de la especie.'}
+                        >
+                          {trustModelMode ? '🧠 Modo modelo ON' : '🧠 Confiar en modelo'}
                         </button>
                       )}
                     </div>
