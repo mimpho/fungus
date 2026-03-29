@@ -1505,8 +1505,9 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
           const MANDATORY_PHOTO_PREFIX = [
             // 1. CENTERING FIRST — most important layout constraint, must be weighted early
             `CENTERING (MANDATORY — image is unusable if violated): ALL specimens grouped in the STRICT CENTER BAND of the frame (40%–60% of frame width). The left 30% and right 30% of the frame are background forest floor only — NO specimens there. This image is cropped to a 1:1 square for the catalog card; any specimen touching the left or right edge will be cut off.`,
-            // 2. Anti-diptych — format constraint before subject content
-            `OUTPUT FORMAT (ABSOLUTE RULE): ONE single continuous photograph. NOT a diptych. NOT side-by-side panels. NOT a grid. NOT before/after. NOT cross-section + exterior. ONE scene, one frame, one photo.`,
+            // 2. Single-frame constraint — purely positive language, no forbidden keywords
+            // (mentioning "diptych" even negatively activates the concept in image models)
+            `SINGLE PHOTOGRAPH: The entire image is one continuous uninterrupted rectangular scene. One frame, one environment, one unified composition. Every pixel belongs to the same single scene. No internal borders, dividers, separators, panel boundaries, or composite layouts of any kind.`,
             // 3. Morphology from DNA Visual (subject content)
             layer1_prefix,
             // 4. Fauna floor constraint — counters strong model prior of "insect on cap"

@@ -44,7 +44,10 @@ const GLOSSARY = [
 
   // ── Structure names ────────────────────────────────────────────────────────
   [/\bvolva\b/gi,                'sac-like cup at the base of the stem'],
-  [/\bcortina\b/gi,              'cobweb-like veil'],
+  // "cortina veil" → avoid double "veil veil" — match "cortina" only when NOT followed by "veil"
+  [/\bcortina\b(?!\s+veil)/gi,   'cobweb-like veil'],
+  // "cortina veil" → just "cobweb-like veil" (replace the whole phrase)
+  [/\bcortina\s+veil\b/gi,       'cobweb-like veil'],
   [/\bannulus\b/gi,              'ring on the stem'],
 ];
 
