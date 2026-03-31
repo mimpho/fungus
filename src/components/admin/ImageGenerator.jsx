@@ -1541,7 +1541,7 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
             // 4. Fauna floor — one line
             `Any fauna must be on the forest floor or nearby leaf/twig — never on the cap or stipe.`,
             // 5. Photography style — no light preset here (Gemini sets the atmosphere/light mood)
-            `Hyper-realistic field photograph. Camera at ground level shooting slightly upward. Macro 105mm f/4.0, razor-sharp focus on adult cap, creamy bokeh background, rim lighting separating subjects from background.`,
+            `Hyper-realistic field photograph. Camera at ground level, angled upward enough that the adult cap's hymenium (gills, pores, or teeth) is partially visible at the cap margin — the underside edge must peek into the frame. Macro 105mm f/4.0, razor-sharp focus on adult cap, creamy bokeh background, rim lighting separating subjects from background.`,
           ].filter(Boolean).join('\n\n') + '\n\n';
           // Remove trailing duplicate lighting/lens blocks Gemini may have appended
           prompt = prompt
