@@ -1400,12 +1400,11 @@ ${geminiCtx ? '\n' + geminiCtx : ''}
 ${compositionRule}
 
 YOUR TASK — write ONLY the scene/environment/atmosphere details (3–5 sentences):
-1. COMPOSITION: ${specimenCountLabel} specimen(s) grouped in the CENTRAL 50% of the frame, pronounced 3D depth (foreground noticeably closer and larger than background specimens). ${stageBlock}${vp.composition_notes ? ' Apply the SPECIES-SPECIFIC COMPOSITION RULE above.' : ''}
-2. SUBSTRATE & GROUND COVER: describe the immediate forest floor in detail (${substrateCtx}).
-3. HABITAT & LIGHT MOMENT: choose ONE atmospheric element that is NOT plain shafts of light — rotate through: early morning mist threading between tree trunks, dewdrops on nearby moss, a single spider web catching the backlight, a thin veil of ground fog, condensation on the cap surface, or a fallen dew-covered leaf. Habitat: ${habitatCtx}.
-4. FAUNA (optional): ${faunaHint || 'one small ground-dwelling animal — a snail, woodlouse, spider, or small worm on the leaf litter. Must feel incidental, not posed. Beetles are allowed only on the forest floor, never on the cap.'}
+1. COMPOSITION: ${specimenCountLabel} specimen(s). ${stageBlock}${vp.composition_notes ? ' Apply the SPECIES-SPECIFIC COMPOSITION RULE above.' : ''}
+2. SUBSTRATE: ${substrateCtx}. Include 2–3 specific ground elements (e.g. pine cones, acorns, lichen, moss patches, fallen leaves).
+3. ATMOSPHERE (MANDATORY — no plain light): Pick exactly ONE and describe it vividly: morning mist between tree trunks / dewdrops on nearby moss / spider web catching backlight / thin ground fog. Habitat: ${habitatCtx}.
+4. FAUNA (MANDATORY — ground only): ${faunaHint || 'One small animal on the leaf litter at the stipe base — snail, woodlouse, spider, or ant. NOT a beetle. Animal must be on the ground, never on the cap or stipe.'}
 5. CRITICAL CLOSE: "CRITICAL: [one key EXTERNAL visual feature from the morphology above] must be unmistakably prominent."
-   — Use ONLY external visible features. NEVER mention cut surfaces, reactions when damaged, or internal flesh.
 
 DO NOT include any morphology beyond what is given above. DO NOT include lighting or camera specs.`;
           } else {
@@ -1428,7 +1427,8 @@ OUTPUT STRUCTURE — write the prompt in this exact order (focus ONLY on biology
 2. DESCRIBE morphology: exact colors, textures, proportions, all key structures.
 3. SPECIFY composition: ${specimenCountLabel} specimen(s) in the central 50% of the frame, pronounced 3D depth, development stages as specified above.
 4. DESCRIBE habitat and ground cover (moss, pine needles, leaves, lichen, etc.).
-5. FAUNA (optional but encouraged): one small animal exploring the scene — choose naturally from: a beetle, a snail, a slug, a centipede, a spider on silk thread, a small grasshopper, an ant, a tiny moth, a woodlouse, a forest fly, a caterpillar on nearby vegetation — whatever fits the habitat. NEVER force it; it must feel like a casual discovery.
+5. ATMOSPHERE (MANDATORY): Include exactly ONE vivid atmospheric detail — morning mist between trunks, dewdrops on moss, spider web catching backlight, or thin ground fog. No plain light shafts.
+6. FAUNA (MANDATORY — ground only): One small animal on the leaf litter at the stipe base — snail, woodlouse, spider, or ant. NOT a beetle. Must be on the ground, never on the cap or stipe.
 6. CLOSE with: "CRITICAL: [one visible external diagnostic trait — e.g. stipe color, cap texture, pore/tooth/ridge structure at cap margin] must be unmistakably prominent in the final image."
    ⚠️ The CRITICAL trait MUST be something visible on the INTACT LIVING exterior of the mushroom.
    NEVER mention: bluing reactions, internal flesh color, cut surfaces, cross-sections, or any preparation requiring damage to the specimen. Those cannot be shown in a forest field photo.
