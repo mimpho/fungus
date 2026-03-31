@@ -1389,7 +1389,11 @@ ${morphLines.join('\n')}`;
             const vp = visualPromptData;
             const substrateCtx    = vp.preferred_substrate  ?? habitatContext;
             const habitatCtx      = vp.habitat_context      ?? habitatContext;
-            const faunaHint       = vp.associated_fauna      ? `Fauna hint (use or vary): ${vp.associated_fauna}.` : '';
+            // faunaHint: hint from DB is a suggestion only — ground-only constraint always applies.
+            // "use or vary" + hard override prevents DB hints like "beetle on cap" from being followed.
+            const faunaHint       = vp.associated_fauna
+              ? `Fauna suggestion (vary freely): ${vp.associated_fauna}. OVERRIDE: animal must be on the forest floor or a nearby leaf — NEVER on the cap or stipe. If the suggestion is a beetle, replace with a snail, woodlouse, or spider instead.`
+              : '';
             const geminiCtx       = vp.extra_morphology_gemini ? `Species context (for scene realism): ${vp.extra_morphology_gemini}` : '';
             const compositionRule = vp.composition_notes     ? `\nSPECIES-SPECIFIC COMPOSITION RULE (MANDATORY): ${vp.composition_notes}` : '';
             enginePrompt = `You are writing the SCENE section of a mycological image prompt for: "${cleanName}".${extraTaxonomicCommand}
@@ -1536,8 +1540,8 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
             layer1_prefix,
             // 4. Fauna floor — one line
             `Any fauna must be on the forest floor or nearby leaf/twig — never on the cap or stipe.`,
-            // 5. Photography style — essentials only
-            `Hyper-realistic field photograph. Camera at ground level shooting slightly upward. Golden hour backlit forest, rim lighting, macro 105mm f/4.0, razor-sharp focus on adult cap, creamy bokeh background.`,
+            // 5. Photography style — no light preset here (Gemini sets the atmosphere/light mood)
+            `Hyper-realistic field photograph. Camera at ground level shooting slightly upward. Macro 105mm f/4.0, razor-sharp focus on adult cap, creamy bokeh background, rim lighting separating subjects from background.`,
           ].filter(Boolean).join('\n\n') + '\n\n';
           // Remove trailing duplicate lighting/lens blocks Gemini may have appended
           prompt = prompt
