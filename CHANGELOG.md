@@ -12,6 +12,25 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ### Añadido — v5.6 Generación masiva DNA Visual (en curso)
 
 - Rama `feat/v5.6-dna-mass-generation` abierta para script de generación offline.
+- **`docs/plan/seed_visual_dna_group_a.sql`**: seed SQL con 56 especies del Grupo A (curadas manualmente), agrupadas por familia con diferenciación intra-género. Aplicado en Supabase con `ON CONFLICT DO UPDATE`, `is_validated=false`.
+- **`src/lib/visualGlossary.js`**: glosario de términos micológicos → lenguaje visual para modelos de imagen. Traduce: `fibrillose` → `smooth silky-matte`, `campanulate` → `bell-shaped`, `pileus` → `cap`, `umbo` → `central raised bump`, `cortina veil` → `cobweb-like veil`, y ~15 términos más. Aplicado a los 4 campos morfológicos del DNA Visual antes de construir `layer1_morphology`.
+- **`backend/scripts/generate_visual_dna.py`**: script Gemini 2.5 Flash offline para generación masiva de DNA Visual del Grupo B (~136 especies). Resume-safe con progress JSON.
+- **`backend/scripts/refine_visual_dna.py`**: script Gemini Vision multimodal que compara fotos reales del catálogo contra el DNA Visual actual y propone correcciones campo a campo. Detecta fotos reales por prefijo `/assets/` (excluye IA). CLI con `--dry-run`, `--species-id`, `--limit`, `--reset`.
+- **Badge DNA Visual en generador**: indicador visual `🧬 DNA Visual ✓ / ⚠ Sin DNA Visual / ✗ error (reintentar)` junto al ID de especie en el header del generador. Estado `vpStatus: 'loading'|'loaded'|'missing'|'error'`.
+- **Toggle "Confiar en modelo" (`trustModelMode`)**: botón `🧠` junto al badge DNA Visual. Cuando activo, omite `layer1_morphology` del prefijo de Imagen 4 y deja que el modelo use su conocimiento visual entrenado. Útil para diagnosticar si las descripciones textuales compiten con los priors del modelo para especies conocidas.
+- **Filtro de modelos lite/fast**: `fetchAvailableImageModels` excluye variantes `fast` y `lite` (no siguen instrucciones complejas). Auto-selección prioriza `imagen-4.0-generate-001`.
+
+### Corregido — v5.6
+
+- **Prompt bloat / conflicto de instrucciones**: `MANDATORY_PHOTO_PREFIX` reducido de ~600 a ~120 tokens. Eliminados bloques redundantes que se contradecían entre sí (staging repetido en 3 sitios, centering duplicado). Cada regla ahora es una sola línea sin solapamiento.
+- **Adulto centrado en frame**: instrucción de staging simplificada a una línea concreta (`ADULT centered in frame, foreground`). Antes varios párrafos en conflicto causaban que el modelo ignorara todos y pusiera el adulto a la derecha por prior.
+- **Luz de fondo bloqueando atmósfera**: eliminado `Golden hour backlit forest` del `MANDATORY_PHOTO_PREFIX` (token temprano que sobreescribía la niebla/rocío generados por Gemini). La atmósfera ahora la fija exclusivamente el output de Gemini.
+- **Fauna en el sombrero**: `faunaHint` del DNA Visual se inyectaba verbatim a Gemini (p.ej. `"beetle on cap edge"`), overrideando el constraint `NEVER on cap`. Fix: se añade OVERRIDE explícito al hint independientemente del contenido del campo `associated_fauna` en BD. `"optional"` → `"MANDATORY"`.
+- **Atmósfera genérica / siempre la misma**: instrucción `choose ONE from list of 6` → `exactly ONE of 4 options (MANDATORY)`. Lista larga + "optional" = Gemini ignoraba y generaba luz genérica.
+- **Primordio sin escala real**: stageBlock especificaba `compact` sin tamaño. Fix: `2–4 cm tall, roundish nub barely emerging from soil` + `"size difference must be dramatic and immediately obvious"` + `"vary proportions randomly each time"`.
+- **`faunaHint` con escarabajo sobre el sombrero (esp-001)**: `associated_fauna` de Boletus edulis decía `"Small pine bark beetle on the cap edge"` → cambiado a caracol/cochinilla en el suelo (SQL aplicado en Supabase).
+- **Doble-reemplazo en glosario** (`cortina` → `cobweb-like veil veil`): regex corregido con lookahead `(?!\s+veil)` para no reemplazar cuando ya va seguido de `veil`.
+- **`asyncpg IS NULL` en `refine_visual_dna.py`**: `WHERE (:sid IS NULL OR s.id = :sid)` falla con asyncpg — split en dos queries separadas según filtro presente.
 
 ---
 

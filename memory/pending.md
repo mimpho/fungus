@@ -8,20 +8,28 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 Rama: `feat/v5.6-dna-mass-generation`
 
-**Objetivo**: script Gemini offline para generar `mushroom_visual_prompts` para las 202 especies restantes sin DNA Visual (`is_validated=false`). Las 10 especies piloto (`is_validated=true`) se omiten.
+**Hecho en esta fase:**
+- ✅ Grupo A (56 especies) seeded en Supabase
+- ✅ `generate_visual_dna.py` (Grupo B, Gemini Flash offline)
+- ✅ `refine_visual_dna.py` (Gemini Vision, corrección con fotos reales)
+- ✅ `visualGlossary.js` — traducción términos micológicos → lenguaje imagen
+- ✅ Fixes generador: prompt bloat, staging, fauna, atmósfera, primordio, toggle trust-model
 
-**Pendiente:**
-- Implementar `backend/scripts/generate_visual_dna.py`:
-  - Query de todas las especies agrupadas por género
-  - Pasar morfología + contexto de congéneres a Gemini
-  - Generar todos los campos de DNA Visual en lenguaje visual positivo (no negativo)
-  - Upsert con `is_validated=false`, no sobreescribir entradas `is_validated=true`
-  - Incluir campo `distinguishing_from_congeners` en `extra_morphology_visual` cuando aplique
-- Revisar manualmente familias con prior fuerte en modelos de imagen: Amanitaceae, Russulaceae, Boletaceae
-- PR + merge + deploy
+**SQLs pendientes de aplicar en Supabase** (correcciones de sesión actual):
+- C. orellanus (`esp-111`): cap hazel-brown + pico central + láminas cinnamon-brown (no rust/copper)
+- R. virescens (`esp-023`): grietas = tonos verdes, sin material blanco, anti-Amanita explícito
 
-**Problema identificado — confusión intragénero:**
-Boletus calopus vs Boletus satanas vs Boletus luridus — el modelo tiene prior genérico fuerte. El script debe incluir en el prompt el contexto de especies del mismo género para diferenciarlas visualmente.
+**Pendiente para cerrar v5.6:**
+- Completar testing Grupo A: probar 3–4 especies más (una Amanitaceae, una Cantharellaceae, una Morchellaceae) para validar pipeline antes de Grupo B
+- Decisión: adoptar enfoque name-anchor para especies con prior de modelo fuerte vs DNA Visual completo para obscuras
+- Correr `generate_visual_dna.py` para Grupo B (~136 especies)
+- PR + merge `feat/v5.6-dna-mass-generation` → `main` + tag v5.6.0
+
+**Aprendizajes clave del testing:**
+- Especies con prior de género fuerte (Cortinarius = láminas amarillas, Russula virescens craquelado = manchas Amanita) no se corrigen con texto — límite del modelo base
+- Prompt bloat es el enemy principal: instrucciones largas y redundantes se anulan entre sí
+- El orden de tokens importa: lo que va al inicio del prefix gana siempre
+- `faunaHint` del DNA Visual debe tener OVERRIDE de suelo o Gemini lo sigue verbatim
 
 ---
 
