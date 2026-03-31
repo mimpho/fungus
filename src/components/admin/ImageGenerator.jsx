@@ -1522,30 +1522,22 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
               setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Familia no detectada — sin constraint de himeneo`]);
             }
           }
-          // Prompt order follows Google Imagen best practices: composition constraints FIRST
-          // (image models weight early tokens heavily), then morphology, then scene details.
-
-          // For 3+ specimens: explicit adult-center-foreground staging injected as the
-          // FIRST token block Imagen 4 reads (strongest weight position).
-          const stagingPrefix = settings.specimenCount >= 3
-            ? `SUBJECT PLACEMENT (ABSOLUTE — violations make the image unusable): This image shows THREE developmental stages. The ADULT mushroom (largest specimen, fully open cap with all diagnostic features) is the PRIMARY SUBJECT. It must occupy the CENTER of the horizontal frame AND be the CLOSEST specimen to the camera (foreground). The young specimen is positioned behind the adult and slightly offset to one side. The primordium is the farthest specimen from the camera (background). Depth order is non-negotiable: ADULT = FRONT and CENTER. Others recede behind it. The adult must appear at least 2× larger than the primordium in the final image.`
-            : null;
-
+          // Prompt order: composition rules FIRST (early tokens weighted most by image models),
+          // then morphology, then scene. Each rule is kept to minimum effective length —
+          // competing/redundant blocks confuse the model and cause it to ignore all of them.
           const MANDATORY_PHOTO_PREFIX = [
-            // 0. STAGING FIRST for multi-specimen shots — adult center+foreground rule
-            //    (must be the very first tokens Imagen 4 reads for maximum weight)
-            stagingPrefix,
-            // 1. CENTERING — all specimens in the safe center band
-            `CENTERING (MANDATORY — image is unusable if violated): ALL specimens grouped in the STRICT CENTER BAND of the frame (40%–60% of frame width). The left 30% and right 30% of the frame are background forest floor only — NO specimens there. This image is cropped to a 1:1 square for the catalog card; any specimen touching the left or right edge will be cut off.`,
-            // 2. Single-frame constraint — purely positive language, no forbidden keywords
-            // (mentioning "diptych" even negatively activates the concept in image models)
-            `SINGLE PHOTOGRAPH: The entire image is one continuous uninterrupted rectangular scene. One frame, one environment, one unified composition. Every pixel belongs to the same single scene. No internal borders, dividers, separators, panel boundaries, or composite layouts of any kind.`,
-            // 3. Morphology from DNA Visual (subject content)
+            // 1. Composition — one line per constraint, no repetition across blocks
+            settings.specimenCount >= 3
+              ? `3 specimens: ADULT centered in frame, foreground (closest, largest). Young behind-left. Primordium behind-right. All grouped in center 50% of frame width.`
+              : `All specimens grouped in the center 50% of the frame width.`,
+            // 2. Single-frame — short positive statement
+            `Single continuous photograph. One scene, no borders or dividers.`,
+            // 3. Morphology (DNA Visual or hymenium family constraint)
             layer1_prefix,
-            // 4. Fauna floor constraint — counters strong model prior of "insect on cap"
-            `FAUNA (IF PRESENT): Any animal — insect, snail, slug, spider, worm — must be on the forest floor, on leaf litter at ground level, or on a nearby twig or stone. NEVER on the cap surface. NEVER perched on top of the stipe. NEVER touching the gills.`,
-            // 5. Camera + lighting specs last (supporting context, not subject)
-            `PHOTOGRAPHY STYLE: Hyper-realistic field photograph. Camera at ground level, lens 5–10 cm above the forest floor, shooting slightly upward — stipe base visible at the bottom of frame, cap in the middle third, bokeh canopy in the upper third. Golden hour backlit forest — warm low-angle dawn or dusk sun partially hidden behind tree trunks, volumetric crepuscular rays, pronounced rim lighting separating mushrooms from background. Soft warm diffused light, no harsh shadows. Macro lens 105mm, f/4.0, razor-sharp focus on the adult cap, deep creamy bokeh on background. Subsurface scattering through mushroom flesh.`,
+            // 4. Fauna floor — one line
+            `Any fauna must be on the forest floor or nearby leaf/twig — never on the cap or stipe.`,
+            // 5. Photography style — essentials only
+            `Hyper-realistic field photograph. Camera at ground level shooting slightly upward. Golden hour backlit forest, rim lighting, macro 105mm f/4.0, razor-sharp focus on adult cap, creamy bokeh background.`,
           ].filter(Boolean).join('\n\n') + '\n\n';
           // Remove trailing duplicate lighting/lens blocks Gemini may have appended
           prompt = prompt
