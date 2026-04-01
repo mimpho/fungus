@@ -145,7 +145,7 @@ REGLA BASE: SIEMPRE incluir al menos UNA imperfección morfológica y UN element
 
 6. FASES DE DESARROLLO (cuando hay múltiples ejemplares)
 Si hay 2 o más ejemplares, mostrar fases distintas con sus características propias:
-- Primordio/huevo: pequeño, compacto, forma esférica o elipsoidal. En especies con sombrero liso (ver bloque morfología), el primordio también es liso — NO añadir verrugas ni escamas al huevo.
+- Primordio: pequeño, compacto, forma esférica o elipsoidal emergiendo del suelo. En Amanitaceae el primordio emerge envuelto en el velo universal (ver regla de familia). En el resto de especies, es simplemente un botón compacto sin estructuras especiales. NO añadir verrugas ni escamas al primordio salvo que la morfología del adulto las tenga.
 - Joven: píleo aún convexo, velo parcial todavía presente en algunos géneros, colores más frescos. ⚠️ La textura del píleo joven HEREDA la textura del adulto: si el adulto es liso, el joven también es liso. NUNCA renderizar un adulto liso con jóvenes verrugosos — es taxonómicamente imposible.
 - Adulto: píleo extendido o aplanado, velo roto (anillo visible en Amanita), colores más maduros con posibles cambios por envejecimiento.
 
@@ -164,7 +164,7 @@ const TAXONOMY_GOLDEN_RULES = {
   "Cantharellaceae": "PROHIBIDO generar láminas libres. El himeneo DEBE estar compuesto por PLIEGUES (venas) carnosos, gruesos y fuertemente decurrentes en el pie.",
   "Boletaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por una capa de POROS tubulares (estructura de esponja), nunca láminas de ningún tipo.",
   "Morchellaceae": "El sombrero DEBE tener ALVÉOLOS profundos irregulares (forma de panal de abeja). La estructura interna DEBE ser HUECA. Pie blanco acanalado.",
-  "Amanitaceae": "Presencia OBLIGATORIA de VOLVA en la base del pie (saco membranoso) y ANILLO (faldilla membranosa) en la parte superior del pie. El color del sombrero varía por especie — NO usar el rojo de A. muscaria salvo que la especie lo tenga.",
+  "Amanitaceae": "Presencia OBLIGATORIA de VOLVA en la base del pie (saco membranoso) y ANILLO (faldilla membranosa) en la parte superior del pie. El color del sombrero varía por especie — NO usar el rojo de A. muscaria salvo que la especie lo tenga. ESTADIOS JÓVENES — REGLA CRÍTICA: Los primordios y ejemplares jóvenes de Amanita emergen de un velo universal membranoso blanco. Renderizar así: PRIMORDIO = cúpula blanca compacta semienraizada en el suelo, el velo universal aún intacto formando una forma redondeada blanca — como una pequeña roca o cúpula blanca emergiendo del suelo, con el sombrero asomando por arriba. JOVEN = ejemplar ya emergido pero con los restos del velo universal rotos y visibles como fragmentos blancos membranosos en la base del pie (como una copa blanca o corona rasgada al nivel del suelo). NUNCA renderizar huevos de ave ni huevos de reptil — la estructura es un velo fúngico membranoso, no un huevo animal.",
   "Russulaceae": "Sin anillo ni volva. Pie quebradizo con textura de tiza, frágil. Si es Lactarius, DEBE mostrar látex (leche) fluyendo visiblemente de los cortes o daños en el sombrero o láminas.",
   "Hericiaceae": "Sin sombrero convencional definido. Aspecto de cascada de largos dientes o espinas blancas que cuelgan verticalmente, parecido a una melena o coral.",
   "Phallaceae": "Forma fálica con una cabeza (gleba) viscosa, fétida y de color verde oliva oscuro. Base emergiendo de un huevo membranoso blanco.",
