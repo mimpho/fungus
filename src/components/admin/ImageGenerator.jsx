@@ -187,6 +187,15 @@ const HYMENIUM_VISUAL_FOR_IMAGE_MODEL = {
   "Morchellaceae":  "CAP SURFACE — MOREL (CRITICAL): The entire cap is covered by deep irregular honeycomb-shaped pits and ridges, like a waffle or brain coral texture. The interior appears hollow when cut. Render exactly as seen in Morchella esculenta field photography.",
   "Hericiaceae":    "FRUITING BODY — LION'S MANE (CRITICAL): No cap, no stem in the conventional sense. The entire fruiting body is a cascading waterfall of long white icicle-like spines or teeth hanging downward, pure white, resembling a lion's mane or white coral. Render as seen in Hericium erinaceus field photography.",
   "Phallaceae":     "FRUITING BODY — STINKHORN (CRITICAL): Phallic white stem emerging from a white egg-like base in the soil. The tip (gleba) is covered in dark olive-green slimy viscous material. Render as seen in Phallus impudicus field photography.",
+  // Amanitaceae: four rules that models most often violate.
+  // (a) volva + ring visibility  (b) smooth cap — CRITICAL to block A. muscaria wart prior
+  // (c) white primordium dome  (d) gill color deferred to species HYMENIUM field in morphology block.
+  "Amanitaceae":    `AMANITACEAE — FOUR ABSOLUTE RULES:
+(1) VOLVA: a large prominent white membranous cup fully enclosing the stem base at soil level — the single most diagnostic feature, must be unmistakably visible in EVERY adult and young specimen.
+(2) RING: a membranous skirt-like annulus on the upper stem — must be visible on every adult.
+(3) CAP SURFACE IS COMPLETELY SMOOTH at ALL developmental stages — NO warts, NO scales, NO white patches on the cap surface. This applies even when the cap is orange or red. Amanita muscaria warts must NOT appear.
+(4) PRIMORDIUM stage: a rounded WHITE dome barely emerging from soil, with only the very tip of the orange cap peeking through — the exterior is mostly white (universal veil intact). NOT an orange ball.
+Gill color is species-specific — follow the HYMENIUM field in the morphology data below.`,
 };
 
 const FOREST_TYPE_LABELS = {
@@ -1512,9 +1521,12 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
           let layer1_prefix = '';
           if (hasStructuredData) {
             // Full morphology is in layer1_morphology — inject it verbatim as Layer 1.
-            // The hymenium_description field already encodes the image-safe visual anchor.
-            layer1_prefix = layer1_morphology;
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 Layer 1 → morfología estructurada inyectada en prefijo`]);
+            // For families with a HYMENIUM_VISUAL_FOR_IMAGE_MODEL entry (e.g. Amanitaceae,
+            // Boletaceae), prepend it BEFORE the DB morphology so the family-level structural
+            // constraints arrive as early tokens — the model weights the start of the prompt most.
+            const familyConstraint = family ? (HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family] ?? '') : '';
+            layer1_prefix = [familyConstraint, layer1_morphology].filter(Boolean).join('\n\n');
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 Layer 1 → ${familyConstraint ? 'family constraint + ' : ''}morfología estructurada inyectada en prefijo`]);
           } else {
             const hymeniumConstraint = family ? (HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family] ?? '') : '';
             layer1_prefix = hymeniumConstraint;

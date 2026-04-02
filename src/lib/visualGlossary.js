@@ -43,7 +43,10 @@ const GLOSSARY = [
   [/\bsubtomentose\b/gi,         'finely fuzzy'],
 
   // ── Structure names ────────────────────────────────────────────────────────
-  [/\bvolva\b/gi,                'sac-like cup at the base of the stem'],
+  // "volva" → short replacement to avoid collision when surrounding text already
+  // contains "sac-like" or "sheath" vocabulary (e.g. Amanita caesarea STIPE field).
+  // "cup-shaped volva sac" is compact and unambiguous for image models.
+  [/\bvolva\b/gi,                'cup-shaped volva sac'],
   // "cortina veil" → avoid double "veil veil" — match "cortina" only when NOT followed by "veil"
   [/\bcortina\b(?!\s+veil)/gi,   'cobweb-like veil'],
   // "cortina veil" → just "cobweb-like veil" (replace the whole phrase)
