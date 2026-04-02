@@ -15,14 +15,13 @@ Rama: `feat/v5.6-dna-mass-generation`
 - ✅ `visualGlossary.js` — traducción términos micológicos → lenguaje imagen
 - ✅ Fixes generador: prompt bloat, staging, fauna, atmósfera, primordio, toggle trust-model
 
-**SQLs pendientes de aplicar en Supabase** (correcciones de sesión actual):
-- C. orellanus (`esp-111`): cap hazel-brown + pico central + láminas cinnamon-brown (no rust/copper)
-- R. virescens (`esp-023`): grietas = tonos verdes, sin material blanco, anti-Amanita explícito
-
 **Pendiente para cerrar v5.6:**
-- Completar testing Grupo A: probar 3–4 especies más (una Amanitaceae, una Cantharellaceae, una Morchellaceae) para validar pipeline antes de Grupo B
-- Decisión: adoptar enfoque name-anchor para especies con prior de modelo fuerte vs DNA Visual completo para obscuras
-- Correr `generate_visual_dna.py` para Grupo B (~136 especies)
+- ⚠️ Correr `generate_visual_dna.py` para Grupo B (~136 especies) — **desde terminal local** (el sandbox no tiene acceso de red a Supabase/Gemini):
+  ```bash
+  cd fungus/backend
+  GEMINI_API_KEY=<key> python -m scripts.generate_visual_dna --dry-run  # verificar count
+  GEMINI_API_KEY=<key> python -m scripts.generate_visual_dna            # lanzar completo
+  ```
 - PR + merge `feat/v5.6-dna-mass-generation` → `main` + tag v5.6.0
 
 **Aprendizajes clave del testing:**

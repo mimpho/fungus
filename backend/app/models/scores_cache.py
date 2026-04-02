@@ -3,7 +3,9 @@ ScoresCache model — cached Outbreak Index per zone.
 Recomputed after each daily ingestion run.
 Avoids recalculating the OI on every frontend request.
 """
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+UTC = timezone.utc  # compat shim — datetime.UTC only available in Python 3.11+
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB

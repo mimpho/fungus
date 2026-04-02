@@ -20,6 +20,14 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - **Toggle "Confiar en modelo" (`trustModelMode`)**: botón `🧠` junto al badge DNA Visual. Cuando activo, omite `layer1_morphology` del prefijo de Imagen 4 y deja que el modelo use su conocimiento visual entrenado. Útil para diagnosticar si las descripciones textuales compiten con los priors del modelo para especies conocidas.
 - **Filtro de modelos lite/fast**: `fetchAvailableImageModels` excluye variantes `fast` y `lite` (no siguen instrucciones complejas). Auto-selección prioriza `imagen-4.0-generate-001`.
 
+### Corregido — v5.6 (sesión 2)
+
+- **Doble-reemplazo `volva` en glosario**: `visualGlossary.js` — reemplazo de `volva` → `"sac-like cup at the base of the stem"` (7 palabras) producía texto ininteligible en campos STIPE y ADDITIONAL de Amanita caesarea cuando el texto original ya contenía `sac-like`. Cambiado a `"cup-shaped volva sac"` (3 palabras, no colisiona).
+- **Amanitaceae pipeline estructurado — volva no visible / verugas en joven**: añadida entrada `"Amanitaceae"` a `HYMENIUM_VISUAL_FOR_IMAGE_MODEL` con 4 reglas absolutas: (1) volva prominente visible en adulto/joven, (2) anillo, (3) sombrero completamente liso en todas las fases — bloquea prior A. muscaria=verugas para especies de sombrero liso (sección Vaginatae), (4) primordio = cúpula blanca con solo la punta del sombrero asomando.
+- **Family constraint omitido en pipeline estructurado**: en modo DNA Visual activo, `layer1_prefix` era solo la morfología de BD. Ahora incluye también el `HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family]` como prefijo antes de los campos CAP/STIPE/HYMENIUM, asegurando que las reglas de familia llegan como tokens tempranos a Imagen 4 en ambos pipelines.
+- **`datetime.UTC` incompatible con Python 3.10**: `backend/app/models/scores_cache.py` usaba `from datetime import UTC` (Python 3.11+). Corregido con shim `UTC = timezone.utc`.
+- **SQLs Supabase aplicados**: C. orellanus (esp-111) cap color + laminas, R. virescens (esp-023) anti-Amanita, A. caesarea (esp-055) cap smooth + gills egg-yellow.
+
 ### Corregido — v5.6
 
 - **Prompt bloat / conflicto de instrucciones**: `MANDATORY_PHOTO_PREFIX` reducido de ~600 a ~120 tokens. Eliminados bloques redundantes que se contradecían entre sí (staging repetido en 3 sitios, centering duplicado). Cada regla ahora es una sola línea sin solapamiento.
