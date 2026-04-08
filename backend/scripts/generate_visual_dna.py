@@ -44,7 +44,7 @@ from app.models.species import Species
 # ── Logging ───────────────────────────────────────────────────────────────────
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s  %(levelname)-7s  %(message)s",
     datefmt="%H:%M:%S",
 )
@@ -250,7 +250,7 @@ async def call_gemini(
         "generationConfig": {
             "responseMimeType": "application/json",
             "temperature": 0.3,
-            "maxOutputTokens": 1500,
+            "maxOutputTokens": 8192,
         },
     }
     async with semaphore:
@@ -270,15 +270,24 @@ async def call_gemini(
                 resp.raise_for_status()
                 body = resp.json()
                 text = body["candidates"][0]["content"]["parts"][0]["text"]
-                # Strip any accidental markdown fences
-                text = re.sub(r"^```(?:json)?\s*", "", text.strip())
-                text = re.sub(r"\s*```$", "", text)
-                return json.loads(text)
+                # More robust JSON extraction: find first '{' and last '}'
+                try:
+                    start_idx = text.find("{")
+                    end_idx = text.rfind("}")
+                    if start_idx != -1 and end_idx != -1:
+                        text = text[start_idx : end_idx + 1]
+                    return json.loads(text)
+                except Exception as e:
+                    log.warning("  Attempting to fix common JSON issues in Gemini response...")
+                    # Fix unescaped newlines in JSON strings
+                    fixed_text = re.sub(r'":\s*"([^"]*)"', lambda m: '": "' + m.group(1).replace('\n', '\\n') + '"', text)
+                    return json.loads(fixed_text)
             except (httpx.HTTPStatusError, httpx.RequestError) as exc:
                 log.warning("  HTTP error for %s (attempt %d): %s", species_name, attempt + 1, exc)
                 await asyncio.sleep(5 * (attempt + 1))
             except (json.JSONDecodeError, KeyError) as exc:
                 log.warning("  Parse error for %s: %s", species_name, exc)
+                log.debug("  Raw text: %s", text)
                 return None
         log.error("  Failed after 3 attempts: %s", species_name)
         return None
