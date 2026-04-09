@@ -1,98 +1,97 @@
-# Tareas Pendientes y Revisiones Abiertas
+# Pending Tasks and Open Reviews
 
-Los ítems completados se eliminan de este archivo — el historial vive en `CHANGELOG.md`.
-
----
-
-## 🚀 Siguiente — v6.0 Social login (Google)
-
-**Alcance previsto:**
-- Google OAuth2 — gratis, sin coste, mayor reducción de fricción
-- DB: `auth_provider` (`"local"` | `"google"`) + `provider_id` en tabla `users`; `password_hash` pasa a nullable
-- Backend: verificación de ID token con Google → emite nuestro propio JWT (el sistema de sesiones no cambia)
-- Librería: `authlib` o `google-auth` para FastAPI
-- Frontend: Google Identity Services (script oficial, One Tap)
+Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
-## 🗂 Backlog — v6.1 Confirmación de email
+## 🚀 Next — v7.0 Social login (Google)
 
-(Era v5.3 — movido a v6.x)
-
-**Alcance previsto:**
-- Enviar email de verificación al registrar una cuenta nueva
-- Token de un solo uso (corta expiración, ej. 24h) almacenado en BD
-- Endpoint `GET /auth/verify-email?token=...` que activa la cuenta
-- Campo `email_verified: bool = False` en tabla `users`
-- Frontend: mostrar banner "Verifica tu email" en perfil si `!email_verified`
-- Proveedor: Resend o SendGrid (cheap/free tier suficiente para volumen inicial)
-
-**Decisión:** postergar hasta después de v6.0. Sin proveedor de email configurado todavía.
+**Planned scope:**
+- Google OAuth2 — free, no cost, maximum friction reduction
+- DB: `auth_provider` (`"local"` | `"google"`) + `provider_id` in `users` table; `password_hash` becomes nullable
+- Backend: Google ID token verification → issues our own JWT (session system unchanged)
+- Library: `authlib` or `google-auth` for FastAPI
+- Frontend: Google Identity Services (official script, One Tap)
 
 ---
 
-## 🗂 Sin fecha — Hardening: API keys del generador al backend
+## 🗂 Backlog — v7.1 Email confirmation
 
-Deuda técnica documentada en `memory/decisions.md` (sección "Generador de imágenes — Monorepo vs Microservicio").
+(Was v6.1)
 
-Actualmente `VITE_GEMINI_API_KEY` está expuesta en el bundle del frontend. Aceptable mientras el acceso sea exclusivamente por `AdminGuard`, pero la solución correcta a largo plazo es:
+**Planned scope:**
+- Send verification email on new account registration
+- Single-use token (short expiry, e.g. 24h) stored in DB
+- Endpoint `GET /auth/verify-email?token=...` that activates the account
+- Field `email_verified: bool = False` in `users` table
+- Frontend: show "Verify your email" banner in profile if `!email_verified`
+- Provider: Resend or SendGrid (cheap/free tier sufficient for initial volume)
 
-- Backend: endpoint `POST /api/v1/admin/generate-image` — recibe parámetros del prompt, llama a Imagen 4 / Gemini server-side, devuelve imagen en base64
-- Las API keys de Google dejan de estar en el cliente
-- `ImageGenerator.jsx` pasa a llamar al endpoint FastAPI en lugar de llamar directamente a Google AI SDK
-- Auth: el endpoint ya tiene acceso al JWT — verificar `role = 'admin'` en el middleware, sin cambios en `AdminGuard`
-
-**Cuándo priorizar:** si hay señales de que la key está siendo usada fuera del panel admin (monitoring de quotas), o si el número de admins crece y la key necesita rotarse sin redesploy del frontend.
-
----
-
-## 🗂 Sin fecha — v7.0 App Android
-
-- React Native + Expo — APK, mapa nativo, notificaciones push
-- **Condicionado a monetización previa** (costes de desarrollo y distribución)
-- iOS eliminado del roadmap — requiere Apple Developer ($99/año) + Apple Sign In; se reconsiderará si hay ingresos
+**Decision:** postpone until after v7.0. No email provider configured yet.
 
 ---
 
-## 🗂 Backlog — v8 SEO
+## 🗂 No date — Hardening: move generator API keys to backend
 
-- Prerendering estático en build time para rutas conocidas (`/especies/:id`, `/zonas/:id`, etc.)
-- `react-helmet-async`: meta tags dinámicos por ruta (título, description, Open Graph)
-- Revisión Core Web Vitals
+Technical debt documented in `memory/decisions.md` (section "Image generator — Monorepo vs Microservice").
+
+Currently `VITE_GEMINI_API_KEY` is exposed in the frontend bundle. Acceptable while access is exclusively via `AdminGuard`, but the correct long-term solution is:
+
+- Backend: endpoint `POST /api/v1/admin/generate-image` — receives prompt parameters, calls Imagen 4 / Gemini server-side, returns base64 image
+- Google API keys leave the client
+- `ImageGenerator.jsx` calls the FastAPI endpoint instead of calling the Google AI SDK directly
+
+**When to prioritise:** if there are signs the key is being used outside the admin panel (quota monitoring), or if the number of admins grows and the key needs rotation without a frontend redeploy.
 
 ---
 
-## 🟡 Backlog — mejoras frontend (sin prioridad activa)
+## 🗂 No date — v8.0 Android app
 
-### Imágenes placeholder pendientes de reemplazar
+- React Native + Expo — APK, native map, push notifications
+- **Conditional on prior monetisation** (development and distribution costs)
+- iOS removed from roadmap — requires Apple Developer ($99/year) + Apple Sign In; will be reconsidered if revenue materialises
 
-Detectadas por hash MD5 idéntico — los archivos son literalmente copias:
-- **esp-066 *A. gemmata***: las 3 fotos (main, foto1, foto2) son copias de esp-056 *A. muscaria*
-- **esp-019 *N. luridiformis***: foto principal idéntica a esp-014 *N. erythropus*
+---
 
-Solución: sustituir los archivos de imagen en `assets/images/content/species/` con fotos reales de cada especie.
+## 🗂 Backlog — v9.0 SEO
 
-### Revisión general del catálogo de especies
-- Verificar que `forestTypes` y `fruitingMonths` sean correctos para todas las especies
-- Añadir más especies representativas de cada tipo de bosque
-- Valorar tipos adicionales: abetosas, coníferas mixtas, etc.
+- Static prerendering at build time for known routes (`/especies/:id`, `/zonas/:id`, etc.)
+- `react-helmet-async`: dynamic meta tags per route (title, description, Open Graph)
+- Core Web Vitals review
 
-### Auditoría morfológica orientada a identificación (ALTA PRIORIDAD cuando se aborde)
-Las descripciones actuales de `cap`, `stem`, `flesh` están redactadas como fichas enciclopédicas. Para que sean útiles en identificación de campo (y para el generador de imágenes), cada especie debería tener:
-- **Rasgos diagnósticos explicitados** — los 1-3 rasgos que la distinguen de todas las demás, marcados con `RASGO DIAGNÓSTICO:` para que el morfologyBlock del generador los detecte y los priorice.
-- **Rasgos de confusión negativos** — lo que NO tiene (ej. "SIN rosado en la carne, SIN volva membranosa"), especialmente respecto a sus especies de confusión del `ConfusionesBlock`.
-- **Escala y prominencia** — no "apéndices pendulares" sino "fragmentos de 1-3 cm, conspicuos, imposibles de ignorar". Los modelos de imagen (y los recolectores novatos) necesitan vocabulario de magnitud.
+---
 
-Alcance: 202 especies en BD + `species.js`. El trabajo debería hacerse directamente en Supabase (SQL batch por familia) más actualización paralela en `species.js`. Ver patrón ya aplicado en `esp-062` (*Amanita ovoidea*) como referencia.
+## 🟡 Backlog — frontend improvements (no active priority)
 
-### Zonas sin especies en temporada
-Si no hay especies que coincidan con una zona/mes, el score meteorológico queda sin ajustar. Considerar penalización por "zona sin interés micológico este mes".
+### Placeholder images pending replacement
 
-### `speciesScore` en ZoneModal
-El campo `speciesScore` (SQS) se calcula pero no se muestra en la UI. Candidato a indicador adicional en la ficha de zona.
+Detected by identical MD5 hash — the files are literal copies:
+- **esp-066 *A. gemmata***: all 3 photos (main, foto1, foto2) are copies of esp-056 *A. muscaria*
+- **esp-019 *N. luridiformis***: main photo identical to esp-014 *N. erythropus*
 
-### Meteocat API para zonas catalanas
-Requiere API key. Híbrido: Meteocat para zonas catalanas, Open-Meteo para el resto.
+Solution: replace image files in `assets/images/content/species/` with real photos of each species.
 
-### Zonas personalizadas
-Permitir al usuario añadir y guardar puntos propios en el mapa.
+### General species catalogue review
+- Verify `forestTypes` and `fruitingMonths` are correct for all species
+- Add more representative species for each forest type
+- Consider additional types: fir forests, mixed conifers, etc.
+
+### Morphological audit for field identification (HIGH PRIORITY when addressed)
+Current `cap`, `stem`, `flesh` descriptions read as encyclopaedic entries. For field identification usefulness (and for the image generator), each species should have:
+- **Explicit diagnostic traits** — the 1–3 traits that distinguish it from all others, tagged with `DIAGNOSTIC TRAIT:` so the generator's morphologyBlock detects and prioritises them.
+- **Negative confusion traits** — what it does NOT have (e.g. "NO pink flesh, NO membranous volva"), especially relative to its confusion species in `ConfusionesBlock`.
+- **Scale and prominence** — not "pendant appendages" but "1–3 cm fragments, conspicuous, impossible to miss".
+
+Scope: 202 species in DB + `species.js`. See pattern already applied to `esp-062` (*Amanita ovoidea*) as reference.
+
+### Zones with no in-season species
+If no species match a zone/month, the meteorological score is unadjusted. Consider a penalty for "no mycological interest in this zone this month".
+
+### `speciesScore` in ZoneModal
+The `speciesScore` field (SQS) is calculated but not shown in the UI. Candidate for an additional indicator in the zone detail card.
+
+### Meteocat API for Catalan zones
+Requires API key. Hybrid approach: Meteocat for Catalan zones, Open-Meteo for the rest.
+
+### Custom zones
+Allow users to add and save their own points on the map.

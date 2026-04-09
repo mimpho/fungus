@@ -17,7 +17,7 @@ Fungus predice las mejores zonas y momentos para la recolección de setas combin
 ### Frontend (desarrollo local)
 
 ```bash
-cd frontend
+# Desde la raíz del repo:
 npm install
 npm run dev
 # http://localhost:5173
@@ -51,12 +51,14 @@ Requiere `.env` con `DATABASE_URL` apuntando a una instancia PostgreSQL + PostGI
 
 ```
 fungus/
-├── frontend/          ← Vite app (desarrollo activo)
+├── src/               ← Vite app — desarrollo activo
 ├── backend/           ← FastAPI + OI algorithm
+├── system/            ← OpenSpecs — Single Source of Truth
 ├── docs/              ← Arquitectura, convenciones, guías
 ├── memory/            ← Decisiones, pendientes, gotchas
 ├── standalone/        ← Legacy HTML (referencia, no activo)
-├── CLAUDE.md          ← Instrucciones para Claude
+├── CLAUDE.md          ← Entry point para Claude/Cowork
+├── AGENTS.md          ← Entry point para Codex CLI
 └── CHANGELOG.md
 ```
 
@@ -75,7 +77,8 @@ GET  /api/v1/species?lang=es|ca|en
 GET  /api/v1/species/{id}?lang=es|ca|en
 GET  /api/v1/species/{id}/visual-prompt       ← admin only
 PUT  /api/v1/species/{id}/visual-prompt       ← admin only
-GET  /api/v1/admin/trigger-backfill?days=N    ← admin only
+PATCH /api/v1/species/{id}/images             ← admin only
+POST /api/v1/images/set-order                 ← admin only
 ```
 
 ---
@@ -84,29 +87,13 @@ GET  /api/v1/admin/trigger-backfill?days=N    ← admin only
 
 | Versión | Estado | Alcance |
 |---|---|---|
-| v3.1 | ✅ | Frontend Vite — meteo real, catálogo mock, modales, mapa |
-| v4.1 | ✅ | Backend meteo: FastAPI + OI + Open-Meteo server-side |
-| v4.2 | ✅ | Catálogo en DB: seed + endpoints especies/zonas |
-| v4.3 | ✅ | Integración frontend completa: mock → API, weather cache |
-| v4.4 | ✅ | Weather cache BD server-side + deploy producción |
-| v4.5 | ✅ | Auditoría mock → API: cierre de imports residuales |
-| v4.6 | ✅ | Taxonomía (sinónimos) + confusiones en BD |
-| v4.6.3 | ✅ | Mejoras UX: filtros comarca/CCAA, no_comestible, restyling |
-| v4.6.4 | ✅ | Datos confusiones familias restantes |
-| v4.7 | ✅ | i18n completo: UI ES/CA/EN + DB layer `?lang=` + 202 especies |
-| v4.7.1 | ✅ | i18n editorial: artículos, morfología, sticky search, header scroll |
-| v5.0 | ✅ | Auth JWT + user accounts + followed zones & fav species |
-| v5.1 | ✅ | ImageGenerator (Imagen 4 + Gemini) · AdminGallery · modo admin |
-| v5.2 | ✅ | Generador: gallery → generador · panel referencia · guardado en catálogo |
-| v5.3 | ✅ | Fotos ilimitadas · CatalogImagesModal · DnD reordering · galería dinámica |
-| v5.3.1 | ✅ | Bug fixes generador |
-| v5.4 | ✅ | Rediseño generador admin: galería-first · modal especie · sidebar simplificado |
-| v5.5 | ✅ | Myco-Engine DNA Visual: `mushroom_visual_prompts` · pipeline 4 capas · 10 piloto |
-| v5.6 | ✅ | Generación masiva DNA Visual: 202 especies · visualGlossary · fixes generador |
-| v6.0 | 🗂 | Social login: Google OAuth2 |
-| v6.1 | 🗂 | Confirmación de email al registro |
-| v7.0 | 🗂 | App móvil Android (React Native + Expo) |
-| v8 | 🗂 | SEO: prerendering estático + Core Web Vitals |
+| v3.1–v4.7.1 | ✅ | Frontend Vite · backend meteo · catálogo DB · i18n |
+| v5.0–v5.6 | ✅ | Auth JWT · ImageGenerator · Myco-Engine DNA Visual |
+| v6.0 | 🚧 | OpenSpecs migration — SSOT estructurado, agnóstico al IDE |
+| v7.0 | 🗂 | Social login: Google OAuth2 |
+| v7.1 | 🗂 | Confirmación de email al registro |
+| v8.0 | 🗂 | App móvil Android (React Native + Expo) |
+| v9.0 | 🗂 | SEO: prerendering estático + Core Web Vitals |
 
 Backlog detallado: `memory/pending.md`
 

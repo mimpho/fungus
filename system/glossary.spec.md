@@ -1,0 +1,137 @@
+# glossary.spec.md — Fungus
+
+> Technical and domain terminology specific to the project.
+> If a term appears in the code, the DB or the documentation, its canonical definition is here.
+
+---
+
+## Mycological domain
+
+**DNA Visual**
+Structured visual description of a mushroom species, stored in the `mushroom_visual_prompts` table. It consists of morphological fields (cap, stipe, hymenium), environmental context and validation metadata. It is the input to the AI image generation pipeline.
+
+**Myco-Engine**
+4-layer pipeline that transforms a species' DNA Visual into a prompt for Imagen 4 (Google AI). The layers are: (1) botanical subject definition, (2) 16:9 composition control, (3) static optical configuration, (4) atmosphere and perimeter fill.
+
+**OI — Outbreak Index**
+Backend scoring algorithm (`app/services/scoring.py`) that combines 21-day accumulated precipitation, average temperature, seasonal factor, ripening and humidity to produce a mycological conditions index per zone. Distinct from the frontend `overallScore` (different weights).
+
+**overallScore**
+Mycological conditions score calculated in the frontend (`weatherService.js`). Combines seasonal factor (40%), 14-day precipitation (21%), temperature (18%), humidity (12%) and dry days (9%). After passing through `applySpeciesModifier`, the result is also called `adjustedScore` but the hook returns it as `overallScore`.
+
+**SQS — Species Quality Score**
+Weighted average of the edibility of species in season for a given zone and month. Weights: `excelente→100 · bueno→20 · comestible→5 · precaucion/toxico/mortal→0`. Combined with the meteorological score: `adjustedScore = overallScore × 0.60 + SQS × 0.40`.
+
+**Seasonal factor**
+Monthly multiplier (0–100) reflecting the real activity of gastronomic species in each calendar month. Represents 40% of the `overallScore`. Values: `Jan:15 Feb:20 Mar:38 Apr:58 May:62 Jun:28 Jul:18 Aug:48 Sep:80 Oct:100 Nov:88 Dec:42`.
+
+**forestType**
+Forest ecosystem type of a zone. Valid values: `'pinar'` · `'hayedo'` · `'robledal'` · `'encinar'`. Determines which species are candidates for a zone (via `species.forestTypes`).
+
+**edibility**
+Edibility level of a species. Valid values (best to worst): `'excelente'` · `'bueno'` · `'comestible'` · `'precaucion'` · `'toxico'` · `'mortal'`. The last three have EDIBILITY_SCORE = 0 and require a safety disclaimer in the UI.
+
+**fruitingMonths**
+1-based integer array of months in which a species produces fruiting bodies. E.g. `[9, 10, 11]` = September, October, November.
+
+**confusions**
+List of species-to-species relationships stored in `extra_data.confusions` (JSONB). Each entry: `{ with_species_id, diff }`. Visual attributes (icon, colour) are derived from the referenced species' `edibility` on the frontend — not stored in the DB.
+
+---
+
+## Frontend architecture
+
+**ModalRenderer**
+Component at `src/components/modals/ModalRenderer.jsx`. The sole modal navigation authority in the app. Listens to context changes (`selectedZone`, `selectedSpecies`, etc.) and calls `navigate()`. No other component should call `navigate()` to open or close modals.
+
+**resolveUrl(url)**
+Helper in `src/lib/helpers.jsx`. Ensures an asset URL starts with `/`. Necessary because mock data uses relative paths (`assets/images/...`) that the browser resolves incorrectly on nested routes like `/especies/boletus-edulis`.
+
+**slugify(text)**
+Helper in `src/lib/helpers.jsx`. Converts a name to a URL-safe slug: NFD normalisation, lowercase, spaces and special characters replaced with hyphens. E.g. `'Boletus edulis'` → `'boletus-edulis'`.
+
+**fakeConditions()**
+Helper in `src/lib/helpers.jsx`. Generates synthetic meteorological conditions for testing and as a fallback if the API fails. Must not be called directly from production components.
+
+**conditionsMap**
+Object `{ [zoneId]: Conditions }` returned by `useAllZoneConditions`. Starts as `{}` and fills asynchronously. All access must use `?.` or `?? 0`.
+
+**AppContext / useApp()**
+React context centralising the app's global state: active modals, followed zones, favourites, language, translation function `t()`. Access hook: `useApp()`.
+
+**glass / glass-warm**
+CSS classes from `styles.css`. `.glass` applies a semi-transparent dark background + backdrop blur. `.glass-warm` applies the warm coffee-tinted variant. Main visual pattern for cards, modals and sidebars.
+
+**GallerySection**
+Local component in `SpeciesModal.jsx`. Manages a species' photo gallery with per-image error tracking. Hides automatically if all images return 404.
+
+---
+
+## Backend architecture
+
+**GENERATED ALWAYS AS (PostGIS)**
+The `geom` column in the `zones` and `weather_stations` tables is a generated column that PostGIS computes automatically from `lat` and `lon`. Must not be included in INSERT or UPDATE statements.
+
+**is_validated**
+Boolean field in `mushroom_visual_prompts`. `true` = DNA Visual manually curated by an admin. `false` = automatically generated by Gemini offline. Records with `is_validated = true` are never overwritten by automated scripts.
+
+**extra_data**
+JSONB column in the backend `species` table. Stores structured content data that does not have its own column: `confusions`, `cond_temp_es/ca/en`, `cond_precip_es/ca/en`, `cond_suelo_es/ca/en`, `cond_req_es/ca/en`, and AI-generated image URLs.
+
+**CACHE_VERSION**
+Constant in `src/services/weatherService.js` (currently `3`). Incrementing it causes all users to invalidate their localStorage weather cache and receive fresh data. Must be incremented every time the scoring algorithm or fetch parameters change.
+
+**P1 / P2 / P3**
+Meteorological source quality hierarchy. P1 = highest quality (e.g. Meteocat). P2 = medium quality. P3 = Open-Meteo (current active provider). An upsert in `climate_history` never replaces P1 or P2 data with P3 data.
+
+**lifespan**
+Async function in FastAPI (`app/main.py`) that runs on app startup and shutdown. Contains: auto-migrate, APScheduler setup. Migrations run in a thread worker to avoid conflicting with FastAPI's event loop.
+
+---
+
+## Language conventions
+
+| Context | Language |
+|---|---|
+| Code (identifiers, comments, docstrings, logs) | English |
+| Git (branches, commits, PR titles/descriptions, tags) | English |
+| DB (tables, columns, JSON fields, endpoint paths) | English |
+| `docs/` | English |
+| `system/` | English |
+| `CLAUDE.md`, `AGENTS.md` | English |
+| `memory/` | Spanish (working language, historical) |
+| `CHANGELOG.md` | Spanish (historical) |
+| Conversations with Claude | Spanish |
+| Product-specific names already defined in Spanish (UI strings, zone/species names) | Spanish — do not rename, would require refactors |
+
+---
+
+## Enumerated values
+
+### edibility (complete)
+
+| Value | Meaning | EDIBILITY_SCORE | Disclaimer |
+|---|---|---|---|
+| `excelente` | Top gastronomic species | 100 | No |
+| `bueno` | Quality edible | 20 | No |
+| `comestible` | Edible, low culinary value | 5 | No |
+| `precaucion` | Requires special preparation or carries risks | 0 | Yes |
+| `toxico` | Toxic for consumption | 0 | Yes |
+| `mortal` | Lethal | 0 | Yes (prominent) |
+
+### forestType (complete)
+
+| Value | Ecosystem |
+|---|---|
+| `pinar` | Pine forests (Pinus sylvestris, P. pinaster, P. nigra) |
+| `hayedo` | Beech forests (Fagus sylvatica) |
+| `robledal` | Oak forests (Quercus robur, Q. petraea, Q. pyrenaica) |
+| `encinar` | Holm oak and Mediterranean forests (Quercus ilex) |
+
+### lang (i18n)
+
+| Value | Language |
+|---|---|
+| `'es'` | Spanish (default) |
+| `'ca'` | Catalan |
+| `'en'` | English |
