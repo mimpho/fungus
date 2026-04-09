@@ -16,7 +16,7 @@ Fungus es una app web de predicción micológica para Cataluña/España. Predice
 
 ## Arquitectura
 
-- **Entregable principal**: App Vite en `frontend/` — **ESTE es el path activo de desarrollo**
+- **Entregable principal**: App Vite con `src/` en la raíz del repo — **ESTE es el path activo de desarrollo** (no hay subdirectorio `frontend/`; restructuración a futuro)
 - **Standalone legacy**: `standalone/latest/` — archivos HTML multi-archivo con Babel standalone. Ya no es el path activo pero se mantiene como referencia.
 - **Con backend propio** — FastAPI en Render, PostgreSQL+PostGIS en Supabase. Meteorología via Open-Meteo server-side. Datos mock en `src/data/` como fallback y referencia local.
 
@@ -372,7 +372,7 @@ OI = PA21_score  × 0.30   (precipitación acumulada 21 días)
 
 ## Reglas Importantes
 
-1. **`frontend/` es el path activo** — no tocar `standalone/` salvo referencia
+1. **`src/` en raíz es el path activo** — no tocar `standalone/` salvo referencia (no existe subdirectorio `frontend/`)
 2. **`soil_temperature_0cm` solo en `hourly`** — si se añade a `current` la API devuelve 400
 3. **`window.L = L`** debe estar a nivel de módulo en `LeafletMap.jsx`, antes de cualquier `import('leaflet.heat')`
 4. **`fakeConditions()`** se mantiene solo como fallback en `useWeatherConditions.js` — no usar directamente en componentes
