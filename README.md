@@ -1,8 +1,8 @@
 # 🍄 Fungus
 
-Sistema inteligente de predicción micológica para Cataluña y España.
+Sistema inteligente de predicción micológica para España.
 
-**Versión**: v5.6 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
+**Versión**: v6.0 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 
