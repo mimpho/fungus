@@ -13,6 +13,7 @@ import { useApp } from '../../contexts/AppContext';
 import { API_BASE } from '../../services/apiService';
 import { invalidateSpeciesListCache, patchSpeciesPhotoInCache } from '../../hooks/useSpecies';
 import { authHeaders } from '../../services/authService';
+import { applyVisualGlossary } from '../../lib/visualGlossary';
 import { resolveUrl } from '../../lib/helpers';
 import { MODAL } from '../../lib/constants';
 import { CatalogImagesModal } from './CatalogImagesModal';
@@ -100,7 +101,7 @@ Zona Segura (Safe Area): Los ejemplares deben agruparse en el CENTRO ESTRICTO (4
 Composición por Cantidad:
 - 1: Un ejemplar adulto, centrado.
 - 2: Adulto + Joven. Adulto en primer plano, joven más retrasado.
-- 3: Primordio (huevo/botón compacto) + Joven (convexo, formándose) + Adulto (abierto, rasgos diagnósticos a máxima expresión). SIEMPRE estas tres fases distintas — NUNCA dos adultos.
+- 3: ADULTO (abierto, rasgos diagnósticos a máxima expresión) en el CENTRO del encuadre y en el PRIMER PLANO (más cercano a la cámara). Joven (convexo, formándose) detrás y ligeramente a un lado. Primordio (huevo/botón compacto) al fondo, más pequeño y más borroso. SIEMPRE estas tres fases distintas — NUNCA dos adultos. El adulto es el sujeto principal: debe ser el más grande y estar centrado horizontalmente.
 - 4+: Varios ejemplares (primordio, joven, 2+ adultos en distintos planos) dispersos de forma natural a diferentes profundidades dentro del área central. La escena debe parecer una pequeña familia emergiendo del suelo.
 Profundidad y Disposición: ⚠️ CRÍTICO. PROHIBIDO alinearlos al mismo plano de profundidad. La diferencia de distancia entre el ejemplar más cercano y el más lejano debe ser EVIDENTE y PRONUNCIADA: el ejemplar del primer plano es notablemente más grande y más nítido; el del fondo se ve claramente más pequeño y con bokeh. La escena debe transmitir volumen real, no una alineación plana.
 
@@ -144,7 +145,7 @@ REGLA BASE: SIEMPRE incluir al menos UNA imperfección morfológica y UN element
 
 6. FASES DE DESARROLLO (cuando hay múltiples ejemplares)
 Si hay 2 o más ejemplares, mostrar fases distintas con sus características propias:
-- Primordio/huevo: pequeño, compacto, forma esférica o elipsoidal. En especies con sombrero liso (ver bloque morfología), el primordio también es liso — NO añadir verrugas ni escamas al huevo.
+- Primordio: pequeño, compacto, forma esférica o elipsoidal emergiendo del suelo. En Amanitaceae el primordio emerge envuelto en el velo universal (ver regla de familia). En el resto de especies, es simplemente un botón compacto sin estructuras especiales. NO añadir verrugas ni escamas al primordio salvo que la morfología del adulto las tenga.
 - Joven: píleo aún convexo, velo parcial todavía presente en algunos géneros, colores más frescos. ⚠️ La textura del píleo joven HEREDA la textura del adulto: si el adulto es liso, el joven también es liso. NUNCA renderizar un adulto liso con jóvenes verrugosos — es taxonómicamente imposible.
 - Adulto: píleo extendido o aplanado, velo roto (anillo visible en Amanita), colores más maduros con posibles cambios por envejecimiento.
 
@@ -163,7 +164,7 @@ const TAXONOMY_GOLDEN_RULES = {
   "Cantharellaceae": "PROHIBIDO generar láminas libres. El himeneo DEBE estar compuesto por PLIEGUES (venas) carnosos, gruesos y fuertemente decurrentes en el pie.",
   "Boletaceae": "PROHIBIDO generar láminas. El himeneo DEBE estar compuesto por una capa de POROS tubulares (estructura de esponja), nunca láminas de ningún tipo.",
   "Morchellaceae": "El sombrero DEBE tener ALVÉOLOS profundos irregulares (forma de panal de abeja). La estructura interna DEBE ser HUECA. Pie blanco acanalado.",
-  "Amanitaceae": "Presencia OBLIGATORIA de VOLVA en la base del pie (saco membranoso) y ANILLO (faldilla membranosa) en la parte superior del pie. El color del sombrero varía por especie — NO usar el rojo de A. muscaria salvo que la especie lo tenga.",
+  "Amanitaceae": "Presencia OBLIGATORIA de VOLVA en la base del pie (saco membranoso) y ANILLO (faldilla membranosa) en la parte superior del pie. El color del sombrero varía por especie — NO usar el rojo de A. muscaria salvo que la especie lo tenga. ESTADIOS JÓVENES — REGLA CRÍTICA: Los primordios y ejemplares jóvenes de Amanita emergen de un velo universal membranoso blanco. Renderizar así: PRIMORDIO = cúpula blanca compacta semienraizada en el suelo, el velo universal aún intacto formando una forma redondeada blanca — como una pequeña roca o cúpula blanca emergiendo del suelo, con el sombrero asomando por arriba. JOVEN = ejemplar ya emergido pero con los restos del velo universal rotos y visibles como fragmentos blancos membranosos en la base del pie (como una copa blanca o corona rasgada al nivel del suelo). NUNCA renderizar huevos de ave ni huevos de reptil — la estructura es un velo fúngico membranoso, no un huevo animal.",
   "Russulaceae": "Sin anillo ni volva. Pie quebradizo con textura de tiza, frágil. Si es Lactarius, DEBE mostrar látex (leche) fluyendo visiblemente de los cortes o daños en el sombrero o láminas.",
   "Hericiaceae": "Sin sombrero convencional definido. Aspecto de cascada de largos dientes o espinas blancas que cuelgan verticalmente, parecido a una melena o coral.",
   "Phallaceae": "Forma fálica con una cabeza (gleba) viscosa, fétida y de color verde oliva oscuro. Base emergiendo de un huevo membranoso blanco.",
@@ -186,6 +187,15 @@ const HYMENIUM_VISUAL_FOR_IMAGE_MODEL = {
   "Morchellaceae":  "CAP SURFACE — MOREL (CRITICAL): The entire cap is covered by deep irregular honeycomb-shaped pits and ridges, like a waffle or brain coral texture. The interior appears hollow when cut. Render exactly as seen in Morchella esculenta field photography.",
   "Hericiaceae":    "FRUITING BODY — LION'S MANE (CRITICAL): No cap, no stem in the conventional sense. The entire fruiting body is a cascading waterfall of long white icicle-like spines or teeth hanging downward, pure white, resembling a lion's mane or white coral. Render as seen in Hericium erinaceus field photography.",
   "Phallaceae":     "FRUITING BODY — STINKHORN (CRITICAL): Phallic white stem emerging from a white egg-like base in the soil. The tip (gleba) is covered in dark olive-green slimy viscous material. Render as seen in Phallus impudicus field photography.",
+  // Amanitaceae: four rules that models most often violate.
+  // (a) volva + ring visibility  (b) smooth cap — CRITICAL to block A. muscaria wart prior
+  // (c) white primordium dome  (d) gill color deferred to species HYMENIUM field in morphology block.
+  "Amanitaceae":    `AMANITACEAE — FOUR ABSOLUTE RULES:
+(1) VOLVA: a large prominent white membranous cup fully enclosing the stem base at soil level — the single most diagnostic feature, must be unmistakably visible in EVERY adult and young specimen.
+(2) RING: a membranous skirt-like annulus on the upper stem — must be visible on every adult.
+(3) CAP SURFACE IS COMPLETELY SMOOTH at ALL developmental stages — NO warts, NO scales, NO white patches on the cap surface. This applies even when the cap is orange or red. Amanita muscaria warts must NOT appear.
+(4) PRIMORDIUM stage: a rounded WHITE dome barely emerging from soil, with only the very tip of the orange cap peeking through — the exterior is mostly white (universal veil intact). NOT an orange ball.
+Gill color is species-specific — follow the HYMENIUM field in the morphology data below.`,
 };
 
 const FOREST_TYPE_LABELS = {
@@ -444,6 +454,8 @@ async function fetchAvailableImageModels(apiKey) {
     .filter(m => {
       const name = (m.name ?? '').toLowerCase();
       const methods = m.supportedGenerationMethods ?? [];
+      // Exclude fast/lite variants — they don't follow complex composition instructions reliably
+      if (name.includes('fast') || name.includes('lite')) return false;
       // Gemini native image generation models
       if (name.includes('image-generation') || name.includes('imagegen')) return true;
       // Imagen predict models
@@ -750,8 +762,14 @@ function App() {
   const [applyStatus, setApplyStatus] = useState(null); // null | 'saving' | 'success' | 'error'
   // Reference species data loaded when ?especie= is in the URL
   const [referenceSpecies, setReferenceSpecies] = useState(null);
-  // Structured visual DNA from mushroom_visual_prompts table (null = not available → fallback mode)
+  // Structured visual DNA from mushroom_visual_prompts table (null = not loaded yet or unavailable)
   const [visualPromptData, setVisualPromptData] = useState(null);
+  // 'loading' | 'loaded' | 'missing' | 'error' — shown as a badge next to the species name
+  const [vpStatus, setVpStatus] = useState('loading');
+  // When true: skip DNA Visual morphology injection into Imagen 4 layer1_prefix.
+  // Imagen 4 uses its own trained visual knowledge of the species.
+  // Useful for well-known species where descriptions compete with model priors.
+  const [trustModelMode, setTrustModelMode] = useState(false);
   // Tracks which species ID is currently loaded — used to skip redundant re-fetches
   // when apiSpecies changes (e.g. mockSpecies → full list, or after invalidateSpeciesListCache)
   // without needing referenceSpecies in the effect deps (which would cause infinite loops).
@@ -823,6 +841,7 @@ function App() {
 
     const controller = new AbortController();
     const opts = { cache: 'no-store', headers: authHeaders(), signal: controller.signal };
+    setVpStatus('loading');
     // Fetch species detail and visual prompt data in parallel
     Promise.all([
       fetch(`${API_BASE}/species/${especieId}`, opts).then(r => r.ok ? r.json() : null),
@@ -835,8 +854,14 @@ function App() {
         }
         // vpData may be null (no entry yet) — frontend falls back to Gemini-only pipeline
         setVisualPromptData(vpData ?? null);
+        setVpStatus(vpData ? 'loaded' : 'missing');
       })
-      .catch(() => { });
+      .catch((err) => {
+        if (err?.name === 'AbortError') return;
+        // Network/API failure — mark as error so user can see and retry
+        setVisualPromptData(null);
+        setVpStatus('error');
+      });
     return () => controller.abort();
   }, [searchParams, apiSpecies]);
 
@@ -916,22 +941,25 @@ function App() {
     fetchAvailableImageModels(key)
       .then(models => {
         setAvailableImageModels(models);
-        // Auto-select: prefer gemini image-generation models, fallback to first available
+        // Auto-select: prefer Imagen 4, fallback to first available
         if (models.length > 0) {
-          const preferred = models.find(m => m.id.includes('gemini') && m.id.includes('image')) ?? models[0];
+          const preferred = models.find(m => m.id === 'imagen-4.0-generate-001')
+            ?? models.find(m => m.id.includes('imagen-4'))
+            ?? models[0];
           setImageModel(preferred.id);
         }
       })
       .catch(err => {
         console.warn('[ImageGen] fetchAvailableImageModels failed:', err.message);
         // Fallback: populate with known models so the selector still shows something
+        // Fast/lite variants excluded — they don't follow complex composition instructions
         const fallback = [
-          { id: 'gemini-2.0-flash-preview-image-generation', displayName: 'Gemini 2.0 Flash Preview Image', method: 'generateContent' },
-          { id: 'imagen-3.0-generate-001', displayName: 'Imagen 3', method: 'predict' },
           { id: 'imagen-4.0-generate-001', displayName: 'Imagen 4', method: 'predict' },
+          { id: 'imagen-3.0-generate-001', displayName: 'Imagen 3', method: 'predict' },
+          { id: 'gemini-2.0-flash-preview-image-generation', displayName: 'Gemini 2.0 Flash Preview Image', method: 'generateContent' },
         ];
         setAvailableImageModels(fallback);
-        setImageModel('gemini-2.0-flash-preview-image-generation');
+        setImageModel('imagen-4.0-generate-001');
       })
       .finally(() => setLoadingModels(false));
   }, [hasKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1325,8 +1353,12 @@ ${morphLines.join('\n')}`;
           // use the 4-layer deterministic pipeline — morphology is pre-validated and
           // injected directly; Gemini only generates the creative scene details.
           // Otherwise fall back to the Gemini-interprets-free-text pipeline.
-          const hasStructuredData = !!visualPromptData;
-          if (hasStructuredData) {
+          // trustModelMode: bypasses morphology injection into Imagen 4 layer1_prefix —
+          // Imagen 4 uses its own visual priors for the species name instead.
+          const hasStructuredData = !!visualPromptData && !trustModelMode;
+          if (trustModelMode && !!visualPromptData) {
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧠 Modo "confiar en el modelo" — DNA Visual omitido del prefijo`]);
+          } else if (hasStructuredData) {
             setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 DNA Visual en BD → pipeline estructurado (${visualPromptData.is_validated ? '✓ validado' : 'borrador'})`]);
           } else {
             setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 📝 Sin DNA Visual en BD → pipeline Gemini (fallback)`]);
@@ -1338,11 +1370,12 @@ ${morphLines.join('\n')}`;
           let layer1_morphology = "";
           if (hasStructuredData) {
             const vp = visualPromptData;
+            const g = applyVisualGlossary;
             const parts = [
-              vp.cap_description     ? `CAP: ${vp.cap_description}`              : null,
-              vp.stipe_description   ? `STIPE: ${vp.stipe_description}`          : null,
-              vp.hymenium_description? `HYMENIUM: ${vp.hymenium_description}`    : null,
-              vp.extra_morphology_visual ? `ADDITIONAL: ${vp.extra_morphology_visual}` : null,
+              vp.cap_description     ? `CAP: ${g(vp.cap_description)}`              : null,
+              vp.stipe_description   ? `STIPE: ${g(vp.stipe_description)}`          : null,
+              vp.hymenium_description? `HYMENIUM: ${g(vp.hymenium_description)}`    : null,
+              vp.extra_morphology_visual ? `ADDITIONAL: ${g(vp.extra_morphology_visual)}` : null,
             ].filter(Boolean);
             layer1_morphology = parts.join('\n');
           }
@@ -1352,7 +1385,7 @@ ${morphLines.join('\n')}`;
           const stageBlock = settings.specimenCount >= 4
             ? `- DEVELOPMENT STAGES (4+ specimens): a natural family group — one primordium (compact, emergent), one or two young specimens (caps still convex), two or more fully open adults (caps fully extended, all diagnostic features at maximum expression). Dispersed naturally at genuinely different depths within the central zone. NOT lined up. Feels like a spontaneous forest discovery.`
             : settings.specimenCount >= 3
-            ? `- DEVELOPMENT STAGES (3 specimens): ONE egg/primordium (compact sphere or ovoid, no developed structures visible), ONE immature young specimen (cap still fully convex, all features forming), ONE fully open adult specimen (cap extended/flattened, all diagnostic features at maximum expression). These are THREE DISTINCT DEVELOPMENTAL STAGES — do NOT show two adults and one young.`
+            ? `- DEVELOPMENT STAGES (3 specimens): THREE DISTINCT DEVELOPMENTAL STAGES at very different sizes. STAGING ORDER IS ABSOLUTE: (1) ADULT — CENTERED in frame, FOREGROUND, razor-sharp, cap fully extended, dominant subject; (2) YOUNG — MIDGROUND, behind adult and offset to one side, cap still convex and clearly smaller than adult; (3) PRIMORDIUM — BACKGROUND, a tiny compact button barely emerging from the soil, only 2–4 cm tall, roundish nub shape, dwarfed by the other two. The size difference must be dramatic and immediately obvious — not three mushrooms of similar size at different distances, but genuinely different life stages. Vary the exact proportions randomly each time.`
             : settings.specimenCount === 2
             ? `- DEVELOPMENT STAGES (2 specimens): adult (fully open, diagnostic features prominent) + young (cap still convex).`
             : `- DEVELOPMENT STAGE (1 specimen): fully open adult with all diagnostic features at maximum expression.`;
@@ -1363,23 +1396,28 @@ ${morphLines.join('\n')}`;
             // STRUCTURED PIPELINE: Gemini receives pre-validated morphology;
             // its ONLY job is to write a creative scene (atmosphere, fauna, light moment).
             const vp = visualPromptData;
-            const substrateCtx = vp.preferred_substrate ?? habitatContext;
-            const habitatCtx   = vp.habitat_context     ?? habitatContext;
-            const faunaHint    = vp.associated_fauna     ? `Fauna hint (use or vary): ${vp.associated_fauna}.` : '';
-            const geminiCtx    = vp.extra_morphology_gemini ? `Species context (for scene realism): ${vp.extra_morphology_gemini}` : '';
+            const substrateCtx    = vp.preferred_substrate  ?? habitatContext;
+            const habitatCtx      = vp.habitat_context      ?? habitatContext;
+            // faunaHint: hint from DB is a suggestion only — ground-only constraint always applies.
+            // "use or vary" + hard override prevents DB hints like "beetle on cap" from being followed.
+            const faunaHint       = vp.associated_fauna
+              ? `Fauna suggestion (vary freely): ${vp.associated_fauna}. OVERRIDE: animal must be on the forest floor or a nearby leaf — NEVER on the cap or stipe. If the suggestion is a beetle, replace with a snail, woodlouse, or spider instead.`
+              : '';
+            const geminiCtx       = vp.extra_morphology_gemini ? `Species context (for scene realism): ${vp.extra_morphology_gemini}` : '';
+            const compositionRule = vp.composition_notes     ? `\nSPECIES-SPECIFIC COMPOSITION RULE (MANDATORY): ${vp.composition_notes}` : '';
             enginePrompt = `You are writing the SCENE section of a mycological image prompt for: "${cleanName}".${extraTaxonomicCommand}
 
 MORPHOLOGY IS FIXED — do NOT invent or modify any visual feature. The morphology is:
 ${layer1_morphology}
 ${geminiCtx ? '\n' + geminiCtx : ''}
+${compositionRule}
 
 YOUR TASK — write ONLY the scene/environment/atmosphere details (3–5 sentences):
-1. COMPOSITION: ${specimenCountLabel} specimen(s) grouped in the CENTRAL 50% of the frame, pronounced 3D depth (foreground noticeably closer and larger than background specimens). ${stageBlock}
-2. SUBSTRATE & GROUND COVER: describe the immediate forest floor in detail (${substrateCtx}).
-3. HABITAT & LIGHT MOMENT: one specific atmospheric detail — an unusual shaft of light, mist between trees, dewdrops on moss, or similar. Habitat: ${habitatCtx}.
-4. FAUNA (optional): ${faunaHint || 'one small animal that fits the habitat — a beetle, snail, spider, etc. Must feel incidental, not posed.'}
+1. COMPOSITION: ${specimenCountLabel} specimen(s). ${stageBlock}${vp.composition_notes ? ' Apply the SPECIES-SPECIFIC COMPOSITION RULE above.' : ''}
+2. SUBSTRATE: ${substrateCtx}. Include 2–3 specific ground elements (e.g. pine cones, acorns, lichen, moss patches, fallen leaves).
+3. ATMOSPHERE (MANDATORY — no plain light): Pick exactly ONE and describe it vividly: morning mist between tree trunks / dewdrops on nearby moss / spider web catching backlight / thin ground fog. Habitat: ${habitatCtx}.
+4. FAUNA (MANDATORY — ground only): ${faunaHint || 'One small animal on the leaf litter at the stipe base — snail, woodlouse, spider, or ant. NOT a beetle. Animal must be on the ground, never on the cap or stipe.'}
 5. CRITICAL CLOSE: "CRITICAL: [one key EXTERNAL visual feature from the morphology above] must be unmistakably prominent."
-   — Use ONLY external visible features. NEVER mention cut surfaces, reactions when damaged, or internal flesh.
 
 DO NOT include any morphology beyond what is given above. DO NOT include lighting or camera specs.`;
           } else {
@@ -1402,7 +1440,8 @@ OUTPUT STRUCTURE — write the prompt in this exact order (focus ONLY on biology
 2. DESCRIBE morphology: exact colors, textures, proportions, all key structures.
 3. SPECIFY composition: ${specimenCountLabel} specimen(s) in the central 50% of the frame, pronounced 3D depth, development stages as specified above.
 4. DESCRIBE habitat and ground cover (moss, pine needles, leaves, lichen, etc.).
-5. FAUNA (optional but encouraged): one small animal exploring the scene — choose naturally from: a beetle, a snail, a slug, a centipede, a spider on silk thread, a small grasshopper, an ant, a tiny moth, a woodlouse, a forest fly, a caterpillar on nearby vegetation — whatever fits the habitat. NEVER force it; it must feel like a casual discovery.
+5. ATMOSPHERE (MANDATORY): Include exactly ONE vivid atmospheric detail — morning mist between trunks, dewdrops on moss, spider web catching backlight, or thin ground fog. No plain light shafts.
+6. FAUNA (MANDATORY — ground only): One small animal on the leaf litter at the stipe base — snail, woodlouse, spider, or ant. NOT a beetle. Must be on the ground, never on the cap or stipe.
 6. CLOSE with: "CRITICAL: [one visible external diagnostic trait — e.g. stipe color, cap texture, pore/tooth/ridge structure at cap margin] must be unmistakably prominent in the final image."
    ⚠️ The CRITICAL trait MUST be something visible on the INTACT LIVING exterior of the mushroom.
    NEVER mention: bluing reactions, internal flesh color, cut surfaces, cross-sections, or any preparation requiring damage to the specimen. Those cannot be shown in a forest field photo.
@@ -1482,9 +1521,12 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
           let layer1_prefix = '';
           if (hasStructuredData) {
             // Full morphology is in layer1_morphology — inject it verbatim as Layer 1.
-            // The hymenium_description field already encodes the image-safe visual anchor.
-            layer1_prefix = layer1_morphology;
-            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 Layer 1 → morfología estructurada inyectada en prefijo`]);
+            // For families with a HYMENIUM_VISUAL_FOR_IMAGE_MODEL entry (e.g. Amanitaceae,
+            // Boletaceae), prepend it BEFORE the DB morphology so the family-level structural
+            // constraints arrive as early tokens — the model weights the start of the prompt most.
+            const familyConstraint = family ? (HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family] ?? '') : '';
+            layer1_prefix = [familyConstraint, layer1_morphology].filter(Boolean).join('\n\n');
+            setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🧬 Layer 1 → ${familyConstraint ? 'family constraint + ' : ''}morfología estructurada inyectada en prefijo`]);
           } else {
             const hymeniumConstraint = family ? (HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family] ?? '') : '';
             layer1_prefix = hymeniumConstraint;
@@ -1496,11 +1538,22 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
               setStatusLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ⚠️ Familia no detectada — sin constraint de himeneo`]);
             }
           }
+          // Prompt order: composition rules FIRST (early tokens weighted most by image models),
+          // then morphology, then scene. Each rule is kept to minimum effective length —
+          // competing/redundant blocks confuse the model and cause it to ignore all of them.
           const MANDATORY_PHOTO_PREFIX = [
-            // Anti-diptych FIRST — absolute highest priority before anything else
-            `OUTPUT FORMAT (ABSOLUTE RULE — OVERRIDES EVERYTHING): ONE single photograph. A single continuous uninterrupted rectangular image with no divisions. NOT a diptych. NOT side-by-side panels. NOT a grid. NOT before/after. NOT cross-section + exterior. ONE scene, one frame, one photo.`,
+            // 1. Composition — one line per constraint, no repetition across blocks
+            settings.specimenCount >= 3
+              ? `3 specimens: ADULT centered in frame, foreground (closest, largest). Young behind-left. Primordium behind-right. All grouped in center 50% of frame width.`
+              : `All specimens grouped in the center 50% of the frame width.`,
+            // 2. Single-frame — short positive statement
+            `Single continuous photograph. One scene, no borders or dividers.`,
+            // 3. Morphology (DNA Visual or hymenium family constraint)
             layer1_prefix,
-            `PHOTOGRAPHY STYLE: Hyper-realistic field photograph. Camera positioned at ground level, lens at 5–10 cm above the forest floor, shooting slightly upward so the mushroom base and substrate fill the lower third of the frame and the forest canopy fills the upper third. Specimens occupy the central vertical band — stipe base visible at bottom, cap in the middle third, bokeh canopy above. Golden hour backlit forest — warm low-angle dawn or dusk sun partially hidden behind tree trunks, volumetric crepuscular rays piercing the understory, pronounced rim lighting separating mushrooms from background. Soft warm diffused light with no harsh shadows. All specimens centered in the MIDDLE 50% of the frame width — wide forest floor fills left and right thirds. Macro lens 105mm, f/4.0, razor-sharp focus on adult cap, deep creamy bokeh on background. Subsurface scattering through mushroom flesh.`,
+            // 4. Fauna floor — one line
+            `Any fauna must be on the forest floor or nearby leaf/twig — never on the cap or stipe.`,
+            // 5. Photography style — no light preset here (Gemini sets the atmosphere/light mood)
+            `Hyper-realistic field photograph. Camera at ground level shooting slightly upward. Macro 105mm f/4.0, razor-sharp focus on adult cap, creamy bokeh background, rim lighting separating subjects from background.`,
           ].filter(Boolean).join('\n\n') + '\n\n';
           // Remove trailing duplicate lighting/lens blocks Gemini may have appended
           prompt = prompt
@@ -1907,7 +1960,38 @@ If no diagnostic feature: skip step 1 and open with step 2.`;
                   <div className="min-w-0">
                     <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d9cda1]/40 mb-1">Generando para</p>
                     <p className="font-display text-3xl font-semibold text-cream leading-tight truncate">{settings.scientificName}</p>
-                    <p className="text-cream/30 text-sm font-mono mt-0.5">{searchParams.get('especie')}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-cream/30 text-sm font-mono">{searchParams.get('especie')}</p>
+                      {/* DNA Visual status badge */}
+                      {vpStatus === 'loading' && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-cream/30 animate-pulse">🧬 cargando…</span>
+                      )}
+                      {vpStatus === 'loaded' && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400/70">🧬 DNA Visual ✓</span>
+                      )}
+                      {vpStatus === 'missing' && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400/70">⚠ Sin DNA Visual</span>
+                      )}
+                      {vpStatus === 'error' && (
+                        <button
+                          onClick={() => { loadedReferenceIdRef.current = null; setVpStatus('loading'); }}
+                          className="text-[9px] font-bold uppercase tracking-wider text-red-400/80 hover:text-red-400 transition-colors"
+                          title="Error cargando DNA Visual — click para reintentar"
+                        >
+                          ✗ DNA Visual (reintentar)
+                        </button>
+                      )}
+                      {/* Trust-model toggle — only shown when DNA Visual is loaded */}
+                      {vpStatus === 'loaded' && (
+                        <button
+                          onClick={() => setTrustModelMode(v => !v)}
+                          className={`text-[9px] font-bold uppercase tracking-wider transition-colors ${trustModelMode ? 'text-violet-400' : 'text-cream/25 hover:text-cream/50'}`}
+                          title={trustModelMode ? 'Modo "confiar en el modelo" activo — DNA Visual omitido del prefijo de Imagen 4. Click para volver al pipeline estructurado.' : 'Activar modo "confiar en el modelo" — omite el DNA Visual del prefijo y deja que Imagen 4 use su propio conocimiento visual de la especie.'}
+                        >
+                          {trustModelMode ? '🧠 Modo modelo ON' : '🧠 Confiar en modelo'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => window.history.back()}

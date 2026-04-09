@@ -507,6 +507,7 @@ async def upsert_species_visual_prompt(
     row.preferred_substrate = body.preferred_substrate
     row.habitat_context = body.habitat_context
     row.associated_fauna = body.associated_fauna
+    row.composition_notes = body.composition_notes
     row.is_validated = body.is_validated
 
     await db.commit()

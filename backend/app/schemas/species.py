@@ -115,6 +115,8 @@ class VisualPromptData(BaseModel):
     preferred_substrate: str | None = None
     habitat_context: str | None = None
     associated_fauna: str | None = None
+    # Species-specific framing / composition guidance
+    composition_notes: str | None = None
     is_validated: bool = False
 
 
@@ -129,4 +131,5 @@ class VisualPromptUpsertBody(BaseModel):
     preferred_substrate: str | None = None
     habitat_context: str | None = None
     associated_fauna: str | None = None
+    composition_notes: str | None = None
     is_validated: bool = False

@@ -9,15 +9,55 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Añadido — v5.6 Generación masiva DNA Visual (en curso)
+
+- Rama `feat/v5.6-dna-mass-generation` abierta para script de generación offline.
+- **`docs/plan/seed_visual_dna_group_a.sql`**: seed SQL con 56 especies del Grupo A (curadas manualmente), agrupadas por familia con diferenciación intra-género. Aplicado en Supabase con `ON CONFLICT DO UPDATE`, `is_validated=false`.
+- **`src/lib/visualGlossary.js`**: glosario de términos micológicos → lenguaje visual para modelos de imagen. Traduce: `fibrillose` → `smooth silky-matte`, `campanulate` → `bell-shaped`, `pileus` → `cap`, `umbo` → `central raised bump`, `cortina veil` → `cobweb-like veil`, y ~15 términos más. Aplicado a los 4 campos morfológicos del DNA Visual antes de construir `layer1_morphology`.
+- **`backend/scripts/generate_visual_dna.py`**: script Gemini 2.5 Flash offline para generación masiva de DNA Visual del Grupo B (~136 especies). Resume-safe con progress JSON.
+- **`backend/scripts/refine_visual_dna.py`**: script Gemini Vision multimodal que compara fotos reales del catálogo contra el DNA Visual actual y propone correcciones campo a campo. Detecta fotos reales por prefijo `/assets/` (excluye IA). CLI con `--dry-run`, `--species-id`, `--limit`, `--reset`.
+- **Badge DNA Visual en generador**: indicador visual `🧬 DNA Visual ✓ / ⚠ Sin DNA Visual / ✗ error (reintentar)` junto al ID de especie en el header del generador. Estado `vpStatus: 'loading'|'loaded'|'missing'|'error'`.
+- **Toggle "Confiar en modelo" (`trustModelMode`)**: botón `🧠` junto al badge DNA Visual. Cuando activo, omite `layer1_morphology` del prefijo de Imagen 4 y deja que el modelo use su conocimiento visual entrenado. Útil para diagnosticar si las descripciones textuales compiten con los priors del modelo para especies conocidas.
+- **Filtro de modelos lite/fast**: `fetchAvailableImageModels` excluye variantes `fast` y `lite` (no siguen instrucciones complejas). Auto-selección prioriza `imagen-4.0-generate-001`.
+
+### Corregido — v5.6 (sesión 2)
+
+- **Doble-reemplazo `volva` en glosario**: `visualGlossary.js` — reemplazo de `volva` → `"sac-like cup at the base of the stem"` (7 palabras) producía texto ininteligible en campos STIPE y ADDITIONAL de Amanita caesarea cuando el texto original ya contenía `sac-like`. Cambiado a `"cup-shaped volva sac"` (3 palabras, no colisiona).
+- **Amanitaceae pipeline estructurado — volva no visible / verugas en joven**: añadida entrada `"Amanitaceae"` a `HYMENIUM_VISUAL_FOR_IMAGE_MODEL` con 4 reglas absolutas: (1) volva prominente visible en adulto/joven, (2) anillo, (3) sombrero completamente liso en todas las fases — bloquea prior A. muscaria=verugas para especies de sombrero liso (sección Vaginatae), (4) primordio = cúpula blanca con solo la punta del sombrero asomando.
+- **Family constraint omitido en pipeline estructurado**: en modo DNA Visual activo, `layer1_prefix` era solo la morfología de BD. Ahora incluye también el `HYMENIUM_VISUAL_FOR_IMAGE_MODEL[family]` como prefijo antes de los campos CAP/STIPE/HYMENIUM, asegurando que las reglas de familia llegan como tokens tempranos a Imagen 4 en ambos pipelines.
+- **`datetime.UTC` incompatible con Python 3.10**: `backend/app/models/scores_cache.py` usaba `from datetime import UTC` (Python 3.11+). Corregido con shim `UTC = timezone.utc`.
+- **SQLs Supabase aplicados**: C. orellanus (esp-111) cap color + laminas, R. virescens (esp-023) anti-Amanita, A. caesarea (esp-055) cap smooth + gills egg-yellow.
+
+### Corregido — v5.6
+
+- **Prompt bloat / conflicto de instrucciones**: `MANDATORY_PHOTO_PREFIX` reducido de ~600 a ~120 tokens. Eliminados bloques redundantes que se contradecían entre sí (staging repetido en 3 sitios, centering duplicado). Cada regla ahora es una sola línea sin solapamiento.
+- **Adulto centrado en frame**: instrucción de staging simplificada a una línea concreta (`ADULT centered in frame, foreground`). Antes varios párrafos en conflicto causaban que el modelo ignorara todos y pusiera el adulto a la derecha por prior.
+- **Luz de fondo bloqueando atmósfera**: eliminado `Golden hour backlit forest` del `MANDATORY_PHOTO_PREFIX` (token temprano que sobreescribía la niebla/rocío generados por Gemini). La atmósfera ahora la fija exclusivamente el output de Gemini.
+- **Fauna en el sombrero**: `faunaHint` del DNA Visual se inyectaba verbatim a Gemini (p.ej. `"beetle on cap edge"`), overrideando el constraint `NEVER on cap`. Fix: se añade OVERRIDE explícito al hint independientemente del contenido del campo `associated_fauna` en BD. `"optional"` → `"MANDATORY"`.
+- **Atmósfera genérica / siempre la misma**: instrucción `choose ONE from list of 6` → `exactly ONE of 4 options (MANDATORY)`. Lista larga + "optional" = Gemini ignoraba y generaba luz genérica.
+- **Primordio sin escala real**: stageBlock especificaba `compact` sin tamaño. Fix: `2–4 cm tall, roundish nub barely emerging from soil` + `"size difference must be dramatic and immediately obvious"` + `"vary proportions randomly each time"`.
+- **`faunaHint` con escarabajo sobre el sombrero (esp-001)**: `associated_fauna` de Boletus edulis decía `"Small pine bark beetle on the cap edge"` → cambiado a caracol/cochinilla en el suelo (SQL aplicado en Supabase).
+- **Doble-reemplazo en glosario** (`cortina` → `cobweb-like veil veil`): regex corregido con lookahead `(?!\s+veil)` para no reemplazar cuando ya va seguido de `veil`.
+- **`asyncpg IS NULL` en `refine_visual_dna.py`**: `WHERE (:sid IS NULL OR s.id = :sid)` falla con asyncpg — split en dos queries separadas según filtro presente.
+
+---
+
 ### Añadido — v5.5 Myco-Engine DNA Visual
 
 - **`mushroom_visual_prompts` (migración 009)**: nueva tabla en Supabase con DNA Visual por especie — campos separados para píleo, estipe, himenio (lenguaje visual de imagen, no botánico raw), morfología extra imagen-safe, morfología para Gemini (interna/reacciones), sustrato, hábitat y fauna asociada. Campo `is_validated` para control de calidad.
+- **`composition_notes`**: campo Text opcional por especie para reglas de composición (espécimen dominante, framing, elementos a evitar). Incluido en modelo, schema, endpoints, seed y frontend.
 - **`MushroomVisualPrompt` (modelo SQLAlchemy)**: modelo async con FK a `species.id`, campos Text para todos los descriptores visuales, `is_validated: bool`, `updated_at` auto.
 - **`VisualPromptData` + `VisualPromptUpsertBody` (schemas Pydantic)**: respuesta y body de upsert para el nuevo endpoint. `VisualPromptData` incluye `is_validated`.
 - **`GET /species/{id}/visual-prompt`** (admin only): devuelve el DNA Visual estructurado o `null` si no hay entrada todavía. 200 + null = sin datos = fallback pipeline.
 - **`PUT /species/{id}/visual-prompt`** (admin only): crea o reemplaza el DNA Visual de una especie. Semántica full-replace.
 - **`scripts/seed_visual_prompts.py`**: script de seeding con 10 especies piloto cubriendo todos los tipos de himenio: Boletaceae (poros), Amanitaceae (láminas + volva), Cantharellaceae (pliegues), Morchellaceae (alveolada), Russulaceae (láminas frágiles), Hydnaceae, Bankeraceae (dientes), Hericiaceae (coral). Todas marcadas `is_validated=True`.
+- **`docs/plan/seed_visual_prompts_009.sql`**: equivalente SQL del seed script para ejecutar en Supabase SQL Editor sin necesidad de shell de Render.
 - **`ImageGenerator.jsx` — pipeline estructurado**: cuando el backend devuelve DNA Visual para la especie seleccionada, el generador usa el pipeline de 4 capas (Layer 0: anti-díptico → Layer 1: morfología validada de BD → Layer 3: óptica → output Gemini de solo escena). Gemini recibe morfología pre-ensamblada y solo genera la escena/atmósfera. Fallback automático al pipeline Gemini-interpreta-morfología cuando no hay datos en BD. Log muestra `🧬 DNA Visual en BD` vs `📝 Sin DNA Visual`.
+
+### Corregido — v5.5
+
+- **Encuadre alto (espécimen en tercio superior)**: `MANDATORY_PHOTO_PREFIX` actualizado con instrucción explícita de cámara a nivel del suelo — lente a 5–10 cm del suelo, ligeramente hacia arriba, base del estipe en tercio inferior, copa en tercio central, dosel con bokeh en el tercio superior.
+- **Russula virescens renderizada con verrugas/volva (prior Amanita)**: descriptores de píleo reescritos para enfatizar superficie casi lisa con craquelado tipo cerámica (no baches 3D), estipe reescrito con cero indicación de bulbo/volva. `composition_notes` añadida especificando espécimen en suelo limpio sin emerge de huevo.
 
 ### Añadido — v5.4 Rediseño generador admin (galería-first)
 
