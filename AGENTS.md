@@ -27,19 +27,21 @@ fungus/
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── CHANGELOG.md
-├── frontend/                ← DESARROLLO PRINCIPAL (Vite 6 + React Router)
-│   └── src/
-│       ├── App.jsx
-│       ├── styles.css
-│       ├── contexts/AppContext.jsx
-│       ├── data/              ← Datos mock (fallback)
-│       ├── services/weatherService.js
-│       ├── hooks/
-│       ├── lib/helpers.jsx, constants.js, visualGlossary.js
-│       ├── pages/
-│       ├── components/
-│       │   └── admin/         ← ImageGenerator, AdminGeneratorHub, CatalogImagesModal
-│       └── articles/
+├── src/                     ← DESARROLLO PRINCIPAL (Vite 6 + React Router)
+│   ├── App.jsx
+│   ├── styles.css
+│   ├── contexts/AppContext.jsx
+│   ├── data/              ← Datos mock (fallback)
+│   ├── services/weatherService.js
+│   ├── hooks/
+│   ├── lib/helpers.jsx, constants.js, visualGlossary.js
+│   ├── pages/
+│   ├── components/
+│   │   └── admin/         ← ImageGenerator, AdminGeneratorHub, CatalogImagesModal
+│   └── articles/
+├── vite.config.js
+├── index.html
+├── package.json
 ├── backend/                 ← FastAPI
 │   ├── app/
 │   │   ├── main.py
