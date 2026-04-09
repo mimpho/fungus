@@ -4,34 +4,6 @@ Los ítems completados se eliminan de este archivo — el historial vive en `CHA
 
 ---
 
-## 🚧 En progreso — v5.6 Generación masiva DNA Visual
-
-Rama: `feat/v5.6-dna-mass-generation`
-
-**Hecho en esta fase:**
-- ✅ Grupo A (56 especies) seeded en Supabase
-- ✅ `generate_visual_dna.py` (Grupo B, Gemini Flash offline)
-- ✅ `refine_visual_dna.py` (Gemini Vision, corrección con fotos reales)
-- ✅ `visualGlossary.js` — traducción términos micológicos → lenguaje imagen
-- ✅ Fixes generador: prompt bloat, staging, fauna, atmósfera, primordio, toggle trust-model
-
-**Pendiente para cerrar v5.6:**
-- ⚠️ Correr `generate_visual_dna.py` para Grupo B (~136 especies) — **desde terminal local** (el sandbox no tiene acceso de red a Supabase/Gemini):
-  ```bash
-  cd fungus/backend
-  GEMINI_API_KEY=<key> python -m scripts.generate_visual_dna --dry-run  # verificar count
-  GEMINI_API_KEY=<key> python -m scripts.generate_visual_dna            # lanzar completo
-  ```
-- PR + merge `feat/v5.6-dna-mass-generation` → `main` + tag v5.6.0
-
-**Aprendizajes clave del testing:**
-- Especies con prior de género fuerte (Cortinarius = láminas amarillas, Russula virescens craquelado = manchas Amanita) no se corrigen con texto — límite del modelo base
-- Prompt bloat es el enemy principal: instrucciones largas y redundantes se anulan entre sí
-- El orden de tokens importa: lo que va al inicio del prefix gana siempre
-- `faunaHint` del DNA Visual debe tener OVERRIDE de suelo o Gemini lo sigue verbatim
-
----
-
 ## 🚀 Siguiente — v6.0 Social login (Google)
 
 **Alcance previsto:**

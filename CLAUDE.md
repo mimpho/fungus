@@ -4,8 +4,8 @@
 
 Fungus es una app web de predicción micológica para Cataluña/España. Predice las mejores zonas y momentos para recolectar setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional.
 
-**Versión actual**: v5.5 frontend; v5.0 backend
-**Estado frontend**: Auth completo. i18n completo ES/CA/EN. Admin: galería-first (`AdminGeneratorHub` + `SpeciesAdminModal` + `ImageGenerator` simplificado). Myco-Engine DNA Visual: tabla `mushroom_visual_prompts`, pipeline 4 capas (morfología BD → Gemini escena → imagen), 10 especies piloto validadas. `composition_notes` por especie. Fallback automático a pipeline Gemini si sin datos. **v5.6 en desarrollo**: generación masiva DNA Visual con Gemini offline para 202 especies.
+**Versión actual**: v5.6 frontend; v5.0 backend
+**Estado frontend**: Auth completo. i18n completo ES/CA/EN. Admin: galería-first (`AdminGeneratorHub` + `SpeciesAdminModal` + `ImageGenerator` simplificado). Myco-Engine DNA Visual: tabla `mushroom_visual_prompts`, pipeline 4 capas (morfología BD → Gemini escena → imagen), 202 especies con DNA Visual generado (55 curadas `is_validated=true`, resto Gemini offline `is_validated=false`). `composition_notes` por especie. Fallback automático a pipeline Gemini si sin datos. Fixes generador: prompt bloat, Amanitaceae constraint, family constraint prepend, visualGlossary.
 **Estado backend**: v5.0 + migración 009. Tabla `mushroom_visual_prompts` con DNA Visual por especie (cap/stipe/hymenium/extra_visual/extra_gemini/substrate/habitat/fauna/composition_notes/is_validated). Endpoints `GET/PUT /species/{id}/visual-prompt` (admin only). Auto-migrate al arrancar. Endpoints `/species` con `?lang=`. Confusiones completas para 8 familias.
 **Deploy frontend**: Vercel → `fungus-ashen.vercel.app` (apunta a `main`)
 **Deploy backend**: Render → `https://fungus-api.onrender.com` · Supabase (PostgreSQL + PostGIS, Ireland)
@@ -436,7 +436,7 @@ Este archivo es privado (`.gitignore`) y es la fuente de verdad para decisiones 
 | v5.3.1 | ✅ Entregado | Bug fixes: caché fotos, lightbox large, Regenerar ID, Refinar modelo deprecated, combobox selector especie, URL sync, ID read-only, flicker panel referencia |
 | v5.4 | ✅ Entregado | Rediseño generador admin: galería-first · modal especie con lightbox · sidebar generador simplificado · eliminar selector/ID/CSV/Nuevo |
 | v5.5 | ✅ Entregado | Myco-Engine DNA Visual: tabla `mushroom_visual_prompts` · pipeline 4 capas · 10 especies piloto validadas · `composition_notes` · encuadre ground-level |
-| v5.6 | 🚧 En curso | Generación masiva DNA Visual con Gemini offline para 202 especies (`is_validated=false`, revisar familias con prior fuerte) |
+| v5.6 | ✅ Entregado | Generación masiva DNA Visual: 55 especies curadas (`is_validated=true`) + 137 Gemini offline · visualGlossary · fixes generador (prompt bloat, Amanitaceae, family constraint) |
 | v6.0 | 🗂 Backlog | Social login: Google OAuth2 |
 | v6.1 | 🗂 Backlog | Confirmación de email al registro (token verificación, banner en perfil) |
 | v7.0 | 🗂 Sin fecha | App móvil Android (React Native + Expo) — condicionado a monetización previa |
