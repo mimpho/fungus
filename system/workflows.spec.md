@@ -256,7 +256,7 @@ When topics arise around monetisation, business model, premium features, pricing
 
 ## PR preparation
 
-When preparing an integration, always provide title and description ready to paste into GitHub:
+When preparing an integration, always provide title and description **inline in the chat as markdown blocks** — never as files on disk. The human pastes them into GitHub and handles the merge; Claude never merges to main.
 
 **Title**: Conventional Commits format, ≤72 chars, in English.
 **Body**: summary of changes + manual steps section + testing checklist.
