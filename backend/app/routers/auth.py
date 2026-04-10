@@ -9,15 +9,23 @@ from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest, UserOut
+from app.schemas.auth import (
+    AuthResponse,
+    GoogleLoginRequest,
+    LoginRequest,
+    RegisterRequest,
+    UserOut,
+)
 from app.services.auth import (
     authenticate_user,
     create_access_token,
     create_refresh_token,
     create_user,
     decode_refresh_token,
+    get_or_create_google_user,
     get_user_by_email,
     get_user_by_id,
+    verify_google_id_token,
 )
 
 log = logging.getLogger(__name__)
@@ -147,3 +155,48 @@ async def logout(
 async def me(current_user: User = Depends(get_current_user)) -> UserOut:
     """Return the currently authenticated user's profile."""
     return UserOut.model_validate(current_user)
+
+
+@router.post("/google", response_model=AuthResponse)
+async def google_login(
+    body: GoogleLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> AuthResponse:
+    """
+    Authenticate via Google Identity Services.
+
+    Expects a Google ID token issued by the frontend (GIS One Tap or button).
+    Verifies the token server-side, then finds or creates a local user account.
+    Returns the same AuthResponse as /login — access token + refresh cookie.
+    """
+    if not settings.google_client_id:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google login not configured",
+        )
+    try:
+        claims = verify_google_id_token(body.id_token)
+    except ValueError as exc:
+        log.warning("Invalid Google ID token: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google token",
+        )
+
+    google_id = claims["sub"]
+    email = claims.get("email", "")
+    first_name = claims.get("given_name", "")
+    last_name = claims.get("family_name", "")
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google account has no email address",
+        )
+
+    user = await get_or_create_google_user(db, google_id, email, first_name, last_name)
+    access_token, refresh_token = _build_auth_response(user)
+    _set_refresh_cookie(response, refresh_token)
+    log.info("Google login: user_id=%d email=%s", user.id, user.email)
+    return AuthResponse(access_token=access_token, user=UserOut.model_validate(user))

@@ -55,3 +55,8 @@ class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class GoogleLoginRequest(BaseModel):
+    """ID token issued by Google Identity Services on the frontend."""
+    id_token: str

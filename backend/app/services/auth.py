@@ -2,6 +2,8 @@
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -117,7 +119,74 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> User
     user = await get_user_by_email(db, email)
     # Use a dummy hash when user not found so response time is consistent
     dummy = "$2b$12$KIXvDummyHashToPreventTimingAttacksOnEmailEnumeration"
-    candidate_hash = user.password_hash if user is not None else dummy
+    candidate_hash = user.password_hash if (user is not None and user.password_hash) else dummy
     if not verify_password(password, candidate_hash):
         return None
+    return user
+
+
+# ── Google OAuth ───────────────────────────────────────────────────────────────
+
+def verify_google_id_token(token: str) -> dict:
+    """
+    Verify a Google ID token and return its claims.
+    Raises ValueError if the token is invalid or the audience doesn't match.
+    """
+    request = google_requests.Request()
+    claims = google_id_token.verify_oauth2_token(
+        token,
+        request,
+        audience=settings.google_client_id,
+    )
+    return claims
+
+
+async def get_user_by_provider(db: AsyncSession, provider: str, provider_id: str) -> User | None:
+    result = await db.execute(
+        select(User).where(User.auth_provider == provider, User.provider_id == provider_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_or_create_google_user(
+    db: AsyncSession,
+    google_id: str,
+    email: str,
+    first_name: str,
+    last_name: str,
+) -> User:
+    """
+    Find or create a user from a verified Google ID token.
+
+    Lookup order:
+    1. By provider_id — returning Google user, fastest path.
+    2. By email — existing local account: link it to Google (add provider fields).
+    3. Neither — create a new Google-only user (no password_hash).
+    """
+    # 1. Known Google user
+    user = await get_user_by_provider(db, "google", google_id)
+    if user:
+        return user
+
+    # 2. Existing local account with same email → link
+    user = await get_user_by_email(db, email)
+    if user:
+        user.auth_provider = "google"
+        user.provider_id = google_id
+        await db.commit()
+        await db.refresh(user)
+        return user
+
+    # 3. New user — no password
+    user = User(
+        email=email,
+        password_hash=None,
+        auth_provider="google",
+        provider_id=google_id,
+        first_name=first_name or None,
+        last_name=last_name or None,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
     return user

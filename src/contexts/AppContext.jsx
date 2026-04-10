@@ -6,6 +6,7 @@ import { i18n } from '../data/i18n'
 import {
   apiLogin,
   apiRegister,
+  apiGoogleLogin,
   apiLogout,
   apiRefresh,
   apiUpdateProfile,
@@ -94,6 +95,15 @@ export function AppProvider({ children }) {
     return data.user
   }
 
+  async function loginWithGoogle(idToken) {
+    const data = await apiGoogleLogin(idToken)   // throws on error
+    setUser(data.user)
+    const local = loadStorage()
+    await migrateLocalFavoritesToApi(local.zonas || [], local.favoritos || [])
+    setAuthModal(null)
+    return data.user
+  }
+
   async function updateUserProfile(firstName, lastName, birthDate) {
     const updated = await apiUpdateProfile(firstName, lastName, birthDate)  // throws on error
     setUser(updated)
@@ -161,7 +171,7 @@ export function AppProvider({ children }) {
       profile, setProfile,
       // auth
       user, isAuthenticated, authLoading,
-      login, register, logout, updateUserProfile, deleteAccount,
+      login, register, loginWithGoogle, logout, updateUserProfile, deleteAccount,
       authModal, setAuthModal,
       isAdminView, setIsAdminView,
       // modal stack
