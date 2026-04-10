@@ -9,7 +9,13 @@ from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.auth import AuthResponse, GoogleLoginRequest, LoginRequest, RegisterRequest, UserOut
+from app.schemas.auth import (
+    AuthResponse,
+    GoogleLoginRequest,
+    LoginRequest,
+    RegisterRequest,
+    UserOut,
+)
 from app.services.auth import (
     authenticate_user,
     create_access_token,
