@@ -61,6 +61,27 @@ Currently `VITE_GEMINI_API_KEY` is exposed in the frontend bundle. Acceptable wh
 
 ---
 
+## 🟡 Backlog — tech debt (ver auditoría completa en `memory/tech-debt.md`)
+
+Prioridad calculada con (Impact + Risk) × (6 − Effort). Ordenados de mayor a menor urgencia.
+
+**Fase 1 — Quick wins** ✅ Done (`chore/tech-debt-phase1`)
+- [x] ~~Eliminar `backend/build/` del repo~~ — ya estaba en `.gitignore`, falso positivo
+- [x] Consolidar `PROVINCE_TO_CCAA` en `src/lib/constants.js` — extraído de `apiService.js`
+- [x] Documentar sistema de migraciones — `migrations/README.md` completado (006–038 + audit files)
+
+**Fase 2 — Refactors estructurales (en paralelo al feature work)**
+- [ ] Dividir `helpers.jsx` (508 líneas) en `icons.jsx` + `utils.js` + `ui.jsx`
+- [ ] Sustituir SVGs inline del objeto `IC` por `lucide-react` (ya en `package.json`)
+- [ ] Documentar o archivar `standalone/` (versiones hasta v2.8.0, relación con app principal poco clara)
+- [ ] Extraer endpoints admin de `routers/species.py` (519 líneas) a `routers/species_admin.py`
+
+**Fase 3 — Tests (10–20% de cada sprint)**
+- [ ] Tests de routers backend: `auth.py` + `zones.py` como primera iteración
+- [ ] Configurar Vitest y cubrir `normalizeScore`, `normalizeZone`, `useSpecies`
+
+---
+
 ## 🟡 Backlog — frontend improvements (no active priority)
 
 ### Placeholder images pending replacement

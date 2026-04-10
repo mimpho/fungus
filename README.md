@@ -1,29 +1,29 @@
 # 🍄 Fungus
 
-Sistema inteligente de predicción micológica para España.
+Intelligent mushroom foraging prediction system for Spain.
 
-**Versión**: v6.0 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
-
----
-
-## ¿Qué es Fungus?
-
-Fungus predice las mejores zonas y momentos para la recolección de setas combinando datos meteorológicos reales, condiciones del suelo y un algoritmo de scoring con factor estacional (Outbreak Index).
+**Version**: v6.0 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 
-## Inicio rápido
+## What is Fungus?
 
-### Frontend (desarrollo local)
+Fungus predicts the best zones and timing for mushroom foraging by combining real-time weather data, soil conditions, and a seasonal scoring algorithm (Outbreak Index).
+
+---
+
+## Quick start
+
+### Frontend (local development)
 
 ```bash
-# Desde la raíz del repo:
+# From repo root:
 npm install
 npm run dev
 # http://localhost:5173
 ```
 
-### Backend (desarrollo local)
+### Backend (local development)
 
 ```bash
 cd backend
@@ -31,34 +31,34 @@ python -m uvicorn app.main:app --reload
 # http://localhost:8000
 ```
 
-Requiere `.env` con `DATABASE_URL` apuntando a una instancia PostgreSQL + PostGIS.
+Requires `.env` with `DATABASE_URL` pointing to a PostgreSQL + PostGIS instance.
 
 ---
 
 ## Stack
 
-| Capa | Tecnología | Deploy |
+| Layer | Technology | Deploy |
 |---|---|---|
 | Frontend | Vite 6 + React 18 + React Router 6 + Leaflet | Vercel → `main` |
 | Backend | FastAPI + SQLAlchemy 2 async + Alembic | Render → `main` |
-| Base de datos | PostgreSQL + PostGIS | Supabase (Ireland) |
-| Meteorología | Open-Meteo (sin API key) | — |
-| Generación IA | Imagen 4 + Gemini 2.5 Flash | Google AI (admin only) |
+| Database | PostgreSQL + PostGIS | Supabase (Ireland) |
+| Weather | Open-Meteo (no API key required) | — |
+| AI Generation | Imagen 4 + Gemini 2.5 Flash | Google AI (admin only) |
 
 ---
 
-## Estructura
+## Structure
 
 ```
 fungus/
-├── src/               ← Vite app — desarrollo activo
+├── src/               ← Vite app — active development
 ├── backend/           ← FastAPI + OI algorithm
 ├── system/            ← OpenSpecs — Single Source of Truth
-├── docs/              ← Arquitectura, convenciones, guías
-├── memory/            ← Decisiones, pendientes, gotchas
-├── standalone/        ← Legacy HTML (referencia, no activo)
-├── CLAUDE.md          ← Entry point para Claude/Cowork
-├── AGENTS.md          ← Entry point para Codex CLI
+├── docs/              ← Architecture, conventions, guides
+├── memory/            ← Decisions, backlog, gotchas
+├── standalone/        ← Legacy HTML (reference, inactive)
+├── CLAUDE.md          ← Entry point for Claude/Cowork
+├── AGENTS.md          ← Entry point for Codex CLI
 └── CHANGELOG.md
 ```
 
@@ -85,20 +85,20 @@ POST /api/v1/images/set-order                 ← admin only
 
 ## Roadmap
 
-| Versión | Estado | Alcance |
+| Version | Status | Scope |
 |---|---|---|
-| v3.1–v4.7.1 | ✅ | Frontend Vite · backend meteo · catálogo DB · i18n |
-| v5.0–v5.6 | ✅ | Auth JWT · ImageGenerator · Myco-Engine DNA Visual |
-| v6.0 | 🚧 | OpenSpecs migration — SSOT estructurado, agnóstico al IDE |
+| v3.1–v4.7.1 | ✅ | Frontend Vite · weather backend · DB catalog · i18n |
+| v5.0–v5.6 | ✅ | JWT auth · ImageGenerator · Myco-Engine Visual DNA |
+| v6.0 | ✅ | OpenSpecs migration — structured SSOT, IDE-agnostic |
 | v7.0 | 🗂 | Social login: Google OAuth2 |
-| v7.1 | 🗂 | Confirmación de email al registro |
-| v8.0 | 🗂 | App móvil Android (React Native + Expo) |
-| v9.0 | 🗂 | SEO: prerendering estático + Core Web Vitals |
+| v7.1 | 🗂 | Email confirmation on signup |
+| v8.0 | 🗂 | Android mobile app (React Native + Expo) |
+| v9.0 | 🗂 | SEO: static prerendering + Core Web Vitals |
 
-Backlog detallado: `memory/pending.md`
+Detailed backlog: `memory/pending.md`
 
 ---
 
-## Licencia
+## License
 
-Prototipo de demostración.
+Demonstration prototype.
