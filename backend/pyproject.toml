@@ -20,6 +20,7 @@ dependencies = [
     "pydantic-settings>=2.6.0",
     # HTTP cliente (llamadas a Open-Meteo, AEMET, Meteocat…)
     "httpx>=0.27.0",
+    "requests>=2.31.0",                 # required by google-auth for token verification
     # Scheduler (cron de ingesta diaria)
     "apscheduler>=3.10.4",
     # Utilidades
