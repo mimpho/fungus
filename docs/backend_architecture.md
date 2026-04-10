@@ -1,50 +1,50 @@
-# 🍄 Especificaciones: Ecosistema Backend Micológico de Precisión
+# 🍄 Backend Specifications: Precision Mycological Ecosystem
 
-## 1. Visión del Proyecto
+## 1. Project Vision
 
-Transformar una web de consulta estática en una plataforma de **decisión en tiempo real**. El backend centralizará datos de múltiples redes meteorológicas para calcular la probabilidad de fructificación por especie, basándose en el histórico de precipitaciones y choques térmicos de los últimos 21 días.
+Transform a static query website into a **real-time decision platform**. The backend will centralize data from multiple weather networks to calculate fruiting probability by species, based on the history of precipitation and thermal shocks from the last 21 days.
 
-El frontend actual (Vite + React) llama a Open-Meteo directamente desde el browser. Con el backend, esta lógica pasa al servidor: los scores se calculan una vez, se cachean con HTTP headers estándar, y el cliente recibe datos ya procesados. El localStorage de 3h desaparece.
+The current frontend (Vite + React) calls Open-Meteo directly from the browser. With the backend, this logic moves to the server: scores are calculated once, cached with standard HTTP headers, and the client receives already-processed data. The 3h localStorage disappears.
 
 ---
 
-## 2. Arquitectura del Sistema (Stack 0€)
+## 2. System Architecture (Free Stack)
 
-| Capa | Tecnología | Proveedor |
+| Layer | Technology | Provider |
 | :--- | :--- | :--- |
 | **API** | FastAPI (Python 3.12+) | Render / Railway (free tier) |
-| **Base de datos** | PostgreSQL 16 + PostGIS 3.4 | Supabase o Neon.tech (free tier) |
-| **Cola de tareas** | FastAPI BackgroundTasks (inicio) → Celery + Redis (escala) | Upstash Redis (free tier) |
-| **CI/CD** | GitHub Actions | GitHub (gratis) |
-| **Frontend** | Vite + React (sin cambios) | Vercel |
+| **Database** | PostgreSQL 16 + PostGIS 3.4 | Supabase or Neon.tech (free tier) |
+| **Task Queue** | FastAPI BackgroundTasks (start) → Celery + Redis (scale) | Upstash Redis (free tier) |
+| **CI/CD** | GitHub Actions | GitHub (free) |
+| **Frontend** | Vite + React (no changes) | Vercel |
 
-**Estrategia de datos:** ingesta programada (cron) que construye un histórico propio. El histórico es el activo diferencial: cuanto más tiempo corra el sistema, más preciso será el IB al tener datos reales de zonas españolas en vez de modelos globales.
+**Data strategy:** scheduled ingestion (cron) that builds its own history. The history is the differential asset: the longer the system runs, the more accurate the IB becomes by having real data from Spanish zones instead of global models.
 
 ---
 
-## 3. Jerarquía de Fuentes Meteorológicas
+## 3. Weather Source Hierarchy
 
-| Prioridad | Región / CCAA | Organismo / Red | Valor Micológico Diferencial |
+| Priority | Region / Region | Agency / Network | Differential Mycological Value |
 | :--- | :--- | :--- | :--- |
-| **P1** | Cataluña | Meteocat (XEMA) | Alta densidad de estaciones; humedad de suelo real. |
-| **P1** | País Vasco | Euskalmet | Estaciones en zonas críticas de hayedos. |
-| **P1** | Galicia | MeteoGalicia | Resolución extrema en pluviosidad atlántica. |
-| **P1** | Navarra | Meteo Navarra | Clave para el seguimiento del Pirineo occidental. |
-| **P1** | Andalucía | Red RIA (Junta) | Ideal para alcornocales y dehesas. |
-| **P2** | Nacional | AEMET OpenData | Cobertura en Castillas, Aragón, Madrid y Extremadura. |
-| **P3** | Global | Open-Meteo | Fallback final si la estación local falla o está fuera. |
+| **P1** | Catalonia | Meteocat (XEMA) | High station density; real soil humidity. |
+| **P1** | Basque Country | Euskalmet | Stations in critical oak forest areas. |
+| **P1** | Galicia | MeteoGalicia | Extreme resolution in Atlantic rainfall. |
+| **P1** | Navarre | Meteo Navarra | Key for western Pyrenees tracking. |
+| **P1** | Andalusia | RIA Network (Regional) | Ideal for cork forests and grasslands. |
+| **P2** | National | AEMET OpenData | Coverage in Castiles, Aragon, Madrid, Extremadura. |
+| **P3** | Global | Open-Meteo | Final fallback if local station fails or is out of range. |
 
-Open-Meteo pasa de llamarse desde el browser a llamarse desde el servidor, lo que elimina los problemas de CORS y permite cachear las respuestas de forma centralizada.
+Open-Meteo moves from being called by the browser to being called by the server, eliminating CORS issues and allowing responses to be centrally cached.
 
 ---
 
-## 4. Diseño de la Base de Datos (PostgreSQL + PostGIS)
+## 4. Database Design (PostgreSQL + PostGIS)
 
-### 4.1 Tabla `zonas`
+### 4.1 `zonas` Table
 
 ```sql
 CREATE TABLE zonas (
-    id            TEXT PRIMARY KEY,              -- 'zone-001', mismo que el mock actual
+    id            TEXT PRIMARY KEY,              -- 'zone-001', same as current mock
     nombre        TEXT NOT NULL,
     provincia     TEXT NOT NULL,
     ccaa          TEXT NOT NULL,                 -- 'Catalunya', 'Euskadi', etc.
@@ -60,7 +60,7 @@ CREATE INDEX zonas_geom_idx ON zonas USING GIST(geom);
 CREATE INDEX zonas_ccaa_idx ON zonas(ccaa);
 ```
 
-### 4.2 Tabla `especies`
+### 4.2 `especies` Table
 
 ```sql
 CREATE TABLE especies (
@@ -68,56 +68,56 @@ CREATE TABLE especies (
     nombre_cientifico TEXT NOT NULL,
     familia           TEXT NOT NULL,
     comestibilidad    TEXT NOT NULL,             -- 'excelente', 'bueno', ..., 'mortal'
-    -- Parámetros biológicos para el IB (por especie)
-    temp_min_c        NUMERIC(4,1),              -- temperatura mínima viable
-    temp_opt_c        NUMERIC(4,1),              -- temperatura óptima de fructificación
+    -- Biological parameters for IB (per species)
+    temp_min_c        NUMERIC(4,1),              -- minimum viable temperature
+    temp_opt_c        NUMERIC(4,1),              -- optimal fruiting temperature
     temp_max_c        NUMERIC(4,1),
-    lluvia_min_mm     INTEGER,                   -- lluvia mínima en PA21
+    lluvia_min_mm     INTEGER,                   -- minimum rainfall in PA21
     lluvia_opt_mm     INTEGER,
-    ciclo_dias        INTEGER,                   -- días desde evento lluvia hasta aparición
+    ciclo_dias        INTEGER,                   -- days from rainfall event to appearance
     tipos_bosque      TEXT[],                    -- array: {'pinar','hayedo'}
     meses_fruct       INTEGER[],                 -- array: {9,10,11}
     altitud_min_m     INTEGER,
     altitud_max_m     INTEGER,
-    datos_extra       JSONB                      -- morfología, confusiones, fotos, etc.
+    datos_extra       JSONB                      -- morphology, confusions, photos, etc.
 );
 ```
 
-### 4.3 Tabla `historial_clima` ← núcleo del sistema
+### 4.3 `historial_clima` Table ← system core
 
 ```sql
 CREATE TABLE historial_clima (
     id              BIGSERIAL PRIMARY KEY,
     zona_id         TEXT NOT NULL REFERENCES zonas(id) ON DELETE CASCADE,
     fecha           DATE NOT NULL,
-    -- Métricas diarias
+    -- Daily metrics
     temp_max_c      NUMERIC(4,1),
     temp_min_c      NUMERIC(4,1),
     temp_media_c    NUMERIC(4,1),
-    temp_suelo_c    NUMERIC(4,1),               -- de Meteocat/Open-Meteo hourly
+    temp_suelo_c    NUMERIC(4,1),               -- from Meteocat/Open-Meteo hourly
     precipitacion_mm NUMERIC(6,2) NOT NULL DEFAULT 0,
     humedad_pct     INTEGER,
     viento_kmh      INTEGER,
-    -- Metadata de origen
+    -- Source metadata
     fuente          TEXT NOT NULL,              -- 'meteocat', 'aemet', 'open-meteo', etc.
-    estacion_id     TEXT,                       -- ID de la estación fuente (para auditoría)
-    dist_estacion_km NUMERIC(5,1),             -- distancia zona↔estación (PostGIS)
-    -- Control de calidad
-    interpolado     BOOLEAN DEFAULT false,      -- true si el dato es estimado/interpolado
+    estacion_id     TEXT,                       -- ID of source station (for audit)
+    dist_estacion_km NUMERIC(5,1),             -- distance zone↔station (PostGIS)
+    -- Quality control
+    interpolado     BOOLEAN DEFAULT false,      -- true if data is estimated/interpolated
     creado_en       TIMESTAMPTZ DEFAULT now(),
-    UNIQUE(zona_id, fecha)                      -- una fila por zona/día
+    UNIQUE(zona_id, fecha)                      -- one row per zone/day
 );
 
--- Índices críticos para las queries del IB
+-- Critical indices for IB queries
 CREATE INDEX historial_zona_fecha_idx ON historial_clima(zona_id, fecha DESC);
 CREATE INDEX historial_fecha_idx ON historial_clima(fecha DESC);
 ```
 
-**Granularidad diaria** (no horaria): el IB trabaja con acumulados de 21 días, no con resolución intradiaria. Los datos horarios de Open-Meteo se agregan en el cron antes de insertar.
+**Daily granularity** (not hourly): the IB works with 21-day accumulations, not intraday resolution. Hourly data from Open-Meteo is aggregated in the cron before inserting.
 
-**Retención:** mínimo 2 años para detectar patrones interanuales. En Supabase free tier (~500MB) caben ~28 zonas × 730 días × ~200 bytes/fila ≈ 4MB, perfectamente viable.
+**Retention:** minimum 2 years to detect interannual patterns. In Supabase free tier (~500MB) ~28 zones × 730 days × ~200 bytes/row ≈ 4MB fits perfectly.
 
-### 4.4 Tabla `scores_cache`
+### 4.4 `scores_cache` Table
 
 ```sql
 CREATE TABLE scores_cache (
@@ -129,9 +129,9 @@ CREATE TABLE scores_cache (
 );
 ```
 
-Evita recalcular el IB en cada petición del frontend. El cron lo rellena tras la ingesta.
+Avoids recalculating IB on each frontend request. The cron fills it after ingestion.
 
-### 4.5 Tabla `estaciones_meteo` (PostGIS)
+### 4.5 `estaciones_meteo` Table (PostGIS)
 
 ```sql
 CREATE TABLE estaciones_meteo (
@@ -147,25 +147,25 @@ CREATE TABLE estaciones_meteo (
 CREATE INDEX estaciones_geom_idx ON estaciones_meteo USING GIST(geom);
 ```
 
-Permite la query PostGIS que asigna automáticamente la estación más cercana a cada zona:
+Enables PostGIS query that automatically assigns closest station to each zone:
 
 ```sql
--- Estación P1 más cercana a una zona (con límite de distancia razonable)
+-- Closest P1 station to a zone (with reasonable distance limit)
 SELECT e.id, e.fuente, ST_Distance(e.geom::geography, z.geom::geography) / 1000 AS dist_km
 FROM estaciones_meteo e, zonas z
 WHERE z.id = 'zone-001'
   AND e.activa = true
-ORDER BY e.geom <-> z.geom   -- operador KNN de PostGIS (usa el índice GIST)
+ORDER BY e.geom <-> z.geom   -- PostGIS KNN operator (uses GIST index)
 LIMIT 5;
 ```
 
 ---
 
-## 5. Algoritmia: El Índice de Brote (IB)
+## 5. Algorithmics: The Outbreak Index (IB)
 
-El IB sustituye y amplía el `overallScore` actual. La estructura de pesos es similar pero opera sobre datos históricos reales por zona, no sobre una sola lectura puntual.
+The IB replaces and extends the current `overallScore`. The weight structure is similar but operates on real historical data per zone, not a single point reading.
 
-### 5.1 Fórmula
+### 5.1 Formula
 
 ```
 IB = PA21_score  × 0.30
@@ -175,46 +175,46 @@ IB = PA21_score  × 0.30
    + Humedad_score× 0.08
 ```
 
-### 5.2 Componentes
+### 5.2 Components
 
-**PA21_score** — Precipitación acumulada 21 días
+**PA21_score** — Accumulated precipitation 21 days
 
 ```python
 def score_pa21(mm: float) -> int:
-    """Lluvia acumulada últimos 21 días. Optimum: 60-120mm."""
-    if mm < 15:   return 0    # demasiado seco
+    """Accumulated rainfall last 21 days. Optimum: 60-120mm."""
+    if mm < 15:   return 0    # too dry
     if mm < 30:   return int(mm / 30 * 40)
     if mm < 60:   return 40 + int((mm - 30) / 30 * 35)
-    if mm <= 120: return 75 + int((mm - 60) / 60 * 25)   # 100 en 120mm
-    return max(0, 100 - int((mm - 120) / 20 * 15))       # penaliza exceso
+    if mm <= 120: return 75 + int((mm - 60) / 60 * 25)   # 100 at 120mm
+    return max(0, 100 - int((mm - 120) / 20 * 15))       # penalizes excess
 ```
 
-**Termal_score** — Ventana térmica + penalización heladas
+**Termal_score** — Thermal window + frost penalty
 
 ```python
 def score_termal(temp_media: float, heladas_72h: int, especie: Especie) -> int:
     """
-    temp_media: temperatura media últimos 7 días.
-    heladas_72h: horas con T < 0°C en las últimas 72h.
+    temp_media: average temperature last 7 days.
+    heladas_72h: hours with T < 0°C in last 72h.
     """
     base = score_temperatura(temp_media, especie.temp_min_c, especie.temp_opt_c, especie.temp_max_c)
-    penalizacion_helada = min(40, heladas_72h * 3)   # -3 pts por hora de helada, max -40
+    penalizacion_helada = min(40, heladas_72h * 3)   # -3 pts per frost hour, max -40
     return max(0, base - penalizacion_helada)
 ```
 
-**Estacional** — Factor mensual (heredado del scoring actual, calibrado por observaciones)
+**Estacional** — Monthly factor (inherited from current scoring, calibrated by observations)
 
 ```python
 FACTOR_ESTACIONAL = {1:15, 2:20, 3:38, 4:58, 5:62, 6:28, 7:18, 8:48, 9:80, 10:100, 11:88, 12:42}
 ```
 
-**Maduracion_score** — Días desde el último evento de lluvia significativa (≥10mm/día)
+**Maduracion_score** — Days since last significant rainfall event (≥10mm/day)
 
 ```python
 def score_maduracion(dias_desde_lluvia: int, ciclo_dias_especie: int) -> int:
     """
-    Cada especie tiene un ciclo óptimo (p.ej. Boletus edulis: 7-10 días).
-    Score máximo cuando dias_desde_lluvia ≈ ciclo_dias_especie.
+    Each species has optimal cycle (e.g., Boletus edulis: 7-10 days).
+    Maximum score when dias_desde_lluvia ≈ ciclo_dias_especie.
     """
     delta = abs(dias_desde_lluvia - ciclo_dias_especie)
     if delta == 0: return 100
@@ -224,23 +224,23 @@ def score_maduracion(dias_desde_lluvia: int, ciclo_dias_especie: int) -> int:
     return 0
 ```
 
-### 5.3 IB por especie vs IB de zona
+### 5.3 Zone IB vs Species IB
 
-- **IB de zona** (`scores_cache`): calculado con parámetros medios de todas las especies en temporada. Se muestra en tarjetas y mapa.
-- **IB por especie** (calculado on-demand): usa `temp_opt_c`, `lluvia_min_mm` y `ciclo_dias` específicos de esa especie. Se muestra en la ficha de especie y en el ranking de fichas de zona.
+- **Zone IB** (`scores_cache`): calculated with average parameters of all species in season. Shown in cards and map.
+- **Species IB** (calculated on-demand): uses specific `temp_opt_c`, `lluvia_min_mm`, and `ciclo_dias` of that species. Shown in species card and zone ranking.
 
 ---
 
-## 6. Lógica de Selección de Fuente (Cadena de Fallback)
+## 6. Source Selection Logic (Fallback Chain)
 
 ```python
-MAX_DIST_P1_KM = 35   # más de 35km de la estación, no fiarse del P1
+MAX_DIST_P1_KM = 35   # more than 35km from station, don't trust P1
 MAX_DIST_P2_KM = 80
 
 async def get_weather_provider(zona: Zona, db: AsyncSession) -> WeatherConnector:
     """
-    Devuelve el conector más preciso disponible para una zona.
-    Usa PostGIS para calcular la estación más cercana de cada proveedor.
+    Returns the most precise available connector for a zone.
+    Uses PostGIS to calculate closest station of each provider.
     """
     ccaa_to_p1 = {
         "Catalunya":   MeteocatConnector,
@@ -250,59 +250,59 @@ async def get_weather_provider(zona: Zona, db: AsyncSession) -> WeatherConnector
         "Andalucía":   RedRIAConnector,
     }
 
-    # P1: proveedor regional, si existe y la estación está suficientemente cerca
+    # P1: regional provider, if exists and station is close enough
     if zona.ccaa in ccaa_to_p1:
         connector_cls = ccaa_to_p1[zona.ccaa]
         nearest = await get_nearest_station(zona, connector_cls.SOURCE, db)
         if nearest and nearest.dist_km <= MAX_DIST_P1_KM:
             try:
                 connector = connector_cls(station_id=nearest.id)
-                await connector.health_check()   # verifica que la API responde
+                await connector.health_check()   # verifies API responds
                 return connector
             except ProviderUnavailable:
-                log.warning(f"P1 {connector_cls.SOURCE} caído para {zona.id}, degradando a P2")
+                log.warning(f"P1 {connector_cls.SOURCE} down for {zona.id}, degrading to P2")
 
-    # P2: AEMET nacional
+    # P2: AEMET national
     nearest_aemet = await get_nearest_station(zona, "aemet", db)
     if nearest_aemet and nearest_aemet.dist_km <= MAX_DIST_P2_KM:
         try:
             return AemetConnector(station_id=nearest_aemet.id)
         except ProviderUnavailable:
-            log.warning(f"P2 AEMET caído para {zona.id}, degradando a P3")
+            log.warning(f"P2 AEMET down for {zona.id}, degrading to P3")
 
-    # P3: Open-Meteo (siempre disponible, sin límites, sin API key)
+    # P3: Open-Meteo (always available, unlimited, no API key)
     return OpenMeteoConnector(lat=zona.lat, lon=zona.lon)
 ```
 
-Cada degradación queda registrada en `historial_clima.fuente` y `dist_estacion_km`, lo que permite analizar la calidad de datos por zona a lo largo del tiempo.
+Each degradation is logged in `historial_clima.fuente` and `dist_estacion_km`, allowing analysis of data quality by zone over time.
 
 ---
 
-## 7. Diseño del Cron de Ingesta
+## 7. Ingestion Cron Design
 
-### 7.1 Frecuencia y horario
+### 7.1 Frequency and Schedule
 
 ```
-0 5 * * *   →  05:00 UTC (07:00 hora española)
+0 5 * * *   →  05:00 UTC (07:00 Spanish time)
 ```
 
-Ejecutado tras la publicación nocturna de la mayoría de redes regionales. Si un día falla, no se pierde el histórico: el siguiente día puede hacer backfill de los días faltantes.
+Run after nightly publication of most regional networks. If a day fails, history isn't lost: next day can backfill missing days.
 
-### 7.2 Flujo de ejecución
+### 7.2 Execution Flow
 
 ```python
 async def daily_ingest():
     zonas = await db.fetch_all("SELECT * FROM zonas WHERE activa = true")
 
-    # Concurrencia limitada: máx 6 peticiones simultáneas (igual que el frontend actual)
+    # Limited concurrency: max 6 simultaneous requests (same as current frontend)
     sem = asyncio.Semaphore(6)
 
     async def ingest_zona(zona):
         async with sem:
             provider = await get_weather_provider(zona, db)
-            data = await provider.fetch_yesterday()     # datos del día anterior
+            data = await provider.fetch_yesterday()     # previous day's data
 
-            # Upsert: idempotente, seguro si el cron corre dos veces
+            # Upsert: idempotent, safe if cron runs twice
             await db.execute("""
                 INSERT INTO historial_clima (zona_id, fecha, temp_max_c, temp_min_c,
                     temp_media_c, temp_suelo_c, precipitacion_mm, humedad_pct,
@@ -311,21 +311,21 @@ async def daily_ingest():
                 ON CONFLICT (zona_id, fecha) DO UPDATE SET
                     fuente = EXCLUDED.fuente,
                     precipitacion_mm = EXCLUDED.precipitacion_mm
-                    -- solo actualiza si la nueva fuente es de mayor calidad
+                    -- only update if new source is higher quality
                     WHERE historial_clima.fuente = 'open-meteo'
                       AND EXCLUDED.fuente != 'open-meteo'
             """, data)
 
     await asyncio.gather(*[ingest_zona(z) for z in zonas])
 
-    # Recalcular scores tras la ingesta
+    # Recalculate scores after ingestion
     await recalculate_all_scores()
     await update_scores_cache()
 ```
 
-### 7.3 Backfill inicial
+### 7.3 Initial Backfill
 
-Al arrancar el sistema por primera vez, se ejecuta un job de backfill que carga los últimos 2 años de datos históricos de Open-Meteo (tiene API de histórico gratuita). Los datos P1 solo están disponibles en tiempo real, así que el histórico inicial siempre será P3 — eso es correcto y esperado.
+When starting the system for the first time, a backfill job runs that loads the last 2 years of historical data from Open-Meteo (it has a free historical API). P1 data is only available in real-time, so initial history will always be P3 — that's correct and expected.
 
 ```bash
 python -m scripts.backfill --zona all --desde 2024-01-01 --hasta 2026-02-28
@@ -335,78 +335,78 @@ python -m scripts.backfill --zona all --desde 2024-01-01 --hasta 2026-02-28
 
 ## 8. API Endpoints (FastAPI)
 
-Todos los endpoints devuelven `Cache-Control: public, max-age=3600` (1h). El frontend elimina el localStorage de 3h actual y confía en los headers HTTP.
+All endpoints return `Cache-Control: public, max-age=3600` (1h). The frontend removes the current 3h localStorage and trusts HTTP headers.
 
 ```
 GET  /api/v1/zonas
-     → Lista todas las zonas con su IB actual (de scores_cache)
+     → Lists all zones with current IB (from scores_cache)
      → Query params: ?ccaa=Catalunya&bosque=hayedo&min_score=60
 
 GET  /api/v1/zonas/{zona_id}
-     → Ficha completa: metadata + IB actual + desglose de scores
+     → Complete card: metadata + current IB + score breakdown
 
 GET  /api/v1/zonas/{zona_id}/historial
-     → Histórico de precipitación y temperatura (últimos N días)
-     → Útil para gráfico de evolución en la ficha de zona
+     → Precipitation and temperature history (last N days)
+     → Useful for evolution graph in zone card
 
 GET  /api/v1/mapa/scores
-     → Scores de todas las zonas optimizados para el heatmap de Leaflet
-     → [{lat, lon, score}] — endpoint ligero, caché agresiva
+     → Scores for all zones optimized for Leaflet heatmap
+     → [{lat, lon, score}] — lightweight endpoint, aggressive cache
 
 GET  /api/v1/especies
-     → Catálogo completo de especies (sustituye el mock species.js)
+     → Complete species catalog (replaces mock species.js)
 
 GET  /api/v1/especies/{especie_id}
-     → Ficha de especie + IB calculado para esa especie en las zonas compatibles
+     → Species card + IB calculated for that species in compatible zones
 
 GET  /api/v1/prediccion/mejores-zonas
-     → Top 10 zonas por IB en este momento + especie protagonista de cada una
+     → Top 10 zones by IB right now + main species for each
 
 GET  /api/v1/health
-     → Estado del sistema: última ingesta, fuentes activas, score medio nacional
+     → System status: last ingestion, active sources, national average score
 ```
 
 ---
 
-## 9. Estrategia de Transición (Tres Fases)
+## 9. Transition Strategy (Three Phases)
 
-Pasar de "todo mock" a "backend completo" de golpe es la manera más segura de bloquearse. Se propone una transición por fases que permite desplegar valor en cada etapa.
+Switching from "all mock" to "complete backend" in one go is the safest way to get blocked. A phased transition is proposed that allows delivering value at each stage.
 
-### Fase 1 — Backend meteorológico (sin tocar el catálogo)
+### Phase 1 — Weather Backend (without touching catalog)
 
-El frontend deja de llamar a Open-Meteo directamente. El backend hace las llamadas y devuelve el mismo formato que el `weatherService.js` actual. El catálogo (zonas, especies, familias) sigue siendo el mock en `src/data/`.
+Frontend stops calling Open-Meteo directly. Backend makes calls and returns same format that `weatherService.js` currently does. Catalog (zones, species, families) remains mock in `src/data/`.
 
-- **Entregable:** `GET /api/v1/zonas/{id}/condiciones` con el mismo schema que `weatherService.js` devuelve hoy.
-- **Cambio en frontend:** `weatherService.js` apunta a `VITE_API_URL` en vez de a Open-Meteo.
-- **Ventaja:** se puede hacer en paralelo, sin romper nada. Si el backend falla, se puede volver al modo directo con una variable de entorno.
+- **Deliverable:** `GET /api/v1/zonas/{id}/condiciones` with same schema as `weatherService.js` returns today.
+- **Frontend change:** `weatherService.js` points to `VITE_API_URL` instead of Open-Meteo.
+- **Advantage:** can be done in parallel, breaking nothing. If backend fails, can revert to direct mode with environment variable.
 
-### Fase 2 — Migración del catálogo a PostgreSQL
+### Phase 2 — Catalog Migration to PostgreSQL
 
-Seed script que toma `src/data/species.js`, `zones.js` y `families.js` y los inserta en la DB. Los endpoints `/api/v1/especies` y `/api/v1/zonas` sustituyen a los imports de mock data.
+Seed script takes `src/data/species.js`, `zones.js`, and `families.js` and inserts into DB. Endpoints `/api/v1/especies` and `/api/v1/zonas` replace mock data imports.
 
-- **Entregable:** seed script (`scripts/seed_catalog.py`) + endpoints de catálogo.
-- **Cambio en frontend:** eliminar `import { mockSpecies } from '../data/species'` y usar fetch al API.
+- **Deliverable:** seed script (`scripts/seed_catalog.py`) + catalog endpoints.
+- **Frontend change:** remove `import { mockSpecies } from '../data/species'` and use API fetch.
 
-### Fase 3 — Autenticación y features sociales
+### Phase 3 — Authentication and Social Features
 
-JWT (OAuth2 con FastAPI Security) para seguimiento de zonas, favoritos y futuros avistamientos comunitarios.
+JWT (OAuth2 with FastAPI Security) for zone following, favorites, and future community sightings.
 
-- **Entregable:** `POST /api/v1/auth/register`, `POST /api/v1/auth/token`, endpoints `/api/v1/me/*`.
-- **Nota:** hasta esta fase, seguimiento y favoritos siguen en localStorage (como ahora).
+- **Deliverable:** `POST /api/v1/auth/register`, `POST /api/v1/auth/token`, endpoints `/api/v1/me/*`.
+- **Note:** until this phase, following and favorites remain in localStorage (as now).
 
 ---
 
-## 10. Consideraciones de Infraestructura
+## 10. Infrastructure Considerations
 
-**Cold starts en Render free tier:** los servidores gratuitos se "duermen" tras 15min de inactividad. El cron diario los despierta solo una vez al día — aceptable para la ingesta. Para los endpoints del frontend, se puede añadir un ping de keep-alive barato (UptimeRobot, gratis).
+**Cold starts on Render free tier:** free servers "sleep" after 15min of inactivity. Daily cron wakes them only once a day — acceptable for ingestion. For frontend endpoints, can add cheap keep-alive ping (UptimeRobot, free).
 
-**Límites de Supabase/Neon free tier:** ~500MB de DB y ~5GB de transferencia/mes. Con 28 zonas y retención de 2 años el footprint de datos es <10MB. Muy por debajo del límite.
+**Supabase/Neon free tier limits:** ~500MB DB and ~5GB transfer/month. With 28 zones and 2-year retention, data footprint is <10MB. Well under limit.
 
-**Variables de entorno necesarias:**
+**Required environment variables:**
 ```
 DATABASE_URL=postgresql+asyncpg://...
 METEOCAT_API_KEY=...
 AEMET_API_KEY=...
-SECRET_KEY=...               # para JWT en Fase 3
-VITE_API_URL=https://fungus-api.onrender.com   # en el frontend
+SECRET_KEY=...               # for JWT in Phase 3
+VITE_API_URL=https://fungus-api.onrender.com   # in frontend
 ```
