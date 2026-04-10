@@ -126,6 +126,20 @@ export async function apiRefresh() {
 }
 
 /**
+ * Log in via Google Identity Services.
+ * @param {string} idToken — Google ID token from GIS
+ * @returns {{ user, access_token }} on success
+ * @throws Error with message from API on failure
+ */
+export async function apiGoogleLogin(idToken) {
+  const res = await post('/auth/google', { id_token: idToken })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail ?? 'Google login failed')
+  setAccessToken(data.access_token)
+  return data
+}
+
+/**
  * Log out — clears server-side refresh cookie + local token.
  */
 export async function apiLogout() {

@@ -12,7 +12,11 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(Text, nullable=False, unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # OAuth provider — 'local' | 'google'
+    auth_provider: Mapped[str] = mapped_column(String(20), nullable=False, default="local")
+    provider_id: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Profile fields
     first_name: Mapped[str | None] = mapped_column(Text, nullable=True)

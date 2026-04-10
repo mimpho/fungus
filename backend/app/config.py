@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60        # 1 hour
     refresh_token_expire_days: int = 30          # 30 days
 
+    # Google OAuth2 (v7)
+    google_client_id: str = ""
+
     # APIs meteorológicas opcionales (P1)
     meteocat_api_key: str = ""
     aemet_api_key: str = ""
