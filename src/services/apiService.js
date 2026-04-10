@@ -9,31 +9,9 @@
 // Docs: ver docs/backend_architecture.md
 // =====================================================
 
-export const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://fungus-api.onrender.com/api/v1'
+import { PROVINCE_TO_CCAA } from '../lib/constants'
 
-// Mapa provincia → CCAA (replicado de src/data/zones.js para normalizar zonas del API)
-const PROVINCE_TO_CCAA = {
-  'Álava': 'País Vasco', 'Guipúzcoa': 'País Vasco', 'Vizcaya': 'País Vasco',
-  'Huesca': 'Aragón', 'Teruel': 'Aragón', 'Zaragoza': 'Aragón',
-  'Asturias': 'Asturias',
-  'Cantabria': 'Cantabria',
-  'Ávila': 'Castilla y León', 'Burgos': 'Castilla y León', 'León': 'Castilla y León',
-  'Palencia': 'Castilla y León', 'Salamanca': 'Castilla y León', 'Segovia': 'Castilla y León',
-  'Soria': 'Castilla y León', 'Valladolid': 'Castilla y León', 'Zamora': 'Castilla y León',
-  'Albacete': 'Castilla-La Mancha', 'Ciudad Real': 'Castilla-La Mancha',
-  'Cuenca': 'Castilla-La Mancha', 'Guadalajara': 'Castilla-La Mancha', 'Toledo': 'Castilla-La Mancha',
-  'Barcelona': 'Cataluña', 'Girona': 'Cataluña', 'Lleida': 'Cataluña', 'Tarragona': 'Cataluña',
-  'Badajoz': 'Extremadura', 'Cáceres': 'Extremadura',
-  'A Coruña': 'Galicia', 'Lugo': 'Galicia', 'Ourense': 'Galicia', 'Pontevedra': 'Galicia',
-  'La Rioja': 'La Rioja',
-  'Madrid': 'Comunidad de Madrid',
-  'Murcia': 'Región de Murcia',
-  'Navarra': 'Navarra',
-  'Alicante': 'Comunitat Valenciana', 'Castellón': 'Comunitat Valenciana', 'Valencia': 'Comunitat Valenciana',
-  'Almería': 'Andalucía', 'Cádiz': 'Andalucía', 'Córdoba': 'Andalucía',
-  'Granada': 'Andalucía', 'Huelva': 'Andalucía', 'Jaén': 'Andalucía',
-  'Málaga': 'Andalucía', 'Sevilla': 'Andalucía',
-}
+export const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://fungus-api.onrender.com/api/v1'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NORMALIZADORES
