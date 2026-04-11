@@ -90,8 +90,8 @@ POST /api/v1/images/set-order                 ← admin only
 | v3.1–v4.7.1 | ✅ | Frontend Vite · weather backend · DB catalog · i18n |
 | v5.0–v5.6 | ✅ | JWT auth · ImageGenerator · Myco-Engine Visual DNA |
 | v6.0 | ✅ | OpenSpecs migration — structured SSOT, IDE-agnostic |
-| v7.0 | 🗂 | Social login: Google OAuth2 |
-| v7.1 | 🗂 | Email confirmation on signup |
+| v7.0 | ✅ | Social login: Google OAuth2 |
+| v7.1 | 🚧 | Email confirmation on signup |
 | v8.0 | 🗂 | Android mobile app (React Native + Expo) |
 | v9.0 | 🗂 | SEO: static prerendering + Core Web Vitals |
 
