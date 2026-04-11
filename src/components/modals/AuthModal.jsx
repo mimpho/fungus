@@ -24,8 +24,9 @@ export function AuthModal({ initialTab = 'login', onClose }) {
   const [loading, setLoading]   = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  const emailRef    = useRef(null)
-  const googleBtnRef = useRef(null)
+  const emailRef      = useRef(null)
+  const googleBtnRef  = useRef(null)
+  const googleInitRef = useRef(false)   // guard against StrictMode double-invoke
 
   // Focus email on open
   useEffect(() => { emailRef.current?.focus() }, [])
@@ -46,7 +47,8 @@ export function AuthModal({ initialTab = 'login', onClose }) {
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.id) return
     const container = googleBtnRef.current
-    if (!container) return
+    if (!container || googleInitRef.current) return
+    googleInitRef.current = true
 
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
