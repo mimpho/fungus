@@ -155,18 +155,23 @@ Everything above, plus:
 
 | File | What to update |
 |---|---|
+| `CHANGELOG.md` | Consolidated phase entry with all Added/Fixed items |
+| `memory/pending.md` | Remove the completed phase block; promote next milestone to "🚀 Next" |
 | `system/project.spec.md` → Roadmap | Mark phase as ✅, add next if applicable |
-| `memory/pending.md` | Remove completed items from the phase |
-| `CHANGELOG.md` | Consolidated phase entry |
 | `README.md` | Roadmap, endpoints if changed |
 
-**Git process on phase close**:
-1. Documentation commits on the feature branch
-2. Push the feature branch
-3. Open PR on GitHub: Conventional Commits title (≤72 chars), body with summary + manual steps + testing checklist
-4. Wait for status checks (Vercel preview) and merge
-5. After merge: `git pull origin main && git tag -a vX.Y.0 -m "..." && git push origin vX.Y.0`
-6. Apply SQL migrations on Supabase if any
+**Mandatory order — always in this sequence before preparing the PR:**
+
+1. Update `CHANGELOG.md` — add the phase entry under `[Unreleased]`
+2. Update `memory/pending.md` — remove the completed block, promote the next one
+3. Update `system/project.spec.md` and `README.md` if roadmap or stack changed
+4. Commit all doc changes on the feature branch with `docs: close vX.Y — …`
+5. Push the feature branch
+6. Prepare the PR (title + body inline in chat — see [PR preparation](#pr-preparation))
+
+**Git process after the PR is merged:**
+1. `git pull origin main && git tag -a vX.Y.0 -m "..." && git push origin vX.Y.0`
+2. Apply SQL migrations on Supabase if any
 
 ### On making a relevant architectural decision
 
