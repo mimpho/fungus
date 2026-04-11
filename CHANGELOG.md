@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — v7.0 Google OAuth2 sign-in
+
+- **`backend/app/routers/auth.py`**: `POST /auth/google` endpoint — receives a Google ID token, verifies it with `google-auth`, creates or retrieves the user (`auth_provider = "google"`, `provider_id`), and returns the same JWT session used by the local auth flow.
+- **`backend/app/services/auth.py`**: `verify_google_token()` + `get_or_create_google_user()` — `password_hash` is nullable for Google-only accounts.
+- **`backend/app/schemas/auth.py`**: `GoogleLoginRequest { id_token: str }`.
+- **`backend/pyproject.toml`**: added `google-auth>=2.27.0` and `requests>=2.31.0` (transport dependency).
+- **`src/services/authService.js`**: `apiGoogleLogin(idToken)` — posts to `/auth/google`.
+- **`src/components/modals/AuthModal.jsx`**: Google sign-in button using `renderButton()` overlay pattern (FedCM-compatible). An invisible Google-rendered button sits on top of a styled decorative div; click is captured natively by the GIS script. `googleInitRef` guard prevents double `initialize()` in React StrictMode.
+- **`src/contexts/AppContext.jsx`**: `loginWithGoogle()` exposed in context; `loadUserDataFromApi()` helper calls `apiGetFavSpecies()` + `apiGetFollowedZones()` and resolves IDs to full objects — called after `login()`, `register()`, `loginWithGoogle()`, and `apiRefresh()` session restore so favorites and followed zones are always loaded from the DB.
+
+### Fixed — v7.0
+
+- **FedCM blocking One Tap `prompt()`**: Google deprecated `prompt()` in FedCM environments. Replaced with `renderButton()` invisible-overlay pattern.
+- **`google.accounts.id.initialize() is called multiple times`**: React StrictMode double-invoke. Fixed with `useRef` guard `googleInitRef`.
+- **`ModuleNotFoundError: No module named 'google'`**: `google-auth` was missing from `pyproject.toml`.
+- **`ImportError: The requests library is not installed`**: `google.auth.transport.requests` requires `requests` explicitly. Added to dependencies.
+- **Favorites not loaded after login in incognito / new devices**: `apiGetFavSpecies()` and `apiGetFollowedZones()` were never called after authentication. Fixed by `loadUserDataFromApi()` called on all login paths and session restore.
+
+---
+
 ### Added — v6.0 OpenSpecs migration
 
 - **`system/project.spec.md`**: project SSOT — vision, stack, architecture, routes, schemas, roadmap. Resolves path inconsistency (active path is `src/` at root, not `frontend/`).

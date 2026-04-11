@@ -4,18 +4,7 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
-## 🚀 Next — v7.0 Social login (Google)
-
-**Planned scope:**
-- Google OAuth2 — free, no cost, maximum friction reduction
-- DB: `auth_provider` (`"local"` | `"google"`) + `provider_id` in `users` table; `password_hash` becomes nullable
-- Backend: Google ID token verification → issues our own JWT (session system unchanged)
-- Library: `authlib` or `google-auth` for FastAPI
-- Frontend: Google Identity Services (official script, One Tap)
-
----
-
-## 🗂 Backlog — v7.1 Email confirmation
+## 🚀 Next — v7.1 Email confirmation
 
 (Was v6.1)
 
