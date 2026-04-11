@@ -3,6 +3,8 @@
 // =====================================================
 import { createContext, useContext, useState, useEffect } from 'react'
 import { i18n } from '../data/i18n'
+import { mockSpecies } from '../data/species'
+import { mockZones } from '../data/zones'
 import {
   apiLogin,
   apiRegister,
@@ -14,6 +16,8 @@ import {
   apiUnfollowZone,
   apiFavSpecies,
   apiUnfavSpecies,
+  apiGetFavSpecies,
+  apiGetFollowedZones,
   apiDeleteAccount,
   migrateLocalFavoritesToApi,
 } from '../services/authService'
@@ -65,8 +69,11 @@ export function AppProvider({ children }) {
 
   // ── Silent session restore on mount ─────────────────────────────────────────
   useEffect(() => {
-    apiRefresh().then(restoredUser => {
-      if (restoredUser) setUser(restoredUser)
+    apiRefresh().then(async restoredUser => {
+      if (restoredUser) {
+        setUser(restoredUser)
+        await loadUserDataFromApi()
+      }
       setAuthLoading(false)
     })
   }, [])
@@ -74,14 +81,38 @@ export function AppProvider({ children }) {
   const t = i18n[lang] || i18n.es
   const isAuthenticated = user !== null
 
+  // ── Load user data (favorites + followed zones) from API ────────────────────
+  // Called after any login / session restore. Resolves bare IDs returned by the
+  // API against the local mock arrays so state stores full objects (same shape
+  // as when the user toggles from the UI).
+  async function loadUserDataFromApi() {
+    try {
+      const [favIds, zoneIds] = await Promise.all([
+        apiGetFavSpecies(),
+        apiGetFollowedZones(),
+      ])
+      const favSpecies = favIds
+        .map(({ species_id }) => mockSpecies.find(s => s.id === species_id))
+        .filter(Boolean)
+      const zones = zoneIds
+        .map(({ zone_id }) => mockZones.find(z => z.id === zone_id))
+        .filter(Boolean)
+      setFavoriteSpecies(favSpecies)
+      setFollowedZones(zones)
+    } catch {
+      // Non-critical — keep whatever was in localStorage
+    }
+  }
+
   // ── Auth actions ─────────────────────────────────────────────────────────────
 
   async function login(email, password) {
     const data = await apiLogin(email, password)     // throws on error
     setUser(data.user)
-    // Migrate localStorage follows/favs to API (fire and forget)
+    // Migrate localStorage follows/favs to API, then load the full server state
     const local = loadStorage()
     await migrateLocalFavoritesToApi(local.zonas || [], local.favoritos || [])
+    await loadUserDataFromApi()
     setAuthModal(null)
     return data.user
   }
@@ -91,6 +122,7 @@ export function AppProvider({ children }) {
     setUser(data.user)
     const local = loadStorage()
     await migrateLocalFavoritesToApi(local.zonas || [], local.favoritos || [])
+    await loadUserDataFromApi()
     setAuthModal(null)
     return data.user
   }
@@ -100,6 +132,7 @@ export function AppProvider({ children }) {
     setUser(data.user)
     const local = loadStorage()
     await migrateLocalFavoritesToApi(local.zonas || [], local.favoritos || [])
+    await loadUserDataFromApi()
     setAuthModal(null)
     return data.user
   }

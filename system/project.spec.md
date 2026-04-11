@@ -477,8 +477,8 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v5.1–v5.4 | ✅ Done | ImageGenerator + AdminGallery + DnD + gallery-first redesign |
 | v5.5–v5.6 | ✅ Done | Myco-Engine DNA Visual · 202 species · visualGlossary |
 | v6.0 | ✅ Done | OpenSpecs migration — structured SSOT, IDE-agnostic |
-| v7.0 | 🗂 Backlog | Social login: Google OAuth2 |
-| v7.1 | 🗂 Backlog | Email confirmation on registration |
+| v7.0 | ✅ Done | Social login: Google OAuth2 |
+| v7.1 | 🚧 Next | Email confirmation on registration |
 | v8.0 | 🗂 No date | Android mobile app (React Native + Expo) |
 | v9.0 | 🗂 Backlog | SEO: static prerendering + Core Web Vitals |
 | — | 🗂 No date | Hardening: move generator API keys to backend FastAPI |
