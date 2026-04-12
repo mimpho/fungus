@@ -280,19 +280,23 @@ export function AuthModal({ initialTab = 'login', onClose }) {
                   pass through to Google's iframe underneath
                 - overflow-hidden + rounded-xl on the wrapper clips Google's button
                   visually so our styling defines the shape */}
-            <div className="relative w-full rounded-xl overflow-hidden">
-              {/* Google's real button — visible to satisfy FedCM, visually hidden by overlay */}
-              <div ref={googleBtnRef} className="w-full flex justify-center" />
-
-              {/* Custom visual layer — two divs so the overlay is fully opaque:
-                  outer = solid modal colour (covers Google's white button completely)
-                  inner = bg-white/[0.06] (recreates the original subtle highlight look) */}
+            {/* min-h matches the submit button (py-3 + text-sm line-height ≈ 48px).
+                bg on googleBtnRef fills the container edges so the Google iframe's
+                negative margins don't bleed through before the overlay starts. */}
+            <div className="relative w-full rounded-xl overflow-hidden min-h-[48px]">
               <div
-                className="absolute inset-0 pointer-events-none select-none"
+                ref={googleBtnRef}
+                className="w-full flex justify-center"
+                style={{ background: 'var(--color-modal)' }}
+              />
+
+              {/* Opaque two-layer overlay — covers Google's white button completely */}
+              <div
+                className="absolute inset-0 pointer-events-none select-none rounded-xl"
                 style={{ background: 'var(--color-modal)' }}
               >
                 <div
-                  className={`w-full h-full flex items-center justify-center gap-3 py-2.5 text-sm font-medium bg-white/[0.06] text-cream transition-opacity ${googleLoading ? 'opacity-60' : ''}`}
+                  className={`w-full h-full flex items-center justify-center gap-3 py-3 text-sm font-medium bg-white/[0.06] text-cream transition-opacity rounded-xl ${googleLoading ? 'opacity-60' : ''}`}
                 >
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
