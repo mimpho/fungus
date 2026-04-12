@@ -42,6 +42,7 @@ fungus/
 ├── system/                  ← OpenSpecs — Single Source of Truth
 ├── memory/                  ← Working memory (decisions, backlog, gotchas)
 ├── docs/                    ← Technical operational documentation
+│   └── diagrams/            ← Mermaid diagrams (.mermaid) — architecture, flows, sequences
 └── standalone/              ← LEGACY — reference only, not active
 ```
 

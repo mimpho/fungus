@@ -1,0 +1,107 @@
+sequenceDiagram
+    autonumber
+
+    participant B  as Browser
+    participant GIS as Google Identity Services
+    participant FE as Frontend (React)
+    participant BE as Backend (FastAPI)
+    participant DB as Database (PostgreSQL)
+    participant GG as Google OAuth API
+
+    %% ─────────────────────────────────────────────
+    %% 1. SILENT SESSION RESTORE (app boot)
+    %% ─────────────────────────────────────────────
+    rect rgb(30, 40, 55)
+        Note over B,DB: App boot — silent session restore
+        B->>FE: load page
+        FE->>BE: POST /auth/refresh<br/>(httpOnly cookie: refresh_token)
+        alt valid refresh token
+            BE->>DB: get_user_by_id(user_id)
+            DB-->>BE: User
+            BE-->>FE: 200 { access_token, user }<br/>Set-Cookie: refresh_token (rotated)
+            FE->>FE: setAccessToken(token)<br/>setUser(user)
+            FE->>BE: GET /me/fav-species<br/>GET /me/followed-zones<br/>(Bearer access_token)
+            BE-->>FE: [{ species_id }] / [{ zone_id }]
+            FE->>FE: resolve IDs → full objects<br/>setFavoriteSpecies / setFollowedZones
+        else no cookie / expired
+            BE-->>FE: 401 Unauthorized
+            FE->>FE: setUser(null) — guest mode
+        end
+    end
+
+    %% ─────────────────────────────────────────────
+    %% 2. EMAIL / PASSWORD LOGIN
+    %% ─────────────────────────────────────────────
+    rect rgb(30, 55, 40)
+        Note over B,DB: Email + password login
+        B->>FE: submit login form
+        FE->>BE: POST /auth/login<br/>{ email, password }
+        BE->>DB: authenticate_user(email, password)
+        DB-->>BE: User (bcrypt verify)
+        alt valid credentials
+            BE->>BE: create_access_token(user_id)<br/>create_refresh_token(user_id)
+            BE-->>FE: 200 { access_token, user }<br/>Set-Cookie: refresh_token (httpOnly, 30d)
+            FE->>FE: setAccessToken / setUser
+            FE->>BE: migrate localStorage favs → API<br/>POST /me/fav-species, POST /me/followed-zones
+            FE->>BE: GET /me/fav-species + /me/followed-zones
+            BE-->>FE: server-side favorites & zones
+            FE->>FE: update state — modal closes
+        else invalid credentials
+            BE-->>FE: 401 { detail: "Invalid email or password" }
+            FE->>B: show error message
+        end
+    end
+
+    %% ─────────────────────────────────────────────
+    %% 3. GOOGLE OAUTH2 LOGIN
+    %% ─────────────────────────────────────────────
+    rect rgb(55, 40, 30)
+        Note over B,DB: Google OAuth2 sign-in
+        B->>GIS: load script (async defer)<br/>accounts.google.com/gsi/client
+        GIS-->>FE: window.google.accounts.id ready
+        FE->>GIS: initialize({ client_id, callback })<br/>renderButton(container, options)
+        GIS-->>B: renders invisible button in overlay div
+        B->>GIS: user clicks → Google auth popup / FedCM
+        GIS->>GG: authenticate user
+        GG-->>GIS: Google ID token (JWT)
+        GIS->>FE: callback({ credential: id_token })
+        FE->>BE: POST /auth/google { id_token }
+        BE->>GG: verify_google_id_token(id_token)<br/>(google-auth library)
+        GG-->>BE: { sub, email, given_name, family_name }
+        BE->>DB: get_or_create_google_user(google_id, email)
+        DB-->>BE: User (existing or newly created)
+        BE->>BE: create_access_token / create_refresh_token
+        BE-->>FE: 200 { access_token, user }<br/>Set-Cookie: refresh_token (httpOnly, 30d)
+        FE->>FE: setAccessToken / setUser
+        FE->>BE: migrate localStorage favs → API
+        FE->>BE: GET /me/fav-species + /me/followed-zones
+        BE-->>FE: server-side favorites & zones
+        FE->>FE: update state — modal closes
+    end
+
+    %% ─────────────────────────────────────────────
+    %% 4. AUTHENTICATED REQUEST
+    %% ─────────────────────────────────────────────
+    rect rgb(40, 30, 55)
+        Note over B,DB: Authenticated API call (example: toggle favorite)
+        B->>FE: click ★ on species
+        FE->>FE: optimistic update (instant UI)
+        FE->>BE: POST /me/fav-species { species_id }<br/>Authorization: Bearer <access_token>
+        BE->>BE: verify JWT → extract user_id
+        BE->>DB: insert fav_species
+        DB-->>BE: OK
+        BE-->>FE: 201 Created
+    end
+
+    %% ─────────────────────────────────────────────
+    %% 5. LOGOUT
+    %% ─────────────────────────────────────────────
+    rect rgb(55, 55, 30)
+        Note over B,DB: Logout
+        B->>FE: click logout
+        FE->>BE: POST /auth/logout<br/>Authorization: Bearer <access_token>
+        BE->>BE: _clear_refresh_cookie()
+        BE-->>FE: 204 No Content<br/>Set-Cookie: refresh_token=deleted
+        FE->>FE: clearAccessToken()<br/>setUser(null)<br/>clear favorites & zones
+        FE->>B: redirect to guest mode
+    end

@@ -196,6 +196,7 @@ Everything above, plus:
 | `memory/pending.md` | Active task queue | Completed items are **removed** — not archived. |
 | `system/project.spec.md` → Roadmap | Quick-reference table | Status only (✅/🚧/🗂), no task detail. |
 | `README.md` | Public project view | Summary roadmap, stack, deploy URLs. |
+| `docs/diagrams/` | Visual documentation | All Mermaid diagrams (`.mermaid`). Naming: `<subject>_<type>.mermaid` — e.g. `auth_sequence.mermaid`, `zones-flow.mermaid`. Never place diagrams directly in `docs/`. |
 
 **When a task closes**: entry in `CHANGELOG.md` + remove item from `pending.md`. Do not copy the same detail into multiple files.
 
