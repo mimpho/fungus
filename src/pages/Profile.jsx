@@ -234,7 +234,7 @@ export default function Profile() {
                   <p className="font-display text-base font-semibold text-cream truncate">{z.name}</p>
                   <p className="text-cream/50 text-xs">{z.region || z.province}</p>
                 </div>
-                <span className="ml-auto text-cream/30 flex-shrink-0">{IC.chevron}</span>
+                <span className="ml-auto text-cream/30 flex-shrink-0">{IC.chevron()}</span>
               </button>
             ))}
             {followedZones.length > 3 && (
