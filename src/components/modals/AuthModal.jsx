@@ -44,34 +44,55 @@ export function AuthModal({ initialTab = 'login', onClose }) {
   // Render Google's button into an invisible overlay div.
   // Using renderButton() instead of prompt() so FedCM works correctly.
   // The real Google button sits invisible on top of our custom-styled one.
+  //
+  // The GIS script loads with `async defer` so window.google may not be ready
+  // when the modal first renders (especially in production). We handle both cases:
+  //   a) window.google already available → initialize + renderButton immediately
+  //   b) window.google not yet available → wait for the script's load event
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.id) return
-    const container = googleBtnRef.current
-    if (!container || googleInitRef.current) return
-    googleInitRef.current = true
+    if (!GOOGLE_CLIENT_ID) return
 
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: async ({ credential }) => {
-        setError(null)
-        setGoogleLoading(true)
-        try {
-          await loginWithGoogle(credential)
-          onClose()
-        } catch (err) {
-          setError(translateApiError(err.message, t))
-        } finally {
-          setGoogleLoading(false)
-        }
-      },
-    })
+    function initGoogle() {
+      if (!window.google?.accounts?.id) return
+      const container = googleBtnRef.current
+      if (!container || googleInitRef.current) return
+      googleInitRef.current = true
 
-    window.google.accounts.id.renderButton(container, {
-      type: 'standard',
-      size: 'large',
-      text: 'continue_with',
-      width: container.offsetWidth || 320,
-    })
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async ({ credential }) => {
+          setError(null)
+          setGoogleLoading(true)
+          try {
+            await loginWithGoogle(credential)
+            onClose()
+          } catch (err) {
+            setError(translateApiError(err.message, t))
+          } finally {
+            setGoogleLoading(false)
+          }
+        },
+      })
+
+      window.google.accounts.id.renderButton(container, {
+        type: 'standard',
+        size: 'large',
+        text: 'continue_with',
+        width: container.offsetWidth || 320,
+      })
+    }
+
+    if (window.google?.accounts?.id) {
+      // Script already loaded (e.g. modal opened after page has been idle a while)
+      initGoogle()
+    } else {
+      // Script still loading — attach to its load event
+      const script = document.querySelector('script[src*="accounts.google.com/gsi/client"]')
+      if (script) {
+        script.addEventListener('load', initGoogle, { once: true })
+        return () => script.removeEventListener('load', initGoogle)
+      }
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit(e) {
@@ -234,8 +255,10 @@ export function AuthModal({ initialTab = 'login', onClose }) {
           </button>
         </form>
 
-        {/* Google sign-in — only shown if GIS script is loaded */}
-        {GOOGLE_CLIENT_ID && window.google && (
+        {/* Google sign-in — shown whenever client ID is configured.
+            The overlay div is always rendered so renderButton() has a target
+            even if the GIS script loads after the modal mounts. */}
+        {GOOGLE_CLIENT_ID && (
           <>
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-px bg-white/[0.08]" />
