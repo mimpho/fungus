@@ -1,0 +1,129 @@
+%% Architecture Diagram — Fungus
+%% Full system: frontend, backend, external services, data flow
+
+flowchart TB
+
+    %% ── Browser / Client ──────────────────────────────────────────────────────
+    subgraph CLIENT ["🌐  Browser (Vite 6 + React 18)"]
+        direction TB
+
+        subgraph CTX ["AppContext (React Context)"]
+            STATE["State\nlang · user · followedZones\nfavoriteSpecies · modals"]
+            LS[("localStorage\nfungus_v3\nweather cache TTL 3h")]
+        end
+
+        subgraph PAGES ["Pages"]
+            P1["Dashboard"]
+            P2["Zones"]
+            P3["Species"]
+            P4["Profile"]
+            P5["Micologia"]
+            P6["Admin /\nGeneratorHub"]
+        end
+
+        subgraph COMPONENTS ["Key components"]
+            MAP["LeafletMap\nmarkers · heatmap"]
+            MODAL["ModalRenderer\nZoneModal · SpeciesModal\nFamilyModal · AuthModal"]
+            SCORE["Scoring engine\nweatherService.js\nOI Phase 1 + SQS modifier"]
+        end
+    end
+
+    %% ── FastAPI Backend ───────────────────────────────────────────────────────
+    subgraph BACKEND ["⚙️  Backend (FastAPI — Render)"]
+        direction TB
+
+        subgraph ROUTERS ["Routers"]
+            R1["/api/v1/zones"]
+            R2["/api/v1/species"]
+            R3["/api/v1/auth\nregister · login · google\nrefresh · logout · /me"]
+            R4["/api/v1/weather"]
+            R5["/api/v1/images\n(admin)"]
+        end
+
+        subgraph SERVICES ["Services"]
+            SVC1["scoring.py\nOI algorithm"]
+            SVC2["auth.py\nJWT · bcrypt\nGoogle token verify"]
+            SVC3["ingest.py\ndaily fetch + upsert\ncache refresh"]
+        end
+
+        SCHED["APScheduler\ncron 05:00 UTC"]
+        MW["Middleware\nCORS · Cache-Control\nCOOP headers"]
+    end
+
+    %% ── Database ──────────────────────────────────────────────────────────────
+    subgraph DB ["🗄️  Supabase (PostgreSQL + PostGIS)"]
+        direction LR
+        T1[("zones\n28 zones PostGIS")]
+        T2[("species\n202 species")]
+        T3[("users\nJWT auth · OAuth2")]
+        T4[("climate_history\ndaily meteo per zone")]
+        T5[("scores_cache\nOI pre-computed")]
+        T6[("mushroom_visual_prompts\nDNA Visual 4-layer")]
+        T7[("fav_species\nfollowed_zones")]
+    end
+
+    %% ── External services ─────────────────────────────────────────────────────
+    subgraph EXT ["☁️  External services"]
+        OM["Open-Meteo\nPublic API\nno key required"]
+        GIS["Google Identity\nServices (GIS)\nFedCM / OAuth2"]
+        GOOG["Google OAuth\nAPI (token verify)"]
+        GEMINI["Gemini 2.5 Flash\n+ Imagen 4\n(admin · offline scripts)"]
+        VERCEL["Vercel\nFrontend CDN\nbranch: main"]
+        RENDER["Render\nBackend host\nauto-deploy on CI"]
+    end
+
+    %% ── Data flow: frontend ───────────────────────────────────────────────────
+    PAGES --> CTX
+    PAGES --> COMPONENTS
+    SCORE -->|"fetch 28 zones\n6 concurrent"| OM
+    SCORE -->|"TTL 3h cache"| LS
+    MAP -->|"conditionsMap\nreal OI scores"| SCORE
+    MODAL -->|"auth flows"| GIS
+
+    %% ── Data flow: frontend ↔ backend ─────────────────────────────────────────
+    CLIENT -->|"REST API\nBearer token\nCORS"| BACKEND
+    BACKEND -->|"JSON responses\nCache-Control 1h"| CLIENT
+
+    %% ── Data flow: auth ───────────────────────────────────────────────────────
+    GIS -->|"Google ID token"| CLIENT
+    CLIENT -->|"POST /auth/google\nid_token"| R3
+    R3 --> SVC2
+    SVC2 -->|"verify token"| GOOG
+
+    %% ── Data flow: backend ↔ DB ───────────────────────────────────────────────
+    R1 --> T1
+    R1 --> T5
+    R2 --> T2
+    R3 --> T3
+    R3 --> T7
+    R4 --> T4
+    R5 --> T6
+    SVC1 --> T5
+    SVC3 --> T4
+    SVC3 --> T5
+
+    %% ── Data flow: ingest ─────────────────────────────────────────────────────
+    SCHED -->|"triggers daily"| SVC3
+    SVC3 -->|"fetch meteo\n28 zones"| OM
+
+    %% ── Data flow: admin / AI ─────────────────────────────────────────────────
+    P6 -->|"generate image\nVITE_GEMINI_API_KEY"| GEMINI
+    GEMINI -->|"Imagen 4 / Gemini\nbase64 image"| P6
+
+    %% ── Infrastructure ────────────────────────────────────────────────────────
+    CLIENT -.->|"deployed to"| VERCEL
+    BACKEND -.->|"deployed to"| RENDER
+    BACKEND -.->|"asyncpg"| DB
+
+    %% ── Styles ────────────────────────────────────────────────────────────────
+    classDef fe      fill:#1e2c1e,stroke:#4a7c59,color:#d9cda1
+    classDef be      fill:#1e1e2c,stroke:#887b4b,color:#d9cda1
+    classDef db      fill:#2c1e1e,stroke:#8b4a4a,color:#d9cda1
+    classDef ext     fill:#2c2c1e,stroke:#6b7a4a,color:#d9cda1
+    classDef infra   fill:#1a1a1a,stroke:#555,color:#aaa,stroke-dasharray:5 5
+
+    class CLIENT,CTX,STATE,LS,PAGES,P1,P2,P3,P4,P5,P6,COMPONENTS,MAP,MODAL,SCORE fe
+    class BACKEND,ROUTERS,R1,R2,R3,R4,R5,SERVICES,SVC1,SVC2,SVC3,SCHED,MW be
+    class DB,T1,T2,T3,T4,T5,T6,T7 db
+    class EXT,OM,GIS,GOOG,GEMINI ext
+    class VERCEL,RENDER infra
