@@ -273,5 +273,16 @@ body::after {
   /* ag-edib stays 0 26px 26px 0 — same on both breakpoints */
 }
 
+/* Invert the calendar icon in date inputs so it is white/cream instead of black */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* Hide native datalist picker indicator (Chrome shows it on hover) */
 input[list]::-webkit-calendar-picker-indicator { display: none !important; opacity: 0 !important; width: 0 !important; }

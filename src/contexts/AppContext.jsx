@@ -1,7 +1,7 @@
 // =====================================================
 // AppContext — estado global de la app
 // =====================================================
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { i18n } from '../data/i18n'
 import { mockSpecies } from '../data/species'
 import { mockZones } from '../data/zones'
@@ -54,6 +54,11 @@ export function AppProvider({ children }) {
   const [authModal, setAuthModal]   = useState(null)      // null | 'login' | 'register'
   const [isAdminView, setIsAdminView] = useState(false)  // admin nav visible only when toggled
 
+  // Tracks whether the initial session restore (apiRefresh) has settled.
+  // FedCM can fire the Google callback before apiRefresh completes — we use this
+  // ref to detect that case and avoid running the migration twice.
+  const sessionRestoredRef = useRef(false)
+
   // ── Modal stack ─────────────────────────────────────────────────────────────
   const [selectedZone, setSelectedZone]       = useState(null)
   const [selectedSpecies, setSelectedSpecies] = useState(null)
@@ -74,6 +79,7 @@ export function AppProvider({ children }) {
         setUser(restoredUser)
         await loadUserDataFromApi()
       }
+      sessionRestoredRef.current = true
       setAuthLoading(false)
     })
   }, [])
@@ -130,8 +136,15 @@ export function AppProvider({ children }) {
   async function loginWithGoogle(idToken) {
     const data = await apiGoogleLogin(idToken)   // throws on error
     setUser(data.user)
-    const local = loadStorage()
-    await migrateLocalFavoritesToApi(local.zonas || [], local.favoritos || [])
+
+    // FedCM re-fires this callback on every page reload (Chrome re-sends the
+    // cached credential automatically). Only migrate localStorage on a genuine
+    // first login — i.e. before apiRefresh had a chance to restore a session.
+    // loadUserDataFromApi and setAuthModal must always run regardless.
+    if (!sessionRestoredRef.current) {
+      const local = loadStorage()
+      await migrateLocalFavoritesToApi(local.zonas || [], local.favoritos || [])
+    }
     await loadUserDataFromApi()
     setAuthModal(null)
     return data.user

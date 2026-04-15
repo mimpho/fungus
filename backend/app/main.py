@@ -23,8 +23,9 @@ from pathlib import Path
 from alembic import command as alembic_command
 from alembic.config import Config as AlembicConfig
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import BackgroundTasks, FastAPI
+from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 
 from app.config import settings
@@ -218,6 +219,23 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE"],  # PATCH for profile update
     allow_headers=["*"],
 )
+
+# Catch-all exception handler — ensures CORS headers are present even on
+# unhandled 500 errors (Starlette's CORSMiddleware can miss them on raw exceptions).
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    log.exception("Unhandled exception: %s", exc)
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+        headers=headers,
+    )
+
 
 # Cache-Control header for all GET responses
 @app.middleware("http")
