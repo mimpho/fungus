@@ -141,9 +141,16 @@ export async function apiGoogleLogin(idToken) {
   let res = await attempt()
 
   if (res.status === 503) {
-    // Backend is waking up — wait and retry once
-    await new Promise(resolve => setTimeout(resolve, 8000))
-    res = await attempt()
+    // Clone before reading — body can only be consumed once
+    const clone = res.clone()
+    const body = await clone.json().catch(() => null)
+
+    // App-level 503 (e.g. "Google login not configured") has a JSON detail field.
+    // Render cold-start 503s have no valid JSON body — retry those only.
+    if (!body?.detail) {
+      await new Promise(resolve => setTimeout(resolve, 8000))
+      res = await attempt()
+    }
   }
 
   const data = await res.json()
