@@ -295,7 +295,8 @@ export default function Profile() {
             <button
               onClick={handleLogout}
               disabled={signingOut || deleting}
-              className="hover:text-cream/70 transition-colors disabled:opacity-40"
+              className="hover:text-cream/70 transition-colors disabled:opacity-40 text-left"
+              style={{ minWidth: '7rem' }}
             >
               {signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}
             </button>
