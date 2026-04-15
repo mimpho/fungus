@@ -4,6 +4,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -106,7 +107,12 @@ async def follow_zone(
         return {"zone_id": body.zone_id, "followed": True}
 
     db.add(UserFollowedZone(user_id=current_user.id, zone_id=body.zone_id))
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        # FK violation: zone_id doesn't exist in zones table — treat as no-op
+        return {"zone_id": body.zone_id, "followed": False}
     return {"zone_id": body.zone_id, "followed": True}
 
 
@@ -159,7 +165,12 @@ async def add_fav_species(
         return {"species_id": body.species_id, "favourited": True}
 
     db.add(UserFavSpecies(user_id=current_user.id, species_id=body.species_id))
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        # FK violation: species_id doesn't exist in species table — treat as no-op
+        return {"species_id": body.species_id, "favourited": False}
     return {"species_id": body.species_id, "favourited": True}
 
 
