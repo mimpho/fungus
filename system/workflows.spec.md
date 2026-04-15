@@ -260,6 +260,20 @@ When topics arise around monetisation, business model, premium features, pricing
 
 ---
 
+## Documentation language
+
+**All documentation in this project must be written in English.** This applies to:
+- `system/` spec files
+- `docs/` guides and references
+- `memory/` files (decisions, pending, gotchas, scoring, tech-debt)
+- `migrations/README.md`
+- Root files: `README.md`, `CHANGELOG.md`, `CLAUDE.md`, `AGENTS.md`
+- PR titles, bodies, and commit messages
+
+Inline code comments in source files may use Spanish where the domain language is naturally Spanish (e.g. species names, UI strings in `i18n.js`), but all prose documentation must be in English.
+
+---
+
 ## PR preparation
 
 When preparing a PR, always provide title and body **inline in the chat as separate fenced code blocks** so the human can copy/paste each one directly into GitHub. Never write them as files on disk. Claude never merges to main.

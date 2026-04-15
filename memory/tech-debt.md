@@ -1,158 +1,158 @@
 # Tech Debt Audit — Fungus
 
-**Fecha:** abril 2026  
+**Date:** April 2026  
 **Repo:** `fungus` (React + Vite frontend / FastAPI backend)  
-**Metodología:** Priority = (Impact + Risk) × (6 − Effort), donde Effort invertido significa que un fix fácil sube el score.
+**Methodology:** Priority = (Impact + Risk) × (6 − Effort), where inverted Effort means an easy fix scores higher.
 
 ---
 
-## Resumen ejecutivo
+## Executive Summary
 
-El repo tiene una arquitectura sólida y bien estructurada, pero acumula deuda en cuatro áreas críticas: datos duplicados entre frontend y backend, dos sistemas de migración paralelos sin un claro ganador, el directorio `build/` commiteado, y un fichero `helpers.jsx` que ha crecido hasta convertirse en un cajón de sastre de 508 líneas. La cobertura de tests en frontend es cero y en backend es mínima.
+The repo has solid, well-structured architecture but accumulates debt in four critical areas: duplicate data between frontend and backend, two parallel migration systems with no clear winner, the `build/` directory committed to git, and a `helpers.jsx` file that has grown into a 508-line junk drawer. Frontend test coverage is zero, backend coverage is minimal.
 
 ---
 
-## Deuda priorizada
+## Prioritized Debt
 
-### 🔴 Prioridad alta (score ≥ 25)
+### 🔴 High Priority (score ≥ 25)
 
-#### 1. Mapa `PROVINCE_TO_CCAA` duplicado — Score: 28
-**Tipo:** Code debt  
+#### 1. Duplicate `PROVINCE_TO_CCAA` Map — Score: 28
+**Type:** Code debt  
 **Impact:** 3 | **Risk:** 4 | **Effort:** 2
 
-El mismo mapa provincia→CCAA existe en `src/services/apiService.js` y en `src/data/zones.js`. Si se añade una provincia o se corrige un nombre en uno de los dos sitios, el otro queda desactualizado silenciosamente, produciendo inconsistencias en los filtros de la UI.
+Same province→region map exists in `src/services/apiService.js` and in `src/data/zones.js`. If a province is added or a name corrected in one place, the other silently becomes outdated, producing UI filter inconsistencies.
 
-**Fix:** Extraer el mapa a `src/lib/constants.js` (ya existe el fichero) e importarlo desde ambos sitios. 1–2 horas.
+**Fix:** Extract map to `src/lib/constants.js` (file already exists) and import from both places. 1–2 hours.
 
 ---
 
-#### 2. Dos sistemas de migración sin un propietario claro — Score: 28
-**Tipo:** Architecture debt + Documentation debt  
+#### 2. Two Migration Systems with No Clear Owner — Score: 28
+**Type:** Architecture debt + Documentation debt  
 **Impact:** 3 | **Risk:** 4 | **Effort:** 2
 
-El repo tiene 49 ficheros `.sql` en `migrations/` (raíz del proyecto) y además un sistema Alembic en `backend/migrations/versions/` con 9 versiones. No queda claro cuál es la fuente de verdad. Los SQL manuales tienen numeración inconsistente (`015_sesion_b.sql`, `015_sesion_b_1.sql`, `015_sesion_b2.sql`…) lo que sugiere que se aplicaron manualmente en producción.
+Repo has 49 `.sql` files in `migrations/` (project root) plus an Alembic system in `backend/migrations/versions/` with 9 versions. Unclear which is source of truth. Manual SQL has inconsistent numbering (`015_sesion_b.sql`, `015_sesion_b_1.sql`, `015_sesion_b2.sql`…) suggesting manual application in production.
 
-**Fix:** Documentar en `migrations/README.md` cuál es el sistema activo (Alembic) y si los `.sql` ya están absorbidos en él o son una fuente independiente. Si están obsoletos, moverlos a `migrations/archive/`. 2–4 horas.
+**Fix:** Document in `migrations/README.md` which system is active (Alembic) and whether `.sql` files are already absorbed or remain independent. If obsolete, move to `migrations/archive/`. 2–4 hours.
 
 ---
 
-#### 3. `backend/build/` commiteado en git — Score: 25
-**Tipo:** Infrastructure debt  
+#### 3. `backend/build/` Committed to Git — Score: 25
+**Type:** Infrastructure debt  
 **Impact:** 2 | **Risk:** 3 | **Effort:** 1
 
-El directorio `backend/build/` contiene una copia completa de toda la app Python (routers, services, models…). Si se modifica `app/` sin hacer build, `build/` queda desactualizado y puede confundir a cualquier herramienta o deploy que lo tome como fuente. También infla el repo y dificulta los diffs.
+Directory `backend/build/` contains complete copy of entire Python app (routers, services, models…). If `app/` is modified without rebuilding, `build/` becomes outdated and may confuse any tool or deploy that uses it as source. Also bloats repo and complicates diffs.
 
-**Fix:** Añadir `backend/build/` a `.gitignore` y eliminarlo del índice de git con `git rm -r --cached backend/build/`. 30 minutos.
+**Fix:** Add `backend/build/` to `.gitignore` and remove from git index with `git rm -r --cached backend/build/`. 30 minutes.
 
 ---
 
-### 🟡 Prioridad media (score 15–24)
+### 🟡 Medium Priority (score 15–24)
 
-#### 4. `helpers.jsx` — God File de 508 líneas — Score: 21
-**Tipo:** Code debt  
+#### 4. `helpers.jsx` — God File of 508 Lines — Score: 21
+**Type:** Code debt  
 **Impact:** 4 | **Risk:** 3 | **Effort:** 3
 
-`helpers.jsx` mezcla tres tipos de cosas completamente distintas: iconos SVG inline (`IC`), funciones utilitarias puras (`slugify`, `resolveUrl`, `getEdibilityColor`), y micro-componentes React (`EdibilityTag`, `SpeciesCard`…). Cualquier cambio en iconos obliga a abrir el mismo fichero que para cambiar lógica de negocio.
+`helpers.jsx` mixes three completely different things: inline SVG icons (`IC`), pure utility functions (`slugify`, `resolveUrl`, `getEdibilityColor`), and React micro-components (`EdibilityTag`, `SpeciesCard`…). Any icon change forces opening same file as business logic changes.
 
-**Fix:** Dividir en tres módulos:
-- `src/lib/icons.jsx` — el objeto `IC` con todos los SVGs
-- `src/lib/utils.js` — funciones puras (slugify, resolveUrl, formatters)
-- `src/lib/ui.jsx` — micro-componentes React
+**Fix:** Split into three modules:
+- `src/lib/icons.jsx` — `IC` object with all SVGs
+- `src/lib/utils.js` — pure functions (slugify, resolveUrl, formatters)
+- `src/lib/ui.jsx` — React micro-components
 
-Los imports actuales de `@/lib/helpers` se pueden mantener temporalmente re-exportando desde el fichero original. 3–5 horas.
+Current `@/lib/helpers` imports can temporarily remain by re-exporting from original. 3–5 hours.
 
 ---
 
-#### 5. Cobertura de tests backend — Score: 21
-**Tipo:** Test debt  
+#### 5. Backend Test Coverage — Score: 21
+**Type:** Test debt  
 **Impact:** 3 | **Risk:** 4 | **Effort:** 3
 
-Solo existe un fichero de test: `backend/tests/unit/test_scoring.py`. No hay tests para auth, zonas, species, weather ni ninguno de los routers. El backend tiene ya la infraestructura de pytest y `.pytest_cache`.
+Only one test file exists: `backend/tests/unit/test_scoring.py`. No tests for auth, zones, species, weather, or any routers. Backend already has pytest infrastructure and `.pytest_cache`.
 
-**Fix:** Añadir al menos tests de contrato para los routers más críticos: `auth.py` (login/register) y `zones.py`. Estimar 1 día para una cobertura mínima razonable del 60%.
+**Fix:** Add at least contract tests for critical routers: `auth.py` (login/register) and `zones.py`. Estimate 1 day for reasonable 60% minimum coverage.
 
 ---
 
-#### 6. Inline SVGs en lugar de `lucide-react` — Score: 16
-**Tipo:** Code debt  
+#### 6. Inline SVGs Instead of `lucide-react` — Score: 16
+**Type:** Code debt  
 **Impact:** 2 | **Risk:** 1 | **Effort:** 2
 
-`lucide-react` ya está en `package.json` y se usa en algunas páginas de admin, pero `helpers.jsx` tiene sus propios SVGs inline para los iconos de navegación. Esto duplica mantenimiento y produce inconsistencias de tamaño/trazo.
+`lucide-react` already in `package.json` and used in some admin pages, but `helpers.jsx` has own inline SVGs for nav icons. Duplicates maintenance and causes size/stroke inconsistencies.
 
-**Fix:** Sustituir el objeto `IC` por imports directos de `lucide-react`. Muchos ya tienen equivalente exacto. 2–3 horas.
+**Fix:** Replace `IC` object with direct `lucide-react` imports. Many already have exact equivalents. 2–3 hours.
 
 ---
 
-#### 7. `standalone/` — codebase paralela sin documentar — Score: 16
-**Tipo:** Documentation debt + Architecture debt  
+#### 7. `standalone/` — Undocumented Parallel Codebase — Score: 16
+**Type:** Documentation debt + Architecture debt  
 **Impact:** 2 | **Risk:** 2 | **Effort:** 2
 
-`standalone/` contiene una versión completamente diferente de la app (HTML + JS plano, sin React) con su propio archivo de versiones hasta la `v2.8.0`. No queda claro si se mantiene activamente, si se genera desde el código principal, o si es un artefacto histórico.
+`standalone/` contains completely different version of app (HTML + plain JS, no React) with own version history up to `v2.8.0`. Unclear if actively maintained, generated from main code, or historical artifact.
 
-**Fix:** Añadir un `standalone/README.md` explicando el propósito. Si está deprecado, moverlo a un branch archivado. 1–2 horas.
+**Fix:** Add `standalone/README.md` explaining purpose. If deprecated, move to archived branch. 1–2 hours.
 
 ---
 
-### 🟢 Prioridad baja (score < 15)
+### 🟢 Low Priority (score < 15)
 
-#### 8. `backend/app/routers/species.py` — 519 líneas — Score: 15
-**Tipo:** Code debt  
+#### 8. `backend/app/routers/species.py` — 519 Lines — Score: 15
+**Type:** Code debt  
 **Impact:** 3 | **Risk:** 2 | **Effort:** 3
 
-El router de species mezcla endpoints públicos y admin en el mismo fichero a 519 líneas.
+Species router mixes public and admin endpoints in same 519-line file.
 
-**Fix:** Extraer los endpoints admin (`/visual-prompt`, `/images`) a `routers/species_admin.py`. 2–3 horas.
+**Fix:** Extract admin endpoints (`/visual-prompt`, `/images`) to `routers/species_admin.py`. 2–3 hours.
 
 ---
 
-#### 9. Cero tests en frontend — Score: 16 (esfuerzo alto)
-**Tipo:** Test debt  
+#### 9. Zero Frontend Tests — Score: 16 (high effort)
+**Type:** Test debt  
 **Impact:** 4 | **Risk:** 4 | **Effort:** 5
 
-No hay ningún test en el frontend. El riesgo principal es en la lógica de filtrado de `useSpecies.js` y en el scoring de condiciones meteorológicas.
+No frontend tests exist. Main risk is in `useSpecies.js` filtering logic and weather condition scoring.
 
-**Fix:** Configurar Vitest (viene con Vite) y añadir tests unitarios para `slugify`, `normalizeScore`, `normalizeZone` y el hook `useSpecies`. Estimar 1–2 días.
+**Fix:** Set up Vitest (comes with Vite) and add unit tests for `slugify`, `normalizeScore`, `normalizeZone`, and `useSpecies` hook. Estimate 1–2 days.
 
 ---
 
 #### 10. `AppContext.jsx` — God Context — Score: 10
-**Tipo:** Architecture debt  
+**Type:** Architecture debt  
 **Impact:** 3 | **Risk:** 2 | **Effort:** 4
 
-El contexto global gestiona i18n, auth, modal stack, follows y favoritos. Cualquier actualización de estado provoca re-render de todos los consumidores.
+Global context manages i18n, auth, modal stack, follows, and favorites. Any state update triggers re-render of all consumers.
 
-**Fix:** Dividir en `AuthContext`, `ModalContext` e `i18nContext`. Baja urgencia, pero a tener en cuenta si la app crece. 1–2 días.
-
----
-
-## Plan de remediación por fases
-
-### Fase 1 — Quick wins (~1 día en total)
-1. Eliminar `backend/build/` del repositorio
-2. Consolidar `PROVINCE_TO_CCAA` en `src/lib/constants.js`
-3. Documentar qué sistema de migraciones es el activo
-
-### Fase 2 — Refactors estructurales (en paralelo al feature work)
-4. Dividir `helpers.jsx` en tres módulos
-5. Sustituir SVGs inline por `lucide-react`
-6. Documentar o archivar `standalone/`
-7. Extraer endpoints admin de `species.py`
-
-### Fase 3 — Tests (10–20% de cada sprint)
-8. Tests de routers backend: auth + zones como primera iteración
-9. Configurar Vitest y cubrir lógica pura del frontend
-10. Evaluar si vale la pena dividir `AppContext`
+**Fix:** Split into `AuthContext`, `ModalContext`, and `i18nContext`. Low urgency but worth considering as app grows. 1–2 days.
 
 ---
 
-## Métricas actuales
+## Remediation Plan by Phase
 
-| Área | Indicador | Estado |
+### Phase 1 — Quick Wins (~1 day total)
+1. Remove `backend/build/` from repository
+2. Consolidate `PROVINCE_TO_CCAA` to `src/lib/constants.js`
+3. Document which migration system is active
+
+### Phase 2 — Structural Refactors (parallel to feature work)
+4. Split `helpers.jsx` into three modules
+5. Replace inline SVGs with `lucide-react`
+6. Document or archive `standalone/`
+7. Extract admin endpoints from `species.py`
+
+### Phase 3 — Tests (10–20% of each sprint)
+8. Backend router tests: auth + zones as first iteration
+9. Set up Vitest and cover pure frontend logic
+10. Evaluate whether splitting `AppContext` is worthwhile
+
+---
+
+## Current Metrics
+
+| Area | Indicator | Status |
 |------|-----------|--------|
-| Frontend tests | Ficheros de test | 0 |
-| Backend tests | Ficheros de test | 1 (solo scoring) |
-| Fichero más grande (frontend) | `helpers.jsx` | 508 líneas |
-| Fichero más grande (backend) | `routers/species.py` | 519 líneas |
-| Migraciones SQL manuales | Count | 49 ficheros |
-| Migraciones Alembic | Count | 9 versiones |
-| Datos duplicados identificados | PROVINCE_TO_CCAA | 2 copias |
+| Frontend tests | Test files | 0 |
+| Backend tests | Test files | 1 (scoring only) |
+| Largest file (frontend) | `helpers.jsx` | 508 lines |
+| Largest file (backend) | `routers/species.py` | 519 lines |
+| Manual SQL migrations | Count | 49 files |
+| Alembic migrations | Count | 9 versions |
+| Duplicate data identified | PROVINCE_TO_CCAA | 2 copies |

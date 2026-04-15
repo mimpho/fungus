@@ -1,15 +1,15 @@
-# Decisiones de Diseño y Arquitectura
+# Design and Architecture Decisions
 
-Decisiones tomadas durante el desarrollo activo, con su razonamiento. Complementa CLAUDE.md.
+Decisions made during active development, with their reasoning. Complements CLAUDE.md.
 
 ---
 
-## Sistema de Colores (migración v3.1)
+## Color System (v3.1 migration)
 
-**Decisión:** CSS custom properties en `:root` como fuente de verdad + tokens Tailwind en `tailwind.config.js`.
+**Decision:** CSS custom properties in `:root` as single source of truth + Tailwind tokens in `tailwind.config.js`.
 
-**Tokens actuales** (`styles.css` → `tailwind.config.js`):
-| Token Tailwind | CSS var | Hex |
+**Current tokens** (`styles.css` → `tailwind.config.js`):
+| Tailwind Token | CSS var | Hex |
 |---|---|---|
 | `cream` | `--color-cream` | `#f4ebe1` |
 | `muted` | `--color-muted` | `#d9cda1` |
@@ -20,136 +20,136 @@ Decisiones tomadas durante el desarrollo activo, con su razonamiento. Complement
 | `bg-deep` | `--color-bg-deep` | `#30372a` |
 | `modal` | `--color-modal` | `#1e2419` |
 
-**Excepciones que NO usan CSS vars (siempre hex):**
-- `FOREST_COLORS` en `constants.js` → Leaflet necesita hex para SVG fill/stroke
-- `ArticleCallout` prop `color` → se usa como `color + '18'` (concatenación de opacidad hex), CSS var no funciona aquí
-- Leaflet popup HTML template → mismo motivo que FOREST_COLORS
+**Exceptions that do NOT use CSS vars (always hex):**
+- `FOREST_COLORS` in `constants.js` → Leaflet needs hex for SVG fill/stroke
+- `ArticleCallout` prop `color` → used as `color + '18'` (hex opacity concatenation), CSS var doesn't work here
+- Leaflet popup HTML template → same reason as FOREST_COLORS
 
-**Regla:** Usar `text-coffee`, `bg-modal`, etc. en JSX. Solo hex directo en las excepciones documentadas arriba.
+**Rule:** Use `text-coffee`, `bg-modal`, etc. in JSX. Only direct hex in the documented exceptions above.
 
 ---
 
-## Sistema de Artículos
+## Article System
 
-**Decisión:** Cada artículo es un componente JSX registrado en `ARTICLE_REGISTRY` (objeto en `ArticleModal.jsx`).
+**Decision:** Each article is a JSX component registered in `ARTICLE_REGISTRY` (object in `ArticleModal.jsx`).
 
-**Artículos publicados:**
-| Slug | Componente | Estado |
+**Published articles:**
+| Slug | Component | Status |
 |---|---|---|
 | `micorrizas` | `Micorrizas.jsx` | published |
 | `esporas` | `Esporas.jsx` | published |
 | `toxinas` | `Venenos.jsx` | published |
 
-**Componentes disponibles dentro de artículos:**
-- `ArticleSection` — sección con título h2/h3, línea lateral coffee
-- `ArticleCallout` — bloque destacado (color prop en hex, ver excepción arriba)
-- `ArticleFigure` / `Fig` — figura con imagen y figcaption (overlay o debajo)
-- `Lightbox` — galería modal, se activa via `setLightbox([{url,caption}])` desde AppContext
+**Components available inside articles:**
+- `ArticleSection` — section with h2/h3 title, coffee side line
+- `ArticleCallout` — highlighted block (color prop in hex, see exception above)
+- `ArticleFigure` / `Fig` — figure with image and figcaption (overlay or below)
+- `Lightbox` — modal gallery, activated via `setLightbox([{url,caption}])` from AppContext
 
-**Patrón de imágenes en artículos:**
-- Fig única → ancho completo, height 220-260px, overlay caption
-- Figs en pareja → grid 2 cols, height 260px, overlay caption (mismo estilo que fig única)
-- Fig ilustrativa amplia → puede ir a ancho completo sin overlay
-
----
-
-## ZoneModal — Timestamp de actualización
-
-**Decisión:** Mostrar fecha/hora real de la caché de meteo en lugar de "Open-Meteo · actualizado ahora".
-
-**Flujo:**
-1. `getCacheTimestamp()` exportado desde `weatherService.js` — lee `ts` del localStorage sin revalidar TTL
-2. `useZoneConditions` devuelve `updatedAt` (timestamp ms) tras resolver el fetch
-3. `ZoneModal` formatea: `Actualizado el DD MMM a las HH:MM`
-4. Timestamp aparece al final del bloque de condiciones (debajo de las cards de iconos), alineado a la derecha, `text-[11px] text-cream/25`
-
-**Posición final del timestamp:** después del grid de 6 cards de parámetros climatológicos, DENTRO de `<section>` del termómetro.
+**Image pattern in articles:**
+- Single Fig → full width, height 220-260px, overlay caption
+- Paired Figs → grid 2 cols, height 260px, overlay caption (same style as single)
+- Wide illustrative Fig → can go full width without overlay
 
 ---
 
-## ZoneModal — Texto descriptivo del score
+## ZoneModal — Weather Cache Update Timestamp
 
-**Decisión:** Reemplazar el subtítulo técnico "Temperatura · Precipitación 14 días · Humedad del suelo" por una línea explicativa sin porcentajes.
+**Decision:** Show real cache timestamp instead of "Open-Meteo · updated now".
 
-**Texto actual:**
-> "El índice pondera datos meteorológicos en tiempo real junto al factor estacional del mes actual para calcular las condiciones de recolección."
+**Flow:**
+1. `getCacheTimestamp()` exported from `weatherService.js` — reads `ts` from localStorage without revalidating TTL
+2. `useZoneConditions` returns `updatedAt` (ms timestamp) after resolving the fetch
+3. `ZoneModal` formats: `Updated on DD MMM at HH:MM`
+4. Timestamp appears at end of conditions block (below icon parameter cards), right-aligned, `text-[11px] text-cream/25`
 
-Posición: entre el título `{t.termometro}` y la barra de score. Clase: `text-cream/50 text-xs mb-3 leading-relaxed`.
+**Final timestamp position:** after grid of 6 weather parameter cards, INSIDE `<section>` of the thermometer.
+
+---
+
+## ZoneModal — Score Descriptive Text
+
+**Decision:** Replace technical subtitle "Temperature · Rainfall 14 days · Soil humidity" with explanatory line without percentages.
+
+**Current text:**
+> "The index weights real-time weather data alongside the seasonal factor of the current month to calculate collection conditions."
+
+Position: between title `{t.termometro}` and score bar. Class: `text-cream/50 text-xs mb-3 leading-relaxed`.
 
 ---
 
 ## Dashboard — ArticleCard
 
-**Decisión:** Replicar el estilo de cards de artículos de la página Micología (no-featured) en el Dashboard.
+**Decision:** Replicate article card style from Mycology page (non-featured) in Dashboard.
 
-- Las cards NO-featured en Micología tienen: imagen hero, badge de familia, tags, tiempo de lectura
-- En Dashboard se usa el mismo componente `ArticleCard` local con apertura de `ArticleModal` directa
-- Sección "Especies" renombrada a "Catálogo" en Dashboard
-
----
-
-## SpeciesModal vs ZoneModal — Hero gradient
-
-**Decisión:** Reducir el gradiente del hero de ZoneModal para que sea consistente con SpeciesModal.
-
-- Antes: `from-modal via-modal/40 to-transparent`
-- Después: `from-modal via-modal/0 to-transparent` (igual que SpeciesModal)
+- Non-featured cards in Mycology have: hero image, family badge, tags, reading time
+- Dashboard uses same local `ArticleCard` component with direct `ArticleModal` opening
+- "Species" section renamed to "Catalog" in Dashboard
 
 ---
 
-## Sistema de Navegación de Modales (URL-driven, v3.1)
+## SpeciesModal vs ZoneModal — Hero Gradient
 
-**Decisión:** Los modales están ligados a la URL. Abrir un modal = navegar a su slug. Cerrar = `navigate(-1)`.
+**Decision:** Reduce ZoneModal hero gradient to match SpeciesModal.
 
-### ModalRenderer como única autoridad de navegación
+- Before: `from-modal via-modal/40 to-transparent`
+- After: `from-modal via-modal/0 to-transparent` (same as SpeciesModal)
 
-`ModalRenderer.jsx` es el único componente que llama a `navigate()` para modales. Los demás componentes solo llaman a `setSelected*(item)` y el `useEffect` de ModalRenderer reacciona navegando.
+---
+
+## Modal Navigation System (URL-driven, v3.1)
+
+**Decision:** Modals are tied to the URL. Opening a modal = navigating to its slug. Closing = `navigate(-1)`.
+
+### ModalRenderer as sole navigation authority
+
+`ModalRenderer.jsx` is the only component that calls `navigate()` for modals. All other components only call `setSelected*(item)` and ModalRenderer's `useEffect` reacts by navigating.
 
 ```
-// ✅ Patrón correcto — desde cualquier componente/modal:
-setSelectedSpecies(species)        // ModalRenderer navega a /especies/:slug
+// ✅ Correct pattern — from any component/modal:
+setSelectedSpecies(species)        // ModalRenderer navigates to /especies/:slug
 
-// ❌ Incorrecto — llamar navigate() directamente desde dentro de un modal:
+// ❌ Wrong — calling navigate() directly from inside a modal:
 navigate('/especies/boletus-edulis')
 ```
 
-Mapeo de estados → rutas en ModalRenderer:
+State → route mapping in ModalRenderer:
 - `selectedZone` → `/zonas/{slugify(zone.name)}`
 - `selectedSpecies` → `/especies/{slugify(species.scientificName)}`
 - `selectedFamily` → `/familia/{slugify(family.nombre || family.name)}`
-- Artículos → navegados directamente desde Micologia.jsx y Dashboard.jsx
+- Articles → navigated directly from Micologia.jsx and Dashboard.jsx
 
-### Patrón modal-from-modal
+### Modal-from-modal pattern
 
-Cuando se abre un modal B desde dentro del modal A (ej: familia desde ficha de seta):
+When opening modal B from inside modal A (e.g., family from species card):
 
 ```js
-// En SpeciesModal, botón "Ver familia":
-setSelectedSpecies(null)   // cierra el modal A del estado
-setSelectedFamily(family)  // abre el modal B
-// ModalRenderer detecta selectedFamily y navega a /familia/:slug
-// El historial queda: [..., /especies/boletus-edulis, /familia/amanitaceae]
-// ESC/Back desde /familia/amanitaceae → vuelve a /especies/boletus-edulis ✓
+// In SpeciesModal, "See family" button:
+setSelectedSpecies(null)   // closes modal A from state
+setSelectedFamily(family)  // opens modal B
+// ModalRenderer detects selectedFamily and navigates to /familia/:slug
+// History becomes: [..., /especies/boletus-edulis, /familia/amanitaceae]
+// ESC/Back from /familia/amanitaceae → returns to /especies/boletus-edulis ✓
 ```
 
-**Anti-patrón:** hacer `navigate('/especies', { replace: true })` antes de abrir el modal B rompe el historial: ESC va al listado en vez de al modal anterior.
+**Anti-pattern:** doing `navigate('/especies', { replace: true })` before opening modal B breaks history: ESC goes to listing instead of previous modal.
 
-### Guard anti-bucle en ModalRenderer
+### Anti-loop guard in ModalRenderer
 
-Antes de navegar, siempre comprobar si ya estamos en la URL destino:
+Before navigating, always check if we're already at the destination URL:
 
 ```js
 const target = `/especies/${slugify(selectedSpecies.scientificName)}`
-if (location.pathname === target) return   // evita bucle infinito
+if (location.pathname === target) return   // avoids infinite loop
 navigate(target)
 ```
 
-### Sincronización URL → estado (páginas con useParams)
+### URL → state synchronization (pages with useParams)
 
-Las páginas leen `useParams` para sincronizar el modal al cargar la URL directamente (deep link / refresh):
+Pages read `useParams` to synchronize modal when directly loading the URL (deep link / refresh):
 
 ```js
-// En Species.jsx:
+// In Species.jsx:
 const { id: speciesSlug } = useParams()
 useEffect(() => {
   if (speciesSlug) {
@@ -164,90 +164,90 @@ useEffect(() => {
 
 ---
 
-## Patrón ESC + Lightbox en modales
+## ESC + Lightbox Pattern in Modals
 
-**Problema:** Si un modal y el Lightbox que abre ambos tienen `document.addEventListener('keydown', ...)`, ESC cierra los dos a la vez.
+**Problem:** If both a modal and the Lightbox it opens have `document.addEventListener('keydown', ...)`, ESC closes both at once.
 
-**Solución:** El efecto de ESC del modal depende de `[lightbox]`. Cuando el lightbox está abierto, el listener del modal se desregistra.
+**Solution:** Modal's ESC effect depends on `[lightbox]`. When lightbox is open, modal's listener is unregistered.
 
 ```js
-// En cualquier modal que pueda tener lightbox (SpeciesModal, ArticleModal):
+// In any modal that can have lightbox (SpeciesModal, ArticleModal):
 const { lightbox } = useApp()
 const onCloseRef = useRef(onClose)
 useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
 useEffect(() => {
-  if (lightbox) return  // el Lightbox maneja su propio ESC
+  if (lightbox) return  // Lightbox handles its own ESC
   const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current() }
   document.addEventListener('keydown', onKey)
   return () => document.removeEventListener('keydown', onKey)
 }, [lightbox])
 ```
 
-El `onCloseRef` evita re-registrar el listener en cada render (la función `onClose` es nueva en cada render de ModalRenderer).
+The `onCloseRef` avoids re-registering the listener on each render (the `onClose` function is new on each ModalRenderer render).
 
-**Modales que aplican este patrón:** `SpeciesModal`, `ArticleModal`.
-**Lightbox:** tiene su propio listener siempre activo. Cierra con ESC llamando a `setLightbox(null)`.
+**Modals applying this pattern:** `SpeciesModal`, `ArticleModal`.
+**Lightbox:** has its own listener always active. Closes with ESC by calling `setLightbox(null)`.
 
 ---
 
-## GallerySection — Galería con tracking de errores
+## GallerySection — Gallery with Error Tracking
 
-**Problema:** Las especies mock tienen `photo.url` definido aunque el archivo no existe. La galería aparecía aunque todas las imágenes dieran 404.
+**Problem:** Mock species have `photo.url` defined even though the file doesn't exist. Gallery appeared even though all images returned 404.
 
-**Solución:** Componente `GallerySection` (module-level en `SpeciesModal.jsx`) con `useState(errored)`.
+**Solution:** Component `GallerySection` (module-level in `SpeciesModal.jsx`) with `useState(errored)`.
 
 ```js
 function GallerySection({ species, onOpenLightbox }) {
   const [errored, setErrored] = useState(0)
   const onErr = () => setErrored(n => n + 1)
   // ...
-  if (total === 0 || errored >= total) return null   // oculta si todas fallaron
-  // Render gallery con onError={onErr} en cada <img>
+  if (total === 0 || errored >= total) return null   // hides if all failed
+  // Render gallery with onError={onErr} on each <img>
 }
 ```
 
-**Regla:** usar `<img>` plano con `resolveUrl()` + `onError` en la galería, no `<SpeciesImg>`. `SpeciesImg` tiene fallback interno que no propaga el error hacia arriba.
+**Rule:** use plain `<img>` with `resolveUrl()` + `onError` in gallery, not `<SpeciesImg>`. `SpeciesImg` has internal fallback that doesn't propagate error upward.
 
 ---
 
-## Confusiones — estructura de datos (v4.6.2)
+## Confusions — Data Structure (v4.6.2)
 
-**Decisión:** Las confusiones se almacenan por especie como lista plana en `extra_data.confusions` (JSONB). Cada entrada tiene solo `with_species_id` y `diff`.
+**Decision:** Confusions are stored per species as flat list in `extra_data.confusions` (JSONB). Each entry has only `with_species_id` and `diff`.
 
 ```json
 "confusions": [
-  { "with_species_id": "esp-003", "diff": "Se distingue por el pie anillado y la volva…" },
-  { "with_species_id": "esp-007", "diff": "Poros rojos en *B. satanas*, carne azulea al corte" }
+  { "with_species_id": "esp-003", "diff": "Distinguished by ringed stem and volva…" },
+  { "with_species_id": "esp-007", "diff": "Red pores in *B. satanas*, flesh blues on cut" }
 ]
 ```
 
-**Qué NO se almacena en BD:** `icon`, `borderColor`, `nameColor`. Son responsabilidad del frontend y se derivan de `edibility` del objeto especie referenciado (mismo sistema que `EdibilityTag`).
+**What's NOT stored in DB:** `icon`, `borderColor`, `nameColor`. These are frontend responsibility and derived from `edibility` of the referenced species object (same system as `EdibilityTag`).
 
-**Por qué no se agrupa por familia:** El hardcoded `CONFUSIONES_POR_FAMILIA` usaba la familia como nivel de agrupación por conveniencia inicial ("todas las posibles confusibles de esta familia"), pero la aproximación es incorrecta:
-- Las confusiones son relaciones especie-a-especie, no familia-a-familia
-- Puede haber confusiones cross-family (ej. Cantharellus vs Hygrophoropsis, distinta familia)
-- No toda especie de una familia confunde con todas las demás de la misma familia
+**Why not group by family:** The hardcoded `CONFUSIONES_POR_FAMILIA` used family as grouping level for initial convenience ("all possible look-alikes in this family"), but the approach is wrong:
+- Confusions are species-to-species relations, not family-to-family
+- There can be cross-family confusions (e.g., Cantharellus vs Hygrophoropsis, different family)
+- Not every species in a family confuses with all others in the same family
 
-En el modelo nuevo, el nivel familia desaparece del dato. `ConfusionesBlock` leerá directamente `species.confusions` desde la API.
+In the new model, the family level disappears from the data. `ConfusionesBlock` will read directly from `species.confusions` from the API.
 
-**Flujo frontend (tras migración):**
-1. `SpeciesModal` recibe `detail.confusions = [{with_species_id, diff}]` desde la API
-2. `ConfusionesBlock` busca cada `with_species_id` en `allSpecies`
-3. Del objeto encontrado extrae `scientificName` (display) y `edibility` (para icon/colores)
-4. `diff` se muestra como texto descriptivo de la diferencia
-5. Si la especie referenciada existe en el catálogo → botón clickable que abre su modal
-6. Si no existe → div estático
+**Frontend flow (after migration):**
+1. `SpeciesModal` receives `detail.confusions = [{with_species_id, diff}]` from API
+2. `ConfusionesBlock` looks up each `with_species_id` in `allSpecies`
+3. From found object extracts `scientificName` (display) and `edibility` (for icon/colors)
+4. `diff` shown as descriptive text of the difference
+5. If referenced species exists in catalog → clickable button that opens its modal
+6. If not exists → static div
 
 ---
 
-## Condiciones de fructificación — texto en BD, no en JSX (v4.7.1)
+## Fruiting Conditions — Text in DB, Not in JSX (v4.7.1)
 
-**Decisión:** Los textos de "Condiciones de fructificación" (`cond_temp`, `cond_precip`, `cond_suelo`, `cond_req`) pasan a `extra_data` en BD, con sufijos `_es/ca/en`. Se eliminan los `if/else` hardcodeados por familia en `SpeciesModal.jsx`.
+**Decision:** "Fruiting Conditions" texts (`cond_temp`, `cond_precip`, `cond_suelo`, `cond_req`) move to `extra_data` in DB with suffixes `_es/ca/en`. Hardcoded `if/else` branching by family in `SpeciesModal.jsx` eliminated.
 
-**Problema actual:** Los 4 bloques de texto en `SpeciesModal` usan cadenas hardcodeadas con ramificación por `detail.family` y en algunos casos por `detail.scientificName`. No son datos de BD y no son traducibles sin duplicar código.
+**Current problem:** The 4 text blocks in `SpeciesModal` use hardcoded strings with branching by `detail.family` and in some cases by `detail.scientificName`. Not DB data and not translatable without code duplication.
 
-**Campos nuevos en `extra_data`:**
+**New fields in `extra_data`:**
 ```
 cond_temp_es / cond_temp_ca / cond_temp_en
 cond_precip_es / cond_precip_ca / cond_precip_en
@@ -255,101 +255,101 @@ cond_suelo_es / cond_suelo_ca / cond_suelo_en
 cond_req_es / cond_req_ca / cond_req_en
 ```
 
-**Flujo de generación (Gemini):** Para cada especie se pasan los campos numéricos (`temp_optima_min/max`, `precip_14dias_min/max`, `requiere_helada`, `requiere_choque_termico`, `dias_hasta_fructificacion`, `family`, `forestTypes`) y Gemini genera texto específico por especie en los 3 idiomas. No es traducción de texto existente — es generación a partir de datos.
+**Generation flow (Gemini):** For each species, numeric fields (`temp_optima_min/max`, `precip_14dias_min/max`, `requiere_helada`, `requiere_choque_termico`, `dias_hasta_fructificacion`, `family`, `forestTypes`) are passed and Gemini generates species-specific text in 3 languages. Not translation of existing text — generation from data.
 
-**En JSX (tras migración):** `SpeciesModal` lee `detail.cond_temp_es` (o `_ca/en` según lang) en lugar del bloque `if/else`.
+**In JSX (after migration):** `SpeciesModal` reads `detail.cond_temp_es` (or `_ca/en` by lang) instead of `if/else` block.
 
-**Alternativas descartadas:**
-- Mantener `if/else` en JSX + añadir claves i18n: insostenible, el texto no es por especie sino por familia, pierde especificidad.
-- Tabla separada `fruiting_conditions`: innecesario, `extra_data` JSONB es suficiente y consistente con el resto de campos de contenido.
+**Discarded alternatives:**
+- Keep `if/else` in JSX + add i18n keys: unsustainable, text isn't by species but by family, loses specificity.
+- Separate `fruiting_conditions` table: unnecessary, `extra_data` JSONB is sufficient and consistent with rest of content fields.
 
 ---
 
-## Paginador con URL (?pagina=N)
+## Paginator with URL (?page=N)
 
-**Decisión:** El paginador de Species usa `useSearchParams` en vez de `useState`. La página actual vive en `?pagina=N`.
+**Decision:** Species paginator uses `useSearchParams` instead of `useState`. Current page lives in `?page=N`.
 
-**Reset al cambiar filtros — patrón two-effect StrictMode-safe:**
+**Reset on filter change — two-effect StrictMode-safe pattern:**
 
-React StrictMode ejecuta efectos dos veces (mount→cleanup→remount). Un `useRef(isFirstRender)` simple no funciona porque el ref persiste entre los dos mounts del StrictMode.
+React StrictMode executes effects twice (mount→cleanup→remount). A simple `useRef(isFirstRender)` doesn't work because ref persists between StrictMode's two mounts.
 
-Solución con dos efectos:
+Solution with two effects:
 
 ```js
 const filterResetReady = useRef(false)
 
-// Efecto 1: su cleanup resetea el flag entre los dos mounts de StrictMode
+// Effect 1: its cleanup resets flag between StrictMode's two mounts
 useEffect(() => {
   return () => { filterResetReady.current = false }
 }, [])
 
-// Efecto 2: salta en el primer mount (flag=false), ejecuta en cambios reales
+// Effect 2: skips on first mount (flag=false), runs on real changes
 useEffect(() => {
   if (!filterResetReady.current) { filterResetReady.current = true; return }
-  if (!location.pathname.startsWith('/especies')) return  // no contaminar /familia/
-  setSearchParams(prev => { const p = new URLSearchParams(prev); p.set('pagina', '1'); return p }, { replace: true })
-}, [searchQuery, orden, showFilter, familyFilter])
-
----
-
-## Generador de imágenes — Monorepo vs Microservicio (v5.1)
-
-**Decisión:** El generador de imágenes con IA (Imagen 4 + Gemini) vive en el monorepo como herramienta admin del frontend, no como microservicio independiente.
-
-**Argumento principal (el que cierra el debate):** La carga computacional pesada recae en los servidores de Google. Un microservicio backend propio no escalaría nada — solo añadiría un salto de red y una superficie de fallo extra para un proceso que ya tarda 30–120s y depende de APIs externas.
-
-**Argumentos secundarios:**
-- **Auth nativo:** `AdminGuard` + columna `role` en `users` cubre frontend y backend sin necesidad de tokens compartidos entre servicios ni API Gateway.
-- **Sync-release:** la migración `008_add_user_role` y los cambios de UI viajan en el mismo commit. No hay riesgo de estado inconsistente entre versiones de servicios distintos.
-- **Reutilización de dominio:** el generador consume `useSpecies()` (misma API REST que el resto de la app) y constantes de `src/data/`. Nada requiere acceso especial que un microservicio no pueda tener también — pero sí evita duplicar tipos y constantes.
-
-**Alternativas descartadas:**
-- *Microservicio FastAPI separado en Render:* segundo cold start, CORS adicional, gestión de auth cross-service, build CI/CD duplicado. Cero ganancia de escalabilidad dado el modelo client-first con Google AI.
-- *Worker con cola (Celery + Redis):* válido si el pipeline de procesamiento bloqueara el backend principal, pero actualmente las llamadas van directamente del cliente a Google.
-
-**Deuda técnica conocida:** `VITE_GEMINI_API_KEY` está expuesta en el bundle del frontend. Es aceptable porque la herramienta está detrás de `AdminGuard` (solo usuarios con `role = 'admin'`), pero el único argumento real a favor de un microservicio en el futuro sería mover las API keys al backend FastAPI y convertir el generador en un endpoint autenticado server-side. No es urgente mientras el acceso admin sea fiable.
+  if (!location.pathname.startsWith('/especies')) return  // don't pollute /familia/
+  setSearchParams(prev => { const p = new URLSearchParams(prev); p.set('page', '1'); return p }, { replace: true })
+}, [searchQuery, order, showFilter, familyFilter])
 ```
 
 ---
 
-## Renaming de imágenes de especies (decidido v5.4, pendiente implementar)
+## Image Generator — Monorepo vs Microservice (v5.1)
 
-**Decisión:** Migrar de la nomenclatura `main`/`foto1`/`foto2` a un sistema de posición numérica explícita. Las imágenes de una especie se numeran `esp-XXX-01`, `esp-XXX-02`, etc. La primera posición (01) actúa como imagen principal en listados y header de SpeciesModal.
+**Decision:** AI image generator (Image 4 + Gemini) lives in monorepo as frontend admin tool, not as independent microservice.
 
-**Estado actual:**
-- Imágenes seed (estáticas): `esp-001-main.jpg`, `esp-001-main-large.jpg`, `esp-001-foto1.jpg`, `esp-001-foto1-large.jpg`, etc.
-- Imágenes generadas por IA: almacenadas como `data:image/jpeg;base64,...` en `extra_data.photo.url` y `extra_data.photos[].url` (sin filename real)
-- Ordenación: `set-order` ya gestiona un array ordenado donde posición 0 = main. Concepto correcto, naming de archivos legacy.
+**Main argument (debate closer):** Heavy compute load falls on Google servers. Own backend microservice wouldn't scale anything — only adds network hop and extra failure surface for process that already takes 30–120s and depends on external APIs.
 
-**Naming objetivo:**
+**Secondary arguments:**
+- **Native auth:** `AdminGuard` + `role` column in `users` covers frontend and backend without shared tokens between services or API Gateway.
+- **Sync-release:** migration `008_add_user_role` and UI changes travel in same commit. No risk of inconsistent state between service versions.
+- **Domain reuse:** generator consumes `useSpecies()` (same REST API as rest of app) and `src/data/` constants. Nothing requires special access a microservice couldn't also have — but avoids duplicating types and constants.
+
+**Discarded alternatives:**
+- *Separate FastAPI microservice on Render:* second cold start, extra CORS, cross-service auth management, duplicated CI/CD build. Zero scalability gains given client-first model with Google AI.
+- *Worker with queue (Celery + Redis):* valid if processing pipeline blocked main backend, but currently calls go directly from client to Google.
+
+**Known tech debt:** `VITE_GEMINI_API_KEY` is exposed in frontend bundle. Acceptable because tool is behind `AdminGuard` (only users with `role = 'admin'`), but only real argument for future microservice would be moving API keys to backend FastAPI and turning generator into authenticated server-side endpoint. Not urgent while admin access is reliable.
+
+---
+
+## Species Image Renaming (decided v5.4, pending implementation)
+
+**Decision:** Migrate from `main`/`photo1`/`photo2` nomenclature to explicit numeric position system. Species images numbered `esp-XXX-01`, `esp-XXX-02`, etc. First position (01) acts as main image in listings and SpeciesModal header.
+
+**Current state:**
+- Seed images (static): `esp-001-main.jpg`, `esp-001-main-large.jpg`, `esp-001-foto1.jpg`, `esp-001-foto1-large.jpg`, etc.
+- AI-generated images: stored as `data:image/jpeg;base64,...` in `extra_data.photo.url` and `extra_data.photos[].url` (no real filename)
+- Ordering: `set-order` already manages ordered array where position 0 = main. Correct concept, legacy file naming.
+
+**Target naming:**
 - `esp-161-01.jpg` + `esp-161-01-lg.jpg` (main)
-- `esp-161-02.jpg` + `esp-161-02-lg.jpg` (segunda foto)
-- etc. sin límite
+- `esp-161-02.jpg` + `esp-161-02-lg.jpg` (second photo)
+- etc., unlimited
 
-**Plan de implementación en 3 fases:**
+**Implementation plan in 3 phases:**
 
-### Fase A — Conceptual (ya implementada en v5.4)
-- `set-order` como única fuente de verdad para ordenación
-- El concepto de slot (`main`/`photo1`/`photo2`) desaparece del frontend
-- `CatalogImagesModal` ya usa posición implícita (índice 0 = main)
-- El endpoint `PATCH /species/{id}/images` (slot-based) queda deprecated
+### Phase A — Conceptual (already implemented in v5.4)
+- `set-order` as sole source of truth for ordering
+- Concept of slot (`main`/`photo1`/`photo2`) disappears from frontend
+- `CatalogImagesModal` already uses implicit position (index 0 = main)
+- Endpoint `PATCH /species/{id}/images` (slot-based) becomes deprecated
 
-### Fase B — Rename de archivos estáticos seed (pendiente, requiere migración)
-1. Script Python (`scripts/rename_images.py`) que recorre todas las especies en DB:
-   - Lee `extra_data.photo.url` → renombra a `esp-XXX-01.jpg` / `esp-XXX-01-lg.jpg`
-   - Lee `extra_data.photos[0].url` → renombra a `esp-XXX-02.jpg` / `esp-XXX-02-lg.jpg`
-   - Actualiza los URLs en `extra_data` en Supabase DB
-2. Los archivos estáticos del frontend (`/assets/images/content/species/`) se renombran localmente y se redesplegan
-3. Paso manual: sincronizar archivos físicos en el servidor (Vercel public assets)
+### Phase B — Rename of static seed files (pending, requires migration)
+1. Python script (`scripts/rename_images.py`) iterates all species in DB:
+   - Reads `extra_data.photo.url` → renames to `esp-XXX-01.jpg` / `esp-XXX-01-lg.jpg`
+   - Reads `extra_data.photos[0].url` → renames to `esp-XXX-02.jpg` / `esp-XXX-02-lg.jpg`
+   - Updates URLs in `extra_data` in Supabase DB
+2. Static files in frontend (`/assets/images/content/species/`) renamed locally and redeployed
+3. Manual step: sync physical files on server (Vercel public assets)
 
-### Fase C — File storage para imágenes generadas (backlog, requiere infraestructura)
-- Migrar de `data:` URIs en DB a URLs en Supabase Storage
-- Cuando el generador guarda, el backend sube a `species-images/esp-XXX-NN.jpg` y devuelve la URL pública
-- Reduce el tamaño de `extra_data` drásticamente (actualmente las `data:` URIs pueden ser ~200KB por imagen en base64)
-- Requiere: `SUPABASE_SERVICE_KEY` en el backend, bucket público, lógica de numeración al subir
+### Phase C — File storage for generated images (backlog, requires infrastructure)
+- Migrate from `data:` URIs in DB to URLs in Supabase Storage
+- When generator saves, backend uploads to `species-images/esp-XXX-NN.jpg` and returns public URL
+- Drastically reduces `extra_data` size (currently `data:` URIs can be ~200KB per image in base64)
+- Requires: `SUPABASE_SERVICE_KEY` in backend, public bucket, numbering logic on upload
 
-**Alternativas descartadas:**
-- *Slug en el nombre de archivo* (`esp-boletus-edulis-01.jpg`): más legible pero el `scientificName` puede cambiar; el ID numérico es estable.
-- *Hash del contenido* (`esp-001-a3f2c8.jpg`): no es determinista para el administrador.
+**Discarded alternatives:**
+- *Slug in filename* (`esp-boletus-edulis-01.jpg`): more readable but `scientificName` can change; numeric ID is stable.
+- *Content hash* (`esp-001-a3f2c8.jpg`): not deterministic for administrator.
 
-**Acción inmediata:** Fase A ya lista. Crear issue/milestone para Fase B cuando se vayan a redesplegar los assets del frontend. Fase C cuando se decida monetización y se necesite optimizar el tamaño de la DB.
+**Immediate action:** Phase A ready. Create issue/milestone for Phase B when redesploying frontend assets. Phase C when deciding monetization and needing to optimize DB size.

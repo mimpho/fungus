@@ -1,19 +1,19 @@
-# Gotchas y Restricciones Conocidas
+# Gotchas and Known Restrictions
 
-Trampas y errores que ya hemos encontrado. Consultar antes de tocar estas áreas.
+Pitfalls and errors we've already encountered. Consult before modifying these areas.
 
 ---
 
-## API Open-Meteo
+## Open-Meteo API
 
-### ⚠️ `soil_temperature_0cm` solo en `hourly`
-Añadirlo a `current` devuelve HTTP 400. Siempre fetch en `hourly` y leer el índice horario más cercano a `new Date().getHours()`.
+### ⚠️ `soil_temperature_0cm` only in `hourly`
+Adding it to `current` returns HTTP 400. Always fetch in `hourly` and read the hourly index closest to `new Date().getHours()`.
 
 ```js
-// ✅ Correcto
+// ✅ Correct
 hourly: 'soil_temperature_0cm'
 
-// ❌ Rompe la API
+// ❌ Breaks the API
 current: 'temperature_2m,soil_temperature_0cm'
 ```
 
@@ -21,25 +21,25 @@ current: 'temperature_2m,soil_temperature_0cm'
 
 ## Leaflet
 
-### ⚠️ `window.L = L` antes del import dinámico de leaflet.heat
-`leaflet.heat` es un plugin CommonJS que busca `L` en el scope global durante su inicialización. Si se hace el `import('leaflet.heat')` antes de que `window.L` esté asignado, falla silenciosamente o lanza error.
+### ⚠️ `window.L = L` before dynamic import of leaflet.heat
+`leaflet.heat` is a CommonJS plugin that looks for `L` in the global scope during initialization. If `import('leaflet.heat')` is done before `window.L` is assigned, it fails silently or throws an error.
 
 ```js
-// En LeafletMap.jsx, a nivel de módulo (fuera de cualquier función):
+// In LeafletMap.jsx, at module level (outside any function):
 import L from 'leaflet'
-window.L = L  // ← DEBE ir aquí, antes de cualquier import() dinámico
+window.L = L  // ← MUST go here, before any dynamic import()
 
-// Dentro del componente, solo cuando se activa heatmap:
+// Inside the component, only when heatmap is activated:
 const heat = await import('leaflet.heat')
 ```
 
-### ⚠️ `FOREST_COLORS` y colores Leaflet → siempre hex, nunca CSS vars
-Los markers SVG y los popups HTML de Leaflet se renderizan fuera del DOM de React. Las CSS custom properties (`var(--color-coffee)`) no se resuelven en ese contexto. Usar siempre valores hex literales.
+### ⚠️ `FOREST_COLORS` and Leaflet colors → always hex, never CSS vars
+Leaflet's SVG markers and HTML popups are rendered outside React's DOM. CSS custom properties (`var(--color-coffee)`) don't resolve in that context. Always use literal hex values.
 
 ```js
 // constants.js
 export const FOREST_COLORS = {
-  pinar:   '#4a7c59',  // ⚠️ hex obligatorio — Leaflet SVG no resuelve CSS vars
+  pinar:   '#4a7c59',  // ⚠️ hex required — Leaflet SVG won't resolve CSS vars
   hayedo:  '#6b7c3e',
   // ...
 }
@@ -47,140 +47,140 @@ export const FOREST_COLORS = {
 
 ---
 
-## Sistema de Colores
+## Color System
 
-### ⚠️ `ArticleCallout` color prop → siempre hex
-El componente construye el color de fondo como `color + '18'` (sufijo de opacidad hex). Si se pasa `var(--color-coffee)`, la concatenación da `var(--color-coffee)18`, que no es un color válido.
+### ⚠️ `ArticleCallout` color prop → always hex
+The component builds background color as `color + '18'` (hex opacity suffix). If you pass `var(--color-coffee)`, concatenation yields `var(--color-coffee)18`, which is not a valid color.
 
 ```jsx
-// ✅ Correcto
+// ✅ Correct
 <ArticleCallout color="#8b6f47">...</ArticleCallout>
 
-// ❌ No funciona
+// ❌ Doesn't work
 <ArticleCallout color="var(--color-coffee)">...</ArticleCallout>
 ```
 
-### ⚠️ No usar `bg-mid` ni `green-dark` — fueron renombrados
-- `bg-mid` → eliminado (no existía realmente como token)
-- `green-dark` → renombrado a `green-f`
+### ⚠️ Don't use `bg-mid` or `green-dark` — they were renamed
+- `bg-mid` → removed (didn't really exist as a token)
+- `green-dark` → renamed to `green-f`
 
 ---
 
 ## React / Hooks
 
-### ⚠️ React StrictMode monta efectos dos veces en desarrollo
-Los `useEffect` se ejecutan doble en dev. Los guards con `useRef` no funcionan bien aquí porque la referencia se reinicia. Solución: caché de promesas en vuelo a nivel de módulo en `weatherService.js` (`_allZonesPromise`, `_singlePromises`).
+### ⚠️ React StrictMode mounts effects twice in development
+`useEffect` runs double in dev. Guards with `useRef` don't work well here because the reference resets. Solution: module-level promise cache in `weatherService.js` (`_allZonesPromise`, `_singlePromises`).
 
-### ⚠️ `conditionsMap` empieza como objeto vacío `{}`
-Siempre usar optional chaining al acceder:
+### ⚠️ `conditionsMap` starts as empty object `{}`
+Always use optional chaining when accessing:
 ```js
 // ✅
 conditionsMap[zone.id]?.overallScore ?? 0
 
-// ❌ Crash en el render inicial
+// ❌ Crashes on initial render
 conditionsMap[zone.id].overallScore
 ```
 
-### ⚠️ `useMemo` en Dashboard/Zones depende de `conditionsMap`
-El mapa se rellena de forma asíncrona. Los `useMemo` que derivan datos de él deben incluirlo en sus dependencias o no verán las actualizaciones.
+### ⚠️ `useMemo` in Dashboard/Zones depends on `conditionsMap`
+The map is filled asynchronously. `useMemo` calls that derive data from it must include it in dependencies or won't see updates.
 
 ---
 
-## Caché de Meteo
+## Weather Cache
 
-### ⚠️ Incrementar `CACHE_VERSION` al cambiar el algoritmo de scoring
-La caché en localStorage se invalida por versión. Si se cambia `calculateOverallScore` o la formula del species modifier sin subir `CACHE_VERSION`, los usuarios verán scores antiguos durante 3 horas.
+### ⚠️ Increment `CACHE_VERSION` when changing the scoring algorithm
+Cache in localStorage is invalidated by version. If you change `calculateOverallScore` or the species modifier formula without bumping `CACHE_VERSION`, users will see old scores for 3 hours.
 
-**Versión actual:** `CACHE_VERSION = 3` (en `weatherService.js`)
+**Current version:** `CACHE_VERSION = 3` (in `weatherService.js`)
 
-### ℹ️ El species modifier NO está en la caché
-`applySpeciesModifier` se aplica en el hook tras leer la caché, no en `weatherService`. Esto es intencionado: permite cambiar los pesos de comestibilidad sin invalidar la caché meteorológica.
-
----
-
-## Migración de colores (script automático)
-
-### ⚠️ El script de migración sobrescribió `FOREST_COLORS` con CSS vars
-Al ejecutar la migración automática de hexadecimales → tokens, `FOREST_COLORS` fue modificado incorrectamente. Fue revertido manualmente a hex. Si se vuelve a correr algún script de sustitución de colores, excluir explícitamente `FOREST_COLORS` y el template HTML de Leaflet.
+### ℹ️ The species modifier is NOT in the cache
+`applySpeciesModifier` is applied in the hook after reading the cache, not in `weatherService`. This is intentional: it allows changing edibility weights without invalidating the weather cache.
 
 ---
 
-## Edición de archivos
+## Color Migration (automatic script)
 
-### ℹ️ Leer el archivo antes de usar `Edit`
-La herramienta `Edit` falla si el archivo no ha sido leído en la misma sesión. Siempre usar `Read` antes de editar, especialmente tras un `Write` previo.
-
-### ⚠️ No añadir `className` duplicado en JSX
-Al editar con sed o reemplazos de texto, comprobar que no quede un atributo `className` duplicado en el mismo elemento. React lanza warning y usa solo el último.
+### ⚠️ The migration script incorrectly overwrote `FOREST_COLORS` with CSS vars
+When running automatic migration from hex → tokens, `FOREST_COLORS` was modified incorrectly. It was manually reverted to hex. If you run any color substitution scripts again, explicitly exclude `FOREST_COLORS` and the Leaflet HTML template.
 
 ---
 
-## Routing de Modales (React Router v6)
+## File Editing
 
-### ⚠️ `navigate()` nunca dentro de un modal — solo `setSelected*()`
-Los modales no llaman a `navigate()` directamente. Solo actualizan estado del contexto (`setSelectedSpecies`, etc.) y `ModalRenderer` reacciona navegando. Llamar `navigate()` desde un modal rompe el historial y hace que ESC no vuelva al sitio correcto. Ver `memory/decisions.md` → "ModalRenderer como única autoridad".
+### ℹ️ Read the file before using `Edit`
+The `Edit` tool fails if the file hasn't been read in the same session. Always use `Read` before editing, especially after a previous `Write`.
 
-### ⚠️ `navigate('/ruta', { replace: true })` entre modales rompe el Back button
-Si al abrir un modal B desde el modal A se hace `navigate('/ruta-base', { replace: true })`, se reemplaza la entrada del modal A en el historial. ESC desde B ya no puede volver a A. La solución es no navegar manualmente — dejar que ModalRenderer empuje la nueva entrada con `navigate(target)` (sin replace).
-
-### ⚠️ Guard anti-bucle obligatorio en ModalRenderer
-Sin el guard `if (location.pathname === target) return`, el `useEffect` de ModalRenderer puede dispararse infinitamente al cambiar `selectedSpecies` mientras ya estás en `/especies/:slug`. Siempre comparar antes de navegar.
+### ⚠️ Don't add duplicate `className` in JSX
+When editing with sed or text replacements, verify that no duplicate `className` attribute remains on the same element. React warns and uses only the last one.
 
 ---
 
-## URLs de Assets en Rutas Anidadas
+## Modal Routing (React Router v6)
 
-### ⚠️ Imágenes con rutas relativas se rompen en `/especies/:id`, `/familia/:slug`, etc.
-Los datos mock usan rutas como `assets/images/species/esp-001.jpg` (sin `/` inicial). Cuando la URL del browser es `/especies/boletus-edulis`, el browser resuelve la ruta relativa como `/especies/assets/...` → 404.
+### ⚠️ Never `navigate()` inside a modal — only `setSelected*()`
+Modals don't call `navigate()` directly. They only update context state (`setSelectedSpecies`, etc.) and `ModalRenderer` reacts by navigating. Calling `navigate()` from a modal breaks history and prevents ESC from returning to the right place. See `memory/decisions.md` → "ModalRenderer as sole authority".
 
-**Solución:** `resolveUrl()` en `helpers.jsx`. Usar siempre en `<img src>` de modales, galerías y artículos:
+### ⚠️ `navigate('/route', { replace: true })` between modals breaks the Back button
+If opening modal B from modal A uses `navigate('/base-route', { replace: true })`, it replaces modal A's history entry. ESC from B can no longer return to A. The solution is not to navigate manually — let ModalRenderer push the new entry with `navigate(target)` (no replace).
+
+### ⚠️ Anti-loop guard required in ModalRenderer
+Without the guard `if (location.pathname === target) return`, ModalRenderer's `useEffect` can fire infinitely when changing `selectedSpecies` while already at `/especies/:slug`. Always compare before navigating.
+
+---
+
+## Asset URLs in Nested Routes
+
+### ⚠️ Images with relative paths break in `/especies/:id`, `/familia/:slug`, etc.
+Mock data uses paths like `assets/images/species/esp-001.jpg` (no leading `/`). When the browser URL is `/especies/boletus-edulis`, the browser resolves the relative path as `/especies/assets/...` → 404.
+
+**Solution:** `resolveUrl()` in `helpers.jsx`. Always use in `<img src>` of modals, galleries, and articles:
 
 ```js
 import { resolveUrl } from '../../lib/helpers'
-<img src={resolveUrl(foto.url)} />   // garantiza /assets/... nunca assets/...
+<img src={resolveUrl(foto.url)} />   // guarantees /assets/... never assets/...
 ```
 
-**Componentes donde ya está aplicado:** `SpeciesModal` (GallerySection), `FamilyModal` (thumbnails), `Lightbox` (main image + thumbnails).
+**Components where it's already applied:** `SpeciesModal` (GallerySection), `FamilyModal` (thumbnails), `Lightbox` (main image + thumbnails).
 
 ---
 
-## Backend — Deploy en Render (free tier)
+## Backend — Deployment on Render (free tier)
 
-### ⚠️ CORS: las preview URLs de Vercel no están en la whitelist por defecto
-Las preview deployments de Vercel generan URLs dinámicas tipo `fungus-xxxx.vercel.app`. Si se intenta acceder al backend desde una de estas URLs sin tenerla en `CORS_ORIGINS`, el browser bloquea la petición.
+### ⚠️ CORS: Vercel preview URLs are not whitelisted by default
+Vercel preview deployments generate dynamic URLs like `fungus-xxxx.vercel.app`. If accessing the backend from one of these URLs without it in `CORS_ORIGINS`, the browser blocks the request.
 
-**Solución implementada:** `allow_origin_regex=r"https://fungus[^.]*\.vercel\.app"` en el `CORSMiddleware` de `main.py`. Cubre automáticamente cualquier preview URL del proyecto sin tocar variables de entorno.
+**Implemented solution:** `allow_origin_regex=r"https://fungus[^.]*\.vercel\.app"` in `CORSMiddleware` of `main.py`. Automatically covers any preview URL of the project without touching environment variables.
 
-Si se añade un dominio de producción nuevo (ej. dominio propio), añadirlo a la env var `CORS_ORIGINS` en Render (comma-separated).
+If adding a new production domain (e.g., custom domain), add it to the `CORS_ORIGINS` env var in Render (comma-separated).
 
-### ⚠️ No hay acceso a shell en Render free tier → migraciones por código
-Render free tier no expone Shell. Ejecutar `alembic upgrade head` manualmente es imposible sin hacer deploy.
+### ⚠️ No shell access in Render free tier → migrations via code
+Render free tier doesn't expose Shell. Running `alembic upgrade head` manually is impossible without deploying.
 
-**Solución implementada:** `_run_db_migrations()` en el lifespan de `main.py` llama a `alembic upgrade head` sincrónicamente al arrancar, antes de cualquier query. Alembic es idempotente: si el schema ya está actualizado, no hace nada. Cada deploy aplica automáticamente las migraciones pendientes.
+**Implemented solution:** `_run_db_migrations()` in `main.py` lifespan calls `alembic upgrade head` synchronously on startup, before any queries. Alembic is idempotent: if the schema is already updated, it does nothing. Each deploy automatically applies pending migrations.
 
-### ⚠️ `asyncio.run()` dentro del lifespan → RuntimeError (500 silencioso)
-`alembic env.py` usa un async engine y llama `asyncio.run(run_migrations_online())`. Si se llama `_run_db_migrations()` directamente desde el lifespan (que ya corre en un event loop), `asyncio.run()` falla con `RuntimeError: This event loop is already running` → el arranque crashea antes de servir cualquier request → 500 sin headers CORS (el browser muestra ambos errores, pero el CORS es consecuencia del 500).
+### ⚠️ `asyncio.run()` inside lifespan → RuntimeError (silent 500)
+`alembic env.py` uses an async engine and calls `asyncio.run(run_migrations_online())`. If calling `_run_db_migrations()` directly from the lifespan (which already runs in an event loop), `asyncio.run()` fails with `RuntimeError: This event loop is already running` → startup crashes before serving requests → 500 without CORS headers (the browser shows both errors, but CORS is a consequence of the 500).
 
-**Síntoma:** las peticiones al backend fallan con 500 + CORS error. El error parece de CORS pero en realidad es un crash de startup.
+**Symptom:** backend requests fail with 500 + CORS error. The error looks like CORS but is actually a startup crash.
 
-**Solución implementada:** `await asyncio.to_thread(_run_db_migrations)` en el lifespan. La migración corre en un thread worker donde no hay event loop activo, por lo que `asyncio.run()` de env.py funciona sin conflicto.
+**Implemented solution:** `await asyncio.to_thread(_run_db_migrations)` in lifespan. Migration runs in a worker thread where no event loop is active, so `asyncio.run()` in env.py works without conflict.
 
-### ⚠️ Floats del backend pueden tener precisión errática en el frontend
-Valores como `pa21_mm` vienen como floats crudos de Python (ej. `1.7999999999999998`). Siempre redondear al normalizar en el frontend.
+### ⚠️ Backend floats can have erratic precision on the frontend
+Values like `pa21_mm` come as raw Python floats (e.g., `1.7999999999999998`). Always round when normalizing on the frontend.
 
-**Solución implementada:** helpers `r1` (1 decimal) y `r0` (entero) en `normalizeScore()` de `apiService.js` y en `useApiZoneConditions`.
+**Implemented solution:** helpers `r1` (1 decimal) and `r0` (integer) in `normalizeScore()` of `apiService.js` and in `useApiZoneConditions`.
 
-### ℹ️ Conflictos entre feature branches que tocan los mismos archivos backend
-Si una epic branch tiene commits de una fase anterior (skeletons) y una feature branch tiene la implementación completa, la PR mostrará conflictos aunque no haya divergencia con `main`.
+### ℹ️ Conflicts between feature branches touching the same backend files
+If an epic branch has commits from an earlier phase (skeletons) and a feature branch has the complete implementation, the PR will show conflicts even though there's no divergence with `main`.
 
-**Patrón de resolución:** `git merge origin/epic/...` en la feature branch + `git checkout --ours` para todos los archivos backend donde nuestra implementación supera el skeleton. Commit del merge con explicación del criterio de resolución.
+**Resolution pattern:** `git merge origin/epic/...` in the feature branch + `git checkout --ours` for all backend files where our implementation exceeds the skeleton. Merge commit with explanation of the resolution criteria.
 
 ---
 
-## React Router v6 — Comportamiento de Instancias de Componentes
+## React Router v6 — Component Instance Behavior
 
-### ℹ️ Rutas distintas que renderizan el mismo componente crean instancias separadas
-`/especies` y `/especies/:id` usan `<Species />` en rutas distintas → React crea una nueva instancia al navegar entre ellas (no reutiliza). Los refs empiezan a `false`/`null` en cada instancia nueva. Esto es relevante para el patrón two-effect de reset de paginador.
+### ℹ️ Different routes that render the same component create separate instances
+`/especies` and `/especies/:id` use `<Species />` in different routes → React creates a new instance when navigating between them (doesn't reuse). Refs start at `false`/`null` in each new instance. This is relevant for the two-effect paginator reset pattern.
 
-### ℹ️ `Family.jsx` renderiza `<Species />` como hijo → instancia diferente a la de `/especies`
-Al navegar de `/familia/:slug` a `/especies/:id`, React desmonta la Species de Family y monta una nueva Species independiente. No hay reutilización de instancia entre rutas de diferente profundidad de árbol.
+### ℹ️ `Family.jsx` renders `<Species />` as a child → different instance from `/especies`
+When navigating from `/familia/:slug` to `/especies/:id`, React unmounts Species from Family and mounts a new independent Species. No instance reuse between routes of different tree depth.
