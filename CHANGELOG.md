@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`ModuleNotFoundError: No module named 'google'`**: `google-auth` was missing from `pyproject.toml`.
 - **`ImportError: The requests library is not installed`**: `google.auth.transport.requests` requires `requests` explicitly. Added to dependencies.
 - **Favorites not loaded after login in incognito / new devices**: `apiGetFavSpecies()` and `apiGetFollowedZones()` were never called after authentication. Fixed by `loadUserDataFromApi()` called on all login paths and session restore.
+- **Google button border bleed (lateral)**: overlay container switched to `theme: 'filled_black'` + forced width 400px to prevent visible borders bleeding through at sides.
+- **Google button dead zone at bottom**: Google's iframe (≈40px) was top-aligned inside our 48px container — added `flex items-center justify-center` to wrapper and `scale(1.4)` to the iframe div so the clickable area fully covers the visual button height.
+- **Date picker icon black on dark background**: `input[type="date"]::-webkit-calendar-picker-indicator` was the browser's default black. Added global CSS rule `filter: invert(1)` in `styles.css` so the icon appears cream/white on all date inputs.
 
 ---
 
