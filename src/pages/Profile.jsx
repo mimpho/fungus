@@ -125,7 +125,7 @@ export default function Profile() {
           {user.role === 'admin' && (
             <Tabs
               options={[
-                { id: 'user',  label: t.modoPublico ?? 'Público' },
+                { id: 'user', label: t.modoPublico ?? 'Público' },
                 { id: 'admin', label: t.modoAdmin ?? 'Admin' },
               ]}
               selected={isAdminView ? 'admin' : 'user'}
@@ -295,8 +295,8 @@ export default function Profile() {
             <button
               onClick={handleLogout}
               disabled={signingOut || deleting}
-              className="hover:text-cream/70 transition-colors disabled:opacity-40 text-left"
-              style={{ minWidth: '7rem' }}
+              className="hover:text-cream/70 transition-colors disabled:opacity-40 text-center"
+              style={{ minWidth: '5.5rem' }}
             >
               {signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}
             </button>
