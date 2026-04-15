@@ -276,12 +276,25 @@ Inline code comments in source files may use Spanish where the domain language i
 
 ## PR preparation
 
-When preparing an integration, always provide title and description **inline in the chat as markdown blocks** — never as files on disk. The human pastes them into GitHub and handles the merge; Claude never merges to main.
+When preparing a PR, always provide title and body **inline in the chat as separate fenced code blocks** so the human can copy/paste each one directly into GitHub. Never write them as files on disk. Claude never merges to main.
 
-**Title**: Conventional Commits format, ≤72 chars, in English.
-**Body**: always in English.
-**Body**: summary of changes + manual steps section + testing checklist.
+**Rules — all mandatory:**
 
+| Field | Rule |
+|---|---|
+| Language | **English only** — title and body |
+| Title format | Conventional Commits, ≤72 chars — in its own ` ``` ` block |
+| Body format | Markdown — in its own ` ``` ` block |
+| Body sections | `## Summary` · `## Manual steps` · `## Testing checklist` |
+
+**Example output format:**
+
+**Title**
+```
+feat(auth): add Google OAuth2 signin flow
+```
+
+**Body**
 ```markdown
 ## Summary
 - <bullet 1>

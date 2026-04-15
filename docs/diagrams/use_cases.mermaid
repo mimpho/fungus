@@ -1,0 +1,115 @@
+%% Use Case Diagram — Fungus
+%% Actors: Guest, Authenticated User, Admin, System (APScheduler)
+
+flowchart TB
+
+    %% ── Actors ────────────────────────────────────────────────────────────────
+    Guest(["👤 Guest"])
+    User(["🔑 User\n(authenticated)"])
+    Admin(["🛡️ Admin"])
+    Sys(["⚙️ System\n(APScheduler)"])
+
+    %% ── Use case groups ───────────────────────────────────────────────────────
+
+    subgraph EXPLORE ["🗺️  Exploration"]
+        UC1["View foraging zones\n(map + list)"]
+        UC2["Consult foraging\noutbreak score (OI)"]
+        UC3["Browse species\ncatalogue (202 sp.)"]
+        UC4["Filter & search\nspecies / zones"]
+        UC5["Read mycology\narticles"]
+        UC6["View species\nconfusion warnings"]
+        UC7["Switch language\n(ES / CA / EN)"]
+    end
+
+    subgraph AUTH ["🔐  Authentication"]
+        UC8["Register\n(email + password)"]
+        UC9["Login\n(email + password)"]
+        UC10["Login with Google\n(OAuth2 / FedCM)"]
+        UC11["Restore session\n(silent refresh)"]
+        UC12["Logout"]
+        UC13["Delete account"]
+    end
+
+    subgraph PERSONAL ["⭐  Personal data"]
+        UC14["Save favourite\nspecies"]
+        UC15["Follow foraging\nzones"]
+        UC16["Edit profile\n(name, birthdate)"]
+        UC17["View saved\nfavourites & zones"]
+    end
+
+    subgraph ADMIN ["🛠️  Administration"]
+        UC18["Manage species\nimages (gallery)"]
+        UC19["Generate AI image\n(Imagen 4 / Gemini)"]
+        UC20["Edit DNA Visual\nper species"]
+        UC21["Validate generated\nimages"]
+        UC22["Toggle admin\n/ public view"]
+    end
+
+    subgraph SYSTEM ["🤖  Automated processes"]
+        UC23["Daily weather\ningestion (05:00 UTC)"]
+        UC24["Refresh OI score\ncache per zone"]
+        UC25["Auto-apply\nAlembic migrations"]
+    end
+
+    %% ── Guest associations ────────────────────────────────────────────────────
+    Guest --- UC1
+    Guest --- UC2
+    Guest --- UC3
+    Guest --- UC4
+    Guest --- UC5
+    Guest --- UC6
+    Guest --- UC7
+    Guest --- UC8
+    Guest --- UC9
+    Guest --- UC10
+
+    %% ── User associations (inherits guest exploration) ────────────────────────
+    User --- UC1
+    User --- UC2
+    User --- UC3
+    User --- UC4
+    User --- UC5
+    User --- UC6
+    User --- UC7
+    User --- UC11
+    User --- UC12
+    User --- UC13
+    User --- UC14
+    User --- UC15
+    User --- UC16
+    User --- UC17
+
+    %% ── Admin associations (inherits user + admin-only) ───────────────────────
+    Admin --- UC14
+    Admin --- UC15
+    Admin --- UC16
+    Admin --- UC17
+    Admin --- UC18
+    Admin --- UC19
+    Admin --- UC20
+    Admin --- UC21
+    Admin --- UC22
+
+    %% ── System associations ───────────────────────────────────────────────────
+    Sys --- UC23
+    Sys --- UC24
+    Sys --- UC25
+
+    %% ── Include / extend relations ────────────────────────────────────────────
+    UC14 -. "«requires»\nauthentication" .-> UC9
+    UC15 -. "«requires»\nauthentication" .-> UC9
+    UC16 -. "«requires»\nauthentication" .-> UC9
+    UC2  -. "«includes»\nscore cache" .-> UC24
+    UC19 -. "«includes»\nDNA Visual" .-> UC20
+    UC10 -. "«extends»\nlogin" .-> UC9
+
+    %% ── Styles ────────────────────────────────────────────────────────────────
+    classDef actor    fill:#30372a,stroke:#887b4b,color:#f4ebe1,font-weight:bold
+    classDef usecase  fill:#1e2419,stroke:#4a7c59,color:#d9cda1,rx:8
+    classDef system   fill:#1e2419,stroke:#8b6f47,color:#d9cda1,rx:8
+
+    class Guest,User,Admin,Sys actor
+    class UC1,UC2,UC3,UC4,UC5,UC6,UC7,UC8,UC9,UC10,UC11,UC12,UC13 usecase
+    class UC14,UC15,UC16,UC17 usecase
+    class UC18,UC19,UC20,UC21,UC22 usecase
+    class UC23,UC24,UC25 system

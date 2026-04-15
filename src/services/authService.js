@@ -130,9 +130,22 @@ export async function apiRefresh() {
  * @param {string} idToken — Google ID token from GIS
  * @returns {{ user, access_token }} on success
  * @throws Error with message from API on failure
+ *
+ * Render free tier cold-start: the first request after inactivity returns 503
+ * while the dyno wakes up (~30-50s). We retry once after a short delay so the
+ * user doesn't see a hard error on the first sign-in of the day.
  */
 export async function apiGoogleLogin(idToken) {
-  const res = await post('/auth/google', { id_token: idToken })
+  const attempt = () => post('/auth/google', { id_token: idToken })
+
+  let res = await attempt()
+
+  if (res.status === 503) {
+    // Backend is waking up — wait and retry once
+    await new Promise(resolve => setTimeout(resolve, 8000))
+    res = await attempt()
+  }
+
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail ?? 'Google login failed')
   setAccessToken(data.access_token)
