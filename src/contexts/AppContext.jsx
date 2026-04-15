@@ -138,14 +138,15 @@ export function AppProvider({ children }) {
     setUser(data.user)
 
     // FedCM re-fires this callback on every page reload (Chrome re-sends the
-    // cached credential automatically). If the session was already restored via
-    // apiRefresh, skip the localStorage migration — the API already has the data.
+    // cached credential automatically). Only migrate localStorage on a genuine
+    // first login — i.e. before apiRefresh had a chance to restore a session.
+    // loadUserDataFromApi and setAuthModal must always run regardless.
     if (!sessionRestoredRef.current) {
       const local = loadStorage()
       await migrateLocalFavoritesToApi(local.zonas || [], local.favoritos || [])
-      await loadUserDataFromApi()
-      setAuthModal(null)
     }
+    await loadUserDataFromApi()
+    setAuthModal(null)
     return data.user
   }
 
