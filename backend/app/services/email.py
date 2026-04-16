@@ -51,7 +51,7 @@ def _verification_html(verify_url: str, first_name: str | None) -> str:
           <tr>
             <td align="center" style="padding-bottom:32px;">
               <img src="{logo_url}" alt="Fungus"
-                   width="96" height="96"
+                   width="163" height="163"
                    style="display:block;border-radius:12px;" />
             </td>
           </tr>
