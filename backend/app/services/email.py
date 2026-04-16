@@ -13,6 +13,7 @@ Configuration (env vars, see config.py):
   FRONTEND_URL    — base URL of the frontend, e.g. https://fungus-ashen.vercel.app
 """
 import logging
+from datetime import UTC, datetime
 
 import httpx
 
@@ -33,7 +34,8 @@ def _verification_html(verify_url: str, first_name: str | None) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Confirma tu email — Fungus</title>
 </head>
-<body style="margin:0;padding:0;background:#30372a;font-family:'DM Sans',Arial,sans-serif;color:#f4ebe1;">
+<body style="margin:0;padding:0;background:#30372a;font-family:'DM Sans',Arial,sans-serif;
+             color:#f4ebe1;">
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
     <tr>
       <td align="center">
@@ -80,7 +82,6 @@ def _verification_html(verify_url: str, first_name: str | None) -> str:
 
 
 def _current_year() -> int:
-    from datetime import datetime, UTC
     return datetime.now(UTC).year
 
 
@@ -126,7 +127,9 @@ async def send_verification_email(
                 },
             )
             response.raise_for_status()
-            log.info("Verification email sent to %s (Resend id=%s)", email, response.json().get("id"))
+            log.info(
+                "Verification email sent to %s (Resend id=%s)", email, response.json().get("id")
+            )
             return True
     except httpx.HTTPStatusError as exc:
         log.error(

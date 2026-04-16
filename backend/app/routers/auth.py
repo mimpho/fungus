@@ -93,7 +93,9 @@ async def register(
     token = await create_verification_token(db, user)
     sent = await send_verification_email(user.email, token, user.first_name)
     if not sent:
-        log.warning("Verification email could not be sent to %s — user can request resend.", user.email)
+        log.warning(
+            "Verification email could not be sent to %s — user can request resend.", user.email
+        )
 
     return AuthResponse(access_token=access_token, user=UserOut.model_validate(user))
 
