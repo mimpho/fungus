@@ -6,11 +6,13 @@ to keep the dependency footprint minimal.
 API reference: https://resend.com/docs/api-reference/emails/send-email
 
 Configuration (env vars, see config.py):
-  RESEND_API_KEY  — required to send; if absent, emails are logged and skipped.
-  EMAIL_FROM      — "Fungus <noreply@yourdomain.com>"
-                    Use "Fungus <onboarding@resend.dev>" during development
-                    (Resend allows this for testing; sends only to the account owner).
-  FRONTEND_URL    — base URL of the frontend, e.g. https://fungus-ashen.vercel.app
+  RESEND_API_KEY     — required to send; if absent, emails are logged and skipped.
+  EMAIL_FROM         — "Fungus <noreply@yourdomain.com>"
+                       Use "Fungus <onboarding@resend.dev>" during development.
+  FRONTEND_URL       — base URL of the frontend (verification link destination).
+  EMAIL_ASSETS_URL   — base URL for static assets in emails; must be a public URL.
+                       Defaults to https://fungus-ashen.vercel.app so dev emails
+                       display the logo correctly (Gmail blocks localhost & data URIs).
 """
 import logging
 from datetime import UTC, datetime
@@ -27,6 +29,8 @@ _RESEND_API = "https://api.resend.com/emails"
 def _verification_html(verify_url: str, first_name: str | None) -> str:
     """Return a minimal, clean HTML email body."""
     greeting = f"Hola {first_name}," if first_name else "Hola,"
+    logo_url = f"{settings.email_assets_url.rstrip('/')}/assets/images/logoFungusPortrait.png"
+    year = _current_year()
     return f"""<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -34,46 +38,60 @@ def _verification_html(verify_url: str, first_name: str | None) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Confirma tu email — Fungus</title>
 </head>
-<body style="margin:0;padding:0;background:#30372a;font-family:'DM Sans',Arial,sans-serif;
-             color:#f4ebe1;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+<body style="margin:0;padding:0;background:#30372a;
+             font-family:'DM Sans',Arial,sans-serif;color:#f4ebe1;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
     <tr>
       <td align="center">
         <table width="480" cellpadding="0" cellspacing="0"
-               style="background:#1e2419;border-radius:16px;padding:40px 36px;">
+               style="background:#1e2419;border-radius:16px;padding:44px 40px;
+                      max-width:480px;width:100%;">
+
+          <!-- Logo -->
           <tr>
-            <td style="padding-bottom:28px;">
-              <p style="margin:0;font-size:28px;font-weight:700;letter-spacing:-0.5px;">
-                🍄 Fungus
-              </p>
+            <td align="center" style="padding-bottom:32px;">
+              <img src="{logo_url}" alt="Fungus"
+                   width="96" height="96"
+                   style="display:block;border-radius:12px;" />
             </td>
           </tr>
+
+          <!-- Body -->
           <tr>
-            <td>
-              <p style="margin:0 0 8px;font-size:22px;font-weight:600;">{greeting}</p>
-              <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#d9cda1;">
+            <td align="center">
+              <p style="margin:0 0 10px;font-size:22px;font-weight:700;
+                        text-align:center;">{greeting}</p>
+              <p style="margin:0 0 28px;font-size:15px;line-height:1.7;
+                        color:#d9cda1;text-align:center;">
                 Gracias por registrarte en Fungus. Confirma tu dirección de email
                 haciendo clic en el botón de abajo. El enlace caduca en
-                <strong>24 horas</strong>.
+                <strong style="color:#f4ebe1;">24 horas</strong>.
               </p>
               <a href="{verify_url}"
-                 style="display:inline-block;background:#8b6f47;color:#fff;
-                        text-decoration:none;padding:14px 28px;border-radius:10px;
-                        font-size:15px;font-weight:600;">
+                 style="display:inline-block;background:#8b6f47;color:#ffffff;
+                        text-decoration:none;padding:15px 36px;border-radius:10px;
+                        font-size:15px;font-weight:600;letter-spacing:0.2px;">
                 Confirmar email
               </a>
-              <p style="margin:28px 0 0;font-size:12px;color:#f4ebe1;opacity:0.4;
-                        line-height:1.6;">
+              <p style="margin:32px 0 0;font-size:12px;color:#d9cda1;opacity:0.55;
+                        line-height:1.7;text-align:center;">
                 Si no creaste esta cuenta puedes ignorar este mensaje.<br/>
                 O copia y pega este enlace en tu navegador:<br/>
-                <span style="word-break:break-all;">{verify_url}</span>
+                <a href="{verify_url}"
+                   style="color:#93c5fd;word-break:break-all;
+                          text-decoration:underline;">{verify_url}</a>
               </p>
             </td>
           </tr>
+
         </table>
-        <p style="margin:20px 0 0;font-size:12px;color:#f4ebe1;opacity:0.3;">
-          © {_current_year()} Fungus · Predicción micológica para Cataluña y España
+
+        <!-- Footer -->
+        <p style="margin:20px 0 0;font-size:12px;color:#f4ebe1;opacity:0.3;
+                  text-align:center;">
+          © {year} Fungus · Predicción micológica para Cataluña y España
         </p>
+
       </td>
     </tr>
   </table>

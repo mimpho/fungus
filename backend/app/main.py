@@ -26,6 +26,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
 from app.config import settings
@@ -260,6 +261,12 @@ app.include_router(species.router, prefix=API_PREFIX)
 app.include_router(weather.router, prefix=API_PREFIX)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(me.router, prefix=API_PREFIX)
+
+# Static assets (logo for emails, etc.) — served at /static/<filename>
+# URL in production: https://fungus-api.onrender.com/static/logoFungusPortrait.png
+_ASSETS_DIR = Path(__file__).parent / "assets"
+if _ASSETS_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(_ASSETS_DIR)), name="static")
 
 
 # ── Admin endpoints ────────────────────────────────────────────────────────────
