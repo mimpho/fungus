@@ -29,7 +29,7 @@ _RESEND_API = "https://api.resend.com/emails"
 def _verification_html(verify_url: str, first_name: str | None) -> str:
     """Return a minimal, clean HTML email body."""
     greeting = f"Hola {first_name}," if first_name else "Hola,"
-    logo_url = f"{settings.email_assets_url.rstrip('/')}/assets/images/logoFungusPortrait.png"
+    logo_url = f"{settings.email_assets_url.rstrip('/')}/static/logoFungusPortrait.png"
     year = _current_year()
     return f"""<!DOCTYPE html>
 <html lang="es">
