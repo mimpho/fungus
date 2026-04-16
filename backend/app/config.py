@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     email_from: str = "Fungus <onboarding@resend.dev>"
     # Base URL of the frontend — used to build the verification link in emails.
     frontend_url: str = "http://localhost:5173"
+    # Base URL for static assets embedded in emails (logo, etc.).
+    # Must be a publicly reachable URL — mail clients cannot load localhost or
+    # data URIs. Points to the FastAPI backend (/static/) so the SPA rewrites
+    # on Vercel don't interfere. In dev, emails use the Render production URL.
+    email_assets_url: str = "https://fungus-api.onrender.com"
 
     # APIs meteorológicas opcionales (P1)
     meteocat_api_key: str = ""
