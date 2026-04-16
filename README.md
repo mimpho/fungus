@@ -2,7 +2,7 @@
 
 Intelligent mushroom foraging prediction system for Spain.
 
-**Version**: v6.0 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
+**Version**: v7.1 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 

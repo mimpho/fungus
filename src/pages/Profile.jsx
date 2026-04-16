@@ -4,6 +4,7 @@ import { useApp } from '../contexts/AppContext'
 import { IC, getScoreColor, resolveUrl } from '../lib/helpers'
 import { Tabs } from '../components/ui/Tabs'
 import { EditProfileModal } from '../components/modals/EditProfileModal'
+import { apiResendVerification } from '../services/authService'
 
 export default function Profile() {
   const {
@@ -22,6 +23,7 @@ export default function Profile() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [resendState, setResendState] = useState('idle') // 'idle' | 'sending' | 'sent' | 'error'
 
   const notifications = followedZones.map(z => {
     const sc = getScoreColor(Math.floor(60 + Math.random() * 35))
@@ -48,6 +50,16 @@ export default function Profile() {
     setDeleting(true)
     await deleteAccount()
     setDeleting(false)
+  }
+
+  const handleResendVerification = async () => {
+    setResendState('sending')
+    try {
+      await apiResendVerification()
+      setResendState('sent')
+    } catch {
+      setResendState('error')
+    }
   }
 
   // ── Loading (initial session restore) ───────────────────────────────────────
@@ -168,6 +180,43 @@ export default function Profile() {
       </section>
 
       {showEditModal && <EditProfileModal onClose={() => setShowEditModal(false)} />}
+
+      {/* Banner verificación email — sólo para usuarios locales no verificados */}
+      {user && !user.email_verified && user.auth_provider !== 'google' && (
+        <section className="rounded-2xl p-4 flex items-start gap-3"
+          style={{ background: 'rgba(217,119,6,0.12)', border: '1px solid rgba(217,119,6,0.25)' }}>
+          <span className="text-amber-400 mt-0.5 flex-shrink-0">⚠</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-amber-200 text-sm font-medium leading-snug">
+              {t.verifyEmailBanner ?? 'Verifica tu dirección de email'}
+            </p>
+            <p className="text-amber-200/60 text-xs mt-0.5 leading-relaxed">
+              {t.verifyEmailBannerMsg ?? 'Te hemos enviado un email de confirmación. Revisa tu bandeja de entrada.'}
+            </p>
+            {resendState !== 'sent' && resendState !== 'error' && (
+              <button
+                onClick={handleResendVerification}
+                disabled={resendState === 'sending'}
+                className="mt-2 text-xs text-amber-300 hover:text-amber-100 transition-colors disabled:opacity-50"
+              >
+                {resendState === 'sending'
+                  ? (t.enviando ?? 'Enviando…')
+                  : (t.verifyEmailResend ?? 'Reenviar email de verificación')}
+              </button>
+            )}
+            {resendState === 'sent' && (
+              <p className="mt-2 text-xs text-emerald-400">
+                {t.verifyEmailResentOk ?? '✓ Email reenviado. Revisa tu bandeja.'}
+              </p>
+            )}
+            {resendState === 'error' && (
+              <p className="mt-2 text-xs text-red-400">
+                {t.verifyEmailResendError ?? 'No se pudo reenviar. Inténtalo más tarde.'}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Notificaciones */}
       <section className="glass rounded-2xl overflow-hidden">

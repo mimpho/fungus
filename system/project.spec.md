@@ -9,7 +9,7 @@
 
 Fungus is a mycological prediction web app for Catalonia/Spain. It combines real meteorological data, soil conditions and a scoring algorithm with a seasonal factor to predict the best zones and timing for mushroom foraging.
 
-**Current version**: v5.6 frontend · v5.0 backend
+**Current version**: v7.1 frontend · v7.1 backend
 **Frontend deploy**: Vercel → `fungus-ashen.vercel.app` (branch `main`)
 **Backend deploy**: Render → `https://fungus-api.onrender.com`
 **Database**: Supabase — PostgreSQL + PostGIS (Ireland region)
@@ -20,7 +20,7 @@ Fungus is a mycological prediction web app for Catalonia/Spain. It combines real
 
 | Layer | Status |
 |---|---|
-| Auth | JWT complete. `users` table with `role` (`user` / `admin`). |
+| Auth | JWT + Google OAuth2 + email verification. `users` table with `role` + `email_verified`. |
 | i18n | Complete ES/CA/EN. ~110 UI keys. DB with `?lang=` on `/species`. |
 | Admin | Gallery-first: `AdminGeneratorHub` + `SpeciesAdminModal` + `ImageGenerator`. |
 | Myco-Engine | Table `mushroom_visual_prompts`. 4-layer pipeline. 202 species with DNA Visual (55 manually curated `is_validated=true`, 147 Gemini offline). |
@@ -428,6 +428,8 @@ GET  /api/v1/weather/zones/{zone_id}
 POST /api/v1/auth/register
 POST /api/v1/auth/login
 GET  /api/v1/auth/me
+GET  /api/v1/auth/verify-email?token=   ← consumes single-use token, sets email_verified
+POST /api/v1/auth/resend-verification   ← authenticated; re-sends verification email
 ```
 
 **Outbreak Index (OI)** — backend algorithm (`app/services/scoring.py`):
@@ -479,7 +481,7 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v5.5–v5.6 | ✅ Done | Myco-Engine DNA Visual · 202 species · visualGlossary |
 | v6.0 | ✅ Done | OpenSpecs migration — structured SSOT, IDE-agnostic |
 | v7.0 | ✅ Done | Social login: Google OAuth2 |
-| v7.1 | 🚧 Next | Email confirmation on registration |
+| v7.1 | ✅ Done | Email confirmation on registration (Resend) |
 | v8.0 | 🗂 No date | Android mobile app (React Native + Expo) |
 | v9.0 | 🗂 Backlog | SEO: static prerendering + Core Web Vitals |
 | — | 🗂 No date | Hardening: move generator API keys to backend FastAPI |

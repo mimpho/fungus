@@ -7,6 +7,7 @@ sequenceDiagram
     participant BE as Backend (FastAPI)
     participant DB as Database (PostgreSQL)
     participant GG as Google OAuth API
+    participant RS as Resend (Email)
 
     %% ─────────────────────────────────────────────
     %% 1. SILENT SESSION RESTORE (app boot)
@@ -30,7 +31,35 @@ sequenceDiagram
     end
 
     %% ─────────────────────────────────────────────
-    %% 2. EMAIL / PASSWORD LOGIN
+    %% 2. REGISTRATION + EMAIL VERIFICATION
+    %% ─────────────────────────────────────────────
+    rect rgb(30, 55, 55)
+        Note over B,RS: Registration + email verification (v7.1)
+        B->>FE: submit registration form
+        FE->>BE: POST /auth/register<br/>{ email, password, first_name, last_name }
+        BE->>DB: create_user() — email_verified=false
+        DB-->>BE: User
+        BE->>DB: create_verification_token()<br/>store token + 24h expiry
+        BE->>BE: create_access_token / create_refresh_token
+        BE-->>FE: 201 { access_token, user }<br/>Set-Cookie: refresh_token (httpOnly, 30d)
+        BE--)RS: send_verification_email(email, token)<br/>(fire-and-forget — does not block response)
+        RS--)B: email → "Confirmar email" button link<br/>fungus-app.com/verificar-email?token=...
+        FE->>FE: setAccessToken / setUser<br/>user.email_verified = false → banner shown in Profile
+        Note over B,RS: User clicks link in email
+        B->>FE: navigate to /verificar-email?token=...
+        FE->>BE: GET /auth/verify-email?token=...
+        BE->>DB: verify_email_token()<br/>check token + expiry
+        DB-->>BE: User (token valid)
+        BE->>DB: email_verified=true<br/>clear token fields
+        BE-->>FE: 200 { message, email }
+        FE->>BE: GET /auth/me (refreshUser)
+        BE-->>FE: UserOut { email_verified: true }
+        FE->>FE: setUser — banner hidden
+        FE->>B: show success confirmation
+    end
+
+    %% ─────────────────────────────────────────────
+    %% 4. EMAIL / PASSWORD LOGIN
     %% ─────────────────────────────────────────────
     rect rgb(30, 55, 40)
         Note over B,DB: Email + password login
@@ -53,7 +82,7 @@ sequenceDiagram
     end
 
     %% ─────────────────────────────────────────────
-    %% 3. GOOGLE OAUTH2 LOGIN
+    %% 5. GOOGLE OAUTH2 LOGIN
     %% ─────────────────────────────────────────────
     rect rgb(55, 40, 30)
         Note over B,DB: Google OAuth2 sign-in
@@ -80,7 +109,7 @@ sequenceDiagram
     end
 
     %% ─────────────────────────────────────────────
-    %% 4. AUTHENTICATED REQUEST
+    %% 6. AUTHENTICATED REQUEST
     %% ─────────────────────────────────────────────
     rect rgb(40, 30, 55)
         Note over B,DB: Authenticated API call (example: toggle favorite)
@@ -94,7 +123,7 @@ sequenceDiagram
     end
 
     %% ─────────────────────────────────────────────
-    %% 5. LOGOUT
+    %% 7. LOGOUT
     %% ─────────────────────────────────────────────
     rect rgb(55, 55, 30)
         Note over B,DB: Logout

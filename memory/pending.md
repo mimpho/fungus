@@ -4,22 +4,6 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
-## 🚀 Next — v7.1 Email confirmation
-
-(Was v6.1)
-
-**Planned scope:**
-- Send verification email on new account registration
-- Single-use token (short expiry, e.g. 24h) stored in DB
-- Endpoint `GET /auth/verify-email?token=...` that activates the account
-- Field `email_verified: bool = False` in `users` table
-- Frontend: show "Verify your email" banner in profile if `!email_verified`
-- Provider: Resend or SendGrid (cheap/free tier sufficient for initial volume)
-
-**Decision:** postpone until after v7.0. No email provider configured yet.
-
----
-
 ## 🗂 No date — Hardening: move generator API keys to backend
 
 Technical debt documented in `memory/decisions.md` (section "Image generator — Monorepo vs Microservice").

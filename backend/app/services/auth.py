@@ -1,4 +1,5 @@
 """Auth service — password hashing, JWT creation and verification."""
+import secrets
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
@@ -10,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.user import User
+
+_VERIFICATION_TOKEN_EXPIRY_HOURS = 24
 
 # JWT token types
 _ACCESS_TYPE = "access"
@@ -103,8 +106,59 @@ async def create_user(
         first_name=first_name or None,
         last_name=last_name or None,
         birth_date=birth_date,
+        email_verified=False,
     )
     db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+# ── Email verification ─────────────────────────────────────────────────────────
+
+async def create_verification_token(db: AsyncSession, user: User) -> str:
+    """
+    Generate a new verification token, store it on the user, and return it.
+    Replaces any existing pending token (safe to call multiple times for resend).
+    """
+    token = secrets.token_urlsafe(32)
+    user.email_verification_token = token
+    user.email_verification_expires_at = datetime.now(UTC) + timedelta(
+        hours=_VERIFICATION_TOKEN_EXPIRY_HOURS
+    )
+    await db.commit()
+    await db.refresh(user)
+    return token
+
+
+async def verify_email_token(db: AsyncSession, token: str) -> User | None:
+    """
+    Validate a verification token.
+
+    Returns the User if the token is valid and not expired, then clears the
+    token fields and sets email_verified=True.
+    Returns None if the token is unknown or expired.
+    """
+    result = await db.execute(
+        select(User).where(User.email_verification_token == token)
+    )
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        return None
+
+    now = datetime.now(UTC)
+    if user.email_verification_expires_at is None or user.email_verification_expires_at < now:
+        # Expired — clear the stale token so the user must request a new one
+        user.email_verification_token = None
+        user.email_verification_expires_at = None
+        await db.commit()
+        return None
+
+    # Valid — mark as verified and consume the token
+    user.email_verified = True
+    user.email_verification_token = None
+    user.email_verification_expires_at = None
     await db.commit()
     await db.refresh(user)
     return user
@@ -185,6 +239,7 @@ async def get_or_create_google_user(
         provider_id=google_id,
         first_name=first_name or None,
         last_name=last_name or None,
+        email_verified=True,  # Google already verified the address
     )
     db.add(user)
     await db.commit()

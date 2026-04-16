@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — v7.1 Email verification on registration
+
+- **`backend/migrations/versions/011_email_verification.py`**: adds `email_verified` (boolean, default `false`), `email_verification_token` (text, nullable), and `email_verification_expires_at` (timestamptz, nullable) to `users`. Partial unique index on the token column.
+- **`backend/app/services/email.py`**: new Resend integration via `httpx`. `send_verification_email()` builds an HTML email and posts to the Resend API. Non-blocking — registration never fails if the email cannot be sent. Skips gracefully when `RESEND_API_KEY` is not configured (logs a warning).
+- **`backend/app/services/auth.py`**: `create_verification_token()` — generates a `secrets.token_urlsafe(32)` token with a 24-hour expiry and stores it on the user. `verify_email_token()` — validates the token, sets `email_verified = true`, and clears the token fields.
+- **`backend/app/routers/auth.py`**: `GET /auth/verify-email?token=` — validates token and returns 200/400. `POST /auth/resend-verification` — re-sends the email for the authenticated user (202 always). `POST /auth/register` now fires `send_verification_email` after creating the user (fire-and-forget).
+- **`backend/app/schemas/auth.py`**: `email_verified: bool` added to `UserOut`.
+- **`backend/app/config.py`**: `RESEND_API_KEY`, `EMAIL_FROM`, `FRONTEND_URL` settings; `has_resend` property.
+- **`src/pages/VerifyEmail.jsx`**: new page at `/verificar-email?token=`. Three states: loading spinner, success (SVG checkmark), error (SVG warning). On success calls `refreshUser()` so the profile banner disappears without a reload.
+- **`src/services/authService.js`**: `apiVerifyEmail(token)`, `apiResendVerification()`, `apiGetMe()`.
+- **`src/contexts/AppContext.jsx`**: `refreshUser()` — re-fetches `/auth/me` and updates the in-memory user. Exposed in context.
+- **`src/pages/Profile.jsx`**: amber banner with resend button for unverified local accounts. Hidden for Google users (already verified) and after confirmation.
+- **`src/data/i18n.js`**: 16 new keys in ES/CA/EN covering all email-verification UI states.
+- **`src/App.jsx`**: route `/verificar-email` added.
+
+### Changed — v7.1
+
+- Google users (`auth_provider = "google"`) are created with `email_verified = true` — Google already guarantees email ownership.
+- `UserOut` schema now includes `email_verified` in all auth responses (register, login, refresh, `/me`).
+
+---
+
 ### Added — v7.0 Google OAuth2 sign-in
 
 - **`backend/app/routers/auth.py`**: `POST /auth/google` endpoint — receives a Google ID token, verifies it with `google-auth`, creates or retrieves the user (`auth_provider = "google"`, `provider_id`), and returns the same JWT session used by the local auth flow.
