@@ -20,6 +20,7 @@ import {
   apiGetFollowedZones,
   apiDeleteAccount,
   migrateLocalFavoritesToApi,
+  apiGetMe,
 } from '../services/authService'
 
 const AppContext = createContext(null)
@@ -173,6 +174,13 @@ export function AppProvider({ children }) {
     saveStorage({ lang, zonas: [], favoritos: [], profile })
   }
 
+  /** Re-fetch /me and update the in-memory user. Used after email verification. */
+  async function refreshUser() {
+    const updated = await apiGetMe()
+    if (updated) setUser(updated)
+    return updated
+  }
+
   // ── Follow / Favorite toggles ────────────────────────────────────────────────
   // Auth gate: if not logged in, show login modal instead of acting.
   // When authenticated, updates both local state (instant UI) + API.
@@ -217,7 +225,7 @@ export function AppProvider({ children }) {
       profile, setProfile,
       // auth
       user, isAuthenticated, authLoading,
-      login, register, loginWithGoogle, logout, updateUserProfile, deleteAccount,
+      login, register, loginWithGoogle, logout, updateUserProfile, deleteAccount, refreshUser,
       authModal, setAuthModal,
       isAdminView, setIsAdminView,
       // modal stack

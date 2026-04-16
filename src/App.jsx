@@ -2,12 +2,13 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect, lazy, Suspense } from 'react'
 import AdminGuard from './components/auth/AdminGuard'
 
-import Dashboard  from './pages/Dashboard'
-import Zones      from './pages/Zones'
-import Species    from './pages/Species'
-import Family     from './pages/Family'
-import Articles   from './pages/Articles'
-import Profile    from './pages/Profile'
+import Dashboard   from './pages/Dashboard'
+import Zones       from './pages/Zones'
+import Species     from './pages/Species'
+import Family      from './pages/Family'
+import Articles    from './pages/Articles'
+import Profile     from './pages/Profile'
+import VerifyEmail from './pages/VerifyEmail'
 import Layout          from './components/Layout'
 import { ModalRenderer } from './components/modals/ModalRenderer'
 
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="micologia"       element={<Articles />} />
           <Route path="micologia/:slug" element={<Articles />} />
           <Route path="perfil"          element={<Profile />} />
+          <Route path="verificar-email" element={<VerifyEmail />} />
           {/* /admin/generator = hub galería-first (v5.4): galería → modal → generador */}
           <Route path="admin/generator" element={
             <AdminGuard>

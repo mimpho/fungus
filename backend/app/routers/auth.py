@@ -21,12 +21,15 @@ from app.services.auth import (
     create_access_token,
     create_refresh_token,
     create_user,
+    create_verification_token,
     decode_refresh_token,
     get_or_create_google_user,
     get_user_by_email,
     get_user_by_id,
+    verify_email_token,
     verify_google_id_token,
 )
+from app.services.email import send_verification_email
 
 log = logging.getLogger(__name__)
 
@@ -85,6 +88,13 @@ async def register(
     access_token, refresh_token = _build_auth_response(user)
     _set_refresh_cookie(response, refresh_token)
     log.info("New user registered: id=%d email=%s", user.id, user.email)
+
+    # Send verification email — fire-and-forget: registration never fails because of this
+    token = await create_verification_token(db, user)
+    sent = await send_verification_email(user.email, token, user.first_name)
+    if not sent:
+        log.warning("Verification email could not be sent to %s — user can request resend.", user.email)
+
     return AuthResponse(access_token=access_token, user=UserOut.model_validate(user))
 
 
@@ -155,6 +165,48 @@ async def logout(
 async def me(current_user: User = Depends(get_current_user)) -> UserOut:
     """Return the currently authenticated user's profile."""
     return UserOut.model_validate(current_user)
+
+
+@router.get("/verify-email", status_code=status.HTTP_200_OK)
+async def verify_email(
+    token: str,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Confirm an email address using the single-use token sent by email.
+
+    Returns 200 on success, 400 if the token is invalid or expired.
+    The frontend calls this endpoint when the user lands on /verificar-email?token=...
+    """
+    user = await verify_email_token(db, token)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token",
+        )
+    log.info("Email verified: user_id=%d email=%s", user.id, user.email)
+    return {"message": "Email verified successfully", "email": user.email}
+
+
+@router.post("/resend-verification", status_code=status.HTTP_202_ACCEPTED)
+async def resend_verification(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """
+    Re-send the verification email to the authenticated user.
+
+    Returns 202 whether or not the email was actually sent (avoids leaking info).
+    Returns 400 if the user is already verified.
+    """
+    if current_user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is already verified",
+        )
+    token = await create_verification_token(db, current_user)
+    await send_verification_email(current_user.email, token, current_user.first_name)
+    return {"message": "Verification email sent"}
 
 
 @router.post("/google", response_model=AuthResponse)

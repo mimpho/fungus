@@ -227,6 +227,50 @@ export async function apiUnfavSpecies(speciesId) {
   await del(`/me/fav-species/${encodeURIComponent(speciesId)}`)
 }
 
+/**
+ * Fetch the current user's profile from /me.
+ * Returns the UserOut object on success, null if not authenticated.
+ */
+export async function apiGetMe() {
+  try {
+    const res = await get('/auth/me')
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
+// ── Email verification (v7.1) ──────────────────────────────────────────────────
+
+/**
+ * Verify an email address with the single-use token from the verification link.
+ * @param {string} token — token from the URL ?token=...
+ * @returns {{ message, email }} on success
+ * @throws Error with message from API on failure
+ */
+export async function apiVerifyEmail(token) {
+  const res = await fetch(
+    `${API_BASE}/auth/verify-email?token=${encodeURIComponent(token)}`,
+    { credentials: 'include' }
+  )
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail ?? 'Verification failed')
+  return data
+}
+
+/**
+ * Re-send the verification email to the currently authenticated user.
+ * @returns {{ message }} on success
+ * @throws Error on failure
+ */
+export async function apiResendVerification() {
+  const res = await post('/auth/resend-verification', null)
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.detail ?? 'Resend failed')
+  return data
+}
+
 export async function apiDeleteAccount() {
   const res = await fetch(`${API_BASE}/me/account`, {
     method: 'DELETE',

@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     # Google OAuth2 (v7)
     google_client_id: str = ""
 
+    # Email — Resend (v7.1)
+    resend_api_key: str = ""
+    # From address — use onboarding@resend.dev while testing; set your verified
+    # domain address (e.g. noreply@fungus-app.com) before going to production.
+    email_from: str = "Fungus <onboarding@resend.dev>"
+    # Base URL of the frontend — used to build the verification link in emails.
+    frontend_url: str = "http://localhost:5173"
+
     # APIs meteorológicas opcionales (P1)
     meteocat_api_key: str = ""
     aemet_api_key: str = ""
@@ -55,6 +63,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",")]
+
+    @property
+    def has_resend(self) -> bool:
+        return bool(self.resend_api_key)
 
     @property
     def has_meteocat(self) -> bool:

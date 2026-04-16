@@ -45,6 +45,7 @@ class UserOut(BaseModel):
     plan: str
     plan_expires_at: datetime | None
     role: str
+    email_verified: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
