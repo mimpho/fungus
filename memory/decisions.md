@@ -4,6 +4,34 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## v8.0 Mobile — Framework and architecture (2026-04-17)
+
+**Decision:** React Native + Expo SDK 52 (managed workflow) + expo-router v4. App lives in `mobile/` subdirectory of the existing monorepo.
+
+**Chosen stack:**
+- Expo managed workflow — no native code in v8.0; EAS Build generates APKs in the cloud
+- expo-router v4 — file-based routing, typed routes, deep linking out-of-the-box
+- expo-secure-store — encrypted JWT storage
+- @react-native-async-storage — cache layer (TTL 3h, same pattern as web)
+- TypeScript throughout
+
+**Discarded alternatives:**
+- *Bare workflow from the start:* only needed if custom native modules are required. Can migrate later with `expo prebuild`. Starting managed keeps the team unblocked.
+- *React Navigation (manual):* expo-router v4 is built on React Navigation but adds file-based routing, typed routes, and automatic deep links. Lower config overhead.
+- *Separate repository:* shared git history and easier cross-referencing of constants and scoring logic in the same monorepo outweigh the added noise of a second repo.
+- *Flutter / Kotlin native:* would require learning a new language/framework and rewriting all business logic.
+
+**Scoring logic:** ported to `mobile/lib/scoring.ts` as a fork of `weatherService.js`. Not shared directly to avoid coupling web and mobile build pipelines. Refactor as a shared package (`packages/scoring`) is a valid v8.1 upgrade if the algorithm diverges.
+
+**Closed decisions (2026-04-18):**
+- Map library: **MapLibre** (`@maplibre/maplibre-react-native`) — no API key, no quota, open-source. react-native-maps (Google Maps) discarded due to API key dependency and quota management overhead.
+- Google OAuth: **deferred to v8.1** — requires new backend endpoint `POST /auth/google/mobile`. v8.0 ships email/password only.
+- Distribution: **APK direct download** in v8.0 — zero setup cost, suitable for initial user base. Google Play Store ($25 one-time) planned for v8.1.
+
+See `memory/v8-android-plan.md` and `docs/mobile-architecture.md` for full detail.
+
+---
+
 ## Color System (v3.1 migration)
 
 **Decision:** CSS custom properties in `:root` as single source of truth + Tailwind tokens in `tailwind.config.js`.

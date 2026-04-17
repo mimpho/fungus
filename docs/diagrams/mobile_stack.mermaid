@@ -1,0 +1,61 @@
+---
+title: Mobile Stack — Fungus Android v8.0
+---
+graph TB
+    subgraph Device["Android Device"]
+        subgraph ExpoRuntime["Expo Runtime (React Native 0.76)"]
+
+            subgraph UI["UI Layer"]
+                Screens["Screens\n(expo-router)\nDashboard · Zones · Species\nMap · Profile · Auth"]
+                Components["Components\nZoneCard · SpeciesCard\nScoreBar · EdibilityTag\nGallery · ConfusionesBlock"]
+                Screens --> Components
+            end
+
+            subgraph State["State Layer"]
+                AppCtx["AppContext\nlang · profile\nfollows · favorites"]
+                Hooks["Custom Hooks\nuseZoneConditions\nuseSpecies\nuseAuth"]
+            end
+
+            subgraph Services["Service Layer"]
+                APIClient["api.ts\nBase fetch client\n+ JWT injection"]
+                WeatherSvc["weatherService.ts\nScoring algorithm\n(port from web)"]
+                ZonesSvc["zonesService.ts"]
+                SpeciesSvc["speciesService.ts"]
+                APIClient --> ZonesSvc
+                APIClient --> SpeciesSvc
+            end
+
+            subgraph Storage["Local Storage"]
+                AsyncStore["AsyncStorage\nZones cache (3h)\nWeather cache (3h)\nSpecies cache (3h)\nLanguage preference"]
+                SecureStore["SecureStore\nJWT token\n(encrypted)"]
+            end
+
+            UI --> State
+            State --> Services
+            Services --> Storage
+        end
+
+        subgraph Native["Native Modules"]
+            Maps["Map\nreact-native-maps\nor MapLibre\n(TBD)"]
+            AuthSession["expo-auth-session\nGoogle OAuth PKCE"]
+            Notifications["expo-notifications\nPush (post-v8.0)"]
+        end
+
+        Services --> AuthSession
+        Components --> Maps
+    end
+
+    subgraph Cloud["Cloud Services"]
+        Backend["FastAPI Backend\nfungus-api.onrender.com\n(shared with web)"]
+        GoogleOAuth["Google OAuth 2.0"]
+        EAS["EAS Build\nAPK / AAB generation"]
+    end
+
+    APIClient -->|"HTTPS REST\n+ JWT"| Backend
+    AuthSession -->|"PKCE flow"| GoogleOAuth
+    Backend -->|"token exchange"| GoogleOAuth
+
+    style Device fill:#30372a,color:#f4ebe1
+    style Cloud fill:#1e2419,color:#f4ebe1
+    style ExpoRuntime fill:#2a3324,color:#f4ebe1
+    style Native fill:#243020,color:#f4ebe1
