@@ -4,6 +4,28 @@ Pitfalls and errors we've already encountered. Consult before modifying these ar
 
 ---
 
+## Mobile — Zustand
+
+### ⚠️ Selector returning an object causes infinite re-render loop
+
+Zustand uses `Object.is` for comparison by default. A selector that returns a new object literal on every call always looks "changed", causing infinite re-renders.
+
+```tsx
+// ❌ WRONG — new object on every render → infinite loop
+const { t, lang } = useAppStore((s) => ({ t: s.t, lang: s.lang }))
+
+// ✅ CORRECT — useShallow does shallow property comparison
+import { useShallow } from 'zustand/react/shallow'
+const { t, lang } = useAppStore(useShallow((s) => ({ t: s.t, lang: s.lang })))
+
+// ✅ Also correct — single primitive value, no object needed
+const t = useAppStore((s) => s.t)
+```
+
+**Rule:** any `useAppStore` call that returns an object **must** use `useShallow`. Single-value selectors don't need it.
+
+---
+
 ## Open-Meteo API
 
 ### ⚠️ `soil_temperature_0cm` only in `hourly`
