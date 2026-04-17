@@ -1,0 +1,63 @@
+---
+title: Mobile API & Auth Flow — Fungus Android v8.0
+---
+sequenceDiagram
+    participant App as Mobile App
+    participant AS as AsyncStorage<br/>(cache)
+    participant SS as SecureStore<br/>(JWT)
+    participant API as FastAPI<br/>fungus-api.onrender.com
+    participant Google as Google OAuth
+
+    %% ── App startup ──
+    Note over App,SS: App startup — auth guard
+    App->>SS: getItemAsync("fungus_jwt")
+    alt token absent
+        App-->>App: redirect → /auth/login
+    else token present
+        App->>API: GET /auth/me (Bearer token)
+        alt 401 Unauthorized
+            App-->>App: clear token → /auth/login
+        else 200 OK
+            App-->>App: load main tabs
+        end
+    end
+
+    %% ── Login (email/password) ──
+    Note over App,API: Email + password login
+    App->>API: POST /auth/login { email, password }
+    API-->>App: { access_token }
+    App->>SS: setItemAsync("fungus_jwt", token)
+    App-->>App: redirect → /(tabs)
+
+    %% ── Google OAuth (mobile PKCE) ──
+    Note over App,Google: Google OAuth (PKCE flow)
+    App->>Google: open authorization URL (expo-auth-session)
+    Google-->>App: redirect fungus://auth/callback?code=...
+    App->>API: POST /auth/google/mobile { code, code_verifier }
+    Note right of API: ⚠️ New endpoint — not yet implemented
+    API->>Google: exchange code → access token
+    Google-->>API: { google_access_token }
+    API-->>App: { access_token (Fungus JWT) }
+    App->>SS: setItemAsync("fungus_jwt", token)
+
+    %% ── Data fetch with cache ──
+    Note over App,API: Zones + weather fetch (with cache)
+    App->>AS: getItem("fungus_weather_v3")
+    alt cache hit (age < 3h, version matches)
+        AS-->>App: cached conditions data
+        App-->>App: render with cached data
+    else cache miss or stale
+        App->>API: GET /weather/zones
+        API-->>App: zone conditions[]
+        App->>API: GET /zones
+        API-->>App: zones[]
+        App-->>App: compute overallScore (scoring.ts)
+        App->>AS: setItem("fungus_weather_v3", { ts, v:3, data })
+        App-->>App: render
+    end
+
+    %% ── Species detail ──
+    Note over App,API: Species detail (no cache)
+    App->>API: GET /species/{id}?lang=es
+    API-->>App: species detail + extra_data
+    App-->>App: render SpeciesDetail screen
