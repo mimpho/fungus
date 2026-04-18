@@ -1,9 +1,16 @@
+// Tab navigator — 4 tabs: Zonas · Mapa · Especies · Perfil
+// No Dashboard: Zonas (list) is the home screen.
+// Map is a primary tab at the same level as the list — native map experience
+// warrants its own entry point (geolocation, touch gestures, proximity queries).
+
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '../../constants/Colors'
 import { useAppStore } from '../../store/useAppStore'
+import { MushroomIcon } from '../../components/icons/MushroomIcon'
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name']
+
 
 function TabIcon({ name, focused }: { name: IoniconName; focused: boolean }) {
   return (
@@ -36,22 +43,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: t.dashboard,
-          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="zonas"
-        options={{
           title: t.zones,
           tabBarIcon: ({ focused }) => <TabIcon name="location" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="especies"
-        options={{
-          title: t.species,
-          tabBarIcon: ({ focused }) => <TabIcon name="leaf" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -59,6 +52,19 @@ export default function TabLayout() {
         options={{
           title: t.map,
           tabBarIcon: ({ focused }) => <TabIcon name="map" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="especies"
+        options={{
+          title: t.species,
+          tabBarIcon: ({ focused }) => (
+            <MushroomIcon
+              size={24}
+              color={focused ? Colors.cream : Colors.coffee}
+              filled={focused}
+            />
+          ),
         }}
       />
       <Tabs.Screen

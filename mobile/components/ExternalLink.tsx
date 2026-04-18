@@ -11,7 +11,7 @@ export function ExternalLink(
       target="_blank"
       {...props}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      href={props.href}
+      href={props.href as any}
       onPress={(e) => {
         if (Platform.OS !== 'web') {
           // Prevent the default behavior of linking to the default browser on native.

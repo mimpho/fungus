@@ -17,8 +17,7 @@ Lanzar una app nativa Android para Fungus que permita al usuario consultar las c
 
 | Pantalla | Equivalente web | Notas |
 |---|---|---|
-| Dashboard | `Dashboard.jsx` | Zonas ordenadas por score hoy |
-| Zonas (lista) | `Zones.jsx` | Filtros por provincia/tipo de bosque |
+| Zonas (lista) | `Zones.jsx` | Home tab. Filtros por provincia/tipo de bosque |
 | Zona (detalle) | `ZoneModal.jsx` | Condiciones meteorológicas + score |
 | Especies (lista) | `Species.jsx` | Filtros por familia/comestibilidad |
 | Especie (detalle) | `SpeciesModal.jsx` | Galería, confusiones, condiciones |
@@ -27,7 +26,7 @@ Lanzar una app nativa Android para Fungus que permita al usuario consultar las c
 
 | Pantalla | Equivalente web | Notas |
 |---|---|---|
-| Mapa nativo | `LeafletMap.jsx` | Markers coloreados por score |
+| Mapa nativo | `LeafletMap.jsx` | Tab propio al mismo nivel que lista. Markers coloreados por score. Mismo destino (zona detalle) vía interacción distinta |
 | Login / Registro | auth screens | Email+contraseña + Google OAuth |
 | Perfil | `Profile.jsx` | Lang, zonas seguidas, favoritos |
 

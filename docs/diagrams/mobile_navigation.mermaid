@@ -5,39 +5,35 @@ flowchart TD
     Root["_layout.tsx\nRoot Layout\n(auth guard + fonts)"]
 
     Root -->|"token absent\nor expired"| AuthGroup
-
     Root -->|"token valid"| Tabs
 
     subgraph AuthGroup["auth/ (unauthenticated)"]
-        Login["login.tsx\nLogin\n(email + password\n+ Google OAuth)"]
+        Login["login.tsx\nLogin\n(email + password)"]
         Register["register.tsx\nRegister"]
         Login -->|"no account?"| Register
         Register -->|"already have one?"| Login
     end
 
-    subgraph Tabs["(tabs)/ — Tab Navigator"]
-        Dashboard["index.tsx\nDashboard\nTop zones by score"]
-        Zones["zonas.tsx\nZones\nList + filters"]
-        Species["especies.tsx\nSpecies\nCatalogue + filters"]
-        Map["mapa.tsx\nMap\nNative markers"]
-        Profile["perfil.tsx\nProfile\nLang · Follows · Favs"]
+    subgraph Tabs["(tabs)/ — 4 tabs"]
+        Zones["index.tsx\nZonas\n(home — list view)"]
+        Map["mapa.tsx\nMapa\n(MapLibre markers)"]
+        Species["especies.tsx\nEspecies\n(catalogue)"]
+        Profile["perfil.tsx\nPerfil\n(lang · auth)"]
     end
 
-    subgraph Modals["Modals (full-screen or bottom sheet)"]
-        ZoneDetail["zona/id.tsx\nZone Detail\n(bottom sheet)\nConditions · Score · Map"]
-        SpeciesDetail["especie/id.tsx\nSpecies Detail\n(full-screen)\nGallery · Confusions · Conditions"]
+    subgraph Modals["Modals"]
+        ZoneDetail["zona/id.tsx\nZone Detail\n(bottom sheet)\nConditions · Score"]
+        SpeciesDetail["especie/id.tsx\nSpecies Detail\n(full-screen)\nGallery · Confusions"]
     end
 
-    AuthGroup -->|"login success\n→ JWT stored"| Tabs
+    AuthGroup -->|"login success → JWT"| Tabs
 
-    Dashboard -->|"tap zone card"| ZoneDetail
-    Zones -->|"tap zone"| ZoneDetail
+    Zones -->|"tap zone card"| ZoneDetail
     Map -->|"tap marker"| ZoneDetail
 
-    Dashboard -->|"tap species card"| SpeciesDetail
     Species -->|"tap species"| SpeciesDetail
     ZoneDetail -->|"tap in-season species"| SpeciesDetail
-
     SpeciesDetail -->|"tap confusion species"| SpeciesDetail
 
-    Profile -->|"tap logout"| Login
+    Profile -->|"not logged in\ntap login"| Login
+    Profile -->|"logged in\ntap logout"| Login
