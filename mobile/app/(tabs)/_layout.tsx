@@ -6,11 +6,11 @@
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '../../constants/Colors'
+import { Font } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
 import { MushroomIcon } from '../../components/icons/MushroomIcon'
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name']
-
 
 function TabIcon({ name, focused }: { name: IoniconName; focused: boolean }) {
   return (
@@ -31,13 +31,22 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: Colors.modal,
           borderTopColor: Colors.coffee + '33',
+          borderTopWidth: 1,
         },
         tabBarActiveTintColor: Colors.cream,
         tabBarInactiveTintColor: Colors.coffee,
-        tabBarLabelStyle: { fontSize: 11 },
+        tabBarLabelStyle: {
+          fontFamily: Font.sansMedium,
+          fontSize: 11,
+        },
         headerStyle: { backgroundColor: Colors.modal },
         headerTintColor: Colors.cream,
-        headerTitleStyle: { fontWeight: '600', color: Colors.cream },
+        headerTitleStyle: {
+          fontFamily: Font.sansSemiBold,
+          color: Colors.cream,
+        },
+        // Transparent so the root gradient background shows through each screen
+        sceneStyle: { backgroundColor: 'transparent' },
       }}
     >
       <Tabs.Screen

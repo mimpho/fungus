@@ -2,7 +2,7 @@
 // Full implementation in feat/v8-0-species
 
 import { View, Text, StyleSheet, ScrollView } from 'react-native'
-import { Colors } from '../../constants/Colors'
+import { Typography } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
 
 export default function EspeciesScreen() {
@@ -10,15 +10,14 @@ export default function EspeciesScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>{t.species}</Text>
-      <Text style={styles.placeholder}>— {t.loading}</Text>
+      <Text style={Typography.h2}>{t.species}</Text>
+      <Text style={[Typography.bodySmall, styles.placeholder]}>— {t.loading}</Text>
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 16 },
-  heading: { fontSize: 22, fontWeight: '700', color: Colors.cream, marginBottom: 16 },
-  placeholder: { color: Colors.muted, fontSize: 15 },
+  placeholder: { marginTop: 12 },
 })

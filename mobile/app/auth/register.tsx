@@ -9,6 +9,7 @@ import {
 import { router } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
 import { Colors } from '../../constants/Colors'
+import { Typography, Glass, Font } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
 import { register, getMe, saveToken } from '../../services/api'
 
@@ -41,7 +42,7 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.inner}>
-        <Text style={styles.title}>{t.register}</Text>
+        <Text style={[Typography.h2, styles.title]}>{t.register}</Text>
 
         <TextInput
           style={styles.input}
@@ -85,22 +86,27 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   inner: { flex: 1, justifyContent: 'center', padding: 28 },
-  title: { fontSize: 26, fontWeight: '800', color: Colors.cream, marginBottom: 32 },
+  title: { marginBottom: 32 },
   input: {
-    backgroundColor: Colors.modal, borderRadius: 10,
-    padding: 14, color: Colors.cream, fontSize: 16,
-    borderWidth: 1, borderColor: Colors.coffee + '55',
+    backgroundColor: Colors.glass,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(244,235,225,0.06)',
+    padding: 14,
+    color: Colors.cream,
+    fontFamily: Font.sans,
+    fontSize: 16,
     marginBottom: 12,
   },
-  error: { color: Colors.danger, fontSize: 14, marginBottom: 8 },
+  error: { fontFamily: Font.sans, color: Colors.danger, fontSize: 14, marginBottom: 8 },
   btn: {
     backgroundColor: Colors.green, borderRadius: 10,
     paddingVertical: 15, alignItems: 'center', marginTop: 8,
   },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: Colors.cream, fontWeight: '700', fontSize: 16 },
+  btnText: { fontFamily: Font.sansSemiBold, color: Colors.cream, fontSize: 16 },
   linkBtn: { marginTop: 20, alignItems: 'center' },
-  linkText: { color: Colors.coffeeLight, fontSize: 14 },
+  linkText: { fontFamily: Font.sans, color: Colors.coffeeLight, fontSize: 14 },
 })

@@ -4,6 +4,7 @@
 
 import { View, Text, StyleSheet } from 'react-native'
 import { Colors } from '../../constants/Colors'
+import { Typography } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
 
 export default function MapaScreen() {
@@ -11,8 +12,8 @@ export default function MapaScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{t.map}</Text>
-      <Text style={styles.sub}>MapLibre · feat/v8-0-map</Text>
+      <Text style={Typography.h2}>{t.map}</Text>
+      <Text style={[Typography.bodySmall, styles.sub]}>MapLibre · feat/v8-0-map</Text>
     </View>
   )
 }
@@ -20,10 +21,9 @@ export default function MapaScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg,
+    backgroundColor: Colors.bgDeep, // Deep bg for map (no gradient — map fills this)
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { fontSize: 22, fontWeight: '700', color: Colors.cream },
-  sub: { color: Colors.muted, fontSize: 14, marginTop: 8 },
+  sub: { marginTop: 8 },
 })

@@ -5,6 +5,7 @@
 
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native'
 import { Colors } from '../../constants/Colors'
+import { Typography } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
 
 export default function ZonasScreen() {
@@ -12,22 +13,20 @@ export default function ZonasScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>{t.zones}</Text>
+      <Text style={Typography.h2}>{t.zones}</Text>
       <View style={styles.placeholder}>
         <ActivityIndicator color={Colors.green} />
-        <Text style={styles.placeholderText}>{t.loading}</Text>
+        <Text style={Typography.bodySmall}>{t.loading}</Text>
       </View>
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 16 },
-  heading: { fontSize: 22, fontWeight: '700', color: Colors.cream, marginBottom: 16 },
   placeholder: {
     alignItems: 'center', justifyContent: 'center',
     paddingVertical: 60, gap: 12,
   },
-  placeholderText: { color: Colors.muted, fontSize: 15 },
 })
