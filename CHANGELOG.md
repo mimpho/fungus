@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — v8.0 Android app (in progress)
+
+- **`mobile/`**: new Expo SDK 54 app (managed workflow) alongside the web app in the same monorepo. expo-router v4, Zustand, TypeScript throughout.
+- **`mobile/app/(tabs)/`**: 4-tab navigation — Zonas (home) · Mapa · Especies · Perfil.
+- **`mobile/components/icons/MushroomIcon.tsx`**: SVG mushroom icon ported from web via `react-native-svg`. Outline (inactive) and filled (active) variants.
+- **`mobile/lib/scoring.ts`**: port of `computeOverallScore` + `computeAdjustedScore`. Weights: seasonal 0.40 · rainfall 0.21 · temp 0.18 · humidity 0.12 · dryDays 0.09.
+- **`mobile/lib/i18n.ts`**: ES/CA/EN translations (~50 keys).
+- **`mobile/services/api.ts`**: fetch client with JWT (SecureStore), AsyncStorage cache (TTL 3h, CACHE_VERSION=3), auth/zones/species/weather endpoints.
+- **`mobile/store/useAppStore.ts`**: Zustand store — lang, profile, follows, favorites. Hydrates from AsyncStorage on startup.
+- **`mobile/lib/theme.ts`**: design system — `Font`, `Typography`, `Glass`, `Gradient`.
+- **`mobile/components/ui/Background.tsx`**: `LinearGradient` wrapper matching web gradient `135deg #2b3529 → #3d4536 → #43421c`.
+- **`mobile/app/_layout.tsx`**: loads Cormorant Garamond + DM Sans via `useFonts`; wraps Stack in `Background`.
+- **`mobile/eas.json`**: EAS Build profiles — preview (APK), production (AAB).
+- **`system/workflows.spec.md`**: branch close checklist (hard gate before every PR) + epic plan file convention.
+- **`memory/v8-android-plan.md`**: full v8.0 plan — scope, decisions, structure, endpoints, risks.
+
 ### Added — v7.1 Email verification on registration
 
 - **`backend/migrations/versions/011_email_verification.py`**: adds `email_verified` (boolean, default `false`), `email_verification_token` (text, nullable), and `email_verification_expires_at` (timestamptz, nullable) to `users`. Partial unique index on the token column.
