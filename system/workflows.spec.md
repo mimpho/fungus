@@ -282,11 +282,13 @@ Inline code comments in source files may use Spanish where the domain language i
 |---|---|---|
 | 1 | `CHANGELOG.md` — add entry in `[Unreleased]` under the right type | Every branch |
 | 2 | `memory/pending.md` — mark completed items ✅; if a full phase closes, remove the block | Every branch |
-| 3 | `memory/v8-android-plan.md` — update phase status table (✅ / 🟡 / ⬜) | Mobile branches |
+| 3 | `memory/<epic-slug>-plan.md` — update phase status table (✅ / 🟡 / ⬜) if this epic has a plan file | Epics with a plan doc |
 | 4 | `memory/decisions.md` — record any new architectural decision taken during implementation | If decisions were made |
 | 5 | `system/project.spec.md` — update roadmap status or stack if changed | If roadmap/stack changed |
 | 6 | `README.md` — update roadmap or endpoints if changed | If roadmap/stack changed |
 | 7 | Commit all doc changes on the feature branch: `docs: close feat/… — update changelog and memory` | After steps 1–6 |
+
+**Epic plan convention:** when an epic is large enough to warrant its own plan (multiple feature branches, cross-cutting decisions), create `memory/<epic-slug>-plan.md` at epic kickoff. The slug matches the epic branch name — e.g. `epic/v8-android` → `memory/v8-android-plan.md`. Not every epic needs one; simple single-feature epics can rely solely on `pending.md`.
 
 **Claude must not skip this checklist.** When a user says "prepara la PR" or "integra en epic", Claude's first action is to run through this list, make any missing updates, commit them, and only then produce the PR content.
 
