@@ -6,7 +6,7 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ## v8.0 Mobile — Framework and architecture (2026-04-17)
 
-**Decision:** React Native + Expo SDK 52 (managed workflow) + expo-router v4. App lives in `mobile/` subdirectory of the existing monorepo.
+**Decision:** React Native + Expo SDK 54 (managed workflow) + expo-router v4. App lives in `mobile/` subdirectory of the existing monorepo.
 
 **Chosen stack:**
 - Expo managed workflow — no native code in v8.0; EAS Build generates APKs in the cloud
@@ -27,6 +27,12 @@ Decisions made during active development, with their reasoning. Complements CLAU
 - Map library: **MapLibre** (`@maplibre/maplibre-react-native`) — no API key, no quota, open-source. react-native-maps (Google Maps) discarded due to API key dependency and quota management overhead.
 - Google OAuth: **deferred to v8.1** — requires new backend endpoint `POST /auth/google/mobile`. v8.0 ships email/password only.
 - Distribution: **APK direct download** in v8.0 — zero setup cost, suitable for initial user base. Google Play Store ($25 one-time) planned for v8.1.
+
+**Closed decisions (2026-04-19):**
+- Navigation structure: **4 tabs** (Zonas · Mapa · Especies · Perfil) — no Dashboard tab, map is a primary tab not a toggle inside Zones.
+- Especies icon: custom SVG `MushroomIcon.tsx` ported from web `IC.mushroom` via `react-native-svg` (outline inactive, filled active). MaterialCommunityIcons mushroom discarded — style mismatch with web.
+- Design system: **`expo-linear-gradient`** + **`@expo-google-fonts`** (Cormorant Garamond + DM Sans). Gradient matches web `linear-gradient(135deg, #2b3529 → #3d4536 → #43421c)`. All screens use `backgroundColor: transparent` to let root gradient bleed through. Tab bar uses `Colors.modal (#30372a)`.
+- Shared tokens: deferred to post-v8.0 — web uses CSS vars + Tailwind, mobile uses JS constants. Scoring algorithm is highest-risk duplication. Tracked in `memory/pending.md`.
 
 See `memory/v8-android-plan.md` and `docs/mobile-architecture.md` for full detail.
 
