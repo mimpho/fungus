@@ -274,6 +274,24 @@ Inline code comments in source files may use Spanish where the domain language i
 
 ---
 
+## Branch close checklist
+
+**This checklist is a hard gate. Claude must complete every applicable item before producing PR title/body.** If any item is pending, do it first, commit with `docs: …`, and only then produce the PR.
+
+| # | Item | Applies to |
+|---|---|---|
+| 1 | `CHANGELOG.md` — add entry in `[Unreleased]` under the right type | Every branch |
+| 2 | `memory/pending.md` — mark completed items ✅; if a full phase closes, remove the block | Every branch |
+| 3 | `memory/v8-android-plan.md` — update phase status table (✅ / 🟡 / ⬜) | Mobile branches |
+| 4 | `memory/decisions.md` — record any new architectural decision taken during implementation | If decisions were made |
+| 5 | `system/project.spec.md` — update roadmap status or stack if changed | If roadmap/stack changed |
+| 6 | `README.md` — update roadmap or endpoints if changed | If roadmap/stack changed |
+| 7 | Commit all doc changes on the feature branch: `docs: close feat/… — update changelog and memory` | After steps 1–6 |
+
+**Claude must not skip this checklist.** When a user says "prepara la PR" or "integra en epic", Claude's first action is to run through this list, make any missing updates, commit them, and only then produce the PR content.
+
+---
+
 ## PR preparation
 
 When preparing a PR, always provide title and body **inline in the chat as separate fenced code blocks** so the human can copy/paste each one directly into GitHub. Never write them as files on disk. Claude never merges to main.
