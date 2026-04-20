@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { View, StyleSheet } from 'react-native'
+import { Platform, View, StyleSheet } from 'react-native'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
@@ -59,8 +59,11 @@ export default function RootLayout() {
           headerStyle: { backgroundColor: Colors.modal },
           headerTintColor: Colors.cream,
           headerTitleStyle: { color: Colors.cream, fontFamily: 'DMSans_600SemiBold' },
-          // Transparent content background so screens render over the gradient
-          contentStyle: { backgroundColor: 'transparent' },
+          // Web: navigator wrapper divs are opaque by default — force transparent
+          // Native: transparent already works
+          contentStyle: {
+            backgroundColor: Platform.OS === 'web' ? 'transparent' : 'transparent',
+          } as any,
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

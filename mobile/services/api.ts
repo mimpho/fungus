@@ -1,9 +1,24 @@
 // API client — base fetch wrapper with JWT injection and AsyncStorage cache
 // All requests go to fungus-api.onrender.com (same backend as web)
 
+import { Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as SecureStore from 'expo-secure-store'
 import { API_BASE_URL, CACHE_VERSION, CACHE_TTL_MS } from '../lib/constants'
+
+// expo-secure-store is not available on web — fall back to AsyncStorage
+async function _getToken(): Promise<string | null> {
+  if (Platform.OS === 'web') return AsyncStorage.getItem('fungus_jwt')
+  return SecureStore.getItemAsync('fungus_jwt')
+}
+async function _saveToken(token: string): Promise<void> {
+  if (Platform.OS === 'web') { await AsyncStorage.setItem('fungus_jwt', token); return }
+  await SecureStore.setItemAsync('fungus_jwt', token)
+}
+async function _clearToken(): Promise<void> {
+  if (Platform.OS === 'web') { await AsyncStorage.removeItem('fungus_jwt'); return }
+  await SecureStore.deleteItemAsync('fungus_jwt')
+}
 
 // ── Error type ────────────────────────────────────────────────────────────────
 
@@ -23,7 +38,7 @@ export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const token = await SecureStore.getItemAsync('fungus_jwt')
+  const token = await _getToken()
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -105,11 +120,11 @@ export async function getMe(): Promise<UserProfile> {
 }
 
 export async function saveToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync('fungus_jwt', token)
+  await _saveToken(token)
 }
 
 export async function clearToken(): Promise<void> {
-  await SecureStore.deleteItemAsync('fungus_jwt')
+  await _clearToken()
 }
 
 // ── Zone endpoints ────────────────────────────────────────────────────────────

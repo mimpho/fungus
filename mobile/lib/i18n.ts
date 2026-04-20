@@ -69,6 +69,26 @@ export interface Translations {
   favoriteSpecies: string
   notLoggedIn: string
   loginToSync: string
+
+  // Zones list
+  search: string
+  allZones: string
+  myZones: string
+  allTypes: string
+  bestCondition: string
+  alphabetical: string
+  altitude: string
+  noZones: string
+  adjustFilters: string
+  condRecoleccion: string
+
+  // Zone detail
+  follow: string
+  following: string
+  thermometer: string
+  meteoDesc: string
+  location: string
+  availableNow: string
 }
 
 const es: Translations = {
@@ -127,6 +147,24 @@ const es: Translations = {
   favoriteSpecies: 'Especies favoritas',
   notLoggedIn: 'No has iniciado sesión',
   loginToSync: 'Inicia sesión para sincronizar tus favoritos',
+
+  search: 'Buscar zona…',
+  allZones: 'Todas',
+  myZones: 'Mis zonas',
+  allTypes: 'Todos',
+  bestCondition: 'Mejor condición',
+  alphabetical: 'A–Z',
+  altitude: 'Altitud',
+  noZones: 'Sin zonas',
+  adjustFilters: 'Prueba a ajustar los filtros',
+  condRecoleccion: 'Cond. recolección',
+
+  follow: 'Seguir zona',
+  following: 'Siguiendo',
+  thermometer: 'Termómetro',
+  meteoDesc: 'Índice de condiciones para la recolección basado en datos meteorológicos.',
+  location: 'Ubicación',
+  availableNow: 'Disponibles ahora',
 }
 
 const ca: Translations = {
@@ -185,6 +223,24 @@ const ca: Translations = {
   favoriteSpecies: 'Espècies favorites',
   notLoggedIn: 'No has iniciat sessió',
   loginToSync: 'Inicia sessió per sincronitzar els teus favorits',
+
+  search: 'Cercar zona…',
+  allZones: 'Totes',
+  myZones: 'Les meves zones',
+  allTypes: 'Tots',
+  bestCondition: 'Millor condició',
+  alphabetical: 'A–Z',
+  altitude: 'Altitud',
+  noZones: 'Sense zones',
+  adjustFilters: 'Prova a ajustar els filtres',
+  condRecoleccion: 'Cond. recol·lecció',
+
+  follow: 'Seguir zona',
+  following: 'Seguint',
+  thermometer: 'Termòmetre',
+  meteoDesc: 'Índex de condicions per a la recol·lecció basat en dades meteorològiques.',
+  location: 'Ubicació',
+  availableNow: 'Disponibles ara',
 }
 
 const en: Translations = {
@@ -243,6 +299,24 @@ const en: Translations = {
   favoriteSpecies: 'Favourite species',
   notLoggedIn: 'You are not logged in',
   loginToSync: 'Log in to sync your favourites',
+
+  search: 'Search zone…',
+  allZones: 'All',
+  myZones: 'My zones',
+  allTypes: 'All types',
+  bestCondition: 'Best condition',
+  alphabetical: 'A–Z',
+  altitude: 'Altitude',
+  noZones: 'No zones',
+  adjustFilters: 'Try adjusting the filters',
+  condRecoleccion: 'Cond. foraging',
+
+  follow: 'Follow zone',
+  following: 'Following',
+  thermometer: 'Thermometer',
+  meteoDesc: 'Foraging conditions index based on meteorological data.',
+  location: 'Location',
+  availableNow: 'Available now',
 }
 
 export const translations: Record<Lang, Translations> = { es, ca, en }

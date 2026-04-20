@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — v8.0 Android app (in progress)
+
+- **`mobile/`**: new Expo SDK 54 app (managed workflow) alongside the web app in the same monorepo. expo-router v4, Zustand, TypeScript throughout.
+- **`mobile/app/(tabs)/`**: 4-tab navigation — Zonas (home) · Mapa · Especies · Perfil.
+- **`mobile/components/icons/MushroomIcon.tsx`**: SVG mushroom icon ported from web via `react-native-svg`. Outline (inactive) and filled (active) variants.
+- **`mobile/lib/scoring.ts`**: port of `computeOverallScore` + `computeAdjustedScore`. Weights: seasonal 0.40 · rainfall 0.21 · temp 0.18 · humidity 0.12 · dryDays 0.09.
+- **`mobile/lib/i18n.ts`**: ES/CA/EN translations (~50 keys).
+- **`mobile/services/api.ts`**: fetch client with JWT (SecureStore), AsyncStorage cache (TTL 3h, CACHE_VERSION=3), auth/zones/species/weather endpoints.
+- **`mobile/store/useAppStore.ts`**: Zustand store — lang, profile, follows, favorites. Hydrates from AsyncStorage on startup.
+- **`mobile/lib/theme.ts`**: design system — `Font`, `Typography`, `Glass`, `Gradient`.
+- **`mobile/components/ui/Background.tsx`**: `LinearGradient` wrapper matching web gradient `135deg #2b3529 → #3d4536 → #43421c`.
+- **`mobile/app/_layout.tsx`**: loads Cormorant Garamond + DM Sans via `useFonts`; wraps Stack in `Background`.
+- **`mobile/eas.json`**: EAS Build profiles — preview (APK), production (AAB).
+- **`system/workflows.spec.md`**: branch close checklist (hard gate before every PR) + epic plan file convention.
+- **`memory/v8-android-plan.md`**: full v8.0 plan — scope, decisions, structure, endpoints, risks.
+- **`mobile/hooks/useZones.ts`**: `Zone` + `ZoneConditions` types, parallel fetch of zones + weather (both cached), module-level promise deduplication, `ConditionsMap` indexed by numeric zone id.
+- **`mobile/components/ui/ScoreBar.tsx`**: score-colour-coded horizontal progress bar.
+- **`mobile/components/ui/ZoneCard.tsx`**: list card — name, region/province, forest type, elevation, score bar, conditions summary (temp / rainfall / humidity), follow star toggle.
+- **`mobile/app/(tabs)/index.tsx`**: zones list — `FlatList` with search, followed/all toggle, forest-type filter chips, sort (score / alpha / elevation), error banner, empty state.
+- **`mobile/app/zona/[id].tsx`**: zone detail modal — hero block with follow button, description, meteorological conditions grid (6 cells), location coords, real-time conditions fetch (no cache). Species sections placeholder for `feat/v8-0-species`.
+- **`mobile/lib/i18n.ts`**: 18 new keys for zones list and zone detail in ES/CA/EN.
+
 ### Added — v7.1 Email verification on registration
 
 - **`backend/migrations/versions/011_email_verification.py`**: adds `email_verified` (boolean, default `false`), `email_verification_token` (text, nullable), and `email_verification_expires_at` (timestamptz, nullable) to `users`. Partial unique index on the token column.

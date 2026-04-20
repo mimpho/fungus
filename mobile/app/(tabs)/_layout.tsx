@@ -3,6 +3,7 @@
 // Map is a primary tab at the same level as the list — native map experience
 // warrants its own entry point (geolocation, touch gestures, proximity queries).
 
+import { Platform } from 'react-native'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '../../constants/Colors'
@@ -46,7 +47,8 @@ export default function TabLayout() {
           color: Colors.cream,
         },
         // Transparent so the root gradient background shows through each screen
-        sceneStyle: { backgroundColor: 'transparent' },
+        // On web, force transparent via CSS (navigator divs default to opaque)
+        sceneStyle: { backgroundColor: 'transparent' } as any,
       }}
     >
       <Tabs.Screen

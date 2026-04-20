@@ -139,7 +139,50 @@ docs(system): update project.spec.md with v7 roadmap
 
 ---
 
-## Documentation update protocol
+## Epic lifecycle
+
+Every epic (`epic/<slug>`) follows three mandatory ceremonies in addition to the regular branch/PR workflow.
+
+---
+
+### 1. Epic kick-off (before the first feature branch)
+
+Produce two documents in `memory/`:
+
+**`memory/<epic-slug>-prd.md`** — the product contract. Written before any code. Sections:
+
+| Section | Content |
+|---|---|
+| Problem / Why | What user problem does this phase solve? Why now? |
+| Scope — In | Features that MUST ship for this epic to be considered done |
+| Scope — Out | Explicit exclusions (reduces scope creep during development) |
+| User flows | The 2–4 primary flows in plain language (not technical) |
+| Open questions | Unresolved product decisions that would block development — must all be answered before the first commit |
+| Definition of Done | Measurable criteria to declare the epic complete |
+
+**`memory/<epic-slug>-plan.md`** — the technical plan. Can be started during kick-off and refined early in development. Sections: stack decisions, folder structure, API endpoints, risks. See `memory/v8-android-plan.md` as reference.
+
+**Gate:** no feature branch is opened until all Open questions in the PRD are answered and the DoD is written.
+
+---
+
+### 2. Epic retrospective (before epic → main merge)
+
+Held at the close of the epic, before the final `--no-ff` merge to `main`. Output: concrete improvements to `workflows.spec.md` (this file). The retro is not a document — it produces changes.
+
+Mandatory questions:
+
+| Question | Purpose |
+|---|---|
+| What slowed us down? | Identify friction in tooling, process, or communication |
+| What decisions were taken too late? | Should have been in the PRD Open questions |
+| What did we build that we then had to change? | Signals missing upfront design |
+| What would we do differently in the next epic? | Concrete process improvements |
+| Does the workflow need updating? | If yes, apply changes to this file in the same session |
+
+The retrospective is a conversation between Claude and the human. Claude leads with observations from the git log and memory files; the human confirms or adds context. Changes are committed with `docs(system): retro vX.Y — <summary of improvements>`.
+
+---
 
 ### On closing a task (PATCH: vX.Y.Z → vX.Y.Z+1)
 
@@ -271,6 +314,26 @@ When topics arise around monetisation, business model, premium features, pricing
 - PR titles, bodies, and commit messages
 
 Inline code comments in source files may use Spanish where the domain language is naturally Spanish (e.g. species names, UI strings in `i18n.js`), but all prose documentation must be in English.
+
+---
+
+## Branch close checklist
+
+**This checklist is a hard gate. Claude must complete every applicable item before producing PR title/body.** If any item is pending, do it first, commit with `docs: …`, and only then produce the PR.
+
+| # | Item | Applies to |
+|---|---|---|
+| 1 | `CHANGELOG.md` — add entry in `[Unreleased]` under the right type | Every branch |
+| 2 | `memory/pending.md` — mark completed items ✅; if a full phase closes, remove the block | Every branch |
+| 3 | `memory/<epic-slug>-plan.md` — update phase status table (✅ / 🟡 / ⬜) if this epic has a plan file | Epics with a plan doc |
+| 4 | `memory/decisions.md` — record any new architectural decision taken during implementation | If decisions were made |
+| 5 | `system/project.spec.md` — update roadmap status or stack if changed | If roadmap/stack changed |
+| 6 | `README.md` — update roadmap or endpoints if changed | If roadmap/stack changed |
+| 7 | Commit all doc changes on the feature branch: `docs: close feat/… — update changelog and memory` | After steps 1–6 |
+
+**Epic plan convention:** when an epic is large enough to warrant its own plan (multiple feature branches, cross-cutting decisions), create `memory/<epic-slug>-plan.md` at epic kickoff. The slug matches the epic branch name — e.g. `epic/v8-android` → `memory/v8-android-plan.md`. Not every epic needs one; simple single-feature epics can rely solely on `pending.md`.
+
+**Claude must not skip this checklist.** When a user says "prepara la PR" or "integra en epic", Claude's first action is to run through this list, make any missing updates, commit them, and only then produce the PR content.
 
 ---
 

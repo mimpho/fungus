@@ -4,6 +4,28 @@ Pitfalls and errors we've already encountered. Consult before modifying these ar
 
 ---
 
+## Mobile — expo-secure-store
+
+### ⚠️ `expo-secure-store` no disponible en web → crash silencioso en API calls
+
+`SecureStore.getItemAsync()` lanza `TypeError: ... is not a function` cuando se ejecuta en entorno web (Expo web / browser). `apiFetch` llama a SecureStore antes de cada petición, así que **todas las llamadas a la API fallan** en web sin mostrar un error CORS ni de red.
+
+**Síntoma:** pantalla de zonas muestra "No se pudieron cargar los datos en tiempo real" + 0 zonas, sin error CORS en DevTools.
+
+**Solución implementada:** `_getToken()` / `_saveToken()` / `_clearToken()` en `services/api.ts` con `Platform.OS === 'web'` que hace fallback a `AsyncStorage`. Nunca llamar `SecureStore` directamente fuera de estas wrappers.
+
+---
+
+## Mobile — Zone IDs
+
+### ⚠️ `Number(z.id)` → `NaN` si la API devuelve UUIDs o strings no numéricos
+
+El hook `useZones` normalizaba los IDs de zona a `number` con `Number(z.id)`. Si la API devuelve UUIDs (`"550e8400-..."`) o cualquier string no numérico, `Number()` devuelve `NaN` → `keyExtractor` de FlatList genera claves `"NaN"` duplicadas → warning de React + comportamiento indeterminado.
+
+**Solución implementada:** `Zone.id` es `string` en todo el sistema mobile. `ConditionsMap` usa `Record<string, ZoneConditions>`. La normalización usa `String(z.id)` en lugar de `Number(z.id)`. Nunca convertir IDs de zona a `number`.
+
+---
+
 ## Mobile — Zustand
 
 ### ⚠️ Selector returning an object causes infinite re-render loop

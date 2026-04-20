@@ -482,6 +482,6 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v6.0 | ✅ Done | OpenSpecs migration — structured SSOT, IDE-agnostic |
 | v7.0 | ✅ Done | Social login: Google OAuth2 |
 | v7.1 | ✅ Done | Email confirmation on registration (Resend) |
-| v8.0 | 🗂 No date | Android mobile app (React Native + Expo) |
+| v8.0 | 🚧 In progress | Android mobile app (React Native + Expo SDK 54 · MapLibre · EAS Build) |
 | v9.0 | 🗂 Backlog | SEO: static prerendering + Core Web Vitals |
 | — | 🗂 No date | Hardening: move generator API keys to backend FastAPI |

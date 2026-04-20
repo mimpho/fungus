@@ -4,6 +4,29 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
+## 🗂 Backlog — Mobile: light theme + system theme support (`feat/v8-1-theming`)
+
+**Rationale:** primary use case of the app is outdoors in daylight. Dark background with light text is poorly legible under direct sunlight. Light theme as mobile default (web keeps dark) would significantly improve field UX.
+
+**Proposed behaviour:**
+- Light theme as default on mobile
+- Respect system preference (`useColorScheme`) — auto-switch if user has set a system-wide preference
+- Manual override in Perfil screen (Dark / Light / System) — visible pill selector, not buried in a sub-menu
+
+**Design work needed:**
+- Define light colour palette: warm cream backgrounds, dark olive text, coffee accents — preserving brand identity
+- Redefine gradient for light mode (inverted warm tones, not just white)
+- Redesign glass surfaces (glass on light = subtle warm shadow, not white overlay)
+
+**Technical prerequisite — refactor `Colors.ts` and `theme.ts` before implementing:**
+- Replace literal colour tokens (`cream`, `modal`, `bg`…) with semantic tokens (`background`, `surface`, `textPrimary`, `textSecondary`, `border`…)
+- Each semantic token resolves to a different hex per theme
+- Without this refactor, theming requires surgical changes in every component
+
+**Scope:** mobile only in v8.1. Web dark theme unchanged. Could later expose theme preference via user profile API so it persists across devices.
+
+---
+
 ## 🗂 No date — Hardening: move generator API keys to backend
 
 Technical debt documented in `memory/decisions.md` (section "Image generator — Monorepo vs Microservice").
@@ -18,11 +41,26 @@ Currently `VITE_GEMINI_API_KEY` is exposed in the frontend bundle. Acceptable wh
 
 ---
 
-## 🗂 No date — v8.0 Android app
+## 🟡 Activo — v8.0 Android app (`epic/v8-android`)
 
-- React Native + Expo — APK, native map, push notifications
-- **Conditional on prior monetisation** (development and distribution costs)
-- iOS removed from roadmap — requires Apple Developer ($99/year) + Apple Sign In; will be reconsidered if revenue materialises
+Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `memory/v8-android-plan.md`.
+
+**Completado:**
+- [x] Scaffold: expo-router, Zustand store, API client (cache AsyncStorage + SecureStore JWT), scoring port, i18n ES/CA/EN
+- [x] Nav: 4 tabs (Zonas · Mapa · Especies · Perfil), MushroomIcon SVG, expo-router file structure
+- [x] Design system: gradient background, Cormorant Garamond + DM Sans, `lib/theme.ts` (Typography, Glass, Font, Gradient), `components/ui/Background.tsx`
+
+**En progreso:**
+- [ ] `feat/v8-0-zones`: lista de zonas con scores, detalle de zona con condiciones meteorológicas ✅ implementado, pendiente de mergear en epic
+
+**Pendiente (en orden):**
+- [ ] `feat/v8-0-species`: catálogo + detalle de especie
+- [ ] `feat/v8-0-map`: mapa MapLibre con markers coloreados por score
+- [ ] `feat/v8-0-auth`: login/registro funcional + perfil completo (favoritos, seguidos)
+- [ ] `feat/v8-0-polish`: splash screen, icono, revisión UX
+- [ ] `feat/v8-0-eas-build`: EAS Build → APK de distribución directa
+
+iOS fuera de roadmap (Apple Developer $99/año); Google Play en v8.1.
 
 ---
 
@@ -31,6 +69,31 @@ Currently `VITE_GEMINI_API_KEY` is exposed in the frontend bundle. Acceptable wh
 - Static prerendering at build time for known routes (`/especies/:id`, `/zonas/:id`, etc.)
 - `react-helmet-async`: dynamic meta tags per route (title, description, Open Graph)
 - Core Web Vitals review
+
+---
+
+## 🗂 Backlog — `shared/` design tokens & business logic (web + mobile)
+
+Actualmente web y mobile duplican lógica que debería tener una sola fuente de verdad:
+
+| Archivo | Web | Mobile | Riesgo de divergencia |
+|---|---|---|---|
+| Colores | `src/styles.css` + `tailwind.config.js` | `mobile/constants/Colors.ts` | Medio |
+| Algoritmo scoring | `src/lib/helpers.jsx` (`computeOverallScore`) | `mobile/lib/scoring.ts` | **Alto** — pesos pueden desincronizarse |
+| Constantes (SEASONAL_FACTOR, EDIBILITY_SCORE…) | `src/lib/constants.js` | `mobile/lib/constants.ts` | **Alto** |
+| i18n strings | (web tiene su propio sistema) | `mobile/lib/i18n.ts` | Medio |
+| TypeScript types | (sin tipos) | dispersos en services/api.ts | Bajo |
+
+**Plan propuesto:** crear `shared/` en la raíz del monorepo con:
+- `shared/colors.ts` — tokens de color; web Tailwind config + CSS vars derivan de aquí
+- `shared/scoring.ts` — algoritmo puro sin dependencias de plataforma
+- `shared/constants.ts` — SEASONAL_FACTOR, EDIBILITY_SCORE, ForestType, Lang, API_BASE_URL
+- `shared/types.ts` — Zone, Species, WeatherParams, etc.
+- `shared/i18n.ts` — strings de traducción (el mecanismo de carga queda en cada plataforma)
+
+**Prerequisito:** el web necesita refactorizarse para importar desde `shared/` en vez de definir colores en CSS directamente. Hacerlo en un `chore/shared-design-tokens` antes de v9.0.
+
+**Prioridad inmediata:** scoring y constants son los más críticos — cualquier cambio en los pesos de la fórmula debe propagarse a ambos fronts.
 
 ---
 
