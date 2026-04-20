@@ -19,13 +19,13 @@ Lanzar una app nativa Android para Fungus que permita al usuario consultar las c
 | Scaffold + API client + scoring | `feat/v8-0-expo-scaffold` | ✅ Mergeado en epic (#PR) |
 | Nav restructure (4 tabs) + MushroomIcon | `feat/v8-0-nav-restructure` | ✅ Mergeado en epic |
 | Design system (gradiente, tipografías, glass) | `feat/v8-0-design-system` | ✅ Mergeado en epic (#104) |
-| **Zonas (lista + detalle + UI QA)** | `feat/v8-0-zones` + `feat/v8-0-species` | ✅ Mergeado en epic (2026-04-20) |
+| **Zonas (lista + detalle + UI QA)** | `feat/v8-0-zones` | ✅ Mergeado en epic (2026-04-20) |
 | **Light mode / semantic colour tokens** | `feat/v8-1-theming` | 🟡 Próximo — prerequisito para species y map |
-| Especies (lista + detalle) | `feat/v8-0-species` | ⬜ Bloqueado por theming |
-| Mapa nativo (MapLibre) | `feat/v8-0-map` | ⬜ Pendiente |
-| Auth (login + registro + perfil) | `feat/v8-0-auth` | ⬜ Pendiente |
-| Polish + icono + splash | `feat/v8-0-polish` | ⬜ Pendiente |
-| EAS Build → APK | `feat/v8-0-eas-build` | ⬜ Pendiente |
+| Especies (lista + detalle) | `feat/v8-2-species` | ⬜ Bloqueado por theming |
+| Mapa nativo (MapLibre) | `feat/v8-3-map` | ⬜ Pendiente |
+| Auth (login + registro + perfil) | `feat/v8-4-auth` | ⬜ Pendiente |
+| Polish + icono + splash | `feat/v8-5-polish` | ⬜ Pendiente |
+| EAS Build → APK | `feat/v8-6-eas-build` | ⬜ Pendiente |
 
 ---
 
@@ -144,4 +144,4 @@ mobile/
 | Render cold start → primera carga lenta | Mitigado con skeleton loaders + cache agresiva |
 | Divergencia scoring web/mobile | Documentado en `memory/pending.md` — refactor shared package v9.0 |
 | Google OAuth requiere endpoint nuevo | Descartado en v8.0, diferido a v8.1 |
-| MapLibre rendering performance | A evaluar en `feat/v8-0-map` |
+| MapLibre rendering performance | A evaluar en `feat/v8-3-map` |
