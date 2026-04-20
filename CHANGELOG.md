@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`mobile/app/zona/[id].tsx`**: zone detail modal — hero block with follow button, description, meteorological conditions grid (6 cells), location coords, real-time conditions fetch (no cache). Species sections placeholder for `feat/v8-0-species`.
 - **`mobile/lib/i18n.ts`**: 18 new keys for zones list and zone detail in ES/CA/EN.
 
+### Changed — v8.0 Zones screen + tab bar UI QA (2026-04-20)
+
+- **`mobile/app/(tabs)/_layout.tsx`**: floating glass tab bar — `position:absolute`, glass-olive bg (`glassOlive80` native / `glassOlive + blur(16px)` web), height 59px. Inactive tint `#f4ebe1` (cream), active `rgb(217,206,161)` with `rgba(217,206,161,0.10)` pill bg via `tabBarButton` covering icon + label.
+- **`mobile/app/(tabs)/index.tsx`**: native header hidden; title row scrolls away; search/filter bar sticky via `stickyHeaderIndices[1]`. Pill bg `#4c5240` (matches web `--color-search-bg`), shadow applied only when sticky (scroll offset > title height). Filter sheet: `#232522d9` backdrop + `blur(8px)` web, `#30372a` modal bg (`--color-modal`), `maxHeight = windowHeight - 50`. Comarca always visible as custom `ComarcaSelect` (trigger + inline dropdown). Chips: no border. Sheet footer clears floating tab bar via dynamic `paddingBottom`.
+- **`mobile/lib/theme.ts`**: `Glass.panel/warm/subtle` — borderless, shadow only, matching web `.glass-olive` (no `borderWidth`).
+- **`mobile/components/ui/ZoneCard.tsx`**: SVG star icon (web `IC.star` path) replaces emoji ⭐/☆; SVG mountain triangle replaces ⛰. Font sizes +2px throughout.
+- Global font size pass: all zone-page body text +2px; Zonas header 28→36px; tab labels 11→13px.
+
 ### Added — v7.1 Email verification on registration
 
 - **`backend/migrations/versions/011_email_verification.py`**: adds `email_verified` (boolean, default `false`), `email_verification_token` (text, nullable), and `email_verification_expires_at` (timestamptz, nullable) to `users`. Partial unique index on the token column.

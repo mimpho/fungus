@@ -19,8 +19,9 @@ Lanzar una app nativa Android para Fungus que permita al usuario consultar las c
 | Scaffold + API client + scoring | `feat/v8-0-expo-scaffold` | ✅ Mergeado en epic (#PR) |
 | Nav restructure (4 tabs) + MushroomIcon | `feat/v8-0-nav-restructure` | ✅ Mergeado en epic |
 | Design system (gradiente, tipografías, glass) | `feat/v8-0-design-system` | ✅ Mergeado en epic (#104) |
-| **Zonas (lista + detalle)** | `feat/v8-0-zones` | ✅ Implementado, pendiente merge |
-| Especies (lista + detalle) | `feat/v8-0-species` | ⬜ Pendiente |
+| **Zonas (lista + detalle + UI QA)** | `feat/v8-0-zones` + `feat/v8-0-species` | ✅ Mergeado en epic (2026-04-20) |
+| **Light mode / semantic colour tokens** | `feat/v8-1-theming` | 🟡 Próximo — prerequisito para species y map |
+| Especies (lista + detalle) | `feat/v8-0-species` | ⬜ Bloqueado por theming |
 | Mapa nativo (MapLibre) | `feat/v8-0-map` | ⬜ Pendiente |
 | Auth (login + registro + perfil) | `feat/v8-0-auth` | ⬜ Pendiente |
 | Polish + icono + splash | `feat/v8-0-polish` | ⬜ Pendiente |

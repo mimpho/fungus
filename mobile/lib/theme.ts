@@ -121,22 +121,31 @@ export const Typography = StyleSheet.create({
 
 export const Glass = StyleSheet.create({
   // Standard glass panel — used for cards
+  // Web: .glass-olive has no border; shadow applied on hover via .hover-lift.
+  // Mobile: resting shadow (no border) to match web card aesthetic.
   panel: {
     backgroundColor: Colors.glassOlive,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(196,160,107,0.12)', // coffeeLight at low opacity
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 4,
   } as ViewStyle,
 
-  // Warm glass — used for highlighted/selected items
+  // Warm glass — highlighted / selected items
   warm: {
     backgroundColor: Colors.glassWarm,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(196,160,107,0.20)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 3,
   } as ViewStyle,
 
   // Heavy glass — overlays, bottom sheets (glass-olive-80)
+  // Keeps a border — used for floating panels where a defined edge helps.
   heavy: {
     backgroundColor: Colors.glassOlive80,
     borderRadius: 16,
@@ -144,12 +153,15 @@ export const Glass = StyleSheet.create({
     borderColor: 'rgba(196,160,107,0.15)',
   } as ViewStyle,
 
-  // Subtle glass — list items, row highlights
+  // Subtle glass — list items, row highlights (minimal shadow)
   subtle: {
     backgroundColor: Colors.glass,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(244,235,225,0.06)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
   } as ViewStyle,
 })
 

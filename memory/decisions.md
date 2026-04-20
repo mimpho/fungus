@@ -38,6 +38,32 @@ See `memory/v8-android-plan.md` and `docs/mobile-architecture.md` for full detai
 
 ---
 
+## v8.0 Mobile — Zones UI design decisions (2026-04-20)
+
+Decisions taken during the zones screen QA pass. All implemented on `feat/v8-0-species`, squash-merged to `epic/v8-android`.
+
+**Tab bar:**
+- Floating (`position: absolute`, transparent), `height: 59px` (+10px over standard 49).
+- Inactive tint: `#f4ebe1` (cream, full opacity). Active: `rgb(217,206,161)` (golden cream, `--color-muted` equivalent) with `rgba(217,206,161,0.10)` pill background.
+- Active pill covers icon **and** label — implemented via `tabBarButton` (custom `Pressable` wrapping React Navigation's children). Discarded: per-icon `View` wrapper (only covered icon, not label).
+- Web blur: `backdropFilter: blur(16px)` via `Platform.OS === 'web'` inline style on `TabBarBackground`. No `expo-blur` — avoids native dependency in managed workflow.
+
+**Search/filter bar:**
+- Pill background: `#4c5240` (`--color-search-bg`, web `.search-light` theme). Solid opaque — prevents card bleed-through when sticky without needing a container background.
+- Shadow: only applied when sticky (scroll offset > title row height). Implemented via `onScroll` + `titleRowHeight` ref + `isSticky` state. Native: `shadowColor/elevation` on pills. Web: `filter: drop-shadow(0 6px 24px rgba(0,0,0,0.5))` on the row wrapper.
+- `stickyHeaderIndices[1]` approach for sticky bar: title at index 0 (scrolls away), search bar at index 1 (pins). `contentContainerStyle` has no horizontal padding — each item owns its own `paddingHorizontal: 16` to avoid double-padding on iOS sticky items.
+
+**Filter sheet:**
+- Backdrop: `#232522d9` (`--modal-overlay`) + `backdropFilter: blur(8px)` web.
+- Background: `#30372a` (`--color-modal`).
+- Max height: `windowHeight - 50` (equivalent to `calc(-50px + 100dvh)`).
+- Comarca: always visible (removed `ccaaFilter !== ''` gate). Custom `ComarcaSelect` component — styled trigger + inline dropdown. Discarded: `@react-native-picker/picker` (not in dependencies, platform UI inconsistency).
+
+**Light mode decision:**
+- Light mode is explicitly prioritised **before** species and map screens. Building more screens with hardcoded hex tokens would require proportional rework when the colour system is migrated. The right sequence: `Colors.ts` + `theme.ts` → semantic tokens → then build new screens.
+
+---
+
 ## Color System (v3.1 migration)
 
 **Decision:** CSS custom properties in `:root` as single source of truth + Tailwind tokens in `tailwind.config.js`.

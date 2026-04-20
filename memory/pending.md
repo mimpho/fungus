@@ -49,12 +49,12 @@ Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `me
 - [x] Scaffold: expo-router, Zustand store, API client (cache AsyncStorage + SecureStore JWT), scoring port, i18n ES/CA/EN
 - [x] Nav: 4 tabs (Zonas · Mapa · Especies · Perfil), MushroomIcon SVG, expo-router file structure
 - [x] Design system: gradient background, Cormorant Garamond + DM Sans, `lib/theme.ts` (Typography, Glass, Font, Gradient), `components/ui/Background.tsx`
+- [x] `feat/v8-0-zones`: zones list (search, filter, sort, follow), zone detail modal, full UI QA pass — ✅ merged to epic
 
-**En progreso:**
-- [ ] `feat/v8-0-zones`: lista de zonas con scores, detalle de zona con condiciones meteorológicas ✅ implementado, pendiente de mergear en epic
-
-**Pendiente (en orden):**
-- [ ] `feat/v8-0-species`: catálogo + detalle de especie
+**En progreso (`feat/v8-0-species`, actualmente en QA de zones UI):**
+- [ ] Zone detail modal (`zona/[id].tsx`) refinements — visual QA pending
+- [ ] **Light mode / theming** (`feat/v8-1-theming` once zones QA is done) — intentionally prioritised BEFORE species. Any new screen built before the colour token refactor must be redone. Colours.ts and theme.ts must migrate to semantic tokens (background/surface/textPrimary/…) before species and map screens are built.
+- [ ] `feat/v8-0-species`: catálogo + detalle de especie — blocked until theming is in place
 - [ ] `feat/v8-0-map`: mapa MapLibre con markers coloreados por score
 - [ ] `feat/v8-0-auth`: login/registro funcional + perfil completo (favoritos, seguidos)
 - [ ] `feat/v8-0-polish`: splash screen, icono, revisión UX
