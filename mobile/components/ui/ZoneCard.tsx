@@ -95,6 +95,9 @@ export function ZoneCard({ zone, conditions, isFollowed, onToggle, onPress }: Zo
 
   return (
     <TouchableOpacity activeOpacity={0.75} onPress={onPress}>
+      {/* Two-layer shadow approach for Android: outer view carries solid bg + elevation,
+          inner view carries the glass rgba color. iOS uses the inner shadow directly. */}
+      <View style={[Glass.panelShadow, styles.cardShadow]}>
       <View style={[Glass.panel, styles.card]}>
         {/* Header row */}
         <View style={styles.header}>
@@ -151,14 +154,20 @@ export function ZoneCard({ zone, conditions, isFollowed, onToggle, onPress }: Zo
           </>
         )}
       </View>
+      </View>
     </TouchableOpacity>
   )
 }
 
 const styles = StyleSheet.create({
-  card: {
-    padding: 20,  // web uses p-5 (20px)
+  // Outer shadow wrapper — carries elevation/shadow on a solid bg so Android
+  // renders it correctly (Android can't shadow semi-transparent backgrounds).
+  cardShadow: {
     marginBottom: 12,
+  },
+  // Inner glass layer — the actual rgba surface on top of the solid shadow bg.
+  card: {
+    padding: 20,
   },
 
   // Header
@@ -171,18 +180,18 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
-  // Zone name — web: font-display text-xl font-semibold (Cormorant 20px → 22px)
+  // Zone name — web: font-display text-xl font-semibold (Cormorant 20px)
   name: {
     fontFamily: Font.displaySemiBold,
-    fontSize: 22,     // +2px
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 26,
     color: Colors.cream,
     marginBottom: 2,
   },
   meta: {
     fontFamily: Font.sansLight,
-    fontSize: 14,     // +2px
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     color: Colors.muted,
   },
   followBtn: {
@@ -202,7 +211,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     fontFamily: Font.sansLight,
-    fontSize: 14,     // +2px
+    fontSize: 12,
     color: 'rgba(217,205,161,0.65)',  // cream/65
   },
   elevationTag: {
@@ -223,12 +232,12 @@ const styles = StyleSheet.create({
   },
   condLabel: {
     fontFamily: Font.sansLight,
-    fontSize: 14,     // +2px
+    fontSize: 13,
     color: 'rgba(244,235,225,0.70)',
   },
   scoreLabel: {
     fontFamily: Font.sansSemiBold,
-    fontSize: 14,     // +2px
+    fontSize: 13,
   },
 
   // Condition pills
@@ -240,7 +249,7 @@ const styles = StyleSheet.create({
   },
   condItem: {
     fontFamily: Font.sansLight,
-    fontSize: 14,     // +2px
+    fontSize: 12,
     color: 'rgba(217,205,161,0.60)',
   },
 
