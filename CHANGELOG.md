@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`mobile/components/ui/ScoreBar.tsx`**: score-colour-coded horizontal progress bar.
 - **`mobile/components/ui/ZoneCard.tsx`**: list card — name, region/province, forest type, elevation, score bar, conditions summary (temp / rainfall / humidity), follow star toggle.
 - **`mobile/app/(tabs)/index.tsx`**: zones list — `FlatList` with search, followed/all toggle, forest-type filter chips, sort (score / alpha / elevation), error banner, empty state.
-- **`mobile/app/zona/[id].tsx`**: zone detail modal — hero block with follow button, description, meteorological conditions grid (6 cells), location coords, real-time conditions fetch (no cache). Species sections placeholder for `feat/v8-2-species`.
+- **`mobile/app/zona/[id].tsx`**: zone detail modal — hero block with follow button, description, meteorological conditions grid (6 cells), location coords, real-time conditions fetch (no cache). Species sections placeholder for `feat/v8-0-species`.
 - **`mobile/lib/i18n.ts`**: 18 new keys for zones list and zone detail in ES/CA/EN.
 
 ### Changed — v8.0 Zones screen + tab bar UI QA (2026-04-20)

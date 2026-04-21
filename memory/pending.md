@@ -51,16 +51,14 @@ Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `me
 - [x] Design system: gradient background, Cormorant Garamond + DM Sans, `lib/theme.ts` (Typography, Glass, Font, Gradient), `components/ui/Background.tsx`
 - [x] `feat/v8-0-zones`: zones list (search, filter, sort, follow), zone detail modal, full UI QA pass — ✅ merged to epic
 
-**En progreso (`feat/v8-0-zones`):**
-- [ ] Zone detail modal (`zona/[id].tsx`) refinements — visual QA in progress
-
-**Pendiente (en orden):**
-- [ ] `feat/v8-1-theming`: light mode + semantic colour tokens — **prerequisite for all new screens**. Migrate `Colors.ts` + `theme.ts` to semantic tokens (`background`, `surface`, `textPrimary`…). Any screen built before this refactor needs to be redone when theming lands.
-- [ ] `feat/v8-2-species`: catálogo + detalle de especie
-- [ ] `feat/v8-3-map`: mapa MapLibre con markers coloreados por score
-- [ ] `feat/v8-4-auth`: login/registro funcional + perfil completo (favoritos, seguidos)
-- [ ] `feat/v8-5-polish`: splash screen, icono, revisión UX
-- [ ] `feat/v8-6-eas-build`: EAS Build → APK de distribución directa
+**En progreso (`feat/v8-0-species`, actualmente en QA de zones UI):**
+- [ ] Zone detail modal (`zona/[id].tsx`) refinements — visual QA pending
+- [ ] **Light mode / theming** (`feat/v8-1-theming` once zones QA is done) — intentionally prioritised BEFORE species. Any new screen built before the colour token refactor must be redone. Colours.ts and theme.ts must migrate to semantic tokens (background/surface/textPrimary/…) before species and map screens are built.
+- [ ] `feat/v8-0-species`: catálogo + detalle de especie — blocked until theming is in place
+- [ ] `feat/v8-0-map`: mapa MapLibre con markers coloreados por score
+- [ ] `feat/v8-0-auth`: login/registro funcional + perfil completo (favoritos, seguidos)
+- [ ] `feat/v8-0-polish`: splash screen, icono, revisión UX
+- [ ] `feat/v8-0-eas-build`: EAS Build → APK de distribución directa
 
 iOS fuera de roadmap (Apple Developer $99/año); Google Play en v8.1.
 

@@ -7,9 +7,6 @@
 import { View, Pressable, StyleSheet, Platform } from 'react-native'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { BlurView } from 'expo-blur'
-import Constants, { ExecutionEnvironment } from 'expo-constants'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors } from '../../constants/Colors'
 import { Font } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
@@ -21,33 +18,9 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name']
 const TAB_ACTIVE   = 'rgb(217,206,161)'   // golden cream — active icon + label
 const TAB_INACTIVE = '#f4ebe1'             // cream — inactive icon + label
 
-// Glass-olive background with platform-aware blur.
-// Native: BlurView (expo-blur) replicates the web's backdrop-filter: blur(16px).
-// Web: CSS backdropFilter applied via inline style on the View.
+// Glass-olive background with platform-aware blur
 function TabBarBackground() {
-  if (Platform.OS === 'web') {
-    return (
-      <View
-        style={[styles.tabBarBg, {
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-        } as any]}
-      />
-    )
-  }
-  // dimezisBlurView uses hardware bitmaps — crashes in Expo Go (software renderer).
-  // Only enable it in standalone/production builds.
-  const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient
-  return (
-    <BlurView
-      intensity={55}
-      tint="dark"
-      experimentalBlurMethod={isExpoGo ? 'none' : 'dimezisBlurView'}
-      style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}
-    >
-      <View style={styles.tabBarBgOverlay} />
-    </BlurView>
-  )
+  return <View style={styles.tabBarBg} />
 }
 
 // Plain icon — no wrapper; the active bg is handled by TabBarBtn below
@@ -78,9 +51,6 @@ function TabBarBtn({ children, style, accessibilityState, ...rest }: any) {
 
 export default function TabLayout() {
   const t = useAppStore((s) => s.t)
-  const insets = useSafeAreaInsets()
-  // Tab bar content height (icons + labels) + bottom safe area (home indicator).
-  const tabBarHeight = 59 + insets.bottom
 
   return (
     <Tabs
@@ -89,9 +59,9 @@ export default function TabLayout() {
         tabBarStyle: {
           position: 'absolute',
           borderTopWidth: 0,
-          elevation: 0,
+          elevation: 0,         // remove Android shadow
           backgroundColor: 'transparent',
-          height: tabBarHeight,
+          height: 59,           // +10px over the standard 49
         },
         tabBarBackground: () => <TabBarBackground />,
         tabBarActiveTintColor: TAB_ACTIVE,
@@ -158,16 +128,17 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  // Web-only: solid glass-olive color; blur applied inline via style prop.
-  // Native: this View is not used — BlurView handles the background instead.
+  // Glass-olive background for the floating tab bar.
   tabBarBg: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.glassOlive,
-  },
-  // Sits on top of BlurView on native to add the olive tint over the blur.
-  tabBarBgOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.glassOlive,
+    backgroundColor: Colors.glassOlive80,
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundColor: Colors.glassOlive,
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+        } as any)
+      : {}),
   },
 
   // Each tab item — pill shape; active state shows the golden-cream background

@@ -40,7 +40,7 @@ See `memory/v8-android-plan.md` and `docs/mobile-architecture.md` for full detai
 
 ## v8.0 Mobile — Zones UI design decisions (2026-04-20)
 
-Decisions taken during the zones screen QA pass. All implemented on `feat/v8-0-zones`, squash-merged to `epic/v8-android`.
+Decisions taken during the zones screen QA pass. All implemented on `feat/v8-0-species`, squash-merged to `epic/v8-android`.
 
 **Tab bar:**
 - Floating (`position: absolute`, transparent), `height: 59px` (+10px over standard 49).

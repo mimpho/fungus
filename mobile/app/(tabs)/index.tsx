@@ -20,8 +20,6 @@ import {
   useWindowDimensions,
 } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
-import { BlurView } from 'expo-blur'
-import Constants, { ExecutionEnvironment } from 'expo-constants'
 import { Tabs, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
@@ -67,7 +65,7 @@ function IconClose({ size = 14, opacity = 0.5 }: { size?: number; opacity?: numb
 function IconChevron({ open }: { open: boolean }) {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none"
-      style={open ? { transform: [{ rotate: '180deg' }] } : undefined}>
+      style={open ? ({ transform: 'rotate(180deg)' } as any) : undefined}>
       <Path d="M6 9l6 6 6-6"
         stroke="rgba(244,235,225,0.50)" strokeWidth={2}
         strokeLinecap="round" strokeLinejoin="round" />
@@ -178,8 +176,7 @@ export default function ZonasScreen() {
   // Bottom safe area — needed to add paddingBottom so the last card is not
   // hidden behind the absolute-positioned tab bar.
   const insets = useSafeAreaInsets()
-  // 59 = tab bar content height, insets.bottom = home indicator, 8 = breathing room
-  // Must match tabBarHeight in _layout.tsx
+  // 59 = tab bar height (standard 49 + 10px extra), 8 = breathing room
   const tabBarPadding = 59 + insets.bottom + 8
 
   // ── Sticky detection ─────────────────────────────────────────────────────
@@ -187,7 +184,6 @@ export default function ZonasScreen() {
   // and the bar is pinned at the top (= isSticky).
   const [isSticky, setIsSticky] = useState(false)
   const titleRowHeight = useRef(0)
-  const searchBarHeight = useRef(0)
 
   // ── Filter state ──────────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
@@ -320,16 +316,54 @@ export default function ZonasScreen() {
           </View>
         )
 
-      // ── Search bar — always renders its natural height in the list.
-      // When isSticky=true an identical bar is shown in a fixed View above the
-      // FlatList (see below); this instance becomes invisible to avoid duplicate.
+      // ── Search bar — becomes sticky once title scrolls off (index 1) ──
       case 'searchbar':
         return (
-          <View
-            style={[styles.stickyBar, isSticky && styles.stickyBarHidden]}
-            onLayout={(e) => { searchBarHeight.current = e.nativeEvent.layout.height }}
-          >
-            {renderSearchBarContent(false)}
+          <View style={styles.stickyBar}>
+            <View style={[
+              styles.searchBar,
+              isSticky && Platform.OS === 'web'
+                ? ({ filter: 'drop-shadow(0 6px 24px rgba(0,0,0,0.50))' } as any)
+                : null,
+            ]}>
+              <View style={[styles.searchInputWrap, isSticky && Platform.OS !== 'web' && PILL_SHADOW]}>
+                <IconSearch size={16} opacity={0.55} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar…"
+                  placeholderTextColor="rgba(217,205,161,0.45)"
+                  value={search}
+                  onChangeText={setSearch}
+                  autoCapitalize="none"
+                  returnKeyType="search"
+                />
+                {search.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearch('')}
+                    hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                    style={styles.clearBtn}
+                  >
+                    <IconClose size={14} opacity={0.5} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <TouchableOpacity
+                style={[styles.filterBtn, isSticky && Platform.OS !== 'web' && PILL_SHADOW]}
+                onPress={openFilter} activeOpacity={0.75}>
+                <IconFilter size={16} opacity={0.8} />
+                <Text style={styles.filterBtnLabel}>Filtrar</Text>
+                {activeFilters > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{activeFilters}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+            {error && (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorText}>⚠️ {error}</Text>
+              </View>
+            )}
           </View>
         )
 
@@ -367,59 +401,6 @@ export default function ZonasScreen() {
     }
   }
 
-  // ── Search bar content — shared between the in-list placeholder and the
-  // fixed overlay. `pinned=true` applies the drop-shadow on the pills.
-  function renderSearchBarContent(pinned: boolean) {
-    return (
-      <>
-        <View style={[
-          styles.searchBar,
-          pinned && Platform.OS === 'web'
-            ? ({ filter: 'drop-shadow(0 6px 24px rgba(0,0,0,0.50))' } as any)
-            : null,
-        ]}>
-          <View style={[styles.searchInputWrap, pinned && Platform.OS !== 'web' && PILL_SHADOW]}>
-            <IconSearch size={16} opacity={0.55} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar…"
-              placeholderTextColor="rgba(217,205,161,0.45)"
-              value={search}
-              onChangeText={setSearch}
-              autoCapitalize="none"
-              returnKeyType="search"
-            />
-            {search.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setSearch('')}
-                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                style={styles.clearBtn}
-              >
-                <IconClose size={14} opacity={0.5} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity
-            style={[styles.filterBtn, pinned && Platform.OS !== 'web' && PILL_SHADOW]}
-            onPress={openFilter} activeOpacity={0.75}>
-            <IconFilter size={16} opacity={0.8} />
-            <Text style={styles.filterBtnLabel}>Filtrar</Text>
-            {activeFilters > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{activeFilters}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-        {error && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>⚠️ {error}</Text>
-          </View>
-        )}
-      </>
-    )
-  }
-
   return (
     <>
       {/* Hide the native header — the title lives in the scroll content */}
@@ -428,65 +409,39 @@ export default function ZonasScreen() {
       <View style={{ flex: 1 }}>
         <FlatList
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: insets.top, paddingBottom: tabBarPadding }]}
+          contentContainerStyle={[styles.content, { paddingBottom: tabBarPadding }]}
           data={listData}
           keyExtractor={(item) =>
             item.itemType === 'zone' ? item.zone.id : item.itemType
           }
           renderItem={renderItem}
+          // Index 1 = search bar: pins to top once the title (index 0) scrolls off
+          stickyHeaderIndices={[1]}
           showsVerticalScrollIndicator={false}
           onScroll={(e) => {
-            // The search bar pins when its top edge reaches viewport y=insets.top.
-            // offset at that moment = titleRowHeight (insets.top terms cancel out).
-            const sticky = e.nativeEvent.contentOffset.y >= titleRowHeight.current
+            const sticky = e.nativeEvent.contentOffset.y > titleRowHeight.current
             if (sticky !== isSticky) setIsSticky(sticky)
           }}
           scrollEventThrottle={16}
         />
 
-        {/* ── Fixed search bar overlay — shown only when isSticky=true.
-            Positioned at top=insets.top so it sits just below the status bar,
-            exactly where the in-list bar was before it scrolled off. ────── */}
-        {isSticky && (
-          <View style={[styles.stickyBarFixed, { top: insets.top }]}
-            pointerEvents="box-none">
-            {renderSearchBarContent(true)}
-          </View>
-        )}
-
         {/* ── Filter bottom sheet (animated inline overlay) ─────────────── */}
         {filterOpen && (
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <Animated.View
-              style={[StyleSheet.absoluteFill, { opacity: backdropAnim, zIndex: 100 }]}
+              style={[StyleSheet.absoluteFill, styles.backdrop, {
+                opacity: backdropAnim,
+                ...(Platform.OS === 'web'
+                  ? ({ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } as any)
+                  : {}),
+              }]}
               pointerEvents="auto"
             >
-              {Platform.OS === 'web' ? (
-                <Pressable
-                  style={[StyleSheet.absoluteFill, styles.backdrop, {
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                  } as any]}
-                  onPress={closeFilter}
-                />
-              ) : (
-                <BlurView
-                  intensity={25}
-                  tint="dark"
-                  experimentalBlurMethod={
-                    Constants.executionEnvironment === ExecutionEnvironment.StoreClient
-                      ? 'none'
-                      : 'dimezisBlurView'
-                  }
-                  style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}
-                >
-                  <Pressable style={[StyleSheet.absoluteFill, styles.backdropOverlay]} onPress={closeFilter} />
-                </BlurView>
-              )}
+              <Pressable style={StyleSheet.absoluteFill} onPress={closeFilter} />
             </Animated.View>
             <View style={styles.sheetWrapper} pointerEvents="box-none">
               <Animated.View style={{ transform: [{ translateY: sheetAnim }] }}>
-                <View style={[styles.sheet, { maxHeight: windowHeight - 50 - insets.top }]}>
+                <View style={[styles.sheet, { maxHeight: windowHeight - 50 }]}>
                   <View {...panResponder.panHandlers} style={styles.handleWrap}>
                     <View style={styles.handle} />
                   </View>
@@ -620,27 +575,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ── Search bar ────────────────────────────────────────────────────────────
-  // stickyBar: in-list version — always renders to preserve the row height.
-  // When isSticky=true it becomes invisible (opacity 0) so the fixed overlay
-  // shows instead, avoiding any jump or duplicate.
+  // ── Sticky search bar (index 1) ───────────────────────────────────────────
+  // No background on the container — background lives on the pills (#4c5240).
+  // Web: drop-shadow filter on the searchBar row wrapper matches web's
+  //   filter: drop-shadow(0 6px 24px rgba(0,0,0,0.5))
+  // Native: shadow on the pills directly (they have solid bg so iOS shadow works).
   stickyBar: {
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 10,
-  },
-  stickyBarHidden: {
-    opacity: 0,        // invisible but still takes up space in the list
-  },
-  // Fixed overlay version — positioned absolutely at top=insets.top.
-  stickyBarFixed: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    zIndex: 20,
+    zIndex: 10,
   },
   // Shadow applied inline (isSticky-conditional) — not in the static stylesheet
   searchBar: { flexDirection: 'row', gap: 4 },
@@ -712,10 +656,9 @@ const styles = StyleSheet.create({
   emptyHint: { textAlign: 'center' },
 
   // ── Animated overlay / filter sheet ──────────────────────────────────────
-  // backdrop: web only — solid color + CSS backdropFilter blur applied inline
-  backdrop: { backgroundColor: '#232522d9' },
-  // backdropOverlay: native — sits inside BlurView to add the dark tint on top of the blur
-  backdropOverlay: { backgroundColor: 'rgba(35,37,34,0.55)' },
+  // backdrop: --modal-overlay = #232522d9 ≈ rgba(35,37,34,0.85)
+  // backdrop-filter: blur(8px) applied inline on web (requires animated style merge)
+  backdrop: { backgroundColor: '#232522d9', zIndex: 100 },
   sheetWrapper: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 101 },
   sheet: {
     // --color-modal = #30372a

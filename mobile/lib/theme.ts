@@ -11,7 +11,7 @@
 //   DMSans_500Medium
 //   DMSans_600SemiBold
 
-import { StyleSheet, TextStyle, ViewStyle, Platform } from 'react-native'
+import { StyleSheet, TextStyle, ViewStyle } from 'react-native'
 import { Colors } from '../constants/Colors'
 
 // ─── Font family constants ────────────────────────────────────────────────────
@@ -120,46 +120,28 @@ export const Typography = StyleSheet.create({
 // Mirrors the web's glass-olive, glass-warm etc. surfaces
 
 export const Glass = StyleSheet.create({
-  // Standard glass panel — used for cards.
-  // Android cannot render shadows on semi-transparent backgrounds (rgba).
-  // Solution: two-layer approach —
-  //   panelShadow (outer): solid opaque bg matching the app bg + shadow/elevation
-  //   panel (inner): the actual glass rgba color, borderRadius, no shadow
-  // On iOS, panel carries its own shadow directly (no issue with rgba).
-  panelShadow: {
-    borderRadius: 12,
-    backgroundColor: Colors.bg,   // solid #2b3529 — matches app gradient start
-    ...(Platform.OS !== 'android' ? {
-      shadowColor: '#0a0f08',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.35,
-      shadowRadius: 8,
-    } : {
-      elevation: 3,
-    }),
-  } as ViewStyle,
+  // Standard glass panel — used for cards
+  // Web: .glass-olive has no border; shadow applied on hover via .hover-lift.
+  // Mobile: resting shadow (no border) to match web card aesthetic.
   panel: {
     backgroundColor: Colors.glassOlive,
     borderRadius: 12,
-    ...(Platform.OS !== 'android' ? {} : {}),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 4,
   } as ViewStyle,
 
   // Warm glass — highlighted / selected items
   warm: {
     backgroundColor: Colors.glassWarm,
     borderRadius: 12,
-  } as ViewStyle,
-  warmShadow: {
-    borderRadius: 12,
-    backgroundColor: Colors.bg,
-    ...(Platform.OS !== 'android' ? {
-      shadowColor: '#0a0f08',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.28,
-      shadowRadius: 6,
-    } : {
-      elevation: 2,
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 3,
   } as ViewStyle,
 
   // Heavy glass — overlays, bottom sheets (glass-olive-80)
