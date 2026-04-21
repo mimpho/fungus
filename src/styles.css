@@ -8,36 +8,67 @@
    definidos en tailwind.config.js.
    ─────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* Textos */
-  --color-cream:         #f4ebe1;
-  --color-muted:         #d9cda1;
+  /* [generated:css-vars:start] */
 
-  /* Acentos cálidos */
-  --color-coffee:        #8b6f47;
-  --color-coffee-light:  #c4a06b;
+  /* ── Generated from shared/colors.ts — do not edit manually ── */
 
-  /* Verde forestal */
-  --color-green-f:       #4a7c59;
+  /* Fixed tokens — same in both themes */
+  --color-positive:     #059669;
+  --color-green-f:      #4a7c59;
+  --color-bar:          #887b4b;
+  --color-coffee:       #8b6f47;
+  --color-danger:       #dc2626;
+  --color-warning:      #d97706;
 
-  /* Score intermedio */
-  --color-bar:           #887b4b;
+  /* Dark theme (default) */
+  --color-bg-deep:      #0f1f18;
+  --color-bg:           #2b3529;
+  --color-modal:        #30372a;
+  --color-cream:        #f4ebe1;
+  --color-muted:        #d9cda1;
+  --color-coffee-light: #c4a06b;
+  --color-search-bg:    #4c5240;
+  --glass-white:        rgba(255,255,255,0.04);
+  --glass-warm:         rgba(139,111,71,0.08);
+  --glass-warm-border:  rgba(139,111,71,0.20);
+  --glass-olive:        rgba(63,73,59,0.50);
+  --glass-olive-80:     rgba(63,73,59,0.80);
+  --modal-overlay:      #232522d9;
+  --border-default:     rgba(255,255,255,0.08);
+  --border-accent:      rgba(196,160,107,0.15);
+  --gradient-a:         rgb(43,53,41);
+  --gradient-b:         rgb(61,69,54);
+  --gradient-c:         rgb(67,66,28);
 
-  /* Fondos */
-  --color-bg-deep:       #0f1f18;
-  --color-modal:         #30372a;
-  --color-search-bg:     #4c5240;   /* fondo del search bar (tema search-light) */
+  /* [generated:css-vars:end] */
 
-  /* Efectos glass */
-  --glass-white:         rgba(255, 255, 255, 0.05);
-  --glass-warm:          rgba(139, 111, 71, 0.08);
-  --glass-warm-border:   rgba(139, 111, 71, 0.20);
-  --glass-warm-thumb:    rgba(139, 111, 71, 0.40);
-  --glass-olive:         rgba(63, 73, 59, 0.50);
-  --glass-olive-80:      rgba(63, 73, 59, 0.80);
-
-  /* Overlay modal */
-  --modal-overlay:       #232522d9;
+  /* Hand-authored — not generated */
+  --glass-warm-thumb:   rgba(139, 111, 71, 0.40);
 }
+
+/* [generated:light-theme:start] */
+[data-theme="light"] {
+  --color-bg-deep:      rgb(224,215,190);
+  --color-bg:           rgb(240,237,230);
+  --color-modal:        rgba(255,255,255,0.92);
+  --color-cream:        #2b2a1f;
+  --color-muted:        #6b6045;
+  --color-coffee:       #6b4f2a;
+  --color-coffee-light: #8b6030;
+  --color-search-bg:    #e8e2d4;
+  --glass-white:        rgba(255,255,255,0.60);
+  --glass-warm:         rgba(139,111,71,0.06);
+  --glass-warm-border:  rgba(139,111,71,0.25);
+  --glass-olive:        rgba(255,255,255,0.70);
+  --glass-olive-80:     rgba(255,255,255,0.85);
+  --modal-overlay:      rgba(200,195,180,0.75);
+  --border-default:     rgba(0,0,0,0.10);
+  --border-accent:      rgba(139,111,71,0.20);
+  --gradient-a:         rgb(240,237,230);
+  --gradient-b:         rgb(232,226,212);
+  --gradient-c:         rgb(224,215,190);
+}
+/* [generated:light-theme:end] */
 
 /* ── Google Fonts already loaded via index.html ── */
 

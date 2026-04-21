@@ -9,6 +9,7 @@ import { apiResendVerification } from '../services/authService'
 export default function Profile() {
   const {
     t, lang, setLang,
+    themeMode, setThemeMode,
     profile, setProfile,
     followedZones, favoriteSpecies,
     setSelectedZone, setSelectedSpecies,
@@ -99,6 +100,19 @@ export default function Profile() {
             >
               {t.iniciarSesion ?? 'Iniciar sesión'}
             </button>
+          </div>
+        </section>
+
+        {/* Apariencia — siempre disponible */}
+        <section className="glass rounded-2xl p-5">
+          <h3 className="font-medium text-cream mb-4">Apariencia</h3>
+          <div className="grid grid-cols-3 gap-2 bg-white/[0.04] rounded-xl p-1">
+            {[['dark','Oscuro'],['light','Claro'],['system','Sistema']].map(([mode, label]) => (
+              <button key={mode} onClick={() => setThemeMode(mode)}
+                className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-cream shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
+                {label}
+              </button>
+            ))}
           </div>
         </section>
 
@@ -240,6 +254,19 @@ export default function Profile() {
                 <p className="text-cream/60 text-xs mt-0.5">{n.hora}</p>
               </div>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Apariencia */}
+      <section className="glass rounded-2xl p-5">
+        <h3 className="font-medium text-cream mb-4">Apariencia</h3>
+        <div className="grid grid-cols-3 gap-2 bg-white/[0.04] rounded-xl p-1">
+          {[['dark','Oscuro'],['light','Claro'],['system','Sistema']].map(([mode, label]) => (
+            <button key={mode} onClick={() => setThemeMode(mode)}
+              className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-cream shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
+              {label}
+            </button>
           ))}
         </div>
       </section>
