@@ -180,15 +180,15 @@ export default function Zones() {
         <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.mostrar}</p>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setOnlyFollowed(false)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${!onlyFollowed ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${!onlyFollowed ? 'bg-bar text-white' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
             {t.todasZonas}
           </button>
           <button onClick={() => setOnlyFollowed(true)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyFollowed ? 'bg-yellow-400/20 text-yellow-400' : 'glass text-cream/60'}`}>
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyFollowed ? 'bg-yellow-400/20 text-yellow-400' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
             ⭐ {t.misZonas}
           </button>
           <button onClick={() => setOnlyRained(v => !v)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyRained ? 'bg-sky-400/20 text-sky-400' : 'glass text-cream/60'}`}>
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyRained ? 'bg-sky-400/20 text-sky-400' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
             {t.haLlovido}
           </button>
         </div>
@@ -198,12 +198,12 @@ export default function Zones() {
           <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.comunidadAutonoma}</p>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setCcaaFilter('')}
-              className={`px-4 py-2 rounded-xl text-sm transition-all ${!ccaaFilter ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${!ccaaFilter ? 'bg-bar text-white' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
               {t.todos}
             </button>
             {comunidades.map(ca => (
               <button key={ca} onClick={() => setCcaaFilter(ca)}
-                className={`px-4 py-2 rounded-xl text-sm transition-all ${ccaaFilter === ca ? 'bg-green-f/30 text-emerald-400' : 'glass text-cream/60'}`}>
+                className={`px-4 py-2 rounded-xl text-sm transition-all ${ccaaFilter === ca ? 'bg-green-f/30 text-emerald-400' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
                 {ca}
               </button>
             ))}
@@ -216,7 +216,7 @@ export default function Zones() {
           <div className="relative sm:inline-block sm:min-w-[220px]">
             <select value={comarcaFilter} onChange={e => setComarcaFilter(e.target.value)}
               className="w-full px-4 py-3 pr-10 rounded-xl text-sm text-cream outline-none cursor-pointer appearance-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              style={{ background: 'rgba(var(--color-cream-rgb),0.06)', border: '1px solid rgba(var(--color-cream-rgb),0.15)' }}>
               <option value="" style={{ background: 'var(--color-modal)' }}>{t.todasLasComarcas}</option>
               {comarcas.map(c => <option key={c} value={c} style={{ background: 'var(--color-modal)' }}>{c}</option>)}
             </select>
@@ -230,14 +230,14 @@ export default function Zones() {
         <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.tipoBosque}</p>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setForestFilter('')}
-            className={`px-4 py-2 rounded-xl text-sm transition-all ${!forestFilter ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+            className={`px-4 py-2 rounded-xl text-sm transition-all ${!forestFilter ? 'bg-bar text-white' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
             {t.todos}
           </button>
           {forestTypes.map(tb => {
             const emoji = { pinar: '🌲', hayedo: '🌳', robledal: '🌿', encinar: '🫒' }
             return (
               <button key={tb} onClick={() => setForestFilter(tb)}
-                className={`px-4 py-2 rounded-xl text-sm transition-all capitalize ${forestFilter === tb ? 'bg-green-f/30 text-emerald-400' : 'glass text-cream/60'}`}>
+                className={`px-4 py-2 rounded-xl text-sm transition-all capitalize ${forestFilter === tb ? 'bg-green-f/30 text-emerald-400' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
                 {emoji[tb] || '🌲'} {tb}
               </button>
             )
@@ -249,15 +249,15 @@ export default function Zones() {
           <p className="text-muted text-xs uppercase tracking-wider mb-3">{t.ordenarPor}</p>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setZoneSort('score')}
-              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'score' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'score' ? 'bg-bar text-white' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
               {t.mejorCondicion}
             </button>
             <button onClick={() => setZoneSort('alfa')}
-              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'alfa' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'alfa' ? 'bg-bar text-white' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
               {t.azNombre}
             </button>
             <button onClick={() => setZoneSort('elevation')}
-              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'elevation' ? 'bg-bar text-white' : 'glass text-cream/60'}`}>
+              className={`px-4 py-2 rounded-xl text-sm transition-all ${zoneSort === 'elevation' ? 'bg-bar text-white' : 'bg-cream/8 border border-cream/15 text-cream/70'}`}>
               {t.altitud}
             </button>
           </div>

@@ -1,8 +1,4 @@
 // Tab navigator — 4 tabs: Zonas · Mapa · Especies · Perfil
-// Tab bar is positioned absolute (floats above content) with a glass-olive background
-// matching the web --glass-olive variable: rgba(63,73,59,0.50) + blur(16px).
-// On web the blur is achieved via CSS backdropFilter.
-// On native it falls back to glassOlive80 (more opaque) since no expo-blur.
 
 import { View, Pressable, StyleSheet, Platform } from 'react-native'
 import { Tabs } from 'expo-router'
@@ -10,25 +6,20 @@ import { Ionicons } from '@expo/vector-icons'
 import { BlurView } from 'expo-blur'
 import Constants, { ExecutionEnvironment } from 'expo-constants'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Colors } from '../../constants/Colors'
-import { Font } from '../../lib/theme'
+import { Font, useStyles } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
 import { MushroomIcon } from '../../components/icons/MushroomIcon'
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name']
 
-// Active / inactive tab colours
-const TAB_ACTIVE   = 'rgb(217,206,161)'   // golden cream — active icon + label
-const TAB_INACTIVE = '#f4ebe1'             // cream — inactive icon + label
+// ── Tab bar background (theme-aware) ──────────────────────────────────────────
 
-// Glass-olive background with platform-aware blur.
-// Native: BlurView (expo-blur) replicates the web's backdrop-filter: blur(16px).
-// Web: CSS backdropFilter applied via inline style on the View.
-function TabBarBackground() {
+function TabBarBackground({ surface, isDark }: { surface: string; isDark: boolean }) {
   if (Platform.OS === 'web') {
     return (
       <View
-        style={[styles.tabBarBg, {
+        style={[StyleSheet.absoluteFillObject, {
+          backgroundColor: surface,
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
         } as any]}
@@ -36,56 +27,76 @@ function TabBarBackground() {
     )
   }
   // dimezisBlurView uses hardware bitmaps — crashes in Expo Go (software renderer).
-  // Only enable it in standalone/production builds.
   const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient
   return (
     <BlurView
       intensity={55}
-      tint="dark"
+      tint={isDark ? 'dark' : 'light'}
       experimentalBlurMethod={isExpoGo ? 'none' : 'dimezisBlurView'}
       style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}
     >
-      <View style={styles.tabBarBgOverlay} />
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: surface }]} />
     </BlurView>
   )
 }
 
-// Plain icon — no wrapper; the active bg is handled by TabBarBtn below
-function TabIcon({ name, focused }: { name: IoniconName; focused: boolean }) {
+// ── Tab icon ──────────────────────────────────────────────────────────────────
+
+function TabIcon({
+  name,
+  focused,
+  activeColor,
+  inactiveColor,
+}: {
+  name: IoniconName
+  focused: boolean
+  activeColor: string
+  inactiveColor: string
+}) {
   return (
     <Ionicons
       name={focused ? name : (`${name}-outline` as IoniconName)}
       size={24}
-      color={focused ? TAB_ACTIVE : TAB_INACTIVE}
+      color={focused ? activeColor : inactiveColor}
     />
   )
 }
 
-// Custom tab button — wraps icon + label in a single Pressable so the active
-// background pill covers both elements, not just the icon.
-function TabBarBtn({ children, style, accessibilityState, ...rest }: any) {
+// ── Custom tab button ─────────────────────────────────────────────────────────
+
+function TabBarBtn({ children, style, accessibilityState, activeColor, ...rest }: any) {
   const focused = accessibilityState?.selected ?? false
   return (
     <Pressable
       {...rest}
       accessibilityState={accessibilityState}
-      style={[style, styles.tabBarItem, focused && styles.tabBarItemActive]}
+      style={[
+        style,
+        styles.tabBarItem,
+        focused && { backgroundColor: activeColor + '1A' }, // 10% opacity
+      ]}
     >
       {children}
     </Pressable>
   )
 }
 
+// ── Layout ────────────────────────────────────────────────────────────────────
+
 export default function TabLayout() {
   const t = useAppStore((s) => s.t)
+  const { colors, isDark } = useStyles()
   const insets = useSafeAreaInsets()
-  // Tab bar content height (icons + labels) + bottom safe area (home indicator).
   const tabBarHeight = 59 + insets.bottom
+
+  // Active tab colour: golden-cream in dark, coffee-light in light
+  const TAB_ACTIVE   = isDark ? 'rgb(217,206,161)' : colors.accentLight
+  const TAB_INACTIVE = isDark ? colors.textPrimary  : colors.textSecondary
 
   return (
     <Tabs
       screenOptions={{
-        // ── Tab bar — floats above content ──────────────────────────────────
+        // ── Tab bar ─────────────────────────────────────────────────────────
         tabBarStyle: {
           position: 'absolute',
           borderTopWidth: 0,
@@ -93,26 +104,30 @@ export default function TabLayout() {
           backgroundColor: 'transparent',
           height: tabBarHeight,
         },
-        tabBarBackground: () => <TabBarBackground />,
+        tabBarBackground: () => (
+          <TabBarBackground surface={colors.surfaceHeavy} isDark={isDark} />
+        ),
         tabBarActiveTintColor: TAB_ACTIVE,
         tabBarInactiveTintColor: TAB_INACTIVE,
         tabBarLabelStyle: {
           fontFamily: Font.sansMedium,
           fontSize: 13,
         },
-        // Active background pill covers icon + label together
-        tabBarButton: (props) => <TabBarBtn {...props} />,
+        tabBarButton: (props) => (
+          <TabBarBtn {...props} activeColor={TAB_ACTIVE} />
+        ),
 
         // ── Header ──────────────────────────────────────────────────────────
         headerStyle: {
-          backgroundColor: Colors.modal,
-          borderBottomWidth: 0,
+          backgroundColor: colors.backgroundPanel,
+          borderBottomWidth: isDark ? 0 : StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border,
         },
         headerShadowVisible: false,
-        headerTintColor: Colors.cream,
+        headerTintColor: colors.textPrimary,
         headerTitleStyle: {
           fontFamily: Font.sansSemiBold,
-          color: Colors.cream,
+          color: colors.textPrimary,
         },
 
         // ── Scene ────────────────────────────────────────────────────────────
@@ -123,14 +138,28 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t.zones,
-          tabBarIcon: ({ focused }) => <TabIcon name="location" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name="location"
+              focused={focused}
+              activeColor={TAB_ACTIVE}
+              inactiveColor={TAB_INACTIVE}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="mapa"
         options={{
           title: t.map,
-          tabBarIcon: ({ focused }) => <TabIcon name="map" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name="map"
+              focused={focused}
+              activeColor={TAB_ACTIVE}
+              inactiveColor={TAB_INACTIVE}
+            />
+          ),
         }}
       />
       <Tabs.Screen
@@ -150,7 +179,14 @@ export default function TabLayout() {
         name="perfil"
         options={{
           title: t.profile,
-          tabBarIcon: ({ focused }) => <TabIcon name="person" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name="person"
+              focused={focused}
+              activeColor={TAB_ACTIVE}
+              inactiveColor={TAB_INACTIVE}
+            />
+          ),
         }}
       />
     </Tabs>
@@ -158,20 +194,6 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  // Web-only: solid glass-olive color; blur applied inline via style prop.
-  // Native: this View is not used — BlurView handles the background instead.
-  tabBarBg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.glassOlive,
-  },
-  // Sits on top of BlurView on native to add the olive tint over the blur.
-  tabBarBgOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.glassOlive,
-  },
-
-  // Each tab item — pill shape; active state shows the golden-cream background
-  // covering both icon and label.
   tabBarItem: {
     flex: 1,
     alignItems: 'center',
@@ -180,8 +202,5 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     borderRadius: 12,
     paddingVertical: 2,
-  },
-  tabBarItemActive: {
-    backgroundColor: 'rgba(217,206,161,0.10)',
   },
 })

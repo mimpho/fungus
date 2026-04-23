@@ -10,7 +10,6 @@ export function FilterPanel({ isOpen, onClose, children, hideDesktop = false }) 
   const [dragY, setDragY]         = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
-
   const onTouchStart = e => { dragStartY.current = e.touches[0].clientY; setDragY(0); setIsDragging(true) }
   const onTouchMove  = e => { setDragY(Math.max(0, e.touches[0].clientY - dragStartY.current)) }
   const onTouchEnd   = () => {
@@ -32,7 +31,7 @@ export function FilterPanel({ isOpen, onClose, children, hideDesktop = false }) 
         <div className="glass rounded-2xl p-5 mt-2">
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-display text-lg font-semibold text-cream">Filtrar y ordenar</h4>
-            <button onClick={onClose} className="p-1.5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all">{IC.close}</button>
+            <button onClick={onClose} className="p-1.5 rounded-xl text-cream/50 hover:text-cream hover:bg-cream/10 transition-all">{IC.close}</button>
           </div>
           {children}
         </div>
@@ -47,11 +46,11 @@ export function FilterPanel({ isOpen, onClose, children, hideDesktop = false }) 
           <div ref={drawerRef} className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl flex flex-col" style={{ ...drawerStyle, maxHeight: 'calc(100dvh - 50px)' }}>
             <div className="pt-4 pb-2 flex flex-col items-center touch-none cursor-grab select-none shrink-0"
               onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-              <div className="w-10 h-1 rounded-full bg-white/20" />
+              <div className="w-10 h-1 rounded-full bg-cream/20" />
             </div>
             <div className="flex items-center justify-between px-5 pb-3 shrink-0">
               <h4 className="font-display text-xl font-semibold text-cream">Filtrar y ordenar</h4>
-              <button onClick={onClose} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all">{IC.close}</button>
+              <button onClick={onClose} className="p-2 rounded-xl text-cream/50 hover:text-cream hover:bg-cream/10 transition-all">{IC.close}</button>
             </div>
             <div className="px-5 pb-8 overflow-y-auto">
               {children}

@@ -121,7 +121,7 @@ export default function Layout() {
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo */}
         <NavLink to="/" onClick={() => setMobileMenuOpen(false)}>
-          <img src="/assets/images/logoFungus.png" alt="Fungus" className="h-16 w-auto object-contain" />
+          <img src="/assets/images/logoFungus.png" alt="Fungus" className="h-16 w-auto object-contain logo-adaptive" />
         </NavLink>
 
         {/* Nav desktop */}

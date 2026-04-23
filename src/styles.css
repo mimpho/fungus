@@ -44,6 +44,13 @@
 
   /* Hand-authored — not generated */
   --glass-warm-thumb:   rgba(139, 111, 71, 0.40);
+
+  /* RGB channels for Tailwind opacity modifiers (text-cream/60 etc.) */
+  --color-cream-rgb:    244, 235, 225;   /* #f4ebe1 */
+  --color-muted-rgb:    217, 205, 161;   /* #d9cda1 */
+  --color-modal-rgb:    48, 55, 42;      /* #30372a */
+  --color-bar-rgb:      136, 123, 75;    /* #887b4b */
+  --color-coffee-rgb:   139, 111, 71;    /* #8b6f47 */
 }
 
 /* [generated:light-theme:start] */
@@ -67,6 +74,13 @@
   --gradient-a:         rgb(240,237,230);
   --gradient-b:         rgb(232,226,212);
   --gradient-c:         rgb(224,215,190);
+
+  /* RGB channels for Tailwind opacity modifiers */
+  --color-cream-rgb:    43, 42, 31;      /* #2b2a1f */
+  --color-muted-rgb:    107, 96, 69;     /* #6b6045 */
+  --color-modal-rgb:    255, 255, 255;   /* white panel */
+  --color-bar-rgb:      136, 123, 75;    /* same fixed */
+  --color-coffee-rgb:   107, 79, 42;     /* #6b4f2a */
 }
 /* [generated:light-theme:end] */
 
@@ -91,7 +105,7 @@ body::after {
   z-index: -1;
   top: 0; left: 0;
   height: 100vh; width: 100vw;
-  background: linear-gradient(135deg, rgb(43, 53, 41) 0%, rgb(61, 69, 54) 50%, rgb(67, 66, 28) 100%);
+  background: linear-gradient(135deg, var(--gradient-a) 0%, var(--gradient-b) 50%, var(--gradient-c) 100%);
 }
 
 /* ── Scrollbar ──────────────────────────────────── */
@@ -259,6 +273,18 @@ body::after {
   transform: scale(1.08);
 }
 .map-expand-btn svg { width: 18px; height: 18px; }
+
+/* ── Light theme — logo invert ──────────────────── */
+/* The logo is white-on-transparent; invert it to dark in light theme */
+[data-theme="light"] .logo-adaptive {
+  filter: invert(1) brightness(0.25);
+}
+
+/* ── Light theme — header border ────────────────── */
+/* Add a subtle bottom border so the header is distinguishable from page bg */
+[data-theme="light"] header.glass-olive {
+  border-bottom: 1px solid var(--border-default);
+}
 
 /* ── Leaflet overrides ──────────────────────────── */
 .leaflet-container { background: var(--color-bg-deep) !important; }
