@@ -169,7 +169,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
               required
               autoComplete="email"
               placeholder="hola@ejemplo.com"
-              className="w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
+              className="w-full surface-input rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
             />
           </div>
 
@@ -184,7 +184,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
               required
               autoComplete={isLogin ? 'current-password' : 'new-password'}
               placeholder={isLogin ? '••••••••' : t.minPass ?? 'Mínimo 8 caracteres'}
-              className="w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
+              className="w-full surface-input rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
             />
           </div>
 
@@ -203,7 +203,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
                     required
                     autoComplete="given-name"
                     placeholder="Maria"
-                    className="w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
+                    className="w-full surface-input rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
                   />
                 </div>
                 <div>
@@ -217,7 +217,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
                     required
                     autoComplete="family-name"
                     placeholder="García"
-                    className="w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
+                    className="w-full surface-input rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
                   />
                 </div>
               </div>
@@ -232,7 +232,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
                   onChange={e => setBirthDate(e.target.value)}
                   autoComplete="bday"
                   max={new Date().toISOString().split('T')[0]}
-                  className="w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
+                  className="w-full surface-input rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
                 />
               </div>
             </>
@@ -268,9 +268,9 @@ export function AuthModal({ initialTab = 'login', onClose }) {
         {GOOGLE_CLIENT_ID && (
           <>
             <div className="flex items-center gap-3 my-4">
-              <div className="flex-1 h-px bg-white/[0.08]" />
+              <div className="flex-1 h-px surface-divider" />
               <span className="text-cream/30 text-xs">{t.o ?? 'o'}</span>
-              <div className="flex-1 h-px bg-white/[0.08]" />
+              <div className="flex-1 h-px surface-divider" />
             </div>
 
             {/* Inverted overlay pattern:
@@ -299,7 +299,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
                 style={{ background: 'var(--color-modal)' }}
               >
                 <div
-                  className={`w-full h-full flex items-center justify-center gap-3 py-3 text-sm font-medium bg-white/[0.06] text-cream transition-opacity rounded-xl ${googleLoading ? 'opacity-60' : ''}`}
+                  className={`w-full h-full flex items-center justify-center gap-3 py-3 text-sm font-medium surface-subtle text-cream transition-opacity rounded-xl ${googleLoading ? 'opacity-60' : ''}`}
                 >
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

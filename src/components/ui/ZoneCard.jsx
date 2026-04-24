@@ -76,7 +76,7 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
           )}
         </div>
 
-        <img className="absolute bottom-0 right-1 opacity-25 pointer-events-none"
+        <img className="absolute bottom-0 right-1 opacity-20 pointer-events-none"
           src={`/assets/images/forest-type/${zone.forestType}.webp`}
           alt={zone.forestType} height="125" width="125" />
       </div>

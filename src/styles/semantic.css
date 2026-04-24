@@ -1,0 +1,54 @@
+/* ── Semantic utility classes ─────────────────────────────────────────────────
+   Theme-aware classes that resolve via --ui-* tokens.
+   Never use Tailwind primitive classes (text-emerald-*, text-amber-*, etc.)
+   in components — use these classes or inline style with var(--ui-*) instead.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Positive accent (same visual role as edib-excelente) ────────────────── */
+.text-accent-positive        { color: var(--ui-accent-positive); }
+.bg-accent-positive          { background-color: var(--ui-accent-positive); }
+.bg-accent-positive-subtle   { background-color: var(--ui-accent-positive-subtle); }
+
+/* ── Edibility badges ─────────────────────────────────────────────────────── */
+.edib-excelente  { background-color: var(--ui-edib-excelente-bg);  color: var(--ui-edib-excelente-text); }
+.edib-comestible { background-color: var(--ui-edib-comestible-bg); color: var(--ui-edib-comestible-text); }
+.edib-precaucion { background-color: var(--ui-edib-precaucion-bg); color: var(--ui-edib-precaucion-text); }
+.edib-neutral    { background-color: var(--ui-edib-neutral-bg);    color: var(--ui-edib-neutral-text); }
+.edib-toxico     { background-color: var(--ui-edib-toxico-bg);     color: var(--ui-edib-toxico-text); }
+.edib-mortal     { background-color: var(--ui-edib-mortal-bg);     color: var(--ui-edib-mortal-text); }
+
+/* ── Edibility dots (solid color, no background) ──────────────────────────── */
+.edib-dot-excelente  { background-color: var(--ui-edib-excelente-dot); }
+.edib-dot-comestible { background-color: var(--ui-edib-comestible-dot); }
+.edib-dot-precaucion { background-color: var(--ui-edib-precaucion-dot); }
+.edib-dot-neutral    { background-color: var(--ui-edib-neutral-dot); }
+.edib-dot-toxico     { background-color: var(--ui-edib-toxico-dot); }
+.edib-dot-mortal     { background-color: var(--ui-edib-mortal-dot); }
+
+/* ── Solid edibility badges (e.g. pill on top of images) ─────────────────── */
+.edib-solid-excelente  { background-color: var(--ui-edib-excelente-solid);  color: white; }
+.edib-solid-comestible { background-color: var(--ui-edib-comestible-solid); color: white; }
+.edib-solid-precaucion { background-color: var(--ui-edib-precaucion-solid); color: white; }
+.edib-solid-neutral    { background-color: var(--ui-edib-neutral-solid);    color: white; }
+.edib-solid-toxico     { background-color: var(--ui-edib-toxico-solid);     color: white; }
+.edib-solid-mortal     { background-color: var(--ui-edib-mortal-solid);     color: white; }
+
+/* ── Subtle surfaces — row backgrounds, info boxes, placeholders ─────────── */
+.surface-subtle       { background-color: var(--ui-surface-subtle); }
+.surface-hover        { background-color: var(--ui-surface-subtle); }
+.surface-hover:hover  { background-color: var(--ui-surface-hover); }
+.surface-input        { background-color: var(--ui-surface-input); }
+.surface-divider      { background-color: var(--ui-surface-divider); }
+
+/* Inactive calendar cell */
+.calendar-inactive    { background-color: var(--ui-surface-subtle); color: var(--ui-text-muted); }
+
+/* ── OI score ─────────────────────────────────────────────────────────────── */
+.score-text-high  { color: var(--ui-score-high-text); }
+.score-text-good  { color: var(--ui-score-good-text); }
+.score-text-ok    { color: var(--ui-score-ok-text); }
+.score-text-low   { color: var(--ui-score-low-text); }
+.score-bar-high   { background-color: var(--ui-score-high-bar); }
+.score-bar-good   { background-color: var(--ui-score-good-bar); }
+.score-bar-ok     { background-color: var(--ui-score-ok-bar); }
+.score-bar-low    { background-color: var(--ui-score-low-bar); }

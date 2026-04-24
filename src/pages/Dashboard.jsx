@@ -22,7 +22,7 @@ function ArticleCard({ article, onSelect }) {
       <div className="h-44 relative overflow-hidden">
         {article.heroImage
           ? <img src={article.heroImage} className="w-full h-full object-cover" alt={article.title} />
-          : <div className="w-full h-full bg-white/[0.03] flex items-center justify-center text-4xl">{article.emoji || '🍄'}</div>
+          : <div className="w-full h-full surface-subtle flex items-center justify-center text-4xl">{article.emoji || '🍄'}</div>
         }
         <div className="absolute top-3 right-3">
           {!isPublished
@@ -36,7 +36,7 @@ function ArticleCard({ article, onSelect }) {
         <p className="text-xs text-muted/80 leading-relaxed line-clamp-2">{article.summary}</p>
         <div className="flex items-center gap-2 mt-3">
           {article.tags.slice(0, 2).map(tag => (
-            <span key={tag} className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">{tag}</span>
+            <span key={tag} className="text-[10px] text-accent-positive bg-accent-positive-subtle px-2 py-0.5 rounded-full">{tag}</span>
           ))}
           {article.readingTime && (
             <span className="text-[10px] text-cream/25 ml-auto">{article.readingTime} min</span>
@@ -105,7 +105,7 @@ export default function Dashboard() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="text-xs text-muted uppercase tracking-wider mb-1">{t.condicionesGen}</div>
-              <div className="font-display text-4xl font-bold text-emerald-400">
+              <div className="font-display text-4xl font-bold text-accent-positive">
                 {weatherLoading ? '–' : Math.round(topZones.reduce((acc, z) => acc + (conditionsMap[z.id]?.overallScore ?? 0), 0) / Math.max(topZones.length, 1))}
               </div>
               <div className="text-cream/70 text-xs mt-1">{t.promedioZonasTop}</div>
@@ -132,14 +132,14 @@ export default function Dashboard() {
           onClick={() => setSelectedZone(topZones[0])}>
           <div className="flex items-start justify-between mb-4">
             <div>
-              <div className="text-xs text-emerald-400 uppercase tracking-wider mb-1">🌟 {t.mejorZonaHoy}</div>
+              <div className="text-xs text-accent-positive uppercase tracking-wider mb-1">🌟 {t.mejorZonaHoy}</div>
               <div className="font-display text-lg font-semibold text-cream truncate">{topZones[0]?.name}</div>
               <div className="text-muted text-xs mt-0.5">{topZones[0]?.province} · {topZones[0]?.elevation}m</div>
             </div>
-            <div className="font-display text-3xl font-bold text-emerald-400">{conditionsMap[topZones[0]?.id]?.overallScore}</div>
+            <div className="font-display text-3xl font-bold text-accent-positive">{conditionsMap[topZones[0]?.id]?.overallScore}</div>
           </div>
-          <div className="bg-emerald-500/10 rounded-lg p-3">
-            <div className="text-xs text-emerald-300 mb-1">{t.porQueEsMejor}</div>
+          <div className="bg-accent-positive-subtle rounded-lg p-3">
+            <div className="text-xs text-accent-positive mb-1">{t.porQueEsMejor}</div>
             <div className="text-cream/80 text-xs leading-relaxed">
               {(() => {
                 const c = conditionsMap[topZones[0]?.id]
@@ -167,7 +167,7 @@ export default function Dashboard() {
           <div className="space-y-2">
             {inSeasonSpecies.slice(0, 3).map(e => (
               <div key={e.id}
-                className="flex items-center gap-2 bg-white/[0.03] rounded-lg p-2 cursor-pointer hover:bg-white/[0.06] transition-colors"
+                className="flex items-center gap-2 surface-hover rounded-lg p-2 cursor-pointer transition-colors"
                 onClick={() => setSelectedSpecies(e)}>
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${getEdibilityColor(e.edibility).dot}`} />
                 <div className="font-display text-sm text-cream truncate">{e.scientificName}</div>

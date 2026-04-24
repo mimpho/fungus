@@ -1,0 +1,244 @@
+/* ── Design tokens — CSS custom properties ──────────────────────────────────
+   Single source of truth for all color and UI values.
+   Primitive tokens (--color-*) feed Tailwind via tailwind.config.js.
+   Semantic tokens (--ui-*) are used by components — never primitives directly.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Dark theme (default) ─────────────────────────────────────────────────── */
+:root {
+  /* [generated:css-vars:start] */
+
+  /* ── Generated from shared/colors.ts — do not edit manually ── */
+
+  /* Fixed tokens — same in both themes */
+  --color-positive: #059669;
+  --color-green-f: #4a7c59;
+  --color-bar: #887b4b;
+  --color-coffee: #8b6f47;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+
+  /* Dark theme (default) */
+  --color-bg-deep: #0f1f18;
+  --color-bg: #2b3529;
+  --color-modal: #30372a;
+  --color-cream: #f4ebe1;
+  --color-muted: #d9cda1;
+  --color-coffee-light: #c4a06b;
+  --color-search-bg: #4c5240;
+  --glass-white: rgba(255, 255, 255, 0.04);
+  --glass-warm: rgba(139, 111, 71, 0.08);
+  --glass-warm-border: rgba(139, 111, 71, 0.20);
+  --glass-olive: rgba(63, 73, 59, 0.50);
+  --glass-olive-80: rgba(63, 73, 59, 0.80);
+  --modal-overlay: #232522d9;
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(196, 160, 107, 0.15);
+  --gradient-a: rgb(43, 53, 41);
+  --gradient-b: rgb(61, 69, 54);
+  --gradient-c: rgb(67, 66, 28);
+
+  /* [generated:css-vars:end] */
+
+  /* Hand-authored — not generated */
+  --glass-warm-thumb: rgba(139, 111, 71, 0.40);
+
+  /* RGB channels for Tailwind opacity modifiers (text-cream/60 etc.) */
+  --color-cream-rgb: 244, 235, 225;   /* #f4ebe1 */
+  --color-muted-rgb: 217, 205, 161;   /* #d9cda1 */
+  --color-modal-rgb: 48, 55, 42;      /* #30372a */
+  --color-bar-rgb:   136, 123, 75;    /* #887b4b */
+  --color-coffee-rgb: 139, 111, 71;   /* #8b6f47 */
+
+  /* ── Semantic UI tokens — dark ───────────────────────────────────────────
+     Describe *intent*, not color. Components use these, never primitives.
+     ─────────────────────────────────────────────────────────────────────── */
+
+  /* Positive accent — light green on dark backgrounds */
+  --ui-accent-positive:        #34d399;
+  --ui-accent-positive-subtle: rgba(52, 211, 153, 0.10);
+
+  /* Nav active state */
+  --ui-nav-active-bg:        rgba(217, 206, 161, 0.10);
+  --ui-nav-active-text:      #d9cea1;
+  /* Nav / general hover */
+  --ui-nav-hover-bg:         rgba(255, 255, 255, 0.05);
+
+  /* Filter panel — inactive pill / select */
+  --ui-filter-pill-bg:       rgba(255, 255, 255, 0.04);
+  --ui-filter-pill-text:     #f4ebe1;
+  --ui-filter-pill-border:   1px solid rgba(255, 255, 255, 0.08);
+  --ui-filter-select-bg:     rgba(255, 255, 255, 0.04);
+  --ui-filter-select-text:   #f4ebe1;
+  --ui-filter-select-border: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* Tabs switcher */
+  --ui-tabs-bg:              rgba(255, 255, 255, 0.04);
+
+  /* Progress bar track */
+  --ui-progress-track:       rgba(255, 255, 255, 0.07);
+
+  /* Search bar */
+  --ui-search-bg:            rgba(255, 255, 255, 0.12);
+
+  /* Subtle surface — for list rows, info boxes, inactive calendar cells, image placeholders */
+  --ui-surface-subtle:       rgba(255, 255, 255, 0.04);
+  --ui-surface-subtle-mid:   rgba(255, 255, 255, 0.05);
+  --ui-surface-hover:        rgba(255, 255, 255, 0.07);
+  --ui-surface-input:        rgba(255, 255, 255, 0.04);
+  --ui-surface-divider:      rgba(255, 255, 255, 0.08);
+
+  /* Muted text — for inactive/secondary labels */
+  --ui-text-muted:           rgba(var(--color-cream-rgb), 0.50);
+
+  /* ── Edibility badges ────────────────────────────────────────────────────
+     Semantic tokens for edibility level badges.
+     Dark: light text on semi-transparent dark background.
+     ─────────────────────────────────────────────────────────────────────── */
+  --ui-edib-excelente-bg:    rgba(16, 185, 129, 0.15);   /* green, 15%         */
+  --ui-edib-excelente-text:  #34d399;                     /* light green        */
+  --ui-edib-excelente-dot:   #34d399;
+  --ui-edib-excelente-solid: #059669;                     /* solid green        */
+
+  --ui-edib-comestible-bg:   rgba(20, 184, 166, 0.15);   /* teal, 15%          */
+  --ui-edib-comestible-text: #2dd4bf;                     /* light teal         */
+  --ui-edib-comestible-dot:  #2dd4bf;
+  --ui-edib-comestible-solid:#0d9488;                     /* solid teal         */
+
+  --ui-edib-precaucion-bg:   rgba(245, 158, 11, 0.15);   /* amber, 15%         */
+  --ui-edib-precaucion-text: #fbbf24;                     /* light amber        */
+  --ui-edib-precaucion-dot:  #fbbf24;
+  --ui-edib-precaucion-solid:#d97706;                     /* solid amber        */
+
+  --ui-edib-neutral-bg:      rgba(100, 116, 139, 0.15);  /* blue-grey, 15%     */
+  --ui-edib-neutral-text:    #94a3b8;                     /* light blue-grey    */
+  --ui-edib-neutral-dot:     #94a3b8;
+  --ui-edib-neutral-solid:   #475569;                     /* solid blue-grey    */
+
+  --ui-edib-toxico-bg:       rgba(249, 115, 22, 0.15);   /* orange, 15%        */
+  --ui-edib-toxico-text:     #fb923c;                     /* light orange       */
+  --ui-edib-toxico-dot:      #fb923c;
+  --ui-edib-toxico-solid:    #ea580c;                     /* solid orange       */
+
+  --ui-edib-mortal-bg:       rgba(220, 38, 38, 0.15);    /* red, 15%           */
+  --ui-edib-mortal-text:     #f87171;                     /* light red          */
+  --ui-edib-mortal-dot:      #ef4444;                     /* mid red            */
+  --ui-edib-mortal-solid:    #b91c1c;                     /* solid red          */
+
+  /* ── OI score ranges (0-100) ─────────────────────────────────────────── */
+  --ui-score-high-bar:       #34d399;   /* light green — ≥85          */
+  --ui-score-high-text:      #34d399;
+  --ui-score-good-bar:       #887b4b;   /* gold (--color-bar) — ≥70   */
+  --ui-score-good-text:      #c4a06b;   /* light gold (--color-coffee-light) */
+  --ui-score-ok-bar:         #f59e0b;   /* amber — ≥55                */
+  --ui-score-ok-text:        #fbbf24;   /* light amber                */
+  --ui-score-low-bar:        #ef4444;   /* red — <55                  */
+  --ui-score-low-text:       #f87171;   /* light red                  */
+}
+
+/* ── Light theme overrides ────────────────────────────────────────────────── */
+
+/* [generated:light-theme:start] */
+[data-theme="light"] {
+  --color-bg-deep: rgb(224, 215, 190);
+  --color-bg: rgb(240, 237, 230);
+  --color-modal: rgba(255, 255, 255, 0.92);
+  --color-cream: #2b2a1f;
+  --color-muted: #6b6045;
+  --color-coffee: #6b4f2a;
+  --color-coffee-light: #8b6030;
+  --color-search-bg: #e8e2d4;
+  --glass-white: rgba(255, 255, 255, 0.60);
+  --glass-warm: rgba(139, 111, 71, 0.06);
+  --glass-warm-border: rgba(139, 111, 71, 0.25);
+  --glass-olive: rgba(255, 255, 255, 0.70);
+  --glass-olive-80: rgba(255, 255, 255, 0.85);
+  --modal-overlay: rgba(200, 195, 180, 0.75);
+  --border-default: rgba(0, 0, 0, 0.10);
+  --border-accent: rgba(139, 111, 71, 0.20);
+  --gradient-a: rgb(240, 237, 230);
+  --gradient-b: rgb(232, 226, 212);
+  --gradient-c: rgb(224, 215, 190);
+
+  /* RGB channels for Tailwind opacity modifiers */
+  --color-cream-rgb:  43, 42, 31;     /* #2b2a1f */
+  --color-muted-rgb:  107, 96, 69;    /* #6b6045 */
+  --color-modal-rgb:  255, 255, 255;  /* white panel */
+  --color-bar-rgb:    136, 123, 75;   /* #887b4b — fixed, same as dark */
+  --color-coffee-rgb: 107, 79, 42;    /* #6b4f2a */
+
+  /* ── Semantic UI tokens — light ─────────────────────────────────────────── */
+
+  /* Positive accent — dark green readable on light backgrounds */
+  --ui-accent-positive:        #059669;
+  --ui-accent-positive-subtle: rgba(5, 150, 105, 0.10);
+
+  /* Nav active state */
+  --ui-nav-active-bg:        rgb(136 133 87 / 15%);
+  --ui-nav-active-text:      rgb(136, 133, 87);
+  /* Nav / general hover */
+  --ui-nav-hover-bg:         rgba(85, 85, 82, 0.10);
+
+  /* Filter panel — inactive pill / select */
+  --ui-filter-pill-bg:       rgb(136 133 87 / 15%);
+  --ui-filter-pill-text:     rgb(136, 133, 87);
+  --ui-filter-pill-border:   none;
+  --ui-filter-select-bg:     rgb(136 133 87 / 15%);
+  --ui-filter-select-text:   rgb(136, 133, 87);
+  --ui-filter-select-border: none;
+
+  /* Tabs switcher */
+  --ui-tabs-bg:              rgb(85 85 82 / 15%);
+
+  /* Progress bar track */
+  --ui-progress-track:       rgb(195 195 195 / 50%);
+
+  /* Search bar */
+  --ui-search-bg:            rgba(255, 255, 255, 0.80);
+
+  /* Subtle surface — light theme uses dark tint instead of white tint */
+  --ui-surface-subtle:       rgba(0, 0, 0, 0.04);
+  --ui-surface-subtle-mid:   rgba(0, 0, 0, 0.05);
+  --ui-surface-hover:        rgba(0, 0, 0, 0.07);
+  --ui-surface-input:        rgba(0, 0, 0, 0.06);
+  --ui-surface-divider:      rgba(0, 0, 0, 0.08);
+
+  /* Muted text — dark on light bg */
+  --ui-text-muted:           rgba(var(--color-cream-rgb), 0.50);
+
+  /* ── Edibility badges — light overrides ─────────────────────────────────
+     Darker text/dots for readability on light backgrounds.
+     ─────────────────────────────────────────────────────────────────────── */
+  --ui-edib-excelente-bg:    rgba(5, 150, 105, 0.12);
+  --ui-edib-excelente-text:  #047857;   /* dark green       */
+  --ui-edib-excelente-dot:   #059669;   /* mid green        */
+
+  --ui-edib-comestible-bg:   rgba(13, 148, 136, 0.12);
+  --ui-edib-comestible-text: #0f766e;   /* dark teal        */
+  --ui-edib-comestible-dot:  #0d9488;   /* mid teal         */
+
+  --ui-edib-precaucion-bg:   rgba(217, 119, 6, 0.12);
+  --ui-edib-precaucion-text: #b45309;   /* dark amber       */
+  --ui-edib-precaucion-dot:  #d97706;   /* mid amber        */
+
+  --ui-edib-neutral-bg:      rgba(71, 85, 105, 0.12);
+  --ui-edib-neutral-text:    #334155;   /* dark blue-grey   */
+  --ui-edib-neutral-dot:     #475569;   /* mid blue-grey    */
+
+  --ui-edib-toxico-bg:       rgba(234, 88, 12, 0.12);
+  --ui-edib-toxico-text:     #c2410c;   /* dark orange      */
+  --ui-edib-toxico-dot:      #ea580c;   /* mid orange       */
+
+  --ui-edib-mortal-bg:       rgba(185, 28, 28, 0.12);
+  --ui-edib-mortal-text:     #991b1b;   /* very dark red    */
+  --ui-edib-mortal-dot:      #b91c1c;   /* dark red         */
+
+  /* ── Score — light overrides ─────────────────────────────────────────── */
+  --ui-score-high-bar:       #059669;   /* mid green        */
+  --ui-score-high-text:      #047857;   /* dark green       */
+  --ui-score-ok-bar:         #d97706;   /* mid amber        */
+  --ui-score-ok-text:        #b45309;   /* dark amber       */
+  --ui-score-low-bar:        #dc2626;   /* mid red          */
+  --ui-score-low-text:       #b91c1c;   /* dark red         */
+}
+/* [generated:light-theme:end] */

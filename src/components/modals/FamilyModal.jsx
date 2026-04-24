@@ -43,8 +43,8 @@ export function FamilyModal({ family, onClose, onViewSpecies }) {
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-3">{t.caracteristicas}</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {(family.caracteristicas || family.characteristics).map((c, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-white/[0.03] rounded-lg px-3 py-2">
-                      <span className="text-emerald-500/60 text-xs">✓</span>
+                    <div key={i} className="flex items-center gap-2 surface-subtle rounded-lg px-3 py-2">
+                      <span className="text-accent-positive text-xs opacity-60">✓</span>
                       <span className="text-cream/70 text-xs">{c}</span>
                     </div>
                   ))}
@@ -57,7 +57,7 @@ export function FamilyModal({ family, onClose, onViewSpecies }) {
               <div className="space-y-2">
                 {familySpecies.map(e => (
                   <div key={e.id} onClick={() => onViewSpecies(e)}
-                    className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] rounded-xl p-3 cursor-pointer transition-all hover-lift">
+                    className="surface-hover flex items-center gap-3 rounded-xl p-3 cursor-pointer transition-all">
                     <img src={resolveUrl(e.photo?.url)} alt="" className="w-14 h-14 rounded-lg object-cover opacity-80"
                       onError={ev => { ev.target.style.display = 'none' }} />
                     <div className="flex-1 min-w-0">
