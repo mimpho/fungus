@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen:css-vars": "npx tsx scripts/generate-css-vars.ts",
+    "prebuild": "npm run gen:css-vars"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

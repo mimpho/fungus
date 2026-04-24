@@ -1,4 +1,17 @@
 /** @type {import('tailwindcss').Config} */
+
+// Helper: generates a Tailwind-compatible color that supports opacity modifiers.
+// When used as text-cream/60, Tailwind injects the opacity as a CSS variable
+// and we combine it with the RGB channel var.
+// e.g. text-cream/60 → color: rgba(var(--color-cream-rgb), 0.6)
+//      text-cream     → color: rgb(var(--color-cream-rgb))
+function withOpacity(varName) {
+  return ({ opacityValue }) =>
+    opacityValue !== undefined
+      ? `rgba(var(${varName}), ${opacityValue})`
+      : `rgb(var(${varName}))`
+}
+
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
@@ -8,28 +21,16 @@ export default {
         sans:    ['"DM Sans"', 'sans-serif'],
       },
       colors: {
-        // ── Paleta Fungus ──────────────────────────────────────────────────
-        // Fuente de verdad: reflejados como CSS vars en styles.css (:root)
-        // → className:  text-cream, bg-modal, text-muted/60 …
-        // → style={{ }}: color: 'var(--color-cream)' …
-
-        // Textos
-        cream:          '#f4ebe1',   // texto principal
-        muted:          '#d9cda1',   // texto secundario / labels
-
-        // Acentos cálidos
-        coffee:         '#8b6f47',   // acento café (bordes, iconos)
-        'coffee-light': '#c4a06b',   // café claro (hovers, textos interactivos)
-
-        // Verde forestal
-        'green-f':      '#4a7c59',   // verde fungus (badges, markers, divisores)
-
-        // Score intermedio «Muy bueno»
-        bar:            '#887b4b',
-
-        // Fondos
-        'bg-deep':      '#0f1f18',   // contenedores muy oscuros / mapa
-        modal:          '#30372a',   // fondo modales y body base
+        // Theme-aware colors — respond to [data-theme] via CSS vars + RGB channels
+        cream:          withOpacity('--color-cream-rgb'),
+        muted:          withOpacity('--color-muted-rgb'),
+        coffee:         withOpacity('--color-coffee-rgb'),
+        'coffee-light': 'var(--color-coffee-light)',   // no opacity usage
+        'green-f':      'var(--color-green-f)',         // fixed, no opacity usage
+        bar:            withOpacity('--color-bar-rgb'),
+        modal:          withOpacity('--color-modal-rgb'),
+        'bg-deep':      'var(--color-bg-deep)',
+        'search-bg':    'var(--color-search-bg)',
       },
     },
   },

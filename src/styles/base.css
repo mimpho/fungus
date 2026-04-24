@@ -1,0 +1,103 @@
+/* ── Base — global resets and body styles ─────────────────────────────────── */
+
+/* Google Fonts loaded via index.html */
+
+html {
+  font-size: 18px;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--color-modal);
+  min-height: 100vh;
+  color: var(--color-cream);
+}
+
+body::after {
+  content: '';
+  display: block;
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, var(--gradient-a) 0%, var(--gradient-b) 50%, var(--gradient-c) 100%);
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--glass-warm-thumb);
+  border-radius: 3px;
+}
+
+/* ── Animations ───────────────────────────────────────────────────────────── */
+@keyframes animUpOpacity {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes animUpMove {
+  from { transform: translateY(16px); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes animRight {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes animScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* opacity uses `both` (prevents flash on load); transform has no fill-mode
+   so hover-lift can override transform once the animation completes */
+.anim-up {
+  animation: animUpOpacity 0.3s ease both, animUpMove 0.3s ease;
+}
+
+.anim-right {
+  animation: animRight 0.3s ease both;
+}
+
+.anim-scale {
+  animation: animScale 0.25s ease both;
+}
+
+/* ── Input helpers ────────────────────────────────────────────────────────── */
+
+/* Invert calendar icon in date inputs (black by default → cream) */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Hide native datalist picker indicator (Chrome shows it on hover) */
+input[list]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+}

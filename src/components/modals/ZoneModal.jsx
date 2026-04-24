@@ -159,7 +159,7 @@ export function ZoneModal({ zone, onClose }) {
             <p className="text-cream/50 text-xs mb-3 leading-relaxed">
               {t.indiceMeteoDesc}
             </p>
-            <div className="flex items-center gap-4 bg-white/[0.03] rounded-xl p-4">
+            <div className="flex items-center gap-4 surface-subtle rounded-xl p-4">
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
                   <span className={`text-sm font-semibold ${sc.text}`}>{t[sc.tKey]}</span>
@@ -184,7 +184,7 @@ export function ZoneModal({ zone, onClose }) {
                 { icon: 'wind', l: t.meteoViento, v: conditions.wind != null ? `${conditions.wind}km/h` : '–' },
                 { icon: 'sunny', l: t.meteoDiasSeco, v: conditions.dryDays != null ? `${conditions.dryDays}d` : '–' },
               ].map((c, i) => (
-                <div key={i} className="bg-white/[0.03] rounded-xl p-3 text-center">
+                <div key={i} className="surface-subtle rounded-xl p-3 text-center">
                   <img className="m-auto mb-1" src={`/assets/images/icons/${c.icon}.png`} alt={c.l} height="36" width="36" />
                   <div className="text-cream/70 text-[11px] mb-1">{c.l}</div>
                   <div className="text-cream text-sm font-semibold">{c.v}</div>
@@ -224,7 +224,7 @@ export function ZoneModal({ zone, onClose }) {
                   const ss = getScoreColor(e.score)
                   return (
                     <div key={e.id} onClick={() => setSelectedSpecies(e)}
-                      className="flex items-center gap-3 bg-white/[0.03] rounded-xl p-3 hover:bg-white/[0.05] transition-all cursor-pointer group">
+                      className="surface-hover flex items-center gap-3 rounded-xl p-3 transition-all cursor-pointer group">
                       <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
                         <img src={resolveUrl(e.photo?.url)} alt={e.scientificName}
                           className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
@@ -277,7 +277,7 @@ export function ZoneModal({ zone, onClose }) {
               <div className="space-y-3">
                 {filteredCalSpecies.map(e => (
                   <div key={e.id} onClick={() => setSelectedSpecies(e)}
-                    className="bg-white/[0.03] rounded-xl p-4 hover:bg-white/[0.05] transition-all cursor-pointer group">
+                    className="surface-hover rounded-xl p-4 transition-all cursor-pointer group">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-display text-lg text-cream group-hover:text-coffee-light transition-colors">{e.scientificName}</span>
                       <EdibilityTag edibility={e.edibility} variant="glass" className="ml-auto" />
@@ -285,7 +285,7 @@ export function ZoneModal({ zone, onClose }) {
                     </div>
                     <div className="grid grid-cols-12 gap-1">
                       {MONTHS.map((m, i) => (
-                        <div key={i} className={`text-center py-1.5 rounded text-[9px] font-medium ${e.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-cream/50'}`}>{m}</div>
+                        <div key={i} className={`text-center py-1.5 rounded text-[9px] font-medium ${e.fruitingMonths?.includes(i + 1) ? 'bg-accent-positive-subtle text-accent-positive' : 'calendar-inactive'}`}>{m}</div>
                       ))}
                     </div>
                   </div>

@@ -328,7 +328,7 @@ export default function Species() {
           {pageItems2().map((item, i) =>
             typeof item === 'number' ? (
               <button key={item} onClick={() => setPage(item)}
-                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all shrink-0 ${item === page ? 'bg-bar text-white' : 'text-cream/40 hover:text-cream hover:bg-white/[0.05]'}`}>
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-all shrink-0 ${item === page ? 'bg-bar text-white' : 'text-cream/40 hover:text-cream hover:[background-color:var(--ui-surface-subtle-mid)]'}`}>
                 {item}
               </button>
             ) : (

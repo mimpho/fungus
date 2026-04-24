@@ -120,6 +120,14 @@ Priority calculated as (Impact + Risk) × (6 − Effort). Ordered by urgency.
 
 ---
 
+## 🗂 Backlog — token residuals (menores, no afectan light theme)
+
+- `Profile.jsx` line ~241 y `Layout.jsx` lines ~134, ~160: badges de conteo (`bg-emerald-500`) — rol semántico "indicador de actividad". Pendiente de token `--ui-badge-indicator` cuando se expanda el sistema.
+- `helpers.jsx` `edibilityStyle()`: `border-emerald-*` en ConfusionesBlock — borders decorativos, impacto mínimo.
+- `admin/` components: emerald primitivos en ImageGenerator, CatalogImagesModal, SpeciesAdminModal — admin-only, nunca en light theme usuario. Fuera de scope.
+
+---
+
 ## 🟡 Backlog — frontend improvements (no active priority)
 
 ### Placeholder images pending replacement

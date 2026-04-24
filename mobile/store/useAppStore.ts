@@ -10,6 +10,7 @@ import { create } from 'zustand'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Lang, LANGS } from '../lib/constants'
 import { Translations, getTranslations } from '../lib/i18n'
+import { type ThemeMode } from '../../shared/colors'
 
 export interface UserProfile {
   id: string
@@ -23,6 +24,10 @@ interface AppState {
   lang: Lang
   t: Translations
   setLang: (lang: Lang) => void
+
+  // Theme — 'system' follows OS preference, 'dark'/'light' override it
+  themeMode: ThemeMode
+  setThemeMode: (mode: ThemeMode) => void
 
   // Auth
   profile: UserProfile | null
@@ -47,6 +52,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   t: getTranslations('es'),
   setLang: async (lang) => {
     set({ lang, t: getTranslations(lang) })
+    await _persist(get())
+  },
+
+  themeMode: 'system',
+  setThemeMode: async (themeMode) => {
+    set({ themeMode })
     await _persist(get())
   },
 
@@ -79,9 +90,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!raw) return
       const saved = JSON.parse(raw) as Partial<AppState>
       const lang = LANGS.includes(saved.lang as Lang) ? (saved.lang as Lang) : 'es'
+      const validModes: ThemeMode[] = ['dark', 'light', 'system']
+      const themeMode = validModes.includes(saved.themeMode as ThemeMode)
+        ? (saved.themeMode as ThemeMode)
+        : 'system'
       set({
         lang,
         t: getTranslations(lang),
+        themeMode,
         followedZones: saved.followedZones ?? [],
         favoriteSpecies: saved.favoriteSpecies ?? [],
       })
@@ -91,13 +107,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 }))
 
-// Persist non-sensitive state (lang, follows, favorites) to AsyncStorage
+// Persist non-sensitive state (lang, theme, follows, favorites) to AsyncStorage
 async function _persist(state: AppState) {
   try {
     await AsyncStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
         lang: state.lang,
+        themeMode: state.themeMode,
         followedZones: state.followedZones,
         favoriteSpecies: state.favoriteSpecies,
       }),

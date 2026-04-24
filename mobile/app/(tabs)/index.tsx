@@ -26,7 +26,7 @@ import { Tabs, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 import { Colors } from '../../constants/Colors'
-import { Typography, Font } from '../../lib/theme'
+import { Typography, Font, useStyles } from '../../lib/theme'
 import { ZoneCard } from '../../components/ui/ZoneCard'
 import { useZones, Zone } from '../../hooks/useZones'
 import { useAppStore } from '../../store/useAppStore'
@@ -166,6 +166,8 @@ type ListItem =
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function ZonasScreen() {
+  const { colors } = useStyles()
+
   const { t, followedZoneIds, toggleFollow } = useAppStore(useShallow((s) => ({
     t: s.t,
     followedZoneIds: s.followedZones,
@@ -425,7 +427,7 @@ export default function ZonasScreen() {
       {/* Hide the native header — the title lives in the scroll content */}
       <Tabs.Screen options={{ headerShown: false }} />
 
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <FlatList
           style={styles.container}
           contentContainerStyle={[styles.content, { paddingTop: insets.top, paddingBottom: tabBarPadding }]}

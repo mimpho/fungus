@@ -1,45 +1,69 @@
-// Fungus design system — color palette
-// Mirrors the web CSS custom properties in src/styles.css
-//
-// --color-bg-deep:      #0f1f18   (deepest bg, used under gradient)
-// --color-bg:           #2b3529   (gradient start)
-// --color-modal:        #30372a   (panel/card backgrounds)
-// --color-cream:        #f4ebe1
-// --color-muted:        #d9cda1
-// --color-coffee:       #8b6f47
-// --color-coffee-light: #c4a06b
-// Gradient: 135deg, rgb(43,53,41) → rgb(61,69,54) → rgb(67,66,28)
+/**
+ * mobile/constants/Colors.ts
+ *
+ * Re-exports from shared/colors.ts and provides mobile-specific helpers.
+ * Do NOT define colour values here — edit shared/colors.ts instead.
+ *
+ * Components should NOT import this file directly for theme-aware colours.
+ * Use `useTheme()` from mobile/lib/useTheme.ts instead, which resolves
+ * the correct palette (dark/light) based on user preference.
+ *
+ * This file remains useful for:
+ *   - Static contexts where hooks can't be used (StyleSheet.create outside
+ *     components, constants, etc.)
+ *   - The dark palette as a safe default (app default is dark)
+ *   - Fixed tokens (score colours, status colours)
+ */
 
+export {
+  Raw,
+  Fixed,
+  darkPalette,
+  lightPalette,
+  palettes,
+  type Palette,
+  type ThemeMode,
+} from '../../shared/colors'
+
+import { darkPalette, Fixed } from '../../shared/colors'
+
+// ── Legacy `Colors` export — dark theme values ───────────────────────────────
+// Kept for backward compatibility while components migrate to useTheme().
+// New components should use useTheme() instead.
 export const Colors = {
-  bgDeep: '#0f1f18',     // Deepest background (under gradient, map bg)
-  bg: '#2b3529',         // Gradient start / fallback background
-  modal: '#30372a',      // Panel / card backgrounds (--color-modal)
-  cream: '#f4ebe1',      // Primary text
-  muted: '#d9cda1',      // Secondary text
-  coffee: '#8b6f47',     // Accent, borders
-  coffeeLight: '#c4a06b', // --color-coffee-light (corrected)
-  green: '#4a7c59',      // Positive indicator
-  bar: '#887b4b',        // Score bar
-  positive: '#059669',   // Emerald — excellent score
-  danger: '#dc2626',     // Toxic / lethal species
-  warning: '#d97706',    // Caution species
-  // Glass layers — match web --glass-* variables
-  glass: 'rgba(255,255,255,0.04)',
-  glassWarm: 'rgba(139,111,71,0.08)',
-  glassOlive: 'rgba(63,73,59,0.50)',      // --glass-olive
-  glassOlive80: 'rgba(63,73,59,0.80)',    // --glass-olive-80
-  // Gradient stops (used in Background component)
-  gradientStart: 'rgb(43,53,41)',
-  gradientMid: 'rgb(61,69,54)',
-  gradientEnd: 'rgb(67,66,28)',
+  // Backgrounds
+  bgDeep:       darkPalette.backgroundDeep,
+  bg:           darkPalette.background,
+  modal:        darkPalette.backgroundPanel,
+  // Text
+  cream:        darkPalette.textPrimary,
+  muted:        darkPalette.textSecondary,
+  // Accents
+  coffee:       darkPalette.accent,
+  coffeeLight:  darkPalette.accentLight,
+  // Surfaces
+  glass:        darkPalette.surfaceSubtle,
+  glassWarm:    darkPalette.surfaceWarm,
+  glassOlive:   darkPalette.surface,
+  glassOlive80: darkPalette.surfaceHeavy,
+  // Gradient
+  gradientStart: darkPalette.gradientA,
+  gradientMid:   darkPalette.gradientB,
+  gradientEnd:   darkPalette.gradientC,
+  // Fixed (same in both themes)
+  green:    Fixed.greenF,
+  bar:      Fixed.bar,
+  positive: Fixed.positive,
+  danger:   Fixed.danger,
+  warning:  Fixed.warning,
 } as const
 
 export type AppColor = keyof typeof Colors
 
-// Score color — mirrors getScoreColor in web helpers.jsx
+// ── Score colour — uses fixed tokens, theme-independent ──────────────────────
 export function getScoreColor(score: number): string {
-  if (score >= 85) return Colors.positive
-  if (score >= 70) return Colors.green
-  if (score >= 55) return Colors.bar
-  return Colors.coffee
+  if (score >= 85) return Fixed.positive
+  if (score >= 70) return Fixed.greenF
+  if (score >= 55) return Fixed.bar
+  return Fixed.coffee
 }
