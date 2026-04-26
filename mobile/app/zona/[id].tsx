@@ -1,65 +1,118 @@
-// Zone detail — modal screen
+// Zone detail — modal screen (web-parity layout)
 // Opened from the Zonas list or from the Map tab.
-// Shows: hero info, meteorological score, conditions grid, description.
-// Species sections (disponibles / calendario) come in feat/v8-0-species.
+//
+// Layout mirrors the web ZoneModal:
+//   1. Hero image (forest-type photo) with gradient overlay + zone name/badges
+//   2. Description (border-left blockquote)
+//   3. "CONDICIÓN DE RECOLECCIÓN" section
+//      a. Score+bar in its own glass card
+//      b. 6-cell meteo grid OUTSIDE that card (each cell has its own glass bg)
+//      c. Updated label
+//   4. Species placeholder (feat/v8-2-species)
+//
+// Species sections (disponibles / calendario) come in feat/v8-2-species.
 
 import { useState, useEffect } from 'react'
 import {
-  View, Text, ScrollView, StyleSheet,
+  View, Text, ScrollView, StyleSheet, Image,
   TouchableOpacity, ActivityIndicator,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
+import { LinearGradient } from 'expo-linear-gradient'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 import { Colors, getScoreColor } from '../../constants/Colors'
-import { Typography, Glass, Font } from '../../lib/theme'
+import { Font, useStyles } from '../../lib/theme'
 import { ScoreBar } from '../../components/ui/ScoreBar'
-import { Background } from '../../components/ui/Background'
 import { fetchZoneWeather } from '../../services/api'
 import { useZones, Zone, ZoneConditions, normaliseConditions } from '../../hooks/useZones'
 import { useAppStore } from '../../store/useAppStore'
 
-const SCORE_LABEL: Record<string, string> = {
-  excellent: 'Excelente',
-  good:      'Buena',
-  moderate:  'Moderada',
-  low:       'Baja',
+// ── Forest hero images ────────────────────────────────────────────────────────
+// Same photos as web ZoneModal (WebP served from public/, PNG bundled for mobile)
+// We bundle them directly so they work offline and in EAS builds.
+
+const FOREST_HERO: Record<string, any> = {
+  pinar:    require('../../assets/images/zones/pinar.webp'),
+  hayedo:   require('../../assets/images/zones/hayedo.webp'),
+  robledal: require('../../assets/images/zones/robledal.webp'),
+  encinar:  require('../../assets/images/zones/encinar.webp'),
 }
 
-function scoreLabel(score: number): string {
-  if (score >= 85) return SCORE_LABEL.excellent
-  if (score >= 70) return SCORE_LABEL.good
-  if (score >= 55) return SCORE_LABEL.moderate
-  return SCORE_LABEL.low
+// Fallback if image is missing — use the forest-type icon PNG (small but branded)
+const FOREST_TYPE_ICON: Record<string, any> = {
+  pinar:    require('../../assets/images/icons/forest-type-pinar.png'),
+  hayedo:   require('../../assets/images/icons/forest-type-hayedo.png'),
+  robledal: require('../../assets/images/icons/forest-type-robledal.png'),
+  encinar:  require('../../assets/images/icons/forest-type-encinar.png'),
 }
 
-const FOREST_EMOJI: Record<string, string> = {
-  pinar: '🌲', hayedo: '🌳', robledal: '🌿', encinar: '🫒',
-}
+// ── Meteo grid icons ──────────────────────────────────────────────────────────
+// PNG icons from public/assets/images/icons/ — copied to mobile/assets/images/icons/
+// These match exactly what the web uses.
 
 const METEO_GRID = [
-  { key: 'temp',      emoji: '🌡',  label: 'Temperatura' },
-  { key: 'soilTemp',  emoji: '🌱',  label: 'Suelo' },
-  { key: 'rainfall',  emoji: '🌧',  label: 'Precipitación' },
-  { key: 'humidity',  emoji: '💧',  label: 'Humedad' },
-  { key: 'wind',      emoji: '💨',  label: 'Viento' },
-  { key: 'dryDays',   emoji: '☀️',  label: 'Días secos' },
+  {
+    key: 'temp',
+    icon: require('../../assets/images/icons/temperature.png'),
+    label: 'Temperatura',
+  },
+  {
+    key: 'soilTemp',
+    icon: require('../../assets/images/icons/soil-moisture.png'),
+    label: 'T. Suelo',
+  },
+  {
+    key: 'rainfall',
+    icon: require('../../assets/images/icons/accumulated-precipitation.png'),
+    label: 'Precipit. 14d',
+  },
+  {
+    key: 'humidity',
+    icon: require('../../assets/images/icons/humidity.png'),
+    label: 'Humedad',
+  },
+  {
+    key: 'wind',
+    icon: require('../../assets/images/icons/wind.png'),
+    label: 'Viento',
+  },
+  {
+    key: 'dryDays',
+    icon: require('../../assets/images/icons/sunny.png'),
+    label: 'Sin lluvia',
+  },
 ]
+
+// ── Score helpers ─────────────────────────────────────────────────────────────
+
+function scoreLabel(score: number): string {
+  if (score >= 85) return 'Excelente'
+  if (score >= 70) return 'Buena'
+  if (score >= 55) return 'Moderada'
+  return 'Baja'
+}
 
 function formatConditionValue(key: string, c: ZoneConditions): string {
   switch (key) {
     case 'temp':
       return c.tempMin != null && c.tempMax != null
         ? `${c.tempMin}–${c.tempMax}°C` : '–'
-    case 'soilTemp':  return c.soilTemp  != null ? `${c.soilTemp}°C`  : '–'
+    case 'soilTemp':  return c.soilTemp    != null ? `${c.soilTemp}°C`    : '–'
     case 'rainfall':  return c.rainfall14d != null ? `${c.rainfall14d}mm` : '–'
-    case 'humidity':  return c.humidity  != null ? `${c.humidity}%`   : '–'
-    case 'wind':      return c.wind      != null ? `${c.wind}km/h`    : '–'
-    case 'dryDays':   return c.dryDays   != null ? `${c.dryDays}d`    : '–'
+    case 'humidity':  return c.humidity    != null ? `${c.humidity}%`     : '–'
+    case 'wind':      return c.wind        != null ? `${c.wind}km/h`      : '–'
+    case 'dryDays':   return c.dryDays     != null ? `${c.dryDays}d`      : '–'
     default: return '–'
   }
 }
 
+// ── Screen ────────────────────────────────────────────────────────────────────
+
 export default function ZonaDetailScreen() {
+  const { colors, typo, glass } = useStyles()
+  const insets = useSafeAreaInsets()
+
   const { id } = useLocalSearchParams<{ id: string }>()
   const { t, followedZoneIds, toggleFollow } = useAppStore(useShallow((s) => ({
     t: s.t,
@@ -67,11 +120,9 @@ export default function ZonaDetailScreen() {
     toggleFollow: s.toggleFollow,
   })))
 
-  // Get zone data from the shared hook (already loaded and cached in list screen)
   const { zones, conditionsMap } = useZones()
   const zone: Zone | undefined = zones.find((z) => z.id === id)
 
-  // Real-time conditions for this zone (no cache — always fresh)
   const [conditions, setConditions] = useState<ZoneConditions | null>(
     id ? (conditionsMap[id] ?? null) : null,
   )
@@ -86,12 +137,8 @@ export default function ZonaDetailScreen() {
     fetchZoneWeather(id)
       .then((data) => {
         const fresh = normaliseConditions(data)
-        // /weather/zones/:id has no score — preserve it from conditionsMap
         const cachedScore = conditionsMap[id]?.overallScore ?? 0
-        setConditions({
-          ...fresh,
-          overallScore: fresh.overallScore || cachedScore,
-        })
+        setConditions({ ...fresh, overallScore: fresh.overallScore || cachedScore })
       })
       .catch(() => setCondError(true))
       .finally(() => setLoadingConditions(false))
@@ -101,254 +148,355 @@ export default function ZonaDetailScreen() {
   const scoreColor = getScoreColor(score)
 
   const updatedLabel = conditions?._collectedAt
-    ? `Actualizado ${new Date(conditions._collectedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} ${new Date(conditions._collectedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
+    ? `Actualizado el ${new Date(conditions._collectedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} a las ${new Date(conditions._collectedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
     : 'Open-Meteo'
 
   if (!zone) {
     return (
-      <Background>
-        <View style={styles.centered}>
-          <ActivityIndicator color={Colors.green} />
-        </View>
-      </Background>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator color={colors.accent} />
+      </View>
     )
   }
 
+  const textDim    = colors.textPrimary + '99'  // ~60%
+  const textSubtle = colors.textPrimary + 'CC'  // ~80%
+
+  const heroSource = FOREST_HERO[zone.forestType] ?? FOREST_HERO.pinar
+
   return (
-    <Background>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={{ paddingBottom: 48 + insets.bottom }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Close button */}
-        <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-          <Text style={styles.closeText}>✕</Text>
-        </TouchableOpacity>
+        {/* ── Hero image ────────────────────────────────────────── */}
+        <View style={styles.heroImageWrap}>
+          <Image
+            source={heroSource}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+          {/* Gradient overlay: bottom → transparent (matches web) */}
+          <LinearGradient
+            colors={[colors.backgroundPanel + '00', colors.backgroundPanel]}
+            locations={[0.35, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
 
-        {/* ── Hero ──────────────────────────────────────────────── */}
-        <View style={styles.heroBlock}>
-          <Text style={styles.forestBadge}>
-            {FOREST_EMOJI[zone.forestType] ?? '🌲'} {zone.forestType}
-          </Text>
-          <Text style={Typography.h1}>{zone.name}</Text>
-          <View style={styles.heroMeta}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>{zone.province}</Text>
-            </View>
-            {zone.region ? (
-              <Text style={Typography.caption}>{zone.region}</Text>
-            ) : null}
-            <Text style={Typography.caption}>⛰ {zone.elevation}m</Text>
+          {/* Top-right buttons — follow + back */}
+          <View style={[styles.heroButtons, { top: insets.top + 12 }]}>
+            <TouchableOpacity
+              style={[styles.heroBtn, isFollowed && styles.heroBtnActive]}
+              onPress={() => zone && toggleFollow(zone.id)}
+            >
+              <Text style={[styles.heroBtnText, isFollowed && styles.heroBtnTextActive]}>
+                {isFollowed ? '⭐' : '☆'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.heroBtn}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.heroBtnText}>✕</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Follow button */}
-          <TouchableOpacity
-            style={[Glass.subtle, styles.followRow]}
-            onPress={() => zone && toggleFollow(zone.id)}
-          >
-            <Text style={styles.followStar}>{isFollowed ? '⭐' : '☆'}</Text>
-            <Text style={[styles.followLabel, isFollowed && styles.followLabelActive]}>
-              {isFollowed ? (t.following ?? 'Siguiendo') : (t.follow ?? 'Seguir zona')}
-            </Text>
-          </TouchableOpacity>
+          {/* Bottom-left: zone name + badges */}
+          <View style={styles.heroInfo}>
+            <Text style={styles.heroName}>{zone.name}</Text>
+            <View style={styles.heroMeta}>
+              <View style={[styles.heroBadge, { backgroundColor: colors.accentPositiveSubtle }]}>
+                <Text style={[styles.heroBadgeText, { color: colors.accentPositive }]}>
+                  {zone.province}
+                </Text>
+              </View>
+              {zone.region ? (
+                <Text style={[styles.heroMetaText, { color: textSubtle }]}>{zone.region}</Text>
+              ) : null}
+              <View style={styles.heroMetaItem}>
+                <Image
+                  source={FOREST_TYPE_ICON[zone.forestType]}
+                  style={styles.heroMetaIcon}
+                />
+                <Text style={[styles.heroMetaText, { color: textSubtle }]}>{zone.forestType}</Text>
+              </View>
+              <View style={styles.heroMetaItem}>
+                <Image
+                  source={require('../../assets/images/icons/mountain.png')}
+                  style={styles.heroMetaIcon}
+                />
+                <Text style={[styles.heroMetaText, { color: textSubtle }]}>{zone.elevation}m</Text>
+              </View>
+            </View>
+          </View>
         </View>
 
-        {/* ── Description ──────────────────────────────────────── */}
-        {zone.description ? (
-          <View style={styles.descriptionBlock}>
-            <Text style={[Typography.body, styles.description]}>{zone.description}</Text>
-          </View>
-        ) : null}
+        {/* ── Content ───────────────────────────────────────────── */}
+        <View style={styles.content}>
 
-        {/* ── Termómetro / Score ───────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{t.thermometer ?? 'Termómetro'}</Text>
-          <Text style={[Typography.caption, styles.sectionHint]}>
-            {t.meteoDesc ?? 'Índice de condiciones para la recolección basado en datos meteorológicos.'}
-          </Text>
-
-          {loadingConditions ? (
-            <View style={[Glass.subtle, styles.scoreLoading]}>
-              <ActivityIndicator size="small" color={Colors.green} />
+          {/* Description */}
+          {zone.description ? (
+            <View style={[styles.descriptionBlock, { borderLeftColor: colors.borderWarm }]}>
+              <Text style={[typo.body, { color: textSubtle, fontSize: 14, lineHeight: 22 }]}>
+                {zone.description}
+              </Text>
             </View>
-          ) : (
-            <View style={[Glass.subtle, styles.scoreBlock]}>
-              <View style={styles.scoreHeader}>
-                <Text style={[styles.scoreStatus, { color: scoreColor }]}>
-                  {scoreLabel(score)}
-                </Text>
-                <Text style={styles.scoreNumber}>
-                  {score}
-                  <Text style={styles.scoreMax}>/100</Text>
-                </Text>
-              </View>
-              <ScoreBar score={score} height={8} />
+          ) : null}
 
-              {/* Conditions grid */}
-              <View style={styles.condGrid}>
-                {METEO_GRID.map((item) => (
-                  <View key={item.key} style={[Glass.subtle, styles.condCell]}>
-                    <Text style={styles.condEmoji}>{item.emoji}</Text>
-                    <Text style={styles.condLabel}>{item.label}</Text>
-                    <Text style={styles.condValue}>
-                      {conditions ? formatConditionValue(item.key, conditions) : '–'}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+          {/* ── CONDICIÓN DE RECOLECCIÓN ─────────────────────────── */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              {t.thermometer ?? 'Condición de recolección'}
+            </Text>
+            <Text style={[styles.sectionHint, { color: textDim }]}>
+              {t.meteoDesc ?? 'El índice pondera datos meteorológicos en tiempo real junto al factor estacional del mes actual para calcular las condiciones de recolección.'}
+            </Text>
 
-              {condError ? (
-                <Text style={styles.condErrorText}>⚠️ Datos no disponibles</Text>
+            {/* Score card — own glass box, same as web's surface-subtle.rounded-xl.p-4 */}
+            {loadingConditions ? (
+              <View style={[glass.subtle, styles.scoreCard]}>
+                <ActivityIndicator size="small" color={colors.accent} />
+              </View>
+            ) : (
+              <View style={[glass.subtle, styles.scoreCard]}>
+                <View style={styles.scoreRow}>
+                  <Text style={[styles.scoreStatus, { color: scoreColor }]}>
+                    {scoreLabel(score)}
+                  </Text>
+                  <Text style={[styles.scoreNumber, { color: colors.textPrimary }]}>
+                    {score}
+                    <Text style={[styles.scoreMax, { color: textDim }]}>/100</Text>
+                  </Text>
+                </View>
+                <ScoreBar score={score} height={8} />
+              </View>
+            )}
+
+            {/* Meteo grid — 3×2, OUTSIDE the score card (matches web layout) */}
+            <View style={styles.meteoGrid}>
+              {METEO_GRID.map((item) => (
+                <View key={item.key} style={[glass.subtle, styles.meteoCell]}>
+                  <Image source={item.icon} style={styles.meteoCellIcon} />
+                  <Text style={[styles.meteoCellLabel, { color: colors.textSecondary }]}>
+                    {item.label}
+                  </Text>
+                  <Text style={[styles.meteoCellValue, { color: colors.textPrimary }]}>
+                    {conditions ? formatConditionValue(item.key, conditions) : '–'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Updated label */}
+            {!loadingConditions && (
+              condError ? (
+                <Text style={[styles.updatedLabel, { color: Colors.warning }]}>
+                  ⚠️ Datos no disponibles
+                </Text>
               ) : (
-                <Text style={styles.updatedLabel}>{updatedLabel}</Text>
-              )}
+                <Text style={[styles.updatedLabel, { color: textDim }]}>{updatedLabel}</Text>
+              )
+            )}
+          </View>
+
+          {/* ── Species placeholder ───────────────────────────────── */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              {t.availableNow ?? 'Disponibles ahora'}
+            </Text>
+            <View style={[glass.subtle, styles.comingSoon]}>
+              <Text style={typo.bodySmall}>
+                🍄 Lista de especies disponible en feat/v8-2-species
+              </Text>
             </View>
-          )}
-        </View>
-
-        {/* ── Location ─────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{t.location ?? 'Ubicación'}</Text>
-          <View style={[Glass.subtle, styles.coordsBlock]}>
-            <Text style={styles.coordItem}>📍 {zone.lat?.toFixed(4)}, {zone.lng?.toFixed(4)}</Text>
-            <Text style={styles.coordItem}>⛰ {zone.elevation}m s.n.m.</Text>
-            <Text style={styles.coordItem}>
-              {FOREST_EMOJI[zone.forestType] ?? '🌲'} {zone.forestType}
-            </Text>
           </View>
-          <Text style={[Typography.caption, styles.mapNote]}>
-            Mapa disponible en la pestaña Mapa →
-          </Text>
-        </View>
 
-        {/* ── Species placeholder ───────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{t.availableNow ?? 'Disponibles ahora'}</Text>
-          <View style={[Glass.subtle, styles.comingSoon]}>
-            <Text style={Typography.bodySmall}>
-              🍄 Lista de especies disponible en feat/v8-0-species
-            </Text>
-          </View>
         </View>
       </ScrollView>
-    </Background>
+    </View>
   )
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const HERO_HEIGHT = 280
+
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   container: { flex: 1 },
-  content: { padding: 20, paddingTop: 56, paddingBottom: 40 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  closeBtn: {
-    position: 'absolute', top: 16, right: 16,
-    padding: 8, zIndex: 10,
+  // ── Hero ──────────────────────────────────────────────────────────────────
+  heroImageWrap: {
+    height: HERO_HEIGHT,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  closeText: { fontFamily: Font.sans, color: Colors.muted, fontSize: 18 },
-
-  // Hero
-  heroBlock: { marginBottom: 24 },
-  forestBadge: {
-    fontFamily: Font.sansMedium,
-    fontSize: 11,
-    color: Colors.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: 8,
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroButtons: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  heroBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.40)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroBtnActive: {
+    backgroundColor: 'rgba(250,204,21,0.25)',
+  },
+  heroBtnText: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.65)',
+  },
+  heroBtnTextActive: {
+    color: '#facc15',
+  },
+  heroInfo: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 60,
+  },
+  heroName: {
+    fontFamily: Font.display,
+    fontSize: 28,
+    lineHeight: 34,
+    color: '#f4ebe1',  // always cream — on dark photo bg in both themes
+    letterSpacing: 0.2,
+    marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroMeta: {
     flexDirection: 'row',
-    alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-    marginBottom: 16,
+    alignItems: 'center',
+    gap: 6,
   },
   heroBadge: {
-    backgroundColor: 'rgba(74,124,89,0.25)',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  heroBadgeText: { fontFamily: Font.sansMedium, fontSize: 11, color: '#6ee7b7' },
-  followRow: {
+  heroBadgeText: {
+    fontFamily: Font.sansMedium,
+    fontSize: 11,
+  },
+  heroMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    alignSelf: 'flex-start',
+    gap: 4,
   },
-  followStar: { fontSize: 16 },
-  followLabel: { fontFamily: Font.sansMedium, fontSize: 13, color: Colors.muted },
-  followLabelActive: { color: '#facc15' },
+  heroMetaIcon: {
+    width: 14,
+    height: 14,
+  },
+  heroMetaText: {
+    fontFamily: Font.sans,
+    fontSize: 12,
+  },
+
+  // ── Content ───────────────────────────────────────────────────────────────
+  content: { paddingHorizontal: 16, paddingTop: 20 },
 
   // Description
   descriptionBlock: {
     borderLeftWidth: 2,
-    borderLeftColor: Colors.coffee + '66',
-    paddingLeft: 12,
+    paddingLeft: 14,
     marginBottom: 24,
   },
-  description: { color: 'rgba(244,235,225,0.8)' },
 
   // Sections
   section: { marginBottom: 28 },
   sectionLabel: {
     fontFamily: Font.sansMedium,
     fontSize: 10,
-    color: Colors.muted,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: 6,
   },
-  sectionHint: { marginBottom: 12 },
+  sectionHint: {
+    fontFamily: Font.sansLight,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
 
-  // Score
-  scoreLoading: { padding: 20, alignItems: 'center' },
-  scoreBlock: { padding: 16 },
-  scoreHeader: {
+  // Score card (glass box — score + bar only)
+  scoreCard: {
+    padding: 16,
+    marginBottom: 10,
+  },
+  scoreRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
-  scoreStatus: { fontFamily: Font.sansSemiBold, fontSize: 14 },
+  scoreStatus: {
+    fontFamily: Font.sansSemiBold,
+    fontSize: 14,
+  },
   scoreNumber: {
     fontFamily: Font.display,
-    fontSize: 28,
-    color: Colors.cream,
+    fontSize: 26,
   },
   scoreMax: {
     fontFamily: Font.sans,
-    fontSize: 12,
-    color: 'rgba(244,235,225,0.4)',
+    fontSize: 11,
   },
 
-  condGrid: {
+  // Meteo grid (outside the score card)
+  meteoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 14,
+    marginBottom: 8,
   },
-  condCell: {
+  meteoCell: {
+    // ~30% width with gap — mimics web's grid-cols-3
     width: '30%',
     flexGrow: 1,
-    padding: 10,
+    padding: 12,
     alignItems: 'center',
+    borderRadius: 12,
   },
-  condEmoji: { fontSize: 22, marginBottom: 4 },
-  condLabel: { fontFamily: Font.sansLight, fontSize: 10, color: Colors.muted, marginBottom: 4, textAlign: 'center' },
-  condValue: { fontFamily: Font.sansSemiBold, fontSize: 13, color: Colors.cream },
+  meteoCellIcon: {
+    width: 36,
+    height: 36,
+    marginBottom: 6,
+  },
+  meteoCellLabel: {
+    fontFamily: Font.sansLight,
+    fontSize: 11,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  meteoCellValue: {
+    fontFamily: Font.sansSemiBold,
+    fontSize: 13,
+    textAlign: 'center',
+  },
 
-  updatedLabel: { fontFamily: Font.sansLight, fontSize: 10, color: 'rgba(244,235,225,0.4)', marginTop: 10, textAlign: 'right' },
-  condErrorText: { fontFamily: Font.sans, fontSize: 12, color: Colors.warning, marginTop: 8 },
-
-  // Location
-  coordsBlock: { padding: 14, gap: 6 },
-  coordItem: { fontFamily: Font.sansLight, fontSize: 13, color: Colors.muted },
-  mapNote: { marginTop: 8 },
+  // Updated label
+  updatedLabel: {
+    fontFamily: Font.sansLight,
+    fontSize: 11,
+    textAlign: 'right',
+    marginTop: 4,
+  },
 
   // Species placeholder
   comingSoon: { padding: 16 },

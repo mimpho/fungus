@@ -9,12 +9,13 @@ import {
 import { router } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
 import { Colors } from '../../constants/Colors'
-import { Typography, Glass, Font } from '../../lib/theme'
+import { Font, useStyles } from '../../lib/theme'
 import { Background } from '../../components/ui/Background'
 import { useAppStore } from '../../store/useAppStore'
 import { login, getMe, saveToken } from '../../services/api'
 
 export default function LoginScreen() {
+  const { colors, typo } = useStyles()
   const { t, setProfile } = useAppStore(useShallow((s) => ({ t: s.t, setProfile: s.setProfile })))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -44,13 +45,17 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.inner}>
-          <Text style={styles.title}>Fungus</Text>
-          <Text style={[Typography.bodySmall, styles.subtitle]}>{t.login}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Fungus</Text>
+          <Text style={[typo.bodySmall, styles.subtitle]}>{t.login}</Text>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, {
+              backgroundColor: colors.surfaceInput,
+              borderColor: colors.border,
+              color: colors.textPrimary,
+            }]}
             placeholder={t.email}
-            placeholderTextColor={Colors.muted}
+            placeholderTextColor={colors.textSecondary}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -58,34 +63,38 @@ export default function LoginScreen() {
             autoComplete="email"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, {
+              backgroundColor: colors.surfaceInput,
+              borderColor: colors.border,
+              color: colors.textPrimary,
+            }]}
             placeholder={t.password}
-            placeholderTextColor={Colors.muted}
+            placeholderTextColor={colors.textSecondary}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
             autoComplete="current-password"
           />
 
-          {error && <Text style={styles.error}>{error}</Text>}
+          {error && <Text style={[styles.error, { color: Colors.danger }]}>{error}</Text>}
 
           <TouchableOpacity
-            style={[styles.btn, loading && styles.btnDisabled]}
+            style={[styles.btn, { backgroundColor: Colors.green }, loading && styles.btnDisabled]}
             onPress={handleLogin}
             disabled={loading}
           >
             {loading
-              ? <ActivityIndicator color={Colors.cream} />
-              : <Text style={styles.btnText}>{t.login}</Text>
+              ? <ActivityIndicator color={colors.textPrimary} />
+              : <Text style={[styles.btnText, { color: '#ffffff' }]}>{t.login}</Text>
             }
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push('/auth/register')} style={styles.linkBtn}>
-            <Text style={styles.linkText}>{t.noAccount}</Text>
+            <Text style={[styles.linkText, { color: colors.accentLight }]}>{t.noAccount}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={styles.skipBtn}>
-            <Text style={[Typography.caption, styles.skipText]}>Continuar sin cuenta →</Text>
+            <Text style={[typo.caption, styles.skipText]}>{`Continuar sin cuenta →`}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -99,41 +108,39 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Font.display,
     fontSize: 48,
-    color: Colors.cream,
     textAlign: 'center',
     marginBottom: 4,
     letterSpacing: 1,
+    // color inline
   },
   subtitle: { textAlign: 'center', marginBottom: 36 },
   input: {
-    backgroundColor: Colors.glass,
+    // backgroundColor, borderColor, color set inline from colors.*
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(244,235,225,0.06)',
     padding: 14,
-    color: Colors.cream,
     fontFamily: Font.sans,
     fontSize: 16,
     marginBottom: 12,
   },
   error: {
     fontFamily: Font.sans,
-    color: Colors.danger,
     fontSize: 14,
     marginBottom: 8,
     textAlign: 'center',
+    // color inline (Fixed.danger)
   },
   btn: {
-    backgroundColor: Colors.green,
+    // backgroundColor inline (Fixed.green)
     borderRadius: 10,
     paddingVertical: 15,
     alignItems: 'center',
     marginTop: 8,
   },
   btnDisabled: { opacity: 0.6 },
-  btnText: { fontFamily: Font.sansSemiBold, color: Colors.cream, fontSize: 16 },
+  btnText: { fontFamily: Font.sansSemiBold, fontSize: 16 /* color: '#ffffff' inline */ },
   linkBtn: { marginTop: 20, alignItems: 'center' },
-  linkText: { fontFamily: Font.sans, color: Colors.coffeeLight, fontSize: 14 },
+  linkText: { fontFamily: Font.sans, fontSize: 14 /* color inline */ },
   skipBtn: { marginTop: 12, alignItems: 'center' },
   skipText: { textAlign: 'center' },
 })

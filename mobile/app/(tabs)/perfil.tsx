@@ -3,7 +3,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { router } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
-import { Fixed } from '../../constants/Colors'
 import { Font, useStyles } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
 import { Lang, LANGS } from '../../lib/constants'
@@ -40,7 +39,7 @@ export default function PerfilScreen() {
       <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
         APARIENCIA
       </Text>
-      <View style={[glass.panel, styles.pillContainer]}>
+      <View style={[styles.pillContainer, { backgroundColor: colors.tabsBg }]}>
         {THEME_OPTIONS.map((opt) => {
           const active = themeMode === opt.value
           return (
@@ -48,7 +47,7 @@ export default function PerfilScreen() {
               key={opt.value}
               style={[
                 styles.pillBtn,
-                active && { backgroundColor: colors.accent },
+                active && { backgroundColor: colors.bar },
               ]}
               onPress={() => setThemeMode(opt.value)}
               activeOpacity={0.75}
@@ -56,7 +55,7 @@ export default function PerfilScreen() {
               <Text
                 style={[
                   styles.pillText,
-                  { color: active ? colors.textPrimary : colors.textSecondary },
+                  { color: active ? '#ffffff' : colors.textSecondary },
                 ]}
               >
                 {opt.label}
@@ -77,14 +76,14 @@ export default function PerfilScreen() {
             style={[
               glass.subtle,
               styles.langBtn,
-              lang === l && { backgroundColor: colors.accent },
+              lang === l && { backgroundColor: colors.bar },
             ]}
             onPress={() => setLang(l as Lang)}
           >
             <Text
               style={[
                 styles.langText,
-                { color: lang === l ? colors.textPrimary : colors.textSecondary },
+                { color: lang === l ? '#ffffff' : colors.textSecondary },
               ]}
             >
               {l.toUpperCase()}
@@ -103,7 +102,7 @@ export default function PerfilScreen() {
           <Text style={[styles.notLogged, { color: colors.textPrimary }]}>{t.notLoggedIn}</Text>
           <Text style={[styles.sub, { color: colors.textSecondary }]}>{t.loginToSync}</Text>
           <TouchableOpacity
-            style={[styles.loginBtn, { backgroundColor: Fixed.greenF }]}
+            style={[styles.loginBtn, { backgroundColor: colors.bar }]}
             onPress={() => router.push('/auth/login')}
           >
             <Text style={[styles.loginBtnText, { color: '#f4ebe1' }]}>{t.login}</Text>

@@ -10,8 +10,9 @@ import { Zone, ZoneConditions } from '../../hooks/useZones'
 
 // ── Icons (SVG paths from web src/lib/helpers.jsx) ───────────────────────────
 
-function IconStar({ filled, size = 20 }: { filled: boolean; size?: number }) {
-  const color = filled ? '#facc15' : 'rgba(244,235,225,0.45)'
+function IconStar({ filled, size = 20, emptyColor = '#f4ebe1' }: { filled: boolean; size?: number; emptyColor?: string }) {
+  // #facc15 — yellow "starred" indicator, not a theme token (same in both themes).
+  const color = filled ? '#facc15' : (emptyColor + '73') // ~45% opacity unfilled
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : 'none'}>
       <Path
@@ -100,11 +101,15 @@ export function ZoneCard({ zone, conditions, isFollowed, onToggle, onPress }: Zo
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.followBtn, isFollowed && styles.followBtnActive]}
+              style={[
+                styles.followBtn,
+                // #facc15 bg tint — semantic "starred" state, not a palette token.
+                isFollowed && { backgroundColor: 'rgba(250,204,21,0.12)' },
+              ]}
               onPress={(e) => { e.stopPropagation?.(); onToggle() }}
               hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
             >
-              <IconStar filled={isFollowed} size={20} />
+              <IconStar filled={isFollowed} size={20} emptyColor={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
@@ -187,9 +192,8 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 10,
   },
-  followBtnActive: {
-    backgroundColor: 'rgba(250,204,21,0.12)',
-  },
+  // followBtnActive removed — applied inline with { backgroundColor: 'rgba(250,204,21,0.12)' }
+  // to keep the yellow tint as an intentional semantic literal (not a theme token).
   tagsRow: {
     flexDirection: 'row',
     gap: 14,

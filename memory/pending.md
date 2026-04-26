@@ -29,11 +29,11 @@ Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `me
 - [x] Design system: gradient background, Cormorant Garamond + DM Sans, `lib/theme.ts` (Typography, Glass, Font, Gradient), `components/ui/Background.tsx`
 - [x] `feat/v8-0-zones`: zones list (search, filter, sort, follow), zone detail modal, full UI QA pass — ✅ merged to epic
 
-**En progreso (`feat/v8-0-zones`):**
-- [ ] Zone detail modal (`zona/[id].tsx`) refinements — visual QA in progress
+**En progreso (`feat/v8-1-theming` — design improvements, branch kept open):**
+- [ ] Ongoing web-parity design improvements — filter chips, search bar, tab bar
 
 **Pendiente (en orden):**
-- [x] `feat/v8-1-theming`: web semantic token layer + light theme modal fixes — ✅ merged to epic
+- [x] `feat/v8-1-theming`: theming system — semantic tokens, light theme fixes, web-parity UI (zones/detail/auth/filter sheet) — ✅ merged to epic
 - [ ] `feat/v8-2-species`: catálogo + detalle de especie
 - [ ] `feat/v8-3-map`: mapa MapLibre con markers coloreados por score
 - [ ] `feat/v8-4-auth`: login/registro funcional + perfil completo (favoritos, seguidos)

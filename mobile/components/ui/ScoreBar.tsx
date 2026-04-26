@@ -3,6 +3,7 @@
 
 import { View, StyleSheet } from 'react-native'
 import { getScoreColor } from '../../constants/Colors'
+import { useStyles } from '../../lib/theme'
 
 interface ScoreBarProps {
   score: number
@@ -10,9 +11,10 @@ interface ScoreBarProps {
 }
 
 export function ScoreBar({ score, height = 6 }: ScoreBarProps) {
+  const { colors } = useStyles()
   const color = getScoreColor(score)
   return (
-    <View style={[styles.track, { height }]}>
+    <View style={[styles.track, { height, backgroundColor: colors.surfaceDivider }]}>
       <View style={[styles.fill, { width: `${Math.min(score, 100)}%`, backgroundColor: color, height }]} />
     </View>
   )
@@ -21,7 +23,7 @@ export function ScoreBar({ score, height = 6 }: ScoreBarProps) {
 const styles = StyleSheet.create({
   track: {
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    // backgroundColor set inline from colors.surfaceDivider
     borderRadius: 99,
     overflow: 'hidden',
   },
