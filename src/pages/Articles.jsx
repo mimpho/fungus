@@ -38,7 +38,7 @@ function ArticleCard({ article, onSelect, t }) {
         <div className="flex items-center justify-between mt-3">
           <div className="flex gap-1.5 flex-wrap">
             {article.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="text-xs text-emerald-400 bg-emerald-400/5 px-2 py-0.5 rounded-full">
+              <span key={tag} className="text-xs text-accent-positive bg-accent-positive-subtle px-2 py-0.5 rounded-full">
                 {tag}
               </span>
             ))}
@@ -108,7 +108,7 @@ export default function Articles() {
               <div className="flex items-center gap-4">
                 <div className="flex gap-2">
                   {article.tags.map(tag => (
-                    <span key={tag} className="text-emerald-400 bg-emerald-400/5 text-xs px-2 py-0.5 rounded-full">
+                    <span key={tag} className="text-accent-positive bg-accent-positive-subtle text-xs px-2 py-0.5 rounded-full">
                       {tag}
                     </span>
                   ))}

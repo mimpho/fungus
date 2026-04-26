@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { Platform, View, StyleSheet } from 'react-native'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
@@ -17,7 +16,7 @@ import {
   DMSans_600SemiBold,
 } from '@expo-google-fonts/dm-sans'
 import { useAppStore } from '../store/useAppStore'
-import { Colors } from '../constants/Colors'
+import { useStyles } from '../lib/theme'
 import { Background } from '../components/ui/Background'
 
 export { ErrorBoundary } from 'expo-router'
@@ -30,6 +29,7 @@ SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const hydrate = useAppStore((s) => s.hydrate)
+  const { colors, isDark } = useStyles()
 
   const [fontsLoaded] = useFonts({
     CormorantGaramond_400Regular,
@@ -48,22 +48,24 @@ export default function RootLayout() {
     }
   }, [fontsLoaded])
 
-  // Keep splash screen visible until fonts + store are ready
   if (!fontsLoaded) return null
 
   return (
     <Background>
-      <StatusBar style="light" backgroundColor="transparent" translucent />
+      <StatusBar
+        style={isDark ? 'light' : 'dark'}
+        backgroundColor="transparent"
+        translucent
+      />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: Colors.modal },
-          headerTintColor: Colors.cream,
-          headerTitleStyle: { color: Colors.cream, fontFamily: 'DMSans_600SemiBold' },
-          // Web: navigator wrapper divs are opaque by default — force transparent
-          // Native: transparent already works
-          contentStyle: {
-            backgroundColor: Platform.OS === 'web' ? 'transparent' : 'transparent',
-          } as any,
+          headerStyle: { backgroundColor: colors.backgroundPanel },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: {
+            color: colors.textPrimary,
+            fontFamily: 'DMSans_600SemiBold',
+          },
+          contentStyle: { backgroundColor: 'transparent' } as any,
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -90,7 +92,10 @@ export default function RootLayout() {
           options={{
             title: 'Crear cuenta',
             headerBackTitle: 'Atrás',
-            headerTitleStyle: { fontFamily: 'DMSans_600SemiBold', color: Colors.cream },
+            headerTitleStyle: {
+              fontFamily: 'DMSans_600SemiBold',
+              color: colors.textPrimary,
+            },
           }}
         />
       </Stack>

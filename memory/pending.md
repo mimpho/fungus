@@ -4,28 +4,6 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
-## 🗂 Backlog — Mobile: light theme + system theme support (`feat/v8-1-theming`)
-
-**Rationale:** primary use case of the app is outdoors in daylight. Dark background with light text is poorly legible under direct sunlight. Light theme as mobile default (web keeps dark) would significantly improve field UX.
-
-**Proposed behaviour:**
-- Light theme as default on mobile
-- Respect system preference (`useColorScheme`) — auto-switch if user has set a system-wide preference
-- Manual override in Perfil screen (Dark / Light / System) — visible pill selector, not buried in a sub-menu
-
-**Design work needed:**
-- Define light colour palette: warm cream backgrounds, dark olive text, coffee accents — preserving brand identity
-- Redefine gradient for light mode (inverted warm tones, not just white)
-- Redesign glass surfaces (glass on light = subtle warm shadow, not white overlay)
-
-**Technical prerequisite — refactor `Colors.ts` and `theme.ts` before implementing:**
-- Replace literal colour tokens (`cream`, `modal`, `bg`…) with semantic tokens (`background`, `surface`, `textPrimary`, `textSecondary`, `border`…)
-- Each semantic token resolves to a different hex per theme
-- Without this refactor, theming requires surgical changes in every component
-
-**Scope:** mobile only in v8.1. Web dark theme unchanged. Could later expose theme preference via user profile API so it persists across devices.
-
----
 
 ## 🗂 No date — Hardening: move generator API keys to backend
 
@@ -55,7 +33,7 @@ Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `me
 - [ ] Zone detail modal (`zona/[id].tsx`) refinements — visual QA in progress
 
 **Pendiente (en orden):**
-- [ ] `feat/v8-1-theming`: light mode + semantic colour tokens — **prerequisite for all new screens**. Migrate `Colors.ts` + `theme.ts` to semantic tokens (`background`, `surface`, `textPrimary`…). Any screen built before this refactor needs to be redone when theming lands.
+- [x] `feat/v8-1-theming`: web semantic token layer + light theme modal fixes — ✅ merged to epic
 - [ ] `feat/v8-2-species`: catálogo + detalle de especie
 - [ ] `feat/v8-3-map`: mapa MapLibre con markers coloreados por score
 - [ ] `feat/v8-4-auth`: login/registro funcional + perfil completo (favoritos, seguidos)
@@ -117,6 +95,14 @@ Priority calculated as (Impact + Risk) × (6 − Effort). Ordered by urgency.
 **Phase 3 — Tests (10–20% of each sprint)**
 - [ ] Backend router tests: `auth.py` + `zones.py` as first iteration
 - [ ] Set up Vitest and cover `normalizeScore`, `normalizeZone`, `useSpecies`
+
+---
+
+## 🗂 Backlog — token residuals (menores, no afectan light theme)
+
+- `Profile.jsx` line ~241 y `Layout.jsx` lines ~134, ~160: badges de conteo (`bg-emerald-500`) — rol semántico "indicador de actividad". Pendiente de token `--ui-badge-indicator` cuando se expanda el sistema.
+- `helpers.jsx` `edibilityStyle()`: `border-emerald-*` en ConfusionesBlock — borders decorativos, impacto mínimo.
+- `admin/` components: emerald primitivos en ImageGenerator, CatalogImagesModal, SpeciesAdminModal — admin-only, nunca en light theme usuario. Fuera de scope.
 
 ---
 

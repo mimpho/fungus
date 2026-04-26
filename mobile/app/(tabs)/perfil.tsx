@@ -1,54 +1,112 @@
-// Profile screen — lang selector + login state
-// Full implementation in feat/v8-0-auth
+// Profile screen — lang selector, theme switch, and login state
 
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { router } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
-import { Colors } from '../../constants/Colors'
-import { Typography, Glass, Font } from '../../lib/theme'
+import { Fixed } from '../../constants/Colors'
+import { Font, useStyles } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
 import { Lang, LANGS } from '../../lib/constants'
+import type { ThemeMode } from '../../constants/Colors'
+
+// ── Theme options ─────────────────────────────────────────────────────────────
+
+const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
+  { value: 'dark',   label: 'Oscuro' },
+  { value: 'light',  label: 'Claro'  },
+  { value: 'system', label: 'Sistema' },
+]
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function PerfilScreen() {
-  // useShallow: shallow comparison so Zustand doesn't re-render on every call
-  const { t, lang, setLang, profile } = useAppStore(useShallow((s) => ({
-    t: s.t,
-    lang: s.lang,
-    setLang: s.setLang,
-    profile: s.profile,
-  })))
+  const { colors, glass } = useStyles()
+
+  const { t, lang, setLang, profile, themeMode, setThemeMode } = useAppStore(
+    useShallow((s) => ({
+      t:            s.t,
+      lang:         s.lang,
+      setLang:      s.setLang,
+      profile:      s.profile,
+      themeMode:    s.themeMode,
+      setThemeMode: s.setThemeMode,
+    }))
+  )
 
   return (
-    <View style={styles.container}>
-      {/* Language selector */}
-      <Text style={styles.section}>{t.language}</Text>
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+
+      {/* ── Apariencia (theme) ───────────────────────────────────────────── */}
+      <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+        APARIENCIA
+      </Text>
+      <View style={[glass.panel, styles.pillContainer]}>
+        {THEME_OPTIONS.map((opt) => {
+          const active = themeMode === opt.value
+          return (
+            <TouchableOpacity
+              key={opt.value}
+              style={[
+                styles.pillBtn,
+                active && { backgroundColor: colors.accent },
+              ]}
+              onPress={() => setThemeMode(opt.value)}
+              activeOpacity={0.75}
+            >
+              <Text
+                style={[
+                  styles.pillText,
+                  { color: active ? colors.textPrimary : colors.textSecondary },
+                ]}
+              >
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+
+      {/* ── Idioma (language) ────────────────────────────────────────────── */}
+      <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: 28 }]}>
+        {t.language?.toUpperCase() ?? 'IDIOMA'}
+      </Text>
       <View style={styles.langRow}>
         {LANGS.map((l) => (
           <TouchableOpacity
             key={l}
-            style={[Glass.subtle, styles.langBtn, lang === l && styles.langBtnActive]}
+            style={[
+              glass.subtle,
+              styles.langBtn,
+              lang === l && { backgroundColor: colors.accent },
+            ]}
             onPress={() => setLang(l as Lang)}
           >
-            <Text style={[styles.langText, lang === l && styles.langTextActive]}>
+            <Text
+              style={[
+                styles.langText,
+                { color: lang === l ? colors.textPrimary : colors.textSecondary },
+              ]}
+            >
               {l.toUpperCase()}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Auth state */}
-      <View style={styles.divider} />
+      {/* ── Auth state ───────────────────────────────────────────────────── */}
+      <View style={[styles.divider, { backgroundColor: colors.borderAccent }]} />
+
       {profile ? (
-        <Text style={[Typography.body, styles.email]}>{profile.email}</Text>
+        <Text style={[styles.email, { color: colors.textPrimary }]}>{profile.email}</Text>
       ) : (
         <>
-          <Text style={Typography.h3}>{t.notLoggedIn}</Text>
-          <Text style={[Typography.bodySmall, styles.sub]}>{t.loginToSync}</Text>
+          <Text style={[styles.notLogged, { color: colors.textPrimary }]}>{t.notLoggedIn}</Text>
+          <Text style={[styles.sub, { color: colors.textSecondary }]}>{t.loginToSync}</Text>
           <TouchableOpacity
-            style={styles.loginBtn}
+            style={[styles.loginBtn, { backgroundColor: Fixed.greenF }]}
             onPress={() => router.push('/auth/login')}
           >
-            <Text style={styles.loginBtnText}>{t.login}</Text>
+            <Text style={[styles.loginBtnText, { color: '#f4ebe1' }]}>{t.login}</Text>
           </TouchableOpacity>
         </>
       )}
@@ -56,29 +114,66 @@ export default function PerfilScreen() {
   )
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+// Colours are passed inline — static styles here are layout + font only.
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent', padding: 24 },
-  section: {
+  container: {
+    flex: 1,
+    padding: 24,
+  },
+  sectionLabel: {
     fontFamily: Font.sansMedium,
     fontSize: 11,
-    color: Colors.muted,
-    textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 12,
   },
+
+  // Theme pill selector
+  pillContainer: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: 16,
+    gap: 4,
+  },
+  pillBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  pillText: {
+    fontFamily: Font.sansMedium,
+    fontSize: 13,
+  },
+
+  // Language selector
   langRow: { flexDirection: 'row', gap: 10 },
   langBtn: { paddingHorizontal: 20, paddingVertical: 8 },
-  langBtnActive: { backgroundColor: Colors.coffee, borderColor: Colors.coffee },
-  langText: { fontFamily: Font.sansMedium, color: Colors.muted },
-  langTextActive: { color: Colors.cream },
-  divider: { height: 1, backgroundColor: Colors.coffee + '33', marginVertical: 28 },
-  email: { color: Colors.cream },
-  sub: { marginBottom: 24, marginTop: 4 },
+  langText: { fontFamily: Font.sansMedium },
+
+  divider: { height: 1, marginVertical: 28 },
+
+  email: {
+    fontFamily: Font.sans,
+    fontSize: 15,
+  },
+  notLogged: {
+    fontFamily: Font.displaySemiBold,
+    fontSize: 18,
+    lineHeight: 24,
+    marginBottom: 6,
+  },
+  sub: {
+    fontFamily: Font.sans,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 24,
+  },
   loginBtn: {
-    backgroundColor: Colors.green,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  loginBtnText: { fontFamily: Font.sansSemiBold, color: Colors.cream, fontSize: 16 },
+  loginBtnText: { fontFamily: Font.sansSemiBold, fontSize: 16 },
 })

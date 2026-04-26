@@ -3,7 +3,7 @@ export function ActiveFilterChip({ label, emoji, color = 'amber', onRemove }) {
   const colors = {
     amber:   'bg-bar/15 text-coffee-light',
     yellow:  'bg-yellow-400/15 text-yellow-400',
-    emerald: 'bg-green-f/15 text-emerald-400',
+    emerald: 'bg-accent-positive-subtle text-accent-positive',
     blue:    'bg-sky-400/15 text-sky-400',
   }
   return (

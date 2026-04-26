@@ -9,6 +9,7 @@ import { apiResendVerification } from '../services/authService'
 export default function Profile() {
   const {
     t, lang, setLang,
+    themeMode, setThemeMode,
     profile, setProfile,
     followedZones, favoriteSpecies,
     setSelectedZone, setSelectedSpecies,
@@ -95,10 +96,23 @@ export default function Profile() {
             </button>
             <button
               onClick={() => setAuthModal('login')}
-              className="px-6 py-3 rounded-xl glass text-cream text-sm font-medium hover:bg-white/[0.08] transition-all"
+              className="px-6 py-3 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
             >
               {t.iniciarSesion ?? 'Iniciar sesión'}
             </button>
+          </div>
+        </section>
+
+        {/* Apariencia — siempre disponible */}
+        <section className="glass rounded-2xl p-5">
+          <h3 className="font-medium text-cream mb-4">Apariencia</h3>
+          <div className="grid grid-cols-3 gap-2 surface-subtle rounded-xl p-1">
+            {[['dark','Oscuro'],['light','Claro'],['system','Sistema']].map(([mode, label]) => (
+              <button key={mode} onClick={() => setThemeMode(mode)}
+                className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-white shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
+                {label}
+              </button>
+            ))}
           </div>
         </section>
 
@@ -108,7 +122,7 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-3">
             {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
               <button key={code} onClick={() => setLang(code)}
-                className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/80 hover:text-cream'}`}>
+                className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
                 {label}
               </button>
             ))}
@@ -165,14 +179,14 @@ export default function Profile() {
           <p className="text-cream/60 text-sm truncate">{user.email}</p>
           <span className={`text-xs px-2 py-0.5 rounded-full ${user.plan === 'premium'
             ? 'bg-amber-500/20 text-amber-400'
-            : 'bg-white/[0.06] text-cream/50'
+            : 'surface-subtle text-cream/50'
             }`}>
             {user.plan === 'premium' ? '⭐ Premium' : 'Free'}
           </span>
         </div>
         <button
           onClick={() => setShowEditModal(true)}
-          className="flex-shrink-0 flex items-center gap-1.5 text-cream/40 hover:text-cream transition-colors px-3 py-2 rounded-xl hover:bg-white/[0.06]"
+          className="flex-shrink-0 flex items-center gap-1.5 text-cream/40 hover:text-cream transition-colors px-3 py-2 rounded-xl hover:[background-color:var(--ui-surface-hover)]"
         >
           {IC.pencil}
           <span className="hidden md:inline text-sm">{t.editarPerfil ?? 'Editar perfil'}</span>
@@ -205,7 +219,7 @@ export default function Profile() {
               </button>
             )}
             {resendState === 'sent' && (
-              <p className="mt-2 text-xs text-emerald-400">
+              <p className="mt-2 text-xs text-accent-positive">
                 {t.verifyEmailResentOk ?? '✓ Email reenviado. Revisa tu bandeja.'}
               </p>
             )}
@@ -244,13 +258,26 @@ export default function Profile() {
         </div>
       </section>
 
+      {/* Apariencia */}
+      <section className="glass rounded-2xl p-5">
+        <h3 className="font-medium text-cream mb-4">Apariencia</h3>
+        <div className="grid grid-cols-3 gap-2 surface-subtle rounded-xl p-1">
+          {[['dark','Oscuro'],['light','Claro'],['system','Sistema']].map(([mode, label]) => (
+            <button key={mode} onClick={() => setThemeMode(mode)}
+              className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-white shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* Idioma */}
       <section className="glass rounded-2xl p-5">
         <h3 className="font-medium text-cream mb-4">{t.idioma}</h3>
         <div className="grid grid-cols-3 gap-3">
           {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
             <button key={code} onClick={() => setLang(code)}
-              className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/80 hover:text-cream'}`}>
+              className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
               {label}
             </button>
           ))}
@@ -277,7 +304,7 @@ export default function Profile() {
           <div className="space-y-2">
             {followedZones.slice(0, 3).map(z => (
               <button key={z.id} onClick={() => setSelectedZone(z)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] hover-lift text-left">
+                className="w-full flex items-center gap-3 p-3 rounded-xl surface-hover text-left">
                 <span className="text-muted flex-shrink-0">{IC.pin}</span>
                 <div className="min-w-0">
                   <p className="font-display text-base font-semibold text-cream truncate">{z.name}</p>
@@ -316,8 +343,8 @@ export default function Profile() {
             <div className="grid grid-cols-3 gap-2">
               {favoriteSpecies.slice(0, 3).map(sp => (
                 <button key={sp.id} onClick={() => setSelectedSpecies(sp)}
-                  className="glass rounded-xl overflow-hidden hover:bg-white/[0.07] hover-lift text-left">
-                  <div className="aspect-square bg-white/[0.03]">
+                  className="glass rounded-xl overflow-hidden hover:[background-color:var(--ui-surface-hover)] text-left">
+                  <div className="aspect-square surface-subtle">
                     <img src={resolveUrl(sp.photo?.url)} alt=""
                       className="w-full h-full object-cover"
                       onError={e => { e.target.style.display = 'none' }} />
