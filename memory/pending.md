@@ -5,24 +5,6 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 ---
 
 
-## 🟡 Activo — `feat/v8-1-theming` (2nd pass): purge hardcoded colors from mobile components
-
-All mobile components still contain hardcoded hex/rgba values that bypass the `useTheme()` token system. This breaks light theme — rows, surfaces, and text are invisible or wrong-colored on light backgrounds.
-
-**Files to fix (priority order):**
-- `mobile/app/(tabs)/index.tsx` — ~15 hardcoded values: `rgba(244,235,225,*)`, `rgba(255,255,255,*)`, `#4c5240` (PILL_BG), `#30372a` (sheet bg), `#232522d9` (backdrop), filter chip/option colors
-- `mobile/app/zona/[id].tsx` — `#6ee7b7` (score badge), `#facc15` (follow star), `rgba(244,235,225,*)` (description/labels)
-- `mobile/components/ui/ZoneCard.tsx` — `#facc15` (star fill), `rgba(250,204,21,0.12)` (star bg)
-- `mobile/components/ui/ScoreBar.tsx` — `rgba(255,255,255,0.08)` (progress track)
-- `mobile/app/auth/login.tsx`, `auth/register.tsx` — `rgba(244,235,225,0.06)` (input border)
-- `mobile/app/(tabs)/perfil.tsx` — `#f4ebe1` (login button text, should be `'#ffffff'` — already fixed)
-
-**Pattern to apply:** replace hardcoded values with `colors.*` from `useTheme()`. Static StyleSheet blocks with color refs must be moved to inline styles or a factory function that receives `colors`.
-
-**Tokens already available in `shared/colors.ts`:** `surfaceSubtle`, `surfaceHover`, `surfaceInput`, `surfaceDivider`, `tabsBg`, `accentPositive`, `accentPositiveSubtle`, `navActiveBg`, `navActiveText`, `bar`, `textPrimary`, `textSecondary`, `overlay`, `backgroundPanel`, `searchBg`, `border`, `borderAccent`.
-
----
-
 ## 🗂 No date — Hardening: move generator API keys to backend
 
 Technical debt documented in `memory/decisions.md` (section "Image generator — Monorepo vs Microservice").
@@ -47,11 +29,11 @@ Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `me
 - [x] Design system: gradient background, Cormorant Garamond + DM Sans, `lib/theme.ts` (Typography, Glass, Font, Gradient), `components/ui/Background.tsx`
 - [x] `feat/v8-0-zones`: zones list (search, filter, sort, follow), zone detail modal, full UI QA pass — ✅ merged to epic
 
-**En progreso (`feat/v8-0-zones`):**
-- [ ] Zone detail modal (`zona/[id].tsx`) refinements — visual QA in progress
+**En progreso (`feat/v8-1-theming` — design improvements, branch kept open):**
+- [ ] Ongoing web-parity design improvements — filter chips, search bar, tab bar
 
 **Pendiente (en orden):**
-- [x] `feat/v8-1-theming`: web semantic token layer + light theme modal fixes — ✅ merged to epic
+- [x] `feat/v8-1-theming`: theming system — semantic tokens, light theme fixes, web-parity UI (zones/detail/auth/filter sheet) — ✅ merged to epic
 - [ ] `feat/v8-2-species`: catálogo + detalle de especie
 - [ ] `feat/v8-3-map`: mapa MapLibre con markers coloreados por score
 - [ ] `feat/v8-4-auth`: login/registro funcional + perfil completo (favoritos, seguidos)

@@ -3,6 +3,8 @@
 > Defines the lifecycle of changes: from idea to production.
 > Covers git, documentation and session close protocol.
 
+> **Claude trigger**: whenever the user says "integra", "squash", "merge a epic", "prepara la PR", or similar — Claude's first action is to run the doc checklist in the Integration section. Code comes second.
+
 ---
 
 ## Change lifecycle
@@ -58,12 +60,20 @@ chore/* (project-wide)  ──squash──▶  main (directly)
 
 **feat/fix/chore → epic**: squash merge. One logical commit per feature, with Conventional Commits message.
 
-```bash
-git checkout epic/v7-oauth
-git merge --squash feat/v7-0-google-signin
-git commit -m "feat(auth): add Google OAuth2 signin flow"
-git branch -D feat/v7-0-google-signin
-```
+> ⚠️ **BEFORE running the squash-merge commands**, complete the doc checklist below. No exceptions — not even for small branches.
+
+**Doc checklist (run this first, every time):**
+
+1. `CHANGELOG.md` — add entry under `[Unreleased]` for everything that changed
+2. `memory/pending.md` — remove or update the active block for this branch; mark completed items in the epic's task list
+3. `memory/v8-android-plan.md` (or equivalent plan file) — update phase status if applicable
+4. `memory/decisions.md` — record any new architectural decision
+5. Commit doc changes on the feature branch: `docs: update changelog and pending for feat/…`
+
+Only after those file edits are in place, Claude's job is done. **Claude never runs git commands** — not commits, not merges. The sandbox cannot write to `.git/`. The human runs all git operations from their terminal. Claude provides:
+1. The edited doc files (ready to `git add`)
+2. The exact commit message to use: `docs: update changelog and pending for feat/…`
+3. The PR title and body as copy-pasteable blocks (see PR preparation section)
 
 **Epic → main**: `--no-ff` merge commit. Creates a visible boundary in the graph.
 
@@ -92,6 +102,8 @@ git rebase epic/v7-oauth
 | Delete feature branches after merge | Use `git branch -D` (force) — squash leaves the tip unreachable |
 
 ### Cheatsheet
+
+> All commands below are for the **human** to run in their terminal. Claude edits files but cannot write to `.git/` — so Claude never runs git commands of any kind (add, commit, checkout, merge). Claude's output is: edited files + commit message suggestion + PR title/body blocks.
 
 ```bash
 # New feature
@@ -319,21 +331,21 @@ Inline code comments in source files may use Spanish where the domain language i
 
 ## Branch close checklist
 
-**This checklist is a hard gate. Claude must complete every applicable item before producing PR title/body.** If any item is pending, do it first, commit with `docs: …`, and only then produce the PR.
+This is the expanded reference for the doc checklist summarised in the Integration section above. Same rules, more detail.
+
+**Claude must not skip this checklist.** Triggers: "integra", "squash", "merge a epic", "prepara la PR". First action is always docs — not git.
 
 | # | Item | Applies to |
 |---|---|---|
 | 1 | `CHANGELOG.md` — add entry in `[Unreleased]` under the right type | Every branch |
-| 2 | `memory/pending.md` — mark completed items ✅; if a full phase closes, remove the block | Every branch |
+| 2 | `memory/pending.md` — remove the active block for this branch; update completed items in the epic task list | Every branch |
 | 3 | `memory/<epic-slug>-plan.md` — update phase status table (✅ / 🟡 / ⬜) if this epic has a plan file | Epics with a plan doc |
 | 4 | `memory/decisions.md` — record any new architectural decision taken during implementation | If decisions were made |
 | 5 | `system/project.spec.md` — update roadmap status or stack if changed | If roadmap/stack changed |
 | 6 | `README.md` — update roadmap or endpoints if changed | If roadmap/stack changed |
-| 7 | Commit all doc changes on the feature branch: `docs: close feat/… — update changelog and memory` | After steps 1–6 |
+| 7 | Commit all doc changes on the feature branch: `docs: close feat/… — update changelog and pending` | After steps 1–6 |
 
 **Epic plan convention:** when an epic is large enough to warrant its own plan (multiple feature branches, cross-cutting decisions), create `memory/<epic-slug>-plan.md` at epic kickoff. The slug matches the epic branch name — e.g. `epic/v8-android` → `memory/v8-android-plan.md`. Not every epic needs one; simple single-feature epics can rely solely on `pending.md`.
-
-**Claude must not skip this checklist.** When a user says "prepara la PR" or "integra en epic", Claude's first action is to run through this list, make any missing updates, commit them, and only then produce the PR content.
 
 ---
 

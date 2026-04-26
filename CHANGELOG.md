@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — feat/v8-1-theming 2nd pass: mobile theming + web-parity UI (2026-04-26)
+
+- **`mobile/assets/images/icons/`**: 11 PNG icons copied from `public/assets/` — temperature, soil-moisture, accumulated-precipitation, humidity, wind, sunny, mountain, forest-type-{pinar,hayedo,robledal,encinar}.
+- **`mobile/assets/images/zones/`**: zone hero WebP images (pinar, hayedo, robledal, encinar) bundled for offline use in zone detail.
+- **`mobile/app/zona/[id].tsx`**: full web-parity layout — 280px hero image with `LinearGradient` overlay, zone name/badges overlaid on hero, score card (`glass.subtle`) separated from 6-cell meteo grid (each cell its own glass surface), PNG icons replace emojis, labels match web (T. Suelo / Precipit. 14d / Sin lluvia).
+- **Filter chip variant system** in `index.tsx`: `default` (`colors.bar` + white), `starred` (yellow-400/20), `rain` (sky-400/20), `ccaa` (`accentPositiveSubtle`) — mirrors web `.filter-pill-inactive` CSS tokens exactly.
+
+### Changed — feat/v8-1-theming 2nd pass: mobile theming + web-parity UI
+
+- **`mobile/app/(tabs)/index.tsx`**: all hardcoded hex/rgba purged; `applyOpacity` helper; SVG icons accept `color` prop; `ComarcaSelect`/`Chip`/`SectionLabel` take `Palette` prop; `makeSelectStyles` factory; filter sheet — "Limpiar" as header link, single full-width apply button, `borderRadius` 24px.
+- **`mobile/app/auth/login.tsx`** + **`register.tsx`**: migrated from deprecated `Typography`/`Glass` exports to `useStyles()` — all colors via `colors.*` tokens.
+- **`mobile/components/ui/ZoneCard.tsx`**: `IconStar` accepts `emptyColor` prop; `followBtnActive` applied inline (intentional semantic literal `rgba(250,204,21,0.12)`).
+- **`mobile/components/ui/ScoreBar.tsx`**: track background via `colors.surfaceDivider` token.
+
 ### Added — v8.1 Web theming: semantic token layer + light theme fixes (2026-04-26)
 
 - **`src/styles/tokens.css`**: all CSS custom properties — primitive `--color-*` tokens + semantic `--ui-*` tokens for both dark (default) and `[data-theme="light"]`. Covers edibility, score, surface, accent, nav, filter, progress, search roles.
