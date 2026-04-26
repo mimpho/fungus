@@ -62,6 +62,23 @@ export const Raw = {
   glassLightSurface:'rgba(255,255,255,0.70)',
   glassLightHeavy:  'rgba(255,255,255,0.85)',
 
+  // Surface subtle/hover — row backgrounds, info boxes, placeholders
+  // Dark: white tint · Light: dark tint (so rows are visible on white bg)
+  surfaceDarkSubtle:  'rgba(255,255,255,0.04)',
+  surfaceDarkMid:     'rgba(255,255,255,0.05)',
+  surfaceDarkHover:   'rgba(255,255,255,0.07)',
+  surfaceDarkInput:   'rgba(255,255,255,0.04)',
+  surfaceDarkDivider: 'rgba(255,255,255,0.08)',
+  surfaceLightSubtle: 'rgba(0,0,0,0.04)',
+  surfaceLightMid:    'rgba(0,0,0,0.05)',
+  surfaceLightHover:  'rgba(0,0,0,0.07)',
+  surfaceLightInput:  'rgba(0,0,0,0.06)',
+  surfaceLightDivider:'rgba(0,0,0,0.08)',
+
+  // Bar (score indicator) — different hue per theme
+  barDark:  '#887b4b',   // gold-brown
+  barLight: '#758847',   // olive-green
+
   // Overlays
   overlayDark:  '#232522d9',   // rgba(35,37,34,0.85)
   overlayLight: 'rgba(200,195,180,0.75)',
@@ -91,11 +108,27 @@ export const darkPalette = {
   gradientC:        Raw.gradDarkC,
 
   // Surfaces (glass layers)
-  surface:          Raw.glassDarkOlive,  // card / panel glass
-  surfaceHeavy:     Raw.glassDarkOlive80,// tab bar / sheet bg
-  surfaceWarm:      Raw.glassDarkWarm,   // warm highlight
-  surfaceSubtle:    Raw.glassDarkWhite,  // subtle row highlight
-  searchBg:         Raw.oliveSearch,     // search pill solid bg
+  surface:          Raw.glassDarkOlive,    // card / panel glass
+  surfaceHeavy:     Raw.glassDarkOlive80,  // tab bar / sheet bg
+  surfaceWarm:      Raw.glassDarkWarm,     // warm highlight
+  surfaceSubtle:    Raw.surfaceDarkSubtle, // subtle row bg (invisible content areas)
+  surfaceMid:       Raw.surfaceDarkMid,    // slightly more visible than subtle
+  surfaceHover:     Raw.surfaceDarkHover,  // pressed/hovered row bg
+  surfaceInput:     Raw.surfaceDarkInput,  // form input bg
+  surfaceDivider:   Raw.surfaceDarkDivider,// separator lines
+  tabsBg:           Raw.glassDarkWhite,    // switcher/tabs container bg
+  searchBg:         Raw.oliveSearch,       // search pill solid bg
+
+  // Accent positive — readable on dark bg
+  accentPositive:       '#34d399',              // light green
+  accentPositiveSubtle: 'rgba(52,211,153,0.10)',
+
+  // Nav active
+  navActiveBg:   'rgba(217,206,161,0.10)',
+  navActiveText: Raw.muted,
+
+  // Bar (score indicator)
+  bar: Raw.barDark,
 
   // Text
   textPrimary:      Raw.cream,
@@ -132,8 +165,24 @@ export const lightPalette = {
   surface:          Raw.glassLightSurface,
   surfaceHeavy:     Raw.glassLightHeavy,
   surfaceWarm:      Raw.glassLightWarm,
-  surfaceSubtle:    Raw.glassLightWhite,
+  surfaceSubtle:    Raw.surfaceLightSubtle, // dark tint — visible on white bg
+  surfaceMid:       Raw.surfaceLightMid,
+  surfaceHover:     Raw.surfaceLightHover,
+  surfaceInput:     Raw.surfaceLightInput,
+  surfaceDivider:   Raw.surfaceLightDivider,
+  tabsBg:           Raw.glassLightWhite,    // white glass — visible on light bg
   searchBg:         '#e8e2d4',
+
+  // Accent positive — readable on light bg
+  accentPositive:       '#059669',              // dark green
+  accentPositiveSubtle: 'rgba(5,150,105,0.10)',
+
+  // Nav active
+  navActiveBg:   'rgba(136,133,87,0.10)',
+  navActiveText: 'rgb(136,133,87)',
+
+  // Bar (score indicator)
+  bar: Raw.barLight,
 
   // Text
   textPrimary:      Raw.darkText,
@@ -181,25 +230,37 @@ export type Palette = {
   gradientB:        string
   gradientC:        string
   // Surfaces
-  surface:          string
-  surfaceHeavy:     string
-  surfaceWarm:      string
-  surfaceSubtle:    string
-  searchBg:         string
+  surface:              string
+  surfaceHeavy:         string
+  surfaceWarm:          string
+  surfaceSubtle:        string
+  surfaceMid:           string
+  surfaceHover:         string
+  surfaceInput:         string
+  surfaceDivider:       string
+  tabsBg:               string
+  searchBg:             string
   // Text
-  textPrimary:      string
-  textSecondary:    string
+  textPrimary:          string
+  textSecondary:        string
   // Accents
-  accent:           string
-  accentLight:      string
+  accent:               string
+  accentLight:          string
+  accentPositive:       string
+  accentPositiveSubtle: string
+  // Nav
+  navActiveBg:          string
+  navActiveText:        string
+  // Bar (score indicator — theme-dependent hue)
+  bar:                  string
   // Borders
-  border:           string
-  borderWarm:       string
-  borderAccent:     string
+  border:               string
+  borderWarm:           string
+  borderAccent:         string
   // Overlay
-  overlay:          string
+  overlay:              string
   // Shadow base colour
-  shadow:           string
+  shadow:               string
 }
 
 export type ThemeMode = 'dark' | 'light' | 'system'
