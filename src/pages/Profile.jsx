@@ -109,7 +109,7 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-2 surface-subtle rounded-xl p-1">
             {[['dark','Oscuro'],['light','Claro'],['system','Sistema']].map(([mode, label]) => (
               <button key={mode} onClick={() => setThemeMode(mode)}
-                className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-cream shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
+                className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-white shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
                 {label}
               </button>
             ))}
@@ -122,7 +122,7 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-3">
             {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
               <button key={code} onClick={() => setLang(code)}
-                className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/80 hover:text-cream'}`}>
+                className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
                 {label}
               </button>
             ))}
@@ -264,7 +264,7 @@ export default function Profile() {
         <div className="grid grid-cols-3 gap-2 surface-subtle rounded-xl p-1">
           {[['dark','Oscuro'],['light','Claro'],['system','Sistema']].map(([mode, label]) => (
             <button key={mode} onClick={() => setThemeMode(mode)}
-              className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-cream shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
+              className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-white shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
               {label}
             </button>
           ))}
@@ -277,7 +277,7 @@ export default function Profile() {
         <div className="grid grid-cols-3 gap-3">
           {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
             <button key={code} onClick={() => setLang(code)}
-              className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/10 text-coffee-light' : 'glass text-cream/80 hover:text-cream'}`}>
+              className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
               {label}
             </button>
           ))}

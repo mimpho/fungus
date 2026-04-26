@@ -73,7 +73,7 @@
   --ui-filter-select-border: 1px solid rgba(255, 255, 255, 0.08);
 
   /* Tabs switcher */
-  --ui-tabs-bg:              rgba(255, 255, 255, 0.04);
+  --ui-tabs-bg:              var(--glass-white);
 
   /* Progress bar track */
   --ui-progress-track:       rgba(255, 255, 255, 0.07);
@@ -164,7 +164,7 @@
   --color-cream-rgb:  43, 42, 31;     /* #2b2a1f */
   --color-muted-rgb:  107, 96, 69;    /* #6b6045 */
   --color-modal-rgb:  255, 255, 255;  /* white panel */
-  --color-bar-rgb:    136, 123, 75;   /* #887b4b — fixed, same as dark */
+  --color-bar-rgb:    117, 136, 75;   /* #758847 — light theme variant, more olive-green */
   --color-coffee-rgb: 107, 79, 42;    /* #6b4f2a */
 
   /* ── Semantic UI tokens — light ─────────────────────────────────────────── */
@@ -174,7 +174,7 @@
   --ui-accent-positive-subtle: rgba(5, 150, 105, 0.10);
 
   /* Nav active state */
-  --ui-nav-active-bg:        rgb(136 133 87 / 15%);
+  --ui-nav-active-bg:        rgb(136 133 87 / 10%);
   --ui-nav-active-text:      rgb(136, 133, 87);
   /* Nav / general hover */
   --ui-nav-hover-bg:         rgba(85, 85, 82, 0.10);
@@ -186,9 +186,6 @@
   --ui-filter-select-bg:     rgb(136 133 87 / 15%);
   --ui-filter-select-text:   rgb(136, 133, 87);
   --ui-filter-select-border: none;
-
-  /* Tabs switcher */
-  --ui-tabs-bg:              rgb(85 85 82 / 15%);
 
   /* Progress bar track */
   --ui-progress-track:       rgb(195 195 195 / 50%);

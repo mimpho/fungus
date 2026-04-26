@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — v8.1 Web theming: semantic token layer + light theme fixes (2026-04-26)
+
+- **`src/styles/tokens.css`**: all CSS custom properties — primitive `--color-*` tokens + semantic `--ui-*` tokens for both dark (default) and `[data-theme="light"]`. Covers edibility, score, surface, accent, nav, filter, progress, search roles.
+- **`src/styles/semantic.css`**: utility classes `.edib-*`, `.edib-dot-*`, `.edib-solid-*`, `.score-text-*`, `.score-bar-*`, `.surface-subtle`, `.surface-hover`, `.surface-input`, `.surface-divider`, `.calendar-inactive`, `.text-accent-positive`, `.bg-accent-positive-subtle`.
+- **`src/styles/`**: `styles.css` split into 6 focused files — `tokens.css`, `base.css`, `glass.css`, `components.css`, `semantic.css`, `map.css`. Entry point is now a pure import manifest.
+- **`--ui-surface-*` tokens**: resolve to `rgba(255,255,255,0.04–0.07)` in dark and `rgba(0,0,0,0.04–0.07)` in light — fixes invisible modal row backgrounds in light theme.
+
+### Changed — v8.1 Web theming
+
+- **`src/lib/helpers.jsx`**: `getEdibilityColor()` and `getScoreColor()` return only semantic class names — zero primitive Tailwind color refs. All Spanish docblock comments translated to English.
+- **`src/components/modals/ZoneModal.jsx`**, **`SpeciesModal.jsx`**, **`FamilyModal.jsx`**, **`AuthModal.jsx`**, **`EditProfileModal.jsx`**: replaced all `bg-white/[0.03–0.07]` with `.surface-subtle`/`.surface-hover`/`.surface-input`; calendar inactive cells use `.calendar-inactive`; removed `hover-lift` from list rows in favour of background-shift only.
+- **`src/pages/Dashboard.jsx`**, **`Articles.jsx`**, **`Zones.jsx`**, **`Profile.jsx`**, **`Species.jsx`**: replaced all primitive `text-emerald-*` / `bg-emerald-*` / `bg-white/[0.0x]` with semantic classes.
+- **`src/components/ui/ActiveFilterChip.jsx`**, **`SearchFilterBar.jsx`**, **`Tabs.jsx`**, **`ZoneCard.jsx`**, **`Layout.jsx`**: same primitive → semantic migration; all Spanish inline comments translated to English.
+- **Token refinements**: `--ui-tabs-bg: var(--glass-white)` — switch background inherits from glass token instead of hardcoded value; `--color-bar-rgb` light override set to `117, 136, 75` (olive-green variant); `--ui-nav-active-bg` light reduced from 15% to 10% opacity; Profile appearance and language switchers use `text-white` on active state for legibility in light theme.
+
 ### Added — v8.0 Android app (in progress)
 
 - **`mobile/`**: new Expo SDK 54 app (managed workflow) alongside the web app in the same monorepo. expo-router v4, Zustand, TypeScript throughout.
