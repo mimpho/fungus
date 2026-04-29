@@ -14,7 +14,7 @@ Fungus predicts the best zones and timing for mushroom foraging by combining rea
 
 ## Quick start
 
-### Frontend (local development)
+### Frontend web (local development)
 
 ```bash
 # From repo root:
@@ -33,13 +33,26 @@ python -m uvicorn app.main:app --reload
 
 Requires `.env` with `DATABASE_URL` pointing to a PostgreSQL + PostGIS instance.
 
+### Mobile app — Android (local development)
+
+```bash
+cd mobile
+npm install
+npm run android   # Opens in Android emulator or connected device
+# or
+npm start         # Expo Dev Server — scan QR with Expo Go
+```
+
+Requires Android Studio with an emulator configured, or a physical Android device with Expo Go installed.
+
 ---
 
 ## Stack
 
 | Layer | Technology | Deploy |
 |---|---|---|
-| Frontend | Vite 6 + React 18 + React Router 6 + Leaflet | Vercel → `main` |
+| Frontend (web) | Vite 6 + React 18 + React Router 6 + Leaflet | Vercel → `main` |
+| Mobile (Android) | React Native + Expo SDK 54 + expo-router v4 + MapLibre | EAS Build → APK |
 | Backend | FastAPI + SQLAlchemy 2 async + Alembic | Render → `main` |
 | Database | PostgreSQL + PostGIS | Supabase (Ireland) |
 | Weather | Open-Meteo (no API key required) | — |
@@ -51,7 +64,8 @@ Requires `.env` with `DATABASE_URL` pointing to a PostgreSQL + PostGIS instance.
 
 ```
 fungus/
-├── src/               ← Vite app — active development
+├── src/               ← Vite app — active development (web)
+├── mobile/            ← React Native + Expo SDK 54 (Android app)
 ├── backend/           ← FastAPI + OI algorithm
 ├── system/            ← OpenSpecs — Single Source of Truth
 ├── docs/              ← Architecture, conventions, guides
@@ -91,8 +105,9 @@ POST /api/v1/images/set-order                 ← admin only
 | v5.0–v5.6 | ✅ | JWT auth · ImageGenerator · Myco-Engine Visual DNA |
 | v6.0 | ✅ | OpenSpecs migration — structured SSOT, IDE-agnostic |
 | v7.0 | ✅ | Social login: Google OAuth2 |
-| v7.1 | 🚧 | Email confirmation on signup |
-| v8.0 | 🗂 | Android mobile app (React Native + Expo) |
+| v7.1 | 🚧 | Email confirmation on signup · design polish |
+| v8.0 | 🚧 | Android mobile app — scaffold, nav, design system, zones done; species + map pending |
+| v8.5 | 🗂 | Shared package — scoring, constants, types, i18n extracted as monorepo internal packages |
 | v9.0 | 🗂 | SEO: static prerendering + Core Web Vitals |
 
 Detailed backlog: `memory/pending.md`

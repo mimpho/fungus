@@ -52,7 +52,7 @@ iOS fuera de roadmap (Apple Developer $99/año); Google Play en v8.1.
 
 ---
 
-## 🗂 Backlog — `shared/` design tokens & business logic (web + mobile)
+## 🗂 v8.5 — `shared/` design tokens & business logic (web + mobile)
 
 Actualmente web y mobile duplican lógica que debería tener una sola fuente de verdad:
 

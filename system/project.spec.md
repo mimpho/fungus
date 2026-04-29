@@ -483,5 +483,6 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v7.0 | ✅ Done | Social login: Google OAuth2 |
 | v7.1 | ✅ Done | Email confirmation on registration (Resend) |
 | v8.0 | 🚧 In progress | Android mobile app (React Native + Expo SDK 54 · MapLibre · EAS Build) |
+| v8.5 | 🗂 Backlog | Shared package — scoring, constants, types, i18n as monorepo internal packages |
 | v9.0 | 🗂 Backlog | SEO: static prerendering + Core Web Vitals |
 | — | 🗂 No date | Hardening: move generator API keys to backend FastAPI |
