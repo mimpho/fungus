@@ -38,12 +38,10 @@ Requires `.env` with `DATABASE_URL` pointing to a PostgreSQL + PostGIS instance.
 ```bash
 cd mobile
 npm install
-npm run android   # Opens in Android emulator or connected device
-# or
-npm start         # Expo Dev Server — scan QR with Expo Go
+npm start         # Expo Dev Server → http://localhost:8081 · scan QR with Expo Go to run on device
+npm run android   # Android emulator or connected device (requires Android Studio)
+npm run web       # Browser (no Android Studio needed)
 ```
-
-Requires Android Studio with an emulator configured, or a physical Android device with Expo Go installed.
 
 ---
 
