@@ -1,12 +1,25 @@
 // ZoneCard — zone list item with score bar, conditions summary and follow toggle
 // Mirrors web ZoneCard.jsx (glass-olive card, no border, shadow only)
 
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { getScoreColor } from '../../constants/Colors'
 import { Font, useStyles } from '../../lib/theme'
 import { ScoreBar } from './ScoreBar'
 import { Zone, ZoneConditions } from '../../hooks/useZones'
+
+// ── Asset maps — PNG icons (same assets as web) ───────────────────────────────
+const FOREST_TYPE_ICON: Record<string, any> = {
+  pinar:    require('../../assets/images/icons/forest-type-pinar.png'),
+  hayedo:   require('../../assets/images/icons/forest-type-hayedo.png'),
+  robledal: require('../../assets/images/icons/forest-type-robledal.png'),
+  encinar:  require('../../assets/images/icons/forest-type-encinar.png'),
+}
+
+const ICON_TEMP       = require('../../assets/images/icons/temperature.png')
+const ICON_RAIN       = require('../../assets/images/icons/accumulated-precipitation.png')
+const ICON_HUMIDITY   = require('../../assets/images/icons/humidity.png')
+const ICON_MOUNTAIN   = require('../../assets/images/icons/mountain.png')
 
 // ── Icons (SVG paths from web src/lib/helpers.jsx) ───────────────────────────
 
@@ -17,20 +30,6 @@ function IconStar({ filled, size = 20, emptyColor = '#f4ebe1' }: { filled: boole
     <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : 'none'}>
       <Path
         d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  )
-}
-
-function IconMountain({ size = 15, color }: { size?: number; color: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M3 21h18L12 5 3 21z"
         stroke={color}
         strokeWidth={1.8}
         strokeLinecap="round"
@@ -54,13 +53,6 @@ function scoreLabel(score: number): string {
   if (score >= 70) return SCORE_LABEL.good
   if (score >= 55) return SCORE_LABEL.moderate
   return SCORE_LABEL.low
-}
-
-const FOREST_EMOJI: Record<string, string> = {
-  pinar: '🌲',
-  hayedo: '🌳',
-  robledal: '🌿',
-  encinar: '🫒',
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -115,11 +107,12 @@ export function ZoneCard({ zone, conditions, isFollowed, onToggle, onPress }: Zo
 
           {/* Forest type + elevation */}
           <View style={styles.tagsRow}>
-            <Text style={[styles.tag, { color: mutedMid }]}>
-              {FOREST_EMOJI[zone.forestType] ?? '🌲'} {zone.forestType}
-            </Text>
-            <View style={styles.elevationTag}>
-              <IconMountain size={14} color={mutedMid} />
+            <View style={styles.tagItem}>
+              <Image source={FOREST_TYPE_ICON[zone.forestType] ?? FOREST_TYPE_ICON.pinar} style={styles.tagIcon} />
+              <Text style={[styles.tag, { color: mutedMid }]}>{zone.forestType}</Text>
+            </View>
+            <View style={styles.tagItem}>
+              <Image source={ICON_MOUNTAIN} style={styles.tagIcon} />
               <Text style={[styles.tag, { color: mutedMid }]}>{zone.elevation} m</Text>
             </View>
           </View>
@@ -138,19 +131,28 @@ export function ZoneCard({ zone, conditions, isFollowed, onToggle, onPress }: Zo
               <ScoreBar score={score} />
               <View style={styles.condRow}>
                 {conditions?.tempMin != null && conditions?.tempMax != null && (
-                  <Text style={[styles.condItem, { color: mutedLow }]}>
-                    🌡 {conditions.tempMin}–{conditions.tempMax}°C
-                  </Text>
+                  <View style={styles.condItem}>
+                    <Image source={ICON_TEMP} style={styles.condIcon} />
+                    <Text style={[styles.condText, { color: mutedLow }]}>
+                      {conditions.tempMin}–{conditions.tempMax}°C
+                    </Text>
+                  </View>
                 )}
                 {conditions?.rainfall14d != null && (
-                  <Text style={[styles.condItem, { color: mutedLow }]}>
-                    🌧 {conditions.rainfall14d} mm
-                  </Text>
+                  <View style={styles.condItem}>
+                    <Image source={ICON_RAIN} style={styles.condIcon} />
+                    <Text style={[styles.condText, { color: mutedLow }]}>
+                      {conditions.rainfall14d}mm
+                    </Text>
+                  </View>
                 )}
                 {conditions?.humidity != null && (
-                  <Text style={[styles.condItem, { color: mutedLow }]}>
-                    💧 {conditions.humidity}%
-                  </Text>
+                  <View style={styles.condItem}>
+                    <Image source={ICON_HUMIDITY} style={styles.condIcon} />
+                    <Text style={[styles.condText, { color: mutedLow }]}>
+                      {conditions.humidity}%
+                    </Text>
+                  </View>
                 )}
               </View>
             </>
@@ -200,14 +202,18 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     alignItems: 'center',
   },
-  tag: {
-    fontFamily: Font.sansLight,
-    fontSize: 12,
-  },
-  elevationTag: {
+  tagItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+  },
+  tagIcon: {
+    width: 16,
+    height: 16,
+  },
+  tag: {
+    fontFamily: Font.sansLight,
+    fontSize: 12,
   },
   scoreRow: {
     flexDirection: 'row',
@@ -230,6 +236,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   condItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  condIcon: {
+    width: 16,
+    height: 16,
+  },
+  condText: {
     fontFamily: Font.sansLight,
     fontSize: 12,
   },

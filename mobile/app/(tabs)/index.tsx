@@ -490,7 +490,7 @@ export default function ZonasScreen() {
           </TouchableOpacity>
         </View>
         {error && (
-          <View style={staticStyles.errorBanner}>
+          <View style={[staticStyles.errorBanner, { backgroundColor: Colors.danger + '1A' }]}>
             <Text style={[staticStyles.errorText, { color: Colors.danger }]}>⚠️ {error}</Text>
           </View>
         )}
@@ -798,7 +798,7 @@ const staticStyles = StyleSheet.create({
   badgeText: { fontFamily: Font.sansMedium, fontSize: 12 /* color inline */ },
 
   errorBanner: {
-    backgroundColor: 'rgba(220,38,38,0.1)',
+    // backgroundColor injected inline via Colors.danger + '1A' (10% opacity)
     borderRadius: 8,
     padding: 10,
     marginTop: 8,

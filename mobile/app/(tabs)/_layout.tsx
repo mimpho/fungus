@@ -89,8 +89,8 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets()
   const tabBarHeight = 59 + insets.bottom
 
-  // Active tab colour: golden-cream in dark, coffee-light in light
-  const TAB_ACTIVE   = isDark ? 'rgb(217,206,161)' : colors.accentLight
+  // Active tab colour — from palette (navActiveText is golden-cream in dark, coffee-dark in light)
+  const TAB_ACTIVE   = colors.navActiveText
   const TAB_INACTIVE = isDark ? colors.textPrimary  : colors.textSecondary
 
   return (

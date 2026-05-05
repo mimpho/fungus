@@ -8,7 +8,7 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
-import { Colors } from '../../constants/Colors'
+import { Fixed } from '../../constants/Colors'
 import { Font, useStyles } from '../../lib/theme'
 import { Background } from '../../components/ui/Background'
 import { useAppStore } from '../../store/useAppStore'
@@ -76,10 +76,10 @@ export default function LoginScreen() {
             autoComplete="current-password"
           />
 
-          {error && <Text style={[styles.error, { color: Colors.danger }]}>{error}</Text>}
+          {error && <Text style={[styles.error, { color: Fixed.danger }]}>{error}</Text>}
 
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: Colors.green }, loading && styles.btnDisabled]}
+            style={[styles.btn, { backgroundColor: Fixed.greenF }, loading && styles.btnDisabled]}
             onPress={handleLogin}
             disabled={loading}
           >

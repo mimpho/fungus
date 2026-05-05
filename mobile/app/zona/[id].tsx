@@ -27,6 +27,7 @@ import { ScoreBar } from '../../components/ui/ScoreBar'
 import { fetchZoneWeather } from '../../services/api'
 import { useZones, Zone, ZoneConditions, normaliseConditions } from '../../hooks/useZones'
 import { useAppStore } from '../../store/useAppStore'
+import { StarIcon, CloseIcon } from '../../components/icons/HeroIcons'
 
 // ── Forest hero images ────────────────────────────────────────────────────────
 // Same photos as web ZoneModal (WebP served from public/, PNG bundled for mobile)
@@ -178,10 +179,11 @@ export default function ZonaDetailScreen() {
             style={styles.heroImage}
             resizeMode="cover"
           />
-          {/* Gradient overlay: bottom → transparent (matches web) */}
+          {/* Gradient overlay: top transparent → strong dark at bottom for title legibility */}
+          {/* Uses fixed dark rgba so it works in both light and dark themes */}
           <LinearGradient
-            colors={[colors.backgroundPanel + '00', colors.backgroundPanel]}
-            locations={[0.35, 1]}
+            colors={['transparent', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.65)']}
+            locations={[0.2, 0.55, 1]}
             style={StyleSheet.absoluteFillObject}
           />
 
@@ -191,15 +193,17 @@ export default function ZonaDetailScreen() {
               style={[styles.heroBtn, isFollowed && styles.heroBtnActive]}
               onPress={() => zone && toggleFollow(zone.id)}
             >
-              <Text style={[styles.heroBtnText, isFollowed && styles.heroBtnTextActive]}>
-                {isFollowed ? '⭐' : '☆'}
-              </Text>
+              <StarIcon
+                size={20}
+                filled={isFollowed}
+                color={isFollowed ? '#facc15' : 'rgba(255,255,255,0.80)'}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.heroBtn}
               onPress={() => router.back()}
             >
-              <Text style={styles.heroBtnText}>✕</Text>
+              <CloseIcon size={20} color="rgba(255,255,255,0.80)" />
             </TouchableOpacity>
           </View>
 
@@ -348,16 +352,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.40)',
+    backgroundColor: 'rgba(0,0,0,0.28)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroBtnActive: {
-    backgroundColor: 'rgba(250,204,21,0.25)',
-  },
-  heroBtnText: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.65)',
+    backgroundColor: 'rgba(250,204,21,0.30)',
   },
   heroBtnTextActive: {
     color: '#facc15',
@@ -372,12 +372,12 @@ const styles = StyleSheet.create({
     fontFamily: Font.display,
     fontSize: 28,
     lineHeight: 34,
-    color: '#f4ebe1',  // always cream — on dark photo bg in both themes
+    color: '#f4ebe1',  // always cream — on dark gradient bg in both themes
     letterSpacing: 0.2,
     marginBottom: 6,
-    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowRadius: 8,
   },
   heroMeta: {
     flexDirection: 'row',
@@ -406,6 +406,9 @@ const styles = StyleSheet.create({
   heroMetaText: {
     fontFamily: Font.sans,
     fontSize: 12,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 
   // ── Content ───────────────────────────────────────────────────────────────

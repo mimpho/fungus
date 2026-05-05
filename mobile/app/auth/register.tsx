@@ -8,7 +8,7 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
-import { Colors } from '../../constants/Colors'
+import { Fixed } from '../../constants/Colors'
 import { Font, useStyles } from '../../lib/theme'
 import { useAppStore } from '../../store/useAppStore'
 import { register, getMe, saveToken } from '../../services/api'
@@ -73,10 +73,10 @@ export default function RegisterScreen() {
           autoComplete="new-password"
         />
 
-        {error && <Text style={[styles.error, { color: Colors.danger }]}>{error}</Text>}
+        {error && <Text style={[styles.error, { color: Fixed.danger }]}>{error}</Text>}
 
         <TouchableOpacity
-          style={[styles.btn, { backgroundColor: Colors.green }, loading && styles.btnDisabled]}
+          style={[styles.btn, { backgroundColor: Fixed.greenF }, loading && styles.btnDisabled]}
           onPress={handleRegister}
           disabled={loading}
         >

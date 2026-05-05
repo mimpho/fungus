@@ -55,7 +55,7 @@ export default function PerfilScreen() {
               <Text
                 style={[
                   styles.pillText,
-                  { color: active ? '#ffffff' : colors.textSecondary },
+                  { color: active ? colors.textPrimary : colors.textSecondary },
                 ]}
               >
                 {opt.label}
@@ -83,7 +83,7 @@ export default function PerfilScreen() {
             <Text
               style={[
                 styles.langText,
-                { color: lang === l ? '#ffffff' : colors.textSecondary },
+                { color: lang === l ? colors.textPrimary : colors.textSecondary },
               ]}
             >
               {l.toUpperCase()}
@@ -105,7 +105,7 @@ export default function PerfilScreen() {
             style={[styles.loginBtn, { backgroundColor: colors.bar }]}
             onPress={() => router.push('/auth/login')}
           >
-            <Text style={[styles.loginBtnText, { color: '#f4ebe1' }]}>{t.login}</Text>
+            <Text style={[styles.loginBtnText, { color: colors.textPrimary }]}>{t.login}</Text>
           </TouchableOpacity>
         </>
       )}
