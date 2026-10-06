@@ -65,7 +65,7 @@ NNN_short_description.sql
 | `036_confusions_i18n_neoboletus.sql` | i18n confusion texts for Neoboletus | ✅ Run 2026-03 |
 | `037_confusions_i18n_amanita_gemmata.sql` | i18n confusion texts for Amanita gemmata | ✅ Run 2026-03 |
 | `038_morphology_i18n.sql` | i18n morphology fields (cap, stem, flesh) for all species | ✅ Run 2026-03 |
-| `039_zones_catalonia.sql` | 14 new zones in Catalonia (zone-201…214); zone-030 moved towards Vallter and its history cleared | ⏳ Pending |
+| `039_zones_catalonia.sql` | 14 new zones in Catalonia (zone-201…214); zone-030 moved towards Vallter and its history cleared | ✅ Run 2026-10-07 |
 | `audit_cond_fruct*.sql` | Read-only diagnostic queries — not migrations, do not run | 🔍 Audit only |
 
 ## Adding a new migration
