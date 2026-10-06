@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     # Ingesta
     ingest_cron_hour: int = 5
     ingest_max_concurrency: int = 6
+    # Days re-fetched on every daily run (ending yesterday) to fill missed days
+    ingest_lookback_days: int = 7
 
     # Versión de la API
     api_version: str = "v1"
