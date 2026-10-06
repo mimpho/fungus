@@ -5,6 +5,25 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 ---
 
 
+## 🗂 No date — DB: índices faltantes (baja prioridad)
+
+Identificados via análisis de `pg_stat_statements` + schema. A aplicar con `apply_migration` cuando haya una sesión de mantenimiento o antes de v8.2 (catálogo móvil).
+
+```sql
+-- Catálogo de especies ordenado por familia/nombre
+CREATE INDEX idx_species_family_name ON public.species (family, scientific_name);
+-- Búsquedas JSONB en extra_data (confusiones, condiciones ecológicas)
+CREATE INDEX idx_species_extra_data_gin ON public.species USING GIN (extra_data);
+-- Filtros de zonas por tipo de bosque
+CREATE INDEX idx_zones_forest_type_active ON public.zones (forest_type, active);
+-- FK zona en follows de usuario (sin índice de soporte)
+CREATE INDEX idx_user_followed_zones_zone_id ON public.user_followed_zones (zone_id);
+```
+
+Impacto real bajo con el volumen actual (202 especies, 200 zonas). El GIN sobre `extra_data` es el más valioso a medio plazo.
+
+---
+
 ## 🗂 No date — Hardening: move generator API keys to backend
 
 Technical debt documented in `memory/decisions.md` (section "Image generator — Monorepo vs Microservice").
@@ -34,6 +53,7 @@ Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `me
 
 **Pendiente (en orden):**
 - [x] `feat/v8-1-theming`: theming system — semantic tokens, light theme fixes, web-parity UI (zones/detail/auth/filter sheet) — ✅ merged to epic
+- [ ] `chore/v8-1-shared-scoring`: extraer `shared/scoring.ts` + `shared/constants.ts` (solo scoring + constants — riesgo "Alto" de divergencia, ver sección v8.5 más abajo). Bloqueante antes de `v8-2-species` para que el catálogo no introduzca una tercera copia de las constantes de puntuación.
 - [ ] `feat/v8-2-species`: catálogo + detalle de especie
 - [ ] `feat/v8-3-map`: mapa MapLibre con markers coloreados por score
 - [ ] `feat/v8-4-auth`: login/registro funcional + perfil completo (favoritos, seguidos)
@@ -53,6 +73,8 @@ iOS fuera de roadmap (Apple Developer $99/año); Google Play en v8.1.
 ---
 
 ## 🗂 v8.5 — `shared/` design tokens & business logic (web + mobile)
+
+**Nota (2026-06-18):** la porción de mayor riesgo (scoring + constants) se adelanta como `chore/v8-1-shared-scoring` antes de `v8-2-species` — ver epic Android arriba. Esta sección v8.5 queda acotada a colores, tipos e i18n, que sí requieren el refactor previo del web (`chore/shared-design-tokens`) y pueden esperar a después de v9.0.
 
 Actualmente web y mobile duplican lógica que debería tener una sola fuente de verdad:
 
@@ -74,6 +96,44 @@ Actualmente web y mobile duplican lógica que debería tener una sola fuente de 
 **Prerequisito:** el web necesita refactorizarse para importar desde `shared/` en vez de definir colores en CSS directamente. Hacerlo en un `chore/shared-design-tokens` antes de v9.0.
 
 **Prioridad inmediata:** scoring y constants son los más críticos — cualquier cambio en los pesos de la fórmula debe propagarse a ambos fronts.
+
+---
+
+## 🗂 Backlog — Refactor: entidades de usuario (Rich Domain Model)
+
+Diagnóstico completo en sesión Cowork 2026-05-17. Las tres entidades del módulo de usuarios (`User`, `UserFollowedZone`, `UserFavSpecies`) son puramente anémicas. `UserFollowedZone` y `UserFavSpecies` son tablas de asociación sin semántica propia — correctas tal como están. `User` es el foco del refactor.
+
+### Comportamiento a migrar a `User`
+
+**① `is_verification_token_valid()` + `consume_verification_token()` + `set_verification_token()`**
+Hoy la lógica de expiración del token está repartida entre `services/auth.py::create_verification_token` (genera la expiración) y `verify_email_token` (la evalúa). Si cambia la política de expiración hay que actualizar dos puntos sin cohesión entre sí. Prioridad: **alta**.
+
+**② `is_premium() -> bool`**
+Hoy no existe. Cualquier código que consulte el plan lee `user.plan == "premium"` sin verificar `plan_expires_at`. Un método único garantiza que nunca se consulta el campo sin comprobar la fecha. Crítico antes de activar la monetización. Prioridad: **alta**.
+
+**③ `is_admin() -> bool`**
+`dependencies.py` y cualquier futuro guard comparan `current_user.role == "admin"` directamente contra el string. Un método encapsula el invariante y evita el string literal disperso. Prioridad: **media**.
+
+**④ `link_google_account(google_id: str)`**
+La transición `local → google` ocurre en `get_or_create_google_user`. Esa decisión ("vincular cuenta existente") es un comportamiento de `User`, no del servicio. Prioridad: **baja**.
+
+**⑤ `full_name -> str | None` (property)**
+Cada consumidor concatena `first_name + last_name` manualmente. Prioridad: **baja**.
+
+### Scope del cambio
+
+- Modificar solo `models/user.py` — añadir los métodos de instancia.
+- Actualizar `services/auth.py` para delegar las decisiones a los métodos nuevos (las operaciones de persistencia quedan en el servicio).
+- Actualizar `dependencies.py` para usar `user.is_admin()`.
+- No requiere migración de base de datos.
+- Tests: cubrir `is_premium()` con casos de borde (plan expirado, sin fecha, plan free).
+
+### Orden de ejecución sugerido
+
+1. `is_verification_token_valid` + `consume_verification_token` + `set_verification_token` — mayor impacto en correctitud actual.
+2. `is_premium` — bloqueante para monetización.
+3. `is_admin` + `full_name` — limpieza, cualquier sesión de mantenimiento.
+4. `link_google_account` — al tocar el flujo OAuth en el futuro.
 
 ---
 
