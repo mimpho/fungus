@@ -17,6 +17,13 @@ from app.connectors.base import DailyWeatherData, ProviderUnavailable, WeatherCo
 log = logging.getLogger(__name__)
 
 BASE_URL = "https://api.open-meteo.com/v1/forecast"
+# Historical reanalysis (ERA5). Has a ~5-day publication lag, so only days older
+# than ARCHIVE_CUTOFF_DAYS are requested from it; recent days use BASE_URL.
+ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+ARCHIVE_CUTOFF_DAYS = 8
+
+# HTTP statuses worth retrying (rate limit and transient server errors)
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
 # Open-Meteo variables we need
 DAILY_VARS = (
@@ -24,6 +31,9 @@ DAILY_VARS = (
     "precipitation_sum,windspeed_10m_max"
 )
 HOURLY_VARS = "soil_temperature_0cm,relativehumidity_2m"
+# The archive API has no surface (0 cm) soil temperature; 0–7 cm is the closest layer.
+ARCHIVE_HOURLY_VARS = "soil_temperature_0_to_7cm,relativehumidity_2m"
+SOIL_KEYS = ("soil_temperature_0cm", "soil_temperature_0_to_7cm")
 
 
 class OpenMeteoConnector(WeatherConnector):
@@ -42,8 +52,22 @@ class OpenMeteoConnector(WeatherConnector):
         return results[0]
 
     async def fetch_range(self, start: date, end: date) -> list[DailyWeatherData]:
-        raw = await self._request(start, end)
-        return self._parse(raw, start, end)
+        """
+        Fetch daily data for [start, end]. Days older than ARCHIVE_CUTOFF_DAYS come
+        from the archive API (years of history); recent days from the forecast API.
+        A range spanning both is split into two requests.
+        """
+        cutoff = date.today() - timedelta(days=ARCHIVE_CUTOFF_DAYS)
+        results: list[DailyWeatherData] = []
+        if start <= cutoff:
+            arch_end = min(end, cutoff)
+            raw = await self._request(start, arch_end, archive=True)
+            results.extend(self._parse(raw, start, arch_end))
+        if end > cutoff:
+            fc_start = max(start, cutoff + timedelta(days=1))
+            raw = await self._request(fc_start, end, archive=False)
+            results.extend(self._parse(raw, fc_start, end))
+        return results
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
@@ -53,22 +77,29 @@ class OpenMeteoConnector(WeatherConnector):
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True,
     )
-    async def _request(self, start: date, end: date) -> dict:
+    async def _request(self, start: date, end: date, archive: bool = False) -> dict:
         params = {
             "latitude": self.lat,
             "longitude": self.lon,
             "daily": DAILY_VARS,
-            "hourly": HOURLY_VARS,
+            "hourly": ARCHIVE_HOURLY_VARS if archive else HOURLY_VARS,
             "start_date": start.isoformat(),
             "end_date": end.isoformat(),
             "timezone": "Europe/Madrid",
         }
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.get(BASE_URL, params=params)
+                resp = await client.get(ARCHIVE_URL if archive else BASE_URL, params=params)
                 resp.raise_for_status()
                 return resp.json()
         except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in RETRYABLE_STATUS:
+                # Re-raise as HTTPError so tenacity retries it
+                log.warning(
+                    "Open-Meteo HTTP %s for %s — retrying",
+                    exc.response.status_code, self.zone_id,
+                )
+                raise
             raise ProviderUnavailable(
                 f"Open-Meteo HTTP {exc.response.status_code} for zone {self.zone_id}"
             ) from exc
@@ -90,7 +121,7 @@ class OpenMeteoConnector(WeatherConnector):
 
         # Hourly data: aggregate to daily averages
         hourly_times = hourly.get("time", [])
-        hourly_soil = hourly.get("soil_temperature_0cm", [])
+        hourly_soil = next((hourly[k] for k in SOIL_KEYS if k in hourly), [])
         hourly_humidity = hourly.get("relativehumidity_2m", [])
 
         # Build per-day dictionaries from hourly data
