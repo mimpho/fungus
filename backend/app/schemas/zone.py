@@ -11,6 +11,7 @@ class ZoneWeather(BaseModel):
     humidity: float | None = None     # current relative humidity (%)
     rainfall14d: float | None = None  # accumulated precipitation, last 14 days (mm)
     wind: float | None = None         # current wind speed (km/h)
+    soil_temp: float | None = None    # soil temperature at 0 cm, current hour (°C)
     collected_at: datetime | None = None  # when Open-Meteo was actually queried
 
 

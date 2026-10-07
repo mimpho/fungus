@@ -20,6 +20,7 @@ async def fetch_weather_for_zone(lat: float, lon: float) -> dict | None:
       - humidity: current relative humidity (%)
       - rainfall14d: accumulated precipitation over past 14 days (mm)
       - wind: current wind speed (km/h)
+      - soil_temp: soil temperature at 0 cm for the current hour (°C)
       - dry_days: days with <1mm precipitation in the last 7 days
       - collected_at: UTC datetime of this API call
     """
@@ -44,6 +45,9 @@ async def fetch_weather_for_zone(lat: float, lon: float) -> dict | None:
         data = res.json()
         current = data.get("current", {})
         daily = data.get("daily", {})
+        soil_temp = _current_hour_value(
+            data.get("hourly", {}), "soil_temperature_0cm", current.get("time")
+        )
 
         humidity = current.get("relative_humidity_2m") or 75
         wind = current.get("wind_speed_10m") or 10
@@ -66,9 +70,32 @@ async def fetch_weather_for_zone(lat: float, lon: float) -> dict | None:
             "humidity": round(humidity),
             "wind": round(wind),
             "rainfall14d": rainfall_14d,
+            "soil_temp": soil_temp,
             "dry_days": dry_days,
             "collected_at": datetime.now(UTC),
         }
+
+
+def _current_hour_value(hourly: dict, key: str, current_time: str | None) -> float | None:
+    """
+    Value of an hourly series at the current hour.
+
+    `current_time` is Open-Meteo's `current.time` ("YYYY-MM-DDTHH:MM", local
+    time because the request sets `timezone`). Falls back to the latest
+    non-null value at or before that hour, so a missing hour never blanks it.
+    """
+    times = hourly.get("time") or []
+    values = hourly.get(key) or []
+    if not times or not values:
+        return None
+    hour = (current_time or "")[:13]  # "YYYY-MM-DDTHH"
+    best = None
+    for t, v in zip(times, values):
+        if hour and t[:13] > hour:
+            break
+        if v is not None:
+            best = v
+    return round(best, 1) if best is not None else None
 
 
 async def store_weather_cache(
@@ -97,6 +124,7 @@ async def store_weather_cache(
         existing.humidity = data.get("humidity")
         existing.rainfall14d = data.get("rainfall14d")
         existing.wind = data.get("wind")
+        existing.soil_temp = data.get("soil_temp")
         existing.collected_at = collected_at
         existing.valid_until = valid_until
         await db.commit()
@@ -111,6 +139,7 @@ async def store_weather_cache(
             humidity=data.get("humidity"),
             rainfall14d=data.get("rainfall14d"),
             wind=data.get("wind"),
+            soil_temp=data.get("soil_temp"),
             collected_at=collected_at,
             valid_until=valid_until,
         )
@@ -150,6 +179,7 @@ async def get_latest_weather(
         "humidity": cache.humidity,
         "rainfall14d": cache.rainfall14d,
         "wind": cache.wind,
+        "soil_temp": cache.soil_temp,
         "collected_at": cache.collected_at.isoformat() if cache.collected_at else None,
         "valid_until": cache.valid_until.isoformat() if cache.valid_until else None,
     }
