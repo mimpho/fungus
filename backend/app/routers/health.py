@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models.scores_cache import ScoresCache
 from app.models.zone import Zone
 from app.schemas.health import HealthResponse
+from app.services.ingest import get_stale_zones
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -29,7 +30,8 @@ async def health_head() -> None:
 @router.get("/health", response_model=HealthResponse, tags=["System"])
 async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
     """
-    System status: database reachability, last ingest timestamp, active zone count.
+    System status: database reachability, last ingest timestamp, active zone count
+    and `stale_zones` (zones without climate data in the last `stale_zone_days`).
     Used by Render/UptimeRobot keep-alive pings and the frontend status indicator.
     """
     db_ok = True
@@ -41,6 +43,7 @@ async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
 
     active_zones = 0
     last_ingest: datetime | None = None
+    stale_zones: list[str] = []
 
     if db_ok:
         zone_count = await db.execute(
@@ -52,6 +55,8 @@ async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
             select(func.max(ScoresCache.calculated_at))
         )
         last_ingest = latest_cache.scalar()
+
+        stale_zones = [z["zone_id"] for z in await get_stale_zones(db)]
 
     return HealthResponse(
         status="ok" if db_ok else "degraded",
@@ -65,4 +70,5 @@ async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
             "meteocat": settings.has_meteocat,
         },
         db_reachable=db_ok,
+        stale_zones=stale_zones,
     )
