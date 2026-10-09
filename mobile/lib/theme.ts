@@ -138,13 +138,13 @@ export function makeTypography(c: Palette) {
 export function makeGlass(c: Palette) {
   return {
     panelShadow: {
-      borderRadius: 12,
+      borderRadius: 16,
       backgroundColor: c.background,
       ...(Platform.OS !== 'android' ? {
-        shadowColor: '#0a0f08',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.35,
-        shadowRadius: 8,
+        shadowColor: c.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.18,
+        shadowRadius: 10,
       } : {
         elevation: 3,
       }),
@@ -152,7 +152,7 @@ export function makeGlass(c: Palette) {
 
     panel: {
       backgroundColor: c.surface,
-      borderRadius: 12,
+      borderRadius: 16,
     } as ViewStyle,
 
     // Warm glass — highlighted / selected items
