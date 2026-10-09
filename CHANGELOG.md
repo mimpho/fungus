@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — Soil temperature in the zone card (2026-10-07)
+
+- **Alembic `013`**: `weather_cache.soil_temp` (float, nullable). Applied on Render startup.
+- **`backend/app/services/weather_cache.py`**: stores the current hour's `soil_temperature_0cm` (falls back to the latest non-null value before now); returned by `/weather/zones/{id}` and in `GET /zones` (`ZoneWeather.soil_temp`).
+- **`src/hooks/useWeatherConditions.js`**, **`src/services/apiService.js`**: map `soil_temp` instead of the hardcoded `null` ("T. Sòl" showed "–" since the frontend moved to the backend cache). Existing cache rows fill in as they expire (TTL 3 h).
+
 ### Added — v7.1 Email verification on registration
 
 - **`backend/migrations/versions/011_email_verification.py`**: adds `email_verified` (boolean, default `false`), `email_verification_token` (text, nullable), and `email_verification_expires_at` (timestamptz, nullable) to `users`. Partial unique index on the token column.
