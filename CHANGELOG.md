@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Stale-zone alerts for the daily ingest (2026-10-07)
+
+- **`backend/app/services/ingest.py`**: `get_stale_zones()` — active zones whose latest `climate_history` day is older than `STALE_ZONE_DAYS` (default 2) or with no data (correlated `max()` per zone on the `(zone_id, date)` index, ~10 ms).
+- **`/health`**: new `stale_zones` list (empty when all is well), for UptimeRobot keyword monitoring.
+- **Daily ingest**: if any zone is stale, emails `ALERT_EMAIL` via Resend with the zones, last data date, the run's error and the backfill command to re-run; zones stale beyond the 7-day lookback are flagged as losing days.
+- **New env vars**: `ALERT_EMAIL` (empty = no email), `STALE_ZONE_DAYS`.
+
 ### Added — v7.1 Email verification on registration
 
 - **`backend/migrations/versions/011_email_verification.py`**: adds `email_verified` (boolean, default `false`), `email_verification_token` (text, nullable), and `email_verification_expires_at` (timestamptz, nullable) to `users`. Partial unique index on the token column.
