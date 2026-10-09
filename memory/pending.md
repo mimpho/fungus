@@ -4,6 +4,21 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
+## 🔴 Priority — Scoring v2 (Outbreak Index) — 2026-10-08
+
+Season priority (decided 2026-10-07): the Observatory and the zone-card score, both fed by the same calculation. v1 rewards rain on the day it falls and adds a fixed 25 points for October: on 6 Oct it gives 75 for La Molina and 76 for Setcases, while in the field they have been very poor for a month (v2.1: 7 and 16).
+
+Full spec, formula, plan and test cases: Observatory design document, section "Scoring v2: especificación para implementar". Reference prototype: the `v2Series` function in the Observatory canvas (Python must produce the same numbers).
+
+- [ ] `feat/scoring-v2`: new `backend/app/services/scoring_v2.py` (pure functions): rain activation with a two-speed fruiting curve (cold zone: peak on day 21; zone already active: peak on day 12, fades out by day 32), discounting 2 mm/day; soil water balance with two 60 mm reservoirs (sunny and shady slope, the latter drying at half the rate); 20-day air temperature + 7-day soil temperature with a 13.5 °C optimum; altitude-based season as a multiplier; drying from dry air and wind; heat (max > 25 °C); frost penalty fading over ~5 days; temperature-drop bonus (experimental). Scientific basis: document "Micelio y fructificación: base para el scoring". Also returns "rain on the way" (date it would start to show and its peak).
+- [ ] Ingest: request 100 days of `climate_history` and store v2 in `scores_cache.score_detail.v2` with `model_version`, no migration. `score_oi` stays v1 until calibrated.
+- [ ] Backfill v2 from 2024-10-01 (`climate_history` only, no Open-Meteo calls) + tests with the document's cases (v2.1 on 2026-10-06: Montseny 49, La Molina 7, Setcases 16, Costabona 20).
+- [ ] API + Observatory: expose v2 and its breakdown; the thermometer, the Momento tab and the species widget use v2 with v1 as reference. The zone card stays on v1.
+- [ ] Calibrate with a field-trip log (zone, date, what was found) and revisit the thermometer cut-offs (55/70/85): with v2 an ordinary day scores 30–40.
+- [ ] Catalogue: add the soil-temperature optimum per species (today only air ranges exist) and clarify what `cycle_days` measures (7–14 days, far below the ~21 days of real fruiting).
+- [ ] When `score_oi` switches to v2: remove the scoring copy in the app (see `chore/v8-1-shared-scoring`) so only one formula is maintained.
+
+---
 
 ## 🗂 No date — DB: índices faltantes (baja prioridad)
 
@@ -48,11 +63,8 @@ Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `me
 - [x] Design system: gradient background, Cormorant Garamond + DM Sans, `lib/theme.ts` (Typography, Glass, Font, Gradient), `components/ui/Background.tsx`
 - [x] `feat/v8-0-zones`: zones list (search, filter, sort, follow), zone detail modal, full UI QA pass — ✅ merged to epic
 
-**En progreso (`feat/v8-1-theming` — design improvements, branch kept open):**
-- [ ] Ongoing web-parity design improvements — filter chips, search bar, tab bar
-
 **Pendiente (en orden):**
-- [x] `feat/v8-1-theming`: theming system — semantic tokens, light theme fixes, web-parity UI (zones/detail/auth/filter sheet) — ✅ merged to epic
+- [x] `feat/v8-1-theming`: theming system — semantic tokens, light theme fixes, web-parity UI (zones/detail/auth/filter sheet) — ✅ merged to epic (#108, #110); final visual parity pass (icons, hero, glass) in the closing PR
 - [ ] `chore/v8-1-shared-scoring`: extraer `shared/scoring.ts` + `shared/constants.ts` (solo scoring + constants — riesgo "Alto" de divergencia, ver sección v8.5 más abajo). Bloqueante antes de `v8-2-species` para que el catálogo no introduzca una tercera copia de las constantes de puntuación.
 - [ ] `feat/v8-2-species`: catálogo + detalle de especie
 - [ ] `feat/v8-3-map`: mapa MapLibre con markers coloreados por score

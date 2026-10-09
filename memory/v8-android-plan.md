@@ -20,8 +20,8 @@ Lanzar una app nativa Android para Fungus que permita al usuario consultar las c
 | Nav restructure (4 tabs) + MushroomIcon | `feat/v8-0-nav-restructure` | ✅ Mergeado en epic |
 | Design system (gradiente, tipografías, glass) | `feat/v8-0-design-system` | ✅ Mergeado en epic (#104) |
 | **Zonas (lista + detalle + UI QA)** | `feat/v8-0-zones` | ✅ Mergeado en epic (2026-04-20) |
-| **Light mode / semantic colour tokens** | `feat/v8-1-theming` | 🟡 Próximo — prerequisito para species y map |
-| Especies (lista + detalle) | `feat/v8-2-species` | ⬜ Bloqueado por theming |
+| **Light mode / semantic colour tokens** | `feat/v8-1-theming` | ✅ Mergeado en epic (#108, #110 + pase de paridad visual) |
+| Especies (lista + detalle) | `feat/v8-2-species` | ⬜ Bloqueado por `chore/v8-1-shared-scoring` |
 | Mapa nativo (MapLibre) | `feat/v8-3-map` | ⬜ Pendiente |
 | Auth (login + registro + perfil) | `feat/v8-4-auth` | ⬜ Pendiente |
 | Polish + icono + splash | `feat/v8-5-polish` | ⬜ Pendiente |

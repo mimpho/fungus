@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — feat/v8-1-theming visual parity pass (2026-05-05)
+
+- **`mobile/components/ui/ZoneCard.tsx`**: emoji/SVG icons replaced with the web PNG icon set (forest type, meteo); consistent `condIcon`/`tagIcon` sizing.
+- **`mobile/app/zona/[id].tsx`**: hero overlay is a fixed dark rgba gradient (theme-agnostic), stronger text shadow; hero buttons use new `components/icons/HeroIcons.tsx` (`StarIcon`/`CloseIcon`, mirroring web `IC.star`/`IC.close`).
+- **`mobile/components/ui/Background.tsx`**: web target uses solid `colors.background` (gradient not viable with React Navigation inline styles); native unchanged.
+- **`mobile/lib/theme.ts`**: `makeGlass` panel radius 12→16, shadow from `c.shadow` token, softer opacity (0.35→0.18).
+- **`(tabs)/_layout.tsx`**, **`auth/login.tsx`**, **`auth/register.tsx`**, **`(tabs)/perfil.tsx`**: remaining hardcoded colours moved to tokens (`navActiveText`, `Fixed.*`, `textPrimary`).
+- **Docs**: README mobile quick start (port, Android Studio requirement); v8.5 `shared/` package added to the roadmap; `memory/pending.md` gains the scoring v2 plan, the `chore/v8-1-shared-scoring` prerequisite, DB index and `User` rich-model backlog items.
+
 ### Added — feat/v8-1-theming 2nd pass: mobile theming + web-parity UI (2026-04-26)
 
 - **`mobile/assets/images/icons/`**: 11 PNG icons copied from `public/assets/` — temperature, soil-moisture, accumulated-precipitation, humidity, wind, sunny, mountain, forest-type-{pinar,hayedo,robledal,encinar}.
