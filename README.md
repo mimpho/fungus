@@ -45,7 +45,23 @@ python -m uvicorn app.main:app --reload
 # http://localhost:8000 · check: curl http://localhost:8000/api/v1/health
 ```
 
-Requires `backend/.env` with `DATABASE_URL` pointing to a PostgreSQL + PostGIS instance (see `backend/.env.example`).
+Requires `backend/.env` (copy `backend/.env.example`). Minimum to run against the shared Supabase database:
+
+```bash
+# backend/.env
+# Supabase → Connect → Session pooler (port 5432). Prefix must be postgresql+asyncpg://
+DATABASE_URL=postgresql+asyncpg://postgres.<project-ref>:<db-password>@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+
+# Same values as production (Render env vars) so existing sessions and Google login work locally
+JWT_SECRET_KEY=<same-as-production>
+GOOGLE_CLIENT_ID=<google-oauth-client-id>
+
+# Optional — only needed to send verification emails
+RESEND_API_KEY=
+FRONTEND_URL=http://localhost:5173
+```
+
+For a fully local database instead, run `docker compose up -d` in `backend/` and keep the default `DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/fungus`.
 
 ### Mobile app — Android (local development)
 
