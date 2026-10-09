@@ -31,19 +31,23 @@ log = logging.getLogger(__name__)
 
 async def run_daily_ingest(db: AsyncSession) -> dict:
     """
-    Fetch yesterday's data for all active zones and refresh the scores cache.
+    Fetch the last `ingest_lookback_days` days (ending yesterday) for all active
+    zones and refresh the scores cache. Re-fetching a few days back fills any day
+    a previous run missed; upserts make it idempotent.
     Returns a summary dict for the /health endpoint.
     """
     yesterday = date.today() - timedelta(days=1)
-    log.info("Starting daily ingest for %s", yesterday)
+    start = yesterday - timedelta(days=max(settings.ingest_lookback_days, 1) - 1)
+    log.info("Starting daily ingest for %s → %s", start, yesterday)
 
     zones = await _get_active_zones(db)
-    results = await _ingest_date_range(db, zones, start=yesterday, end=yesterday)
+    results = await _ingest_date_range(db, zones, start=start, end=yesterday)
 
     await _refresh_scores_cache(db, zones)
 
     summary = {
         "date": yesterday.isoformat(),
+        "from": start.isoformat(),
         "zones_processed": len(zones),
         "rows_upserted": results["upserted"],
         "errors": results["errors"],
@@ -88,29 +92,52 @@ async def _ingest_date_range(
     start: date,
     end: date,
 ) -> dict:
+    """
+    Fetch from the provider concurrently, then write to the DB sequentially.
+
+    An AsyncSession does not allow concurrent operations, so the HTTP calls run in
+    parallel (bounded by the semaphore) but every DB write goes through one task at
+    a time. Each zone is committed on its own, so one failing zone never rolls back
+    the others.
+    """
     sem = asyncio.Semaphore(settings.ingest_max_concurrency)
+    db_lock = asyncio.Lock()
     upserted = 0
     errors = []
 
     async def ingest_zone(zone: Zone) -> None:
         nonlocal upserted
-        async with sem:
-            try:
+        try:
+            async with sem:
                 connector = _get_connector(zone)
                 rows = await connector.fetch_range(start, end)
+        except ProviderUnavailable as exc:
+            log.error("Zone %s: provider unavailable — %s", zone.id, exc)
+            errors.append({"zone_id": zone.id, "error": str(exc)})
+            return
+        except Exception as exc:
+            log.exception("Zone %s: fetch failed — %s", zone.id, exc)
+            errors.append({"zone_id": zone.id, "error": str(exc)})
+            return
+
+        async with db_lock:
+            try:
                 for row in rows:
                     await _upsert_climate_row(db, row)
-                    upserted += 1
+                await db.commit()
+                upserted += len(rows)
                 log.debug("Zone %s: %d rows ingested (%s→%s)", zone.id, len(rows), start, end)
-            except ProviderUnavailable as exc:
-                log.error("Zone %s: provider unavailable — %s", zone.id, exc)
-                errors.append({"zone_id": zone.id, "error": str(exc)})
             except Exception as exc:
-                log.exception("Zone %s: unexpected error — %s", zone.id, exc)
+                await db.rollback()
+                log.exception("Zone %s: DB write failed — %s", zone.id, exc)
                 errors.append({"zone_id": zone.id, "error": str(exc)})
 
     await asyncio.gather(*[ingest_zone(z) for z in zones])
-    await db.commit()
+    if errors:
+        log.warning(
+            "Ingest %s→%s: %d/%d zones failed: %s",
+            start, end, len(errors), len(zones), [e["zone_id"] for e in errors],
+        )
     return {"upserted": upserted, "errors": errors}
 
 
