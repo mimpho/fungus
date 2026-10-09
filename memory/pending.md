@@ -20,6 +20,24 @@ Full spec, formula, plan and test cases: Observatory design document, section "S
 
 ---
 
+## 🔴 Fix — Backend: no auto-migrations outside production — 2026-10-10
+
+`lifespan` runs `alembic upgrade head` on every startup. Local `.env` points to the shared Supabase (production) DB, so any branch started locally applies its migrations to production before its code is deployed (e.g. `fix/soil-temp` would apply 013). It also blocks local startup when the DB is ahead of the branch: on `epic/v8-android` (head 011) startup aborts with "Can't locate revision '012'" and the API never answers.
+
+- [ ] Gate `_run_db_migrations()` behind a setting (e.g. `RUN_MIGRATIONS_ON_STARTUP`, default `false`, set `true` only in Render); log a warning instead of aborting when the DB revision is unknown locally.
+- [ ] Document in README: migrations are applied by Render on deploy; run `alembic upgrade head` manually only on purpose.
+
+---
+
+## 🔴 Fix — Zone card weather shows "–" in production — 2026-10-10
+
+`/weather/zones/{id}` returns 502 in production: `weather_cache` has no valid rows (last write 2026-10-08 00:36 UTC; 36 of 214 zones never cached) because the daily ingest only refreshes `scores_cache`. On cache miss the API calls Open-Meteo live from Render, which fails (Open-Meteo answers fine from a home IP — likely per-IP rate limiting on Render's shared egress; to confirm in Render logs). Score v1 and dry days still show (they come from `scores_cache`).
+
+- [ ] `fix/weather-cache` (on `main`): daily ingest also refreshes `weather_cache` for every active zone.
+- [ ] `/weather/zones/{id}`: on Open-Meteo failure serve the latest cache row flagged as stale instead of 502.
+
+---
+
 ## 🗂 No date — DB: índices faltantes (baja prioridad)
 
 Identificados via análisis de `pg_stat_statements` + schema. A aplicar con `apply_migration` cuando haya una sesión de mantenimiento o antes de v8.2 (catálogo móvil).
