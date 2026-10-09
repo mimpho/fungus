@@ -23,15 +23,29 @@ npm run dev
 # http://localhost:5173
 ```
 
+By default the web app calls the production API. To use the local backend, create `.env.local` in the repo root with `VITE_API_BASE=http://localhost:8000/api/v1` — and start the backend (below), otherwise every API call (zones, scores, login) fails.
+
 ### Backend (local development)
+
+First time only — create the virtualenv (Python ≥ 3.12) and install dependencies:
 
 ```bash
 cd backend
-python -m uvicorn app.main:app --reload
-# http://localhost:8000
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 ```
 
-Requires `.env` with `DATABASE_URL` pointing to a PostgreSQL + PostGIS instance.
+Every session:
+
+```bash
+cd backend
+source .venv/bin/activate   # without this, `python` / uvicorn are not found
+python -m uvicorn app.main:app --reload
+# http://localhost:8000 · check: curl http://localhost:8000/api/v1/health
+```
+
+Requires `backend/.env` with `DATABASE_URL` pointing to a PostgreSQL + PostGIS instance (see `backend/.env.example`).
 
 ### Mobile app — Android (local development)
 
