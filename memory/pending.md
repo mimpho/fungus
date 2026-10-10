@@ -17,6 +17,8 @@ Product re-prioritised on 2026-10-10: the web Observatory comes first and the An
 
 Project-wide fixes `fix/migrations-on-startup` and `fix/weather-cache` are merged into `main` and the epic (#121, #122, #123).
 
+**Next, before merging `feat/observatory-ingest-v2` (data quality, found 2026-10-10):** the 200 original zones have approximate coordinates (from the early mock data): their stored altitude differs from the terrain at their point by a median of 229 m (125 zones > 150 m, 36 > 500 m; e.g. zone-066 Serra da Grova lands in the sea, zone-161 Sierra Tejeda 1,500 m stored vs 306 m). The 14 zones added in Oct 2026 match (median 2 m). Climate is fetched at those coordinates, so v1, v2 and the Observatory are affected. Plan: script that geocodes each zone name (Nominatim), picks a point in an OSM forest of the zone's type inside it, computes its altitude and lists old vs proposed point with confidence and map link; doubtful ones checked by web search; Marcos spot-checks. Then: update coordinates, re-run the climate backfill for moved zones, elevation bands (`zone_elevation_ranges --apply`, also re-running the 105 zones computed without forest mask) and scores. Dry run of 2026-10-10 in `rangos_zonas.txt` (not committed).
+
 Detail of the work:
 
 - [ ] Scoring v2 in the backend (next section).
