@@ -38,6 +38,16 @@ Full spec, formula, plan and test cases: Observatory design document, section "S
 
 ---
 
+## 🔴 Fix — `scripts/generate-css-vars.ts` is out of sync with the CSS split — 2026-10-10
+
+The `prebuild` hook was removed from `package.json` in the merge of `epic/v8-android` into main: running the generator is destructive. Vercel now builds with the committed `src/styles/tokens.css`. `npm run gen:css-vars` stays as a manual tool — **do not run it yet**.
+
+- It still targets `src/styles.css`, which after the split is only an import manifest without markers: the script appends a `:root` block and a `[data-theme="light"]` block at the end, overriding light-theme variables (e.g. `--glass-white`).
+- Pointing it at `src/styles/tokens.css` is worse: regenerating the `[generated:light-theme]` block deletes ~100 lines of hand-maintained `--ui-*` tokens (edibility badges, scores, surfaces, nav) and the `--color-*-rgb` channels, because `shared/colors.ts` does not generate them all.
+- [ ] Make the generator write to `tokens.css`, cover every token in the generated blocks (or narrow the markers to what it fully owns), check it reproduces the committed file with no diff, and only then restore `prebuild` (with `tsx` as a pinned devDependency instead of `npx` downloading it on every build).
+
+---
+
 ## 🗂 No date — DB: índices faltantes (baja prioridad)
 
 Identificados via análisis de `pg_stat_statements` + schema. A aplicar con `apply_migration` cuando haya una sesión de mantenimiento o antes de v8.2 (catálogo móvil).
