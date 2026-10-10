@@ -16,7 +16,7 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
             <p className="text-muted text-xs mt-0.5">{zone.region} · {zone.province}</p>
           </div>
           <button onClick={e => { e.stopPropagation(); onToggle() }}
-            className={`ml-3 p-2 rounded-xl transition-all ${isFollowed ? 'text-yellow-400' : 'text-cream/50 hover:text-yellow-400'}`}>
+            className={`ml-3 p-2 rounded-xl transition-all ${isFollowed ? 'ui-star-text' : 'text-cream/50 hover:text-yellow-400'}`}>
             {IC.star(isFollowed)}
           </button>
         </div>

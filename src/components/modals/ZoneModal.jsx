@@ -103,23 +103,22 @@ export function ZoneModal({ zone, onClose }) {
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button onClick={() => toggleFollow(zone)}
-              className={`p-2 rounded-xl transition-all ${isFollowed ? 'bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30' : 'text-white/50 hover:text-yellow-400 hover:bg-white/10'}`}>
+              className={`p-2 rounded-xl transition-all ${isFollowed ? 'ui-star-on' : 'text-cream/50 hover:text-cream hover:[background-color:var(--ui-surface-hover)]'}`}>
               {IC.star(isFollowed)}
             </button>
-            <button onClick={onClose} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all">{IC.close}</button>
+            <button onClick={onClose} className="p-2 rounded-xl text-cream/50 hover:text-cream hover:[background-color:var(--ui-surface-hover)] transition-all">{IC.close}</button>
           </div>
         </div>
 
         {/* Hero */}
         <div className="modal-header sm:rounded-t-2xl overflow-hidden" style={{ background: MODAL.bg }}>
-          <div ref={heroRef} className="relative overflow-hidden" style={{ minHeight: '176px', height: '50vh' }}>
+          <div ref={heroRef} className="relative overflow-hidden rounded-b-2xl sm:rounded-2xl" style={{ minHeight: '176px', height: '50vh' }}>
             <img
               src={ZONE_HERO[zone.forestType] || ZONE_HERO.pinar}
               alt={zone.forestType}
-              className="w-full h-full object-cover"
-              style={{ objectPosition: 'center', opacity: 0.75 }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-modal via-modal/0 to-transparent" />
-            <div className="absolute bottom-4 left-6 right-14">
+              className="w-full h-full object-cover hero-img"
+              style={{ objectPosition: 'center' }} />
+            <div className="absolute bottom-4 left-6 right-14 hero-on-image">
               <h2 className="font-display text-3xl font-semibold text-cream drop-shadow-lg">{zone.name}</h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-lg bg-green-f/30 text-green-300 text-xs font-medium">{zone.province}</span>

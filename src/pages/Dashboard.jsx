@@ -18,7 +18,7 @@ function ArticleCard({ article, onSelect }) {
   return (
     <div
       onClick={() => isPublished && onSelect(article)}
-      className={`glass rounded-2xl overflow-hidden transition-all duration-200 ${isPublished ? 'hover-lift cursor-pointer border border-green-f/20' : 'opacity-60 border border-white/[0.05]'}`}>
+      className={`glass rounded-2xl overflow-hidden transition-all duration-200 ${isPublished ? 'hover-lift cursor-pointer border border-[rgba(74,124,89,0.2)]' : 'opacity-60 border border-cream/[0.08]'}`}>
       <div className="h-44 relative overflow-hidden">
         {article.heroImage
           ? <img src={article.heroImage} className="w-full h-full object-cover" alt={article.title} />
