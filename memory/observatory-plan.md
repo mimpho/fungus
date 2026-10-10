@@ -433,7 +433,18 @@ Feature: Zone altitude as a range   [OQ-6, OQ-7]
 
   Scenario: migration
     Then zones gets nullable elevation_min_m and elevation_max_m and elevation_m is untouched
-    And Setcases (zone-030) is 1.300–1.900 m; La Molina and Costabona get their ranges
+
+  Scenario: ranges are computed, not typed   (2026-10-10)
+    When I run scripts/zone_elevation_ranges.py on a zone
+    Then it samples a grid of points around the zone with the Open-Meteo Elevation API
+    And proposes the central band of elevations (percentiles), capped at the treeline for pinar
+    And it only writes with --apply; the dry run prints the proposal
+    And it stays within the Open-Meteo daily budget (≤ 2 calls per zone)
+    # First run: Setcases, La Molina and Costabona, compared with field knowledge
+    # (Setcases ~1.300–1.900, La Molina ~1.500–1.800, Costabona ~1.400); then all zones.
+
+  Scenario: every zone value has a documented source
+    Then docs/content-guide.md lists each zone field, static or dynamic, its source, how it is obtained and how often it is refreshed
 
   Scenario: a zone without range uses its point
     Given a zone with only elevation_m 1.000

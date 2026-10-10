@@ -131,14 +131,16 @@
   --ui-edib-mortal-dot:      #ef4444;                     /* mid red            */
   --ui-edib-mortal-solid:    #b91c1c;                     /* solid red          */
 
-  /* ── OI score ranges (0-100) ─────────────────────────────────────────── */
+  /* ── Score bands (0-100) — see src/lib/scoreBands.js ─────────────────── */
   --ui-score-high-bar:       #34d399;   /* light green — ≥85          */
   --ui-score-high-text:      #34d399;
   --ui-score-good-bar:       #887b4b;   /* gold (--color-bar) — ≥70   */
   --ui-score-good-text:      #c4a06b;   /* light gold (--color-coffee-light) */
   --ui-score-ok-bar:         #f59e0b;   /* amber — ≥55                */
   --ui-score-ok-text:        #fbbf24;   /* light amber                */
-  --ui-score-low-bar:        #ef4444;   /* red — <55                  */
+  --ui-score-mid-bar:        #f97316;   /* orange — ≥30 (Regular)     */
+  --ui-score-mid-text:       #fb923c;   /* light orange               */
+  --ui-score-low-bar:        #ef4444;   /* red — <30 (Malo)           */
   --ui-score-low-text:       #f87171;   /* light red                  */
 }
 
@@ -245,8 +247,12 @@
   /* ── Score — light overrides ─────────────────────────────────────────── */
   --ui-score-high-bar:       #059669;   /* mid green        */
   --ui-score-high-text:      #047857;   /* dark green       */
+  --ui-score-good-bar:       #758847;   /* olive            */
+  --ui-score-good-text:      #6b4f2a;   /* dark coffee      */
   --ui-score-ok-bar:         #d97706;   /* mid amber        */
   --ui-score-ok-text:        #b45309;   /* dark amber       */
+  --ui-score-mid-bar:        #ea580c;   /* mid orange       */
+  --ui-score-mid-text:       #c2410c;   /* dark orange      */
   --ui-score-low-bar:        #dc2626;   /* mid red          */
   --ui-score-low-text:       #b91c1c;   /* dark red         */
 }

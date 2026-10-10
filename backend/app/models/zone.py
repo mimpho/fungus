@@ -1,4 +1,5 @@
 """Zone model — equivalent to mockZones in src/data/zones.js."""
+
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, func
@@ -22,6 +23,9 @@ class Zone(Base):
     lat: Mapped[float] = mapped_column(Float, nullable=False)
     lon: Mapped[float] = mapped_column(Float, nullable=False)
     elevation_m: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Altitude band of the zone (scripts/zone_elevation_ranges.py); null → the point
+    elevation_min_m: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elevation_max_m: Mapped[int | None] = mapped_column(Integer, nullable=True)
     forest_type: Mapped[str | None] = mapped_column(Text, nullable=True)  # pinar | hayedo | …
     soil_type: Mapped[str | None] = mapped_column(Text, nullable=True)
 

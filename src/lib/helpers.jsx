@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { MODAL, COLORS } from './constants';
 import { useApp } from '../contexts/AppContext';
+import { getScoreBand } from './scoreBands';
 
 export { MODAL, COLORS };
 
@@ -178,13 +179,11 @@ export function getEdibilityColor(com) {
 }
 
 // =====================================================
-// getScoreColor — score thermometer colors
+// getScoreColor — score thermometer colors (kept for existing callers)
 // =====================================================
 export function getScoreColor(s) {
-  if (s >= 85) return { bar: 'score-bar-high', text: 'score-text-high', tKey: 'excelente' };
-  if (s >= 70) return { bar: 'score-bar-good', text: 'score-text-good', tKey: 'muyBueno' };
-  if (s >= 55) return { bar: 'score-bar-ok',   text: 'score-text-ok',   tKey: 'bueno' };
-  return             { bar: 'score-bar-low',   text: 'score-text-low',   tKey: 'regular' };
+  const { bar, text, tKey } = getScoreBand(s)
+  return { bar, text, tKey }
 }
 
 // =====================================================
