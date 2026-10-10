@@ -9,13 +9,22 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 Product re-prioritised on 2026-10-10: the web Observatory comes first and the Android app is paused (see `memory/decisions.md`). Source of truth: the Observatory design document (includes scoring v2 and its task list). Hand-off: `observatorio-paso-a-desarrollo` in the Fungus project. Epic: `epic/observatory` (no version number until it is merged into `main`, see `system/workflows.spec.md`). Kick-off done on 2026-10-10: product contract in `memory/observatory-prd.md` (all open questions answered), technical plan with Gherkin scenarios per branch in `memory/observatory-plan.md`. Branches, cut from the epic and squash-merged into it, in this order:
 
 1. ✅ `feat/observatory-scoring-v2` (2026-10-10, PR to the epic): `scoring_v2.py` (pure functions) + tests with the design document's cases (Montseny 49, La Molina 7, Setcases 16, Costabona 20 on 2026-10-06). Measures the 100- vs 190-day data window.
-2. ✅ `feat/observatory-bands-elevation` (2026-10-10, PR to the epic; run `scripts.zone_elevation_ranges --apply` for all zones after the dry-run review): five-band scale with the `--mid` token, zone altitude as a range (`elevation_min_m` / `elevation_max_m`, migration).
-3. `feat/observatory-ingest-v2`: ingest reads the v2 window; `score_oi` becomes v2 (zones, dashboard, map), v1 kept in `score_detail.v1`; v1/v2 comparison CSV script from 2024-10-01 (no Open-Meteo calls).
+2. ✅ `feat/observatory-bands-elevation` (merged #125; pending: review the full dry run and `scripts.zone_elevation_ranges --apply`; re-run `~` zones when Overpass is free; fix stored `elevation_m` flagged `?`, e.g. zone-004 Pinar de Lleida 1,450 m vs 690 m terrain): five-band scale with the `--mid` token, zone altitude as a range (`elevation_min_m` / `elevation_max_m`, migration).
+3. ✅ `feat/observatory-ingest-v2` (2026-10-10, PR to the epic): ingest reads the v2 window; `score_oi` becomes v2 (zones, dashboard, map), v1 kept in `score_detail.v1`; v1/v2 comparison CSV script from 2024-10-01 (no Open-Meteo calls).
 4. `feat/observatory-forecast`: 16-day Open-Meteo forecast stored per zone with the same daily call (free tier is fine while Fungus has no subscriptions).
 5. `feat/observatory-api`: daily series, thermometer snapshot, species for a date, calendar; v2 computed on the fly from `climate_history`.
 6. `feat/observatory-page`: the page following the prototype, view state in the URL, Observatorio in the header with Perfil as an avatar menu (replaces the Público/Admin toggle).
 
 Project-wide fixes `fix/migrations-on-startup` and `fix/weather-cache` are merged into `main` and the epic (#121, #122, #123).
+
+**Next, before merging `feat/observatory-ingest-v2` (data quality, found 2026-10-10):** the original zones have approximate coordinates (early mock data): stored altitude differs from the terrain by a median of 229 m, so v1, v2 and the Observatory are affected. Decided with Marcos: only real, named places; focus on Catalonia.
+
+- Done 2026-10-10: migration 040 deactivates 47 generic zones.
+- Done 2026-10-11: migration 041 (applied) moves and renames 17 Catalan zones onto places from the route index of "El secret més ben guardat" (M. Estévez Casabosch), renames zone-030 (L'alta vall del Ter), and adds 23 zones (zone-215…237). Elevation of those 40 zones is NULL until the script runs. Not in the book and dropped for now: Fageda d'en Jordà, Grevolosa, Busa, Rasos de Peguera, Poblet, Gerdar (`backend/scripts/data/catalonia_candidates.csv`).
+- Night of 2026-10-11 (launched by Marcos): `zone_elevation_ranges --apply --update-point` then `backfill --from 2024-10-01` for the 40 zones; logs `~/elev41.log`, `~/backfill41.log`. To check: bands (zone-235 Serrat de la Bandera should be ~500–900 m), zones with `~`, then scores.
+- Points marked `-- approx` in 041 (Pla de les Vaques, Santa Fe, Corredor, Marina, Montgrí, Riells i Montsoriu, Sant Iscle, Rialb, Verd, Moianès) and forest types of the new zones are unverified: check with `zone_relocate.py`.
+- Still to do: the original Catalan zones not in the book (031 Gavarres, 032 Beget, 036 Montnegre, 037 Sant Llorenç, 038 Guilleries, 028 Prades, 047, 048, 202, 203, 206, 210, 211, 212, 213), then the rest of Spain; re-run the 105 zones computed without forest mask; update coordinates, backfill moved zones, scores. Dry run of 2026-10-10 in `rangos_zonas.txt` (not committed). Then merge `feat/observatory-ingest-v2`.
+- Clean up when done: untracked `rangos_zonas.txt`, `relocate.csv`, `new.csv`; stale branch `fix/carto-basemap-key`.
 
 Detail of the work:
 

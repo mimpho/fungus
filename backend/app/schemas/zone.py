@@ -25,9 +25,48 @@ class ScoreDetail(BaseModel):
     days_since_rain: int
 
 
+class PendingRain(BaseModel):
+    """A recent rain run that does not count yet: when it would start to show and peak."""
+    start: str
+    end: str
+    total_mm: float
+    shows_from: str
+    peak: str
+
+
+class ScoreFactorsV2(BaseModel):
+    activation: int        # 0–100
+    moisture: int          # 0–100
+    temperature: int       # 0–100
+    season: float          # 0–1
+    drying: float          # 0.6–1
+    heat: float            # 0.6–1
+    frost: float           # 0.6–1
+    shock: float           # 1 or 1.1
+
+
+class ScoreV2(BaseModel):
+    score: int
+    date: str              # the day scored: the last one with climate data (usually yesterday)
+    model_version: str
+    factors: ScoreFactorsV2
+    limiting_factor: str   # activation | moisture | temperature | drying
+    warm: bool             # the zone produced recently and responds faster
+    soil_water_mm: float
+    air_temp_20d_c: float
+    soil_temp_7d_c: float
+    dry_days: int
+    frost_recent: bool
+    estimated: bool
+    pending_rains: list[PendingRain] = []
+
+
 class ZoneScore(BaseModel):
-    score_oi: int
-    score_detail: ScoreDetail
+    score_oi: int                 # score of the current model (model_version)
+    model_version: str            # "2.1", "1"…
+    score_detail: ScoreDetail     # v1 factors, kept for comparison
+    score_v1: int | None = None
+    v2: ScoreV2 | None = None
     label: str
     calculated_at: datetime
     valid_until: datetime

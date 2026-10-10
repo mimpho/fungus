@@ -22,7 +22,7 @@ from app.connectors.open_meteo import OpenMeteoConnector
 from app.models.climate_history import ClimateHistory
 from app.models.scores_cache import ScoresCache
 from app.models.zone import Zone
-from app.services.scoring import OIResult, compute_oi
+from app.services.zone_scores import V2_WINDOW_DAYS, ZoneScoreRow, build_score_row
 
 log = logging.getLogger(__name__)
 
@@ -262,111 +262,53 @@ async def _upsert_climate_row(db: AsyncSession, row: DailyWeatherData) -> None:
 # ── Scores cache ──────────────────────────────────────────────────────────────
 
 async def _refresh_scores_cache(db: AsyncSession, zones: list[Zone]) -> None:
-    """Recompute and persist the Outbreak Index for all zones."""
+    """Recompute and persist today's score for all zones (see services/zone_scores.py)."""
     today = date.today()
     valid_until = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     valid_until = valid_until.replace(hour=5) + timedelta(days=1)  # next day at 05:00 UTC
 
     for zone in zones:
         try:
-            oi = await _compute_oi_for_zone(db, zone, today)
-            if oi is None:
+            row = await _compute_scores_for_zone(db, zone, today)
+            if row is None:
+                log.debug("Zone %s: no climate data, skipping score", zone.id)
                 continue
-
+            values = {
+                "score_oi": row.score_oi,
+                "model_version": row.model_version,
+                "score_detail": row.score_detail,
+                "calculated_at": datetime.now(UTC),
+                "valid_until": valid_until,
+            }
             stmt = (
                 pg_insert(ScoresCache)
-                .values(
-                    zone_id=zone.id,
-                    score_oi=oi.score,
-                    score_detail={
-                        "pa21": oi.pa21,
-                        "thermal": oi.thermal,
-                        "seasonal": oi.seasonal,
-                        "ripening": oi.ripening,
-                        "humidity": oi.humidity,
-                        "pa21_mm": oi.pa21_mm,
-                        "days_since_rain": oi.days_since_rain,
-                    },
-                    calculated_at=datetime.now(UTC),
-                    valid_until=valid_until,
-                )
-                .on_conflict_do_update(
-                    index_elements=["zone_id"],
-                    set_={
-                        "score_oi": oi.score,
-                        "score_detail": {
-                            "pa21": oi.pa21,
-                            "thermal": oi.thermal,
-                            "seasonal": oi.seasonal,
-                            "ripening": oi.ripening,
-                            "humidity": oi.humidity,
-                            "pa21_mm": oi.pa21_mm,
-                            "days_since_rain": oi.days_since_rain,
-                        },
-                        "calculated_at": datetime.now(UTC),
-                        "valid_until": valid_until,
-                    },
-                )
+                .values(zone_id=zone.id, **values)
+                .on_conflict_do_update(index_elements=["zone_id"], set_=values)
             )
             await db.execute(stmt)
         except Exception as exc:
-            log.error("Failed to compute OI for zone %s: %s", zone.id, exc)
+            # One zone failing never blocks the rest; the previous cache row is kept.
+            log.error("Failed to compute score for zone %s: %s", zone.id, exc)
 
     await db.commit()
 
 
-async def _compute_oi_for_zone(
+async def _compute_scores_for_zone(
     db: AsyncSession, zone: Zone, ref_date: date
-) -> OIResult | None:
-    """Pull the last 21 days of climate data and compute the Outbreak Index."""
-    cutoff = ref_date - timedelta(days=21)
-
+) -> ZoneScoreRow | None:
+    """Read the climate window the models need (100 days) and build the cache row."""
+    cutoff = ref_date - timedelta(days=V2_WINDOW_DAYS)
     rows_result = await db.execute(
         select(ClimateHistory)
         .where(ClimateHistory.zone_id == zone.id)
         .where(ClimateHistory.date >= cutoff)
         .where(ClimateHistory.date <= ref_date)
-        .order_by(ClimateHistory.date.desc())
+        .order_by(ClimateHistory.date)
     )
     rows: list[ClimateHistory] = list(rows_result.scalars())
-
     if not rows:
-        log.debug("Zone %s: no climate data, skipping OI", zone.id)
         return None
-
-    # ── Derived inputs ────────────────────────────────────────────────────────
-    pa21_mm = sum(float(r.precipitation_mm or 0) for r in rows)
-
-    recent_7 = rows[:7]
-    temp_avg_7d = _avg([float(r.temp_avg_c) for r in recent_7 if r.temp_avg_c is not None])
-
-    # Frost hours: rows with temp_min < 0 in last 3 days × 12 (rough estimate, daily granularity)
-    recent_3 = rows[:3]
-    frost_hours = sum(
-        12 for r in recent_3 if r.temp_min_c is not None and float(r.temp_min_c) < 0
-    )
-
-    # Days since last significant rain event (≥10 mm)
-    days_since_rain = 0
-    for i, r in enumerate(rows):
-        if float(r.precipitation_mm or 0) >= 10:
-            days_since_rain = i
-            break
-    else:
-        days_since_rain = len(rows)  # no significant rain in the window
-
-    humidity_pct = _avg(
-        [r.humidity_pct for r in recent_7 if r.humidity_pct is not None]
-    )
-
-    return compute_oi(
-        reference_date=ref_date,
-        pa21_mm=pa21_mm,
-        temp_avg_7d=temp_avg_7d or 10.0,
-        frost_hours_72h=frost_hours,
-        days_since_rain=days_since_rain,
-        humidity_pct=round(humidity_pct or 70),
-    )
+    return build_score_row(rows, ref_date, zone.elevation_m)
 
 
 # ── Provider selection ────────────────────────────────────────────────────────
@@ -385,8 +327,3 @@ def _get_connector(zone: Zone):
 async def _get_active_zones(db: AsyncSession) -> list[Zone]:
     result = await db.execute(select(Zone).where(Zone.active == True))  # noqa: E712
     return list(result.scalars())
-
-
-def _avg(values: list[float | int]) -> float | None:
-    clean = [v for v in values if v is not None]
-    return sum(clean) / len(clean) if clean else None

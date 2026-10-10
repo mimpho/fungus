@@ -11,6 +11,7 @@ import { fetchAllZoneConditions, fetchZoneConditions, getCacheTimestamp } from '
 import { fetchZone, fetchZoneWeather } from '../services/apiService'
 import { fakeConditions, applySpeciesModifier } from '../lib/helpers'
 import { useSpecies } from './useSpecies'
+import { pickRainOnTheWay } from '../lib/rainOnTheWay'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useAllZoneConditions — DEPRECATED
@@ -172,6 +173,9 @@ export function useApiZoneConditions(zone) {
         humidity:     r0(w.humidity),
         wind:         r0(w.wind),
         dryDays:      apiZone?.score?.score_detail?.days_since_rain ?? null,  // desde OI score_detail
+        rainOnTheWay:   pickRainOnTheWay(apiZone?.score?.v2),
+        limitingFactor: apiZone?.score?.v2?.limiting_factor ?? null,
+        modelVersion:   apiZone?.score?.model_version ?? null,
         _source:      'api',
         _label:       apiZone?.score?.label ?? null,
         _collectedAt: w.collected_at ?? null,
