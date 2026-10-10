@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — App logs missing on Render after startup migrations (2026-10-10)
+
+- **`backend/migrations/env.py`**: logging is configured from `alembic.ini` only when Alembic runs from the CLI. Inside the API, `alembic.ini` reset the root logger to `WARN`, so every `app.*` INFO log (migrations complete, scheduler, ingest, weather refresh) was dropped on Render. The previous fix (`disable_existing_loggers=False`) was not enough.
+
 ### Fixed — Current weather missing in the zone list and card (2026-10-10)
 
 - **New `backend/app/services/weather_refresh.py`**: a job refreshes `weather_cache` for all active zones every 3 h (at :30, never at the same time as the 05:00 ingest), plus at startup for the zones that lack fresh weather. Before, the cache was filled only when someone opened a zone card, so the list showed weather only for recently opened zones.

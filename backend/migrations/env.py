@@ -3,6 +3,7 @@ Alembic env.py — modo async con SQLAlchemy 2.x.
 Lee DATABASE_URL desde app.config para no duplicar configuración.
 """
 import asyncio
+import logging
 from logging.config import fileConfig
 
 from alembic import context
@@ -17,9 +18,10 @@ import app.models  # noqa: F401
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
-if config.config_file_name is not None:
-    # Keep the app's loggers: by default fileConfig() disables every existing logger,
-    # which silenced all app.* logs after the startup migrations on Render.
+# Only configure logging from alembic.ini when run from the CLI. Inside the API
+# (startup migrations) logging is already set up: alembic.ini would reset the root
+# logger to WARN and silence every app.* INFO log on Render.
+if config.config_file_name is not None and not logging.getLogger().handlers:
     fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
