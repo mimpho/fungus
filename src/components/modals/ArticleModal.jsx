@@ -148,12 +148,10 @@ export function ArticleModal({ slug, onClose }) {
         </div>
 
         {/* Hero */}
-        <div ref={heroRef} className="relative overflow-hidden sm:rounded-t-2xl modal-header"
+        <div ref={heroRef} className="relative overflow-hidden rounded-b-2xl sm:rounded-2xl modal-header"
           style={{ minHeight: '224px', height: '52vh' }}>
-          <img src={article.heroImage} className="w-full h-full object-cover object-center" alt={article.title} />
-          <div className="absolute inset-0"
-            style={{ background: 'linear-gradient(to top, rgb(48,55,42) 15%, rgba(48,55,42,0.25) 60%, transparent 100%)' }} />
-          <div className="absolute bottom-0 left-0 right-0 px-6 pb-8">
+          <img src={article.heroImage} className="w-full h-full object-cover object-center hero-img" alt={article.title} />
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-8 hero-on-image">
             <p className="text-xs font-semibold uppercase tracking-widest mb-2 text-coffee-light">
               {tagsLabel}
             </p>
