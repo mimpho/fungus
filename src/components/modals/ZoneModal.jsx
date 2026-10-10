@@ -112,13 +112,12 @@ export function ZoneModal({ zone, onClose }) {
 
         {/* Hero */}
         <div className="modal-header sm:rounded-t-2xl overflow-hidden" style={{ background: MODAL.bg }}>
-          <div ref={heroRef} className="relative overflow-hidden" style={{ minHeight: '176px', height: '50vh' }}>
+          <div ref={heroRef} className="relative overflow-hidden rounded-b-2xl sm:rounded-2xl" style={{ minHeight: '176px', height: '50vh' }}>
             <img
               src={ZONE_HERO[zone.forestType] || ZONE_HERO.pinar}
               alt={zone.forestType}
               className="w-full h-full object-cover hero-img"
               style={{ objectPosition: 'center' }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-modal via-modal/0 to-transparent hero-fade" />
             <div className="absolute bottom-4 left-6 right-14 hero-on-image">
               <h2 className="font-display text-3xl font-semibold text-cream drop-shadow-lg">{zone.name}</h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
