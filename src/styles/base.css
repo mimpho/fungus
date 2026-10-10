@@ -46,6 +46,15 @@ body::after {
   border-radius: 3px;
 }
 
+/* Modals use the native scrollbar. The ::-webkit-scrollbar rules above force a classic
+   6px gutter even on macOS (where the system scrollbar would float over the content),
+   leaving a strip beside the hero photo. In Chromium >= 121 the standard properties
+   take precedence on this element and keep the system's overlay behaviour. */
+.modal-inner {
+  scrollbar-width: thin;
+  scrollbar-color: var(--glass-warm-thumb) transparent;
+}
+
 /* ── Animations ───────────────────────────────────────────────────────────── */
 @keyframes animUpOpacity {
   from { opacity: 0; }
