@@ -25,6 +25,7 @@ export default function Profile() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [resendState, setResendState] = useState('idle') // 'idle' | 'sending' | 'sent' | 'error'
+  const [tab, setTab] = useState('settings') // 'settings' | 'notifications' | 'following'
 
   const notifications = followedZones.map(z => {
     const sc = getScoreColor(Math.floor(60 + Math.random() * 35))
@@ -103,29 +104,29 @@ export default function Profile() {
           </div>
         </section>
 
-        {/* Apariencia — siempre disponible */}
-        <section className="glass rounded-2xl p-5">
-          <h3 className="font-medium text-cream mb-4">Apariencia</h3>
-          <div className="grid grid-cols-3 gap-2 surface-subtle rounded-xl p-1">
-            {[['dark','Oscuro'],['light','Claro'],['system','Sistema']].map(([mode, label]) => (
-              <button key={mode} onClick={() => setThemeMode(mode)}
-                className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-white shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
-                {label}
-              </button>
-            ))}
+        {/* Apariencia + Idioma */}
+        <section className="glass rounded-2xl p-5 space-y-6">
+          <div>
+            <h3 className="font-medium text-cream mb-4">Apariencia</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {[['system','Sistema'],['dark','Oscuro'],['light','Claro']].map(([mode, label]) => (
+                <button key={mode} onClick={() => setThemeMode(mode)}
+                  className={`py-3 rounded-xl text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </section>
-
-        {/* Idioma — siempre disponible */}
-        <section className="glass rounded-2xl p-5">
-          <h3 className="font-medium text-cream mb-4">{t.idioma}</h3>
-          <div className="grid grid-cols-3 gap-3">
-            {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
-              <button key={code} onClick={() => setLang(code)}
-                className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
-                {label}
-              </button>
-            ))}
+          <div>
+            <h3 className="font-medium text-cream mb-4">{t.idioma}</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
+                <button key={code} onClick={() => setLang(code)}
+                  className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
       </div>
@@ -232,182 +233,206 @@ export default function Profile() {
         </section>
       )}
 
-      {/* Notificaciones */}
-      <section className="glass rounded-2xl overflow-hidden">
-        <div className="p-5 flex items-center gap-2">
-          {IC.bell}
-          <h3 className="font-medium text-cream">{t.notifications}</h3>
-          {notifications.length > 0 && (
-            <span className="ml-auto text-xs px-2 py-0.5 bg-emerald-500 text-white rounded-full">
-              {notifications.length}
-            </span>
-          )}
-        </div>
-        <div className="divide-y divide-white/[0.04]">
-          {notifications.length === 0 ? (
-            <p className="p-5 text-cream/40 text-sm">{t.sin_notif}</p>
-          ) : notifications.map(n => (
-            <div key={n.id} className="p-4 flex items-start gap-3">
-              <span className="text-muted mt-0.5">{IC.pin}</span>
-              <div>
-                <p className="text-cream text-sm">{n.msg}</p>
-                <p className="text-cream/60 text-xs mt-0.5">{n.hora}</p>
-              </div>
+      <Tabs
+        options={[
+          { id: 'settings', label: t.perfilTabConfig ?? 'Configuración' },
+          { id: 'notifications', label: t.notifications, badge: notifications.length },
+          { id: 'following', label: t.perfilTabSiguiendo ?? 'Siguiendo' },
+        ]}
+        selected={tab}
+        onChange={setTab}
+        size="md"
+        fullWidth
+      />
+
+      {tab === 'following' && (
+        <>
+          {/* Zonas seguidas */}
+          <section className="glass rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-cream flex items-center gap-2">
+                {IC.pin}
+                {t.followedZones}
+                <span className="text-cream/40 text-sm font-normal">({followedZones.length})</span>
+              </h3>
+              {followedZones.length > 0 && (
+                <Link to="/zonas?seguidas=1" className="text-xs text-cream/50 hover:text-cream transition-colors">
+                  {t.verTodas ?? 'Ver todas →'}
+                </Link>
+              )}
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Apariencia */}
-      <section className="glass rounded-2xl p-5">
-        <h3 className="font-medium text-cream mb-4">Apariencia</h3>
-        <div className="grid grid-cols-3 gap-2 surface-subtle rounded-xl p-1">
-          {[['dark','Oscuro'],['light','Claro'],['system','Sistema']].map(([mode, label]) => (
-            <button key={mode} onClick={() => setThemeMode(mode)}
-              className={`py-2.5 rounded-lg text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-white shadow-sm' : 'text-cream/60 hover:text-cream'}`}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Idioma */}
-      <section className="glass rounded-2xl p-5">
-        <h3 className="font-medium text-cream mb-4">{t.idioma}</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
-            <button key={code} onClick={() => setLang(code)}
-              className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Zonas seguidas */}
-      <section className="glass rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-medium text-cream flex items-center gap-2">
-            {IC.pin}
-            {t.followedZones}
-            <span className="text-cream/40 text-sm font-normal">({followedZones.length})</span>
-          </h3>
-          {followedZones.length > 0 && (
-            <Link to="/zonas?seguidas=1" className="text-xs text-cream/50 hover:text-cream transition-colors">
-              {t.verTodas ?? 'Ver todas →'}
-            </Link>
-          )}
-        </div>
-        {followedZones.length === 0 ? (
-          <p className="text-cream/40 text-sm">{t.sinZonasSeguidas ?? 'Aún no sigues ninguna zona.'}</p>
-        ) : (
-          <div className="space-y-2">
-            {followedZones.slice(0, 3).map(z => (
-              <button key={z.id} onClick={() => setSelectedZone(z)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl surface-hover text-left">
-                <span className="text-muted flex-shrink-0">{IC.pin}</span>
-                <div className="min-w-0">
-                  <p className="font-display text-base font-semibold text-cream truncate">{z.name}</p>
-                  <p className="text-cream/50 text-xs">{z.region || z.province}</p>
-                </div>
-                <span className="ml-auto text-cream/30 flex-shrink-0">{IC.chevron()}</span>
-              </button>
-            ))}
-            {followedZones.length > 3 && (
-              <Link to="/zonas?seguidas=1" className="block text-center text-xs text-cream/40 hover:text-cream pt-1 transition-colors">
-                +{followedZones.length - 3} {t.mas ?? 'más'}
-              </Link>
+            {followedZones.length === 0 ? (
+              <p className="text-cream/40 text-sm">{t.sinZonasSeguidas ?? 'Aún no sigues ninguna zona.'}</p>
+            ) : (
+              <div className="space-y-2">
+                {followedZones.slice(0, 3).map(z => (
+                  <button key={z.id} onClick={() => setSelectedZone(z)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl surface-hover text-left">
+                    <span className="text-muted flex-shrink-0">{IC.pin}</span>
+                    <div className="min-w-0">
+                      <p className="font-display text-base font-semibold text-cream truncate">{z.name}</p>
+                      <p className="text-cream/50 text-xs">{z.region || z.province}</p>
+                    </div>
+                    <span className="ml-auto text-cream/30 flex-shrink-0">{IC.chevron()}</span>
+                  </button>
+                ))}
+                {followedZones.length > 3 && (
+                  <Link to="/zonas?seguidas=1" className="block text-center text-xs text-cream/40 hover:text-cream pt-1 transition-colors">
+                    +{followedZones.length - 3} {t.mas ?? 'más'}
+                  </Link>
+                )}
+              </div>
             )}
-          </div>
-        )}
-      </section>
+          </section>
 
-      {/* Especies favoritas */}
-      <section className="glass rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-medium text-cream flex items-center gap-2">
-            {IC.mushroom}
-            {t.favoriteSpecies}
-            <span className="text-cream/40 text-sm font-normal">({favoriteSpecies.length})</span>
-          </h3>
-          {favoriteSpecies.length > 0 && (
-            <Link to="/especies?filtro=favoritas" className="text-xs text-cream/50 hover:text-cream transition-colors">
-              {t.verTodas ?? 'Ver todas →'}
-            </Link>
-          )}
-        </div>
-        {favoriteSpecies.length === 0 ? (
-          <p className="text-cream/40 text-sm">{t.sinEspeciesFavoritas ?? 'Aún no tienes especies favoritas.'}</p>
-        ) : (
-          <>
-            <div className="grid grid-cols-3 gap-2">
-              {favoriteSpecies.slice(0, 3).map(sp => (
-                <button key={sp.id} onClick={() => setSelectedSpecies(sp)}
-                  className="glass rounded-xl overflow-hidden hover:[background-color:var(--ui-surface-hover)] text-left">
-                  <div className="aspect-square surface-subtle">
-                    <img src={resolveUrl(sp.photo?.url)} alt=""
-                      className="w-full h-full object-cover"
-                      onError={e => { e.target.style.display = 'none' }} />
+          {/* Especies favoritas */}
+          <section className="glass rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-cream flex items-center gap-2">
+                {IC.mushroom}
+                {t.favoriteSpecies}
+                <span className="text-cream/40 text-sm font-normal">({favoriteSpecies.length})</span>
+              </h3>
+              {favoriteSpecies.length > 0 && (
+                <Link to="/especies?filtro=favoritas" className="text-xs text-cream/50 hover:text-cream transition-colors">
+                  {t.verTodas ?? 'Ver todas →'}
+                </Link>
+              )}
+            </div>
+            {favoriteSpecies.length === 0 ? (
+              <p className="text-cream/40 text-sm">{t.sinEspeciesFavoritas ?? 'Aún no tienes especies favoritas.'}</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  {favoriteSpecies.slice(0, 3).map(sp => (
+                    <button key={sp.id} onClick={() => setSelectedSpecies(sp)}
+                      className="glass rounded-xl overflow-hidden hover:[background-color:var(--ui-surface-hover)] text-left">
+                      <div className="aspect-square surface-subtle">
+                        <img src={resolveUrl(sp.photo?.url)} alt=""
+                          className="w-full h-full object-cover"
+                          onError={e => { e.target.style.display = 'none' }} />
+                      </div>
+                      <p className="font-display text-sm font-semibold text-cream px-2 py-1.5 truncate leading-tight">
+                        {sp.commonNames?.[0] || sp.scientificName}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+                {favoriteSpecies.length > 3 && (
+                  <Link to="/especies?filtro=favoritas" className="block text-center text-xs text-cream/40 hover:text-cream pt-3 transition-colors">
+                    +{favoriteSpecies.length - 3} {t.mas ?? 'más'}
+                  </Link>
+                )}
+              </>
+            )}
+          </section>
+        </>
+      )}
+
+      {tab === 'notifications' && (
+        <>
+          {/* Notificaciones */}
+          <section className="glass rounded-2xl overflow-hidden">
+            <div className="p-5 flex items-center gap-2">
+              {IC.bell}
+              <h3 className="font-medium text-cream">{t.notifications}</h3>
+              {notifications.length > 0 && (
+                <span className="ml-auto text-xs px-2 py-0.5 bg-emerald-500 text-white rounded-full">
+                  {notifications.length}
+                </span>
+              )}
+            </div>
+            <div className="divide-y divide-white/[0.04]">
+              {notifications.length === 0 ? (
+                <p className="p-5 text-cream/40 text-sm">{t.sin_notif}</p>
+              ) : notifications.map(n => (
+                <div key={n.id} className="p-4 flex items-start gap-3">
+                  <span className="text-muted mt-0.5">{IC.pin}</span>
+                  <div>
+                    <p className="text-cream text-sm">{n.msg}</p>
+                    <p className="text-cream/60 text-xs mt-0.5">{n.hora}</p>
                   </div>
-                  <p className="font-display text-sm font-semibold text-cream px-2 py-1.5 truncate leading-tight">
-                    {sp.commonNames?.[0] || sp.scientificName}
-                  </p>
-                </button>
+                </div>
               ))}
             </div>
-            {favoriteSpecies.length > 3 && (
-              <Link to="/especies?filtro=favoritas" className="block text-center text-xs text-cream/40 hover:text-cream pt-3 transition-colors">
-                +{favoriteSpecies.length - 3} {t.mas ?? 'más'}
-              </Link>
-            )}
-          </>
-        )}
-      </section>
+          </section>
+        </>
+      )}
 
-      {/* Sesión */}
-      <section className="pt-2 pb-4">
-        {!confirmDelete ? (
-          <div className="flex items-center gap-3 text-sm text-cream/40">
-            <button
-              onClick={handleLogout}
-              disabled={signingOut || deleting}
-              className="hover:text-cream/70 transition-colors disabled:opacity-40 text-center"
-              style={{ minWidth: '5.5rem' }}
-            >
-              {signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}
-            </button>
-            <span className="select-none">|</span>
-            <button
-              onClick={() => setConfirmDelete(true)}
-              disabled={signingOut || deleting}
-              className="hover:text-red-400 transition-colors disabled:opacity-40"
-            >
-              {t.eliminarCuenta ?? 'Eliminar cuenta'}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-red-400">{t.confirmarEliminar ?? '¿Seguro? Esta acción es irreversible.'}</p>
-            <div className="flex items-center gap-3 text-sm">
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleting}
-                className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-40"
-              >
-                {deleting ? '...' : (t.siEliminar ?? 'Sí, eliminar')}
-              </button>
-              <span className="text-cream/40 select-none">|</span>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                disabled={deleting}
-                className="text-cream/40 hover:text-cream/70 transition-colors disabled:opacity-40"
-              >
-                {t.cancelar ?? 'Cancelar'}
-              </button>
+      {tab === 'settings' && (
+        <>
+          {/* Apariencia + Idioma */}
+          <section className="glass rounded-2xl p-5 space-y-6">
+            <div>
+              <h3 className="font-medium text-cream mb-4">Apariencia</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {[['system','Sistema'],['dark','Oscuro'],['light','Claro']].map(([mode, label]) => (
+                  <button key={mode} onClick={() => setThemeMode(mode)}
+                    className={`py-3 rounded-xl text-sm font-medium transition-all ${themeMode === mode ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </section>
+            <div>
+              <h3 className="font-medium text-cream mb-4">{t.idioma}</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {[['es', 'Castellano'], ['ca', 'Català'], ['en', 'English']].map(([code, label]) => (
+                  <button key={code} onClick={() => setLang(code)}
+                    className={`py-3 rounded-xl text-sm font-medium transition-all ${lang === code ? 'bg-bar/80 text-white shadow-sm' : 'glass text-cream/80 hover:text-cream'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Sesión */}
+          <section className="pt-2 pb-4">
+            {!confirmDelete ? (
+              <div className="flex items-center gap-3 text-sm text-cream/40">
+                <button
+                  onClick={handleLogout}
+                  disabled={signingOut || deleting}
+                  className="hover:text-cream/70 transition-colors disabled:opacity-40 text-center"
+                  style={{ minWidth: '5.5rem' }}
+                >
+                  {signingOut ? '...' : (t.cerrarSesion ?? 'Cerrar sesión')}
+                </button>
+                <span className="select-none">|</span>
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={signingOut || deleting}
+                  className="hover:text-red-400 transition-colors disabled:opacity-40"
+                >
+                  {t.eliminarCuenta ?? 'Eliminar cuenta'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-red-400">{t.confirmarEliminar ?? '¿Seguro? Esta acción es irreversible.'}</p>
+                <div className="flex items-center gap-3 text-sm">
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleting}
+                    className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-40"
+                  >
+                    {deleting ? '...' : (t.siEliminar ?? 'Sí, eliminar')}
+                  </button>
+                  <span className="text-cream/40 select-none">|</span>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    disabled={deleting}
+                    className="text-cream/40 hover:text-cream/70 transition-colors disabled:opacity-40"
+                  >
+                    {t.cancelar ?? 'Cancelar'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </div>
   )
 }
