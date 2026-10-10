@@ -4,6 +4,21 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
+## 🔴 Priority — Observatory (web), phase 1 (`epic/v9-observatory`) — 2026-10-10
+
+Product re-prioritised on 2026-10-10: the web Observatory comes first and the Android app is paused (see `memory/decisions.md`). Source of truth: the Observatory design document (includes scoring v2 and its task list). Hand-off: `observatorio-paso-a-desarrollo` in the Fungus project. Order of work:
+
+- [ ] Scoring v2 in the backend (next section).
+- [ ] Endpoints: daily series from `climate_history`; score by date and by species; mushrooms favourable for a given date.
+- [ ] Observatory page following the prototype, with the view state in the URL.
+- [ ] Design decisions that touch other layers: v2 as default everywhere; five-band scale (Malo 0–30, Regular 30–55, Bueno, Muy bueno, Excelente) with a `--mid` token in the design system; zone altitude as a range (`elevation_min_m` / `elevation_max_m`, overlap with a 150 m margin); real multi-day Open-Meteo forecast stored (paid plan needed for commercial use).
+- [ ] Data: finish the backfill oct 2025 – sep 2026 (verify), backfill oct 2024 – sep 2025 on another day (Open-Meteo daily limit).
+- [ ] Ops: set `ALERT_EMAIL` and `STALE_ZONE_DAYS=3` in Render (done, verify they apply after deploy). With the normal ~2-day archive lag, `STALE_ZONE_DAYS=2` has no margin and flags zones one day behind.
+
+Open, does not block (calibration): field-trip log; validate with autumns 2024 and 2025; soil-temperature optimum per species; `cycle_days`; from which day the curve counts; altitude caps of Pyrenees species sheets and range for the other zones; trip phase label; report hash; years of history; remove the duplicated scoring in the app (phase 2).
+
+---
+
 ## 🔴 Priority — Scoring v2 (Outbreak Index) — 2026-10-08
 
 Season priority (decided 2026-10-07): the Observatory and the zone-card score, both fed by the same calculation. v1 rewards rain on the day it falls and adds a fixed 25 points for October: on 6 Oct it gives 75 for La Molina and 76 for Setcases, while in the field they have been very poor for a month (v2.1: 7 and 16).
@@ -77,7 +92,9 @@ Currently `VITE_GEMINI_API_KEY` is exposed in the frontend bundle. Acceptable wh
 
 ---
 
-## 🟡 Activo — v8.0 Android app (`epic/v8-android`)
+## ⏸ Pausado — v8.0 Android app (`epic/v8-android`)
+
+**Paused on 2026-10-10** to prioritise the web Observatory. The epic is merged into `main` (without release tag, see `memory/decisions.md`); `mobile/` ships with the repo but is not built or distributed. Resume with `feat/v8-2-species` after the Observatory phase 1.
 
 Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `memory/v8-android-plan.md`.
 
@@ -100,7 +117,7 @@ iOS fuera de roadmap (Apple Developer $99/año); Google Play en v8.1.
 
 ---
 
-## 🗂 Backlog — v9.0 SEO
+## 🗂 Backlog — v10.0 SEO
 
 - Static prerendering at build time for known routes (`/especies/:id`, `/zonas/:id`, etc.)
 - `react-helmet-async`: dynamic meta tags per route (title, description, Open Graph)

@@ -134,9 +134,10 @@ POST /api/v1/images/set-order                 ← admin only
 | v6.0 | ✅ | OpenSpecs migration — structured SSOT, IDE-agnostic |
 | v7.0 | ✅ | Social login: Google OAuth2 |
 | v7.1 | 🚧 | Email confirmation on signup · design polish |
-| v8.0 | 🚧 | Android mobile app — scaffold, nav, design system, zones done; species + map pending |
+| v8.0 | ⏸ | Android mobile app — paused (2026-10-10). Scaffold, nav, design system, zones done; species + map pending. Merged into `main`, not distributed |
+| v9.0 | 🚧 | Observatory (web) — scoring v2, daily series, date/species scores, Observatory page (`epic/v9-observatory`) |
 | v8.5 | 🗂 | Shared package — scoring, constants, types, i18n extracted as monorepo internal packages |
-| v9.0 | 🗂 | SEO: static prerendering + Core Web Vitals |
+| v10.0 | 🗂 | SEO: static prerendering + Core Web Vitals |
 
 Detailed backlog: `memory/pending.md`
 
