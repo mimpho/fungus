@@ -6,16 +6,16 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ## 🔴 Priority — Observatory (web), phase 1 (`epic/observatory`) — 2026-10-10
 
-Product re-prioritised on 2026-10-10: the web Observatory comes first and the Android app is paused (see `memory/decisions.md`). Source of truth: the Observatory design document (includes scoring v2 and its task list). Hand-off: `observatorio-paso-a-desarrollo` in the Fungus project. Epic: `epic/observatory` (no version number until it is merged into `main`, see `system/workflows.spec.md`). Branches, cut from the epic and squash-merged into it, in this order:
+Product re-prioritised on 2026-10-10: the web Observatory comes first and the Android app is paused (see `memory/decisions.md`). Source of truth: the Observatory design document (includes scoring v2 and its task list). Hand-off: `observatorio-paso-a-desarrollo` in the Fungus project. Epic: `epic/observatory` (no version number until it is merged into `main`, see `system/workflows.spec.md`). Kick-off done on 2026-10-10: product contract in `memory/observatory-prd.md` (all open questions answered), technical plan with Gherkin scenarios per branch in `memory/observatory-plan.md`. Branches, cut from the epic and squash-merged into it, in this order:
 
-1. `feat/observatory-scoring-v2`: `scoring_v2.py` (pure functions) + tests with the design document's cases (Montseny 49, La Molina 7, Setcases 16, Costabona 20 on 2026-10-06).
-2. `feat/observatory-ingest-v2`: ingest requests 100 days and stores `score_detail.v2` with `model_version`; backfill from 2024-10-01 (`climate_history` only, no Open-Meteo calls).
-3. `feat/observatory-api`: daily series, score by date and by species, mushrooms favourable for a date, v2 with its breakdown.
-4. `feat/observatory-bands-elevation`: five-band scale with the `--mid` token, zone altitude as a range (`elevation_min_m` / `elevation_max_m`, migration).
-5. `feat/observatory-page`: the page following the prototype, view state in the URL.
-6. `feat/observatory-forecast`: multi-day Open-Meteo forecast stored (paid plan required).
+1. ✅ `feat/observatory-scoring-v2` (2026-10-10, PR to the epic): `scoring_v2.py` (pure functions) + tests with the design document's cases (Montseny 49, La Molina 7, Setcases 16, Costabona 20 on 2026-10-06). Measures the 100- vs 190-day data window.
+2. `feat/observatory-bands-elevation`: five-band scale with the `--mid` token, zone altitude as a range (`elevation_min_m` / `elevation_max_m`, migration).
+3. `feat/observatory-ingest-v2`: ingest reads the v2 window; `score_oi` becomes v2 (zones, dashboard, map), v1 kept in `score_detail.v1`; v1/v2 comparison CSV script from 2024-10-01 (no Open-Meteo calls).
+4. `feat/observatory-forecast`: 16-day Open-Meteo forecast stored per zone with the same daily call (free tier is fine while Fungus has no subscriptions).
+5. `feat/observatory-api`: daily series, thermometer snapshot, species for a date, calendar; v2 computed on the fly from `climate_history`.
+6. `feat/observatory-page`: the page following the prototype, view state in the URL, Observatorio in the header with Perfil as an avatar menu (replaces the Público/Admin toggle).
 
-Before starting, two project-wide fixes from `main` (they affect this epic): `fix/migrations-on-startup` (a local run applies migrations to production; branch 4 adds one) and `fix/weather-cache`. Both are described below.
+Project-wide fixes `fix/migrations-on-startup` and `fix/weather-cache` are merged into `main` and the epic (#121, #122, #123).
 
 Detail of the work:
 
@@ -26,7 +26,7 @@ Detail of the work:
 - [ ] Data: finish the backfill oct 2025 – sep 2026 (verify), backfill oct 2024 – sep 2025 on another day (Open-Meteo daily limit).
 - [ ] Ops: set `ALERT_EMAIL` and `STALE_ZONE_DAYS=3` in Render (done, verify they apply after deploy). With the normal ~2-day archive lag, `STALE_ZONE_DAYS=2` has no margin and flags zones one day behind.
 
-Open, does not block (calibration): field-trip log; validate with autumns 2024 and 2025; soil-temperature optimum per species; `cycle_days`; from which day the curve counts; altitude caps of Pyrenees species sheets and range for the other zones; trip phase label; report hash; years of history; remove the duplicated scoring in the app (phase 2).
+Open, does not block (calibration): micro-sites (v2.2 candidate, after calibration): a zone is not uniform (moisture, sun, temperature and wind drying vary with orientation and cover), so a short rain on dry soil can give small, local flushes where shaded spots kept moisture; today it adds 0 because the zone is two average buckets with an on/off threshold. Proposal without adding factors: model the zone as ~5 micro-sites from sunny/ventilated to shaded/sheltered, each drying at its own rate (the two current buckets become the ends); rain counts in each while it stays moist; the score comes from the share of active micro-sites, with the most closed ones weighing less because fruiting also needs light; message 'possible local flushes in shaded spots' when only those are active. Design it with this season's field-trip log, not by eye; field-trip log; validate with autumns 2024 and 2025; soil-temperature optimum per species; `cycle_days`; from which day the curve counts; altitude caps of Pyrenees species sheets and range for the other zones; trip phase label; report hash; years of history; remove the duplicated scoring in the app (phase 2).
 
 ---
 
