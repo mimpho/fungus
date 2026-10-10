@@ -6,6 +6,7 @@ from scripts.zone_relocate import (
     SEARCH_MAX_KM,
     SEARCH_MIN_KM,
     Forest,
+    around_point,
     best_forest,
     confidence,
     forests_from_overpass,
@@ -39,6 +40,25 @@ def test_roads_and_stops_are_never_the_place():
 )
 def test_name_variants(name, variants):
     assert name_variants(name) == variants
+
+
+def test_a_place_far_from_the_zone_is_another_place():
+    monegros = {"category": "place", "type": "locality", "lat": "41.85", "lon": "-0.35"}
+    ordesa_zone = (42.64, -0.06)
+    assert pick_place([monegros], ordesa_zone) is None
+    assert pick_place([monegros, PARK], (42.6, 0.0)) is PARK
+
+
+def test_without_a_named_place_the_search_is_around_the_current_point():
+    s, w, n, e = search_box(around_point(42.6, 0.0))
+    assert s < 42.6 < n and w < 0.0 < e
+
+
+def test_forests_without_center_use_their_box():
+    el = _element(42.6, 0.0, 0.02, {"genus": "Fagus"})
+    del el["center"]
+    (f,) = forests_from_overpass([el], "hayedo")
+    assert (f.lat, f.lon) == pytest.approx((42.6, 0.0))
 
 
 def test_a_natural_place_beats_a_village():

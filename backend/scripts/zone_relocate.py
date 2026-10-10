@@ -44,6 +44,7 @@ KM_PER_DEGREE_LAT = 111.32
 SEARCH_MIN_KM = 4  # half-size of the search box around a point-like place
 SEARCH_MAX_KM = 15  # cap for big places (a whole sierra)
 MIN_FOREST_HA = 5
+MAX_PLACE_KM = 50  # a place this far from the current point is another place with the same name
 
 # What OpenStreetMap tags say about each forest type: leaf type and genus/species.
 FOREST_HINTS = {
@@ -103,13 +104,35 @@ def name_variants(name: str) -> list[str]:
     return [name] if not bare or bare == name else [name, bare]
 
 
-def pick_place(results: list[dict]) -> dict | None:
-    """Prefer natural places (park, forest, sierra), then towns; never roads, stops or shops."""
+def pick_place(results: list[dict], current: tuple[float, float] | None = None) -> dict | None:
+    """Prefer natural places (park, forest, sierra), then towns; never roads, stops or shops.
+
+    With the zone's current point, places further than MAX_PLACE_KM are dropped (a name can
+    exist elsewhere: "Ordesa" is also a spot in Los Monegros) and the closest wins a tie.
+    """
     usable = [r for r in results if r.get("category") not in REJECTED_CATEGORIES]
+    if current is not None:
+        usable = [
+            r for r in usable
+            if km_between(current, (float(r["lat"]), float(r["lon"]))) <= MAX_PLACE_KM
+        ]  # fmt: skip
+        usable.sort(key=lambda r: km_between(current, (float(r["lat"]), float(r["lon"]))))
     if not usable:
         return None
     natural = [r for r in usable if (r.get("category"), r.get("type")) in NATURAL_KINDS]
     return (natural or usable)[0]
+
+
+def around_point(lat: float, lon: float) -> dict:
+    """A pseudo-place at the zone's current point, when no named place is found nearby."""
+    return {
+        "lat": str(lat),
+        "lon": str(lon),
+        "boundingbox": [str(lat), str(lat), str(lon), str(lon)],
+        "category": "zone",
+        "type": "current_point",
+        "display_name": "(around the current point)",
+    }
 
 
 @dataclass(frozen=True)
@@ -137,9 +160,13 @@ def type_match(tags: dict, forest_type: str) -> str:
 def forests_from_overpass(elements: list[dict], forest_type: str) -> list[Forest]:
     out = []
     for el in elements:
-        center, bounds = el.get("center"), el.get("bounds")
-        if not center or not bounds:
+        bounds = el.get("bounds")
+        if not bounds:
             continue
+        center = el.get("center") or {
+            "lat": (bounds["minlat"] + bounds["maxlat"]) / 2,
+            "lon": (bounds["minlon"] + bounds["maxlon"]) / 2,
+        }
         h = (bounds["maxlat"] - bounds["minlat"]) * KM_PER_DEGREE_LAT
         w = (
             (bounds["maxlon"] - bounds["minlon"])
@@ -235,13 +262,16 @@ async def overpass_forests(client, box) -> list[dict]:
     q = f"""[out:json][timeout:45][bbox:{s},{w},{n},{e}];
 (way["landuse"="forest"]; way["natural"="wood"];
  relation["landuse"="forest"]; relation["natural"="wood"];);
-out center bb;"""
+out bb;"""
     last: Exception | None = None
     for url in OVERPASS_URLS:
         try:
             resp = await client.post(url, data={"data": q}, timeout=60)
             if resp.status_code == 200:
-                return resp.json().get("elements", [])
+                data = resp.json()
+                if data.get("remark"):
+                    print(f"          overpass remark: {data['remark'][:150]}", file=sys.stderr)
+                return data.get("elements", [])
             last = httpx.HTTPStatusError(f"{resp.status_code}", request=resp.request, response=resp)
         except httpx.TransportError as exc:
             last = exc
@@ -308,7 +338,9 @@ async def main(args: argparse.Namespace) -> None:
                     continue  # the point already matches its altitude
                 place = None
                 for variant in name_variants(z.name):
-                    candidate = pick_place(await geocode(client, nominatim, variant, z.province))
+                    candidate = pick_place(
+                        await geocode(client, nominatim, variant, z.province), (z.lat, z.lon)
+                    )
                     if candidate and (
                         place is None
                         or (candidate.get("category"), candidate.get("type")) in NATURAL_KINDS
@@ -317,6 +349,8 @@ async def main(args: argparse.Namespace) -> None:
                     if place and (place.get("category"), place.get("type")) in NATURAL_KINDS:
                         break
                 forest = None
+                if place is None:
+                    place = around_point(z.lat, z.lon)
                 if place:
                     elements = await overpass_forests(client, search_box(place))
                     near = (float(place["lat"]), float(place["lon"]))
