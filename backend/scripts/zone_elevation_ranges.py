@@ -7,7 +7,7 @@ A zone is stored as one point, but its forest spans a range of altitudes. This s
    listed in ZONE_RADIUS_KM);
 2. keeps only the points that fall inside a forest in OpenStreetMap (landuse=forest or
    natural=wood, via the Overpass API), so meadows, rock, summits and villages do not count;
-3. gets their altitude from the Open-Meteo Elevation API (Copernicus DEM, ~90 m);
+3. gets their altitude from the OpenTopoData API (EU-DEM 25 m, SRTM 30 m as fallback);
 4. takes the central band (p10–p90), caps it at the usual upper limit of the zone's forest
    type and makes sure the zone's own point is inside.
 
@@ -16,8 +16,8 @@ point and the line is flagged, so it can be checked by hand.
 
 Dry run by default: prints the proposal (works before migration 014 is deployed). --apply
 writes elevation_min_m / elevation_max_m (and elevation_m with --update-point) and needs
-migration 014 applied to that database. Cost per zone: 1 Overpass query and 2–3 Open-Meteo
-calls, from the same daily Open-Meteo budget as the ingest.
+migration 014 applied to that database. Cost per zone: 1 Overpass query and 1–2 OpenTopoData
+requests (public limit 1,000 a day: about 450 for every zone).
 
 Usage:
     cd backend
@@ -41,7 +41,11 @@ from dataclasses import dataclass
 
 import httpx
 
-ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
+# OpenTopoData public API: EU-DEM 25 m, SRTM 30 m where EU-DEM has no data. Limits: 100
+# locations per request, 1 request per second, 1,000 requests per day, counted per request
+# (Open-Meteo's elevation API counts every location as one call: ~150 per zone, too many).
+ELEVATION_URL = "https://api.opentopodata.org/v1/eudem25m,srtm30m"
+ELEVATION_PAUSE_S = 1.1
 # Public Overpass servers: the main one, then a mirror. Busy servers answer 429 or 504.
 OVERPASS_URLS = (
     "https://overpass-api.de/api/interpreter",
@@ -193,19 +197,17 @@ def elevation_band(
 # ── I/O ───────────────────────────────────────────────────────────────────────
 
 
-async def fetch_elevations(client: httpx.AsyncClient, points: list[Point]) -> list[float]:
-    out: list[float] = []
+async def fetch_elevations(client: httpx.AsyncClient, points: list[Point]) -> list[float | None]:
+    """Altitude of each point (None where no dataset covers it), 100 points per request."""
+    out: list[float | None] = []
     for k in range(0, len(points), MAX_POINTS_PER_CALL):
         chunk = points[k : k + MAX_POINTS_PER_CALL]
         resp = await client.get(
-            ELEVATION_URL,
-            params={
-                "latitude": ",".join(f"{p[0]}" for p in chunk),
-                "longitude": ",".join(f"{p[1]}" for p in chunk),
-            },
+            ELEVATION_URL, params={"locations": "|".join(f"{p[0]},{p[1]}" for p in chunk)}
         )
         resp.raise_for_status()
-        out += [float(e) for e in resp.json()["elevation"]]
+        out += [r["elevation"] for r in resp.json()["results"]]
+        await asyncio.sleep(ELEVATION_PAUSE_S)
     return out
 
 
@@ -289,8 +291,13 @@ async def main(args: argparse.Namespace) -> None:
                 forest = in_forest(grid, await fetch_forests(client, z.lat, z.lon, radius))
                 masked = len(forest) >= MIN_FOREST_POINTS
                 sample = forest if masked else grid
-                (point_m,) = await fetch_elevations(client, [(z.lat, z.lon)])
-                elevations = await fetch_elevations(client, sample)
+                # the zone point goes first in the same request: one call less per zone
+                point_m, *values = await fetch_elevations(client, [(z.lat, z.lon), *sample])
+                elevations = [v for v in values if v is not None]
+                if point_m is None or not elevations:
+                    print(f"{z.id:9} ERROR no altitude data for this zone", flush=True)
+                    failed.append(z.id)
+                    continue
             except httpx.HTTPStatusError as exc:
                 body = exc.response.text[:200].replace("\n", " ")
                 print(

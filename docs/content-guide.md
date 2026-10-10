@@ -61,8 +61,8 @@ Every zone value is either **static** (set once when the zone is created, review
 | `name`, `region`, `province` | Static | [IGN / CNIG](https://www.ign.es) official place names | By hand | Never |
 | `lat`, `lon` | Static | IGN viewer or OpenStreetMap; a representative point of the forest, not a summit or a village | By hand | Never |
 | `geom` | Derived | PostGIS, generated from `lat`/`lon` | Automatic (do not insert) | With `lat`/`lon` |
-| `elevation_m` | Static | Open-Meteo Elevation API (Copernicus DEM, ~90 m) at `lat`/`lon` | `backend/scripts/zone_elevation_ranges.py` | Never |
-| `elevation_min_m`, `elevation_max_m` | Static | Grid of points in a circle around the zone (3 km, wider for zones in `ZONE_RADIUS_KM`), kept only where OpenStreetMap has forest (`landuse=forest`, `natural=wood`, Overpass API); their altitude from the Open-Meteo Elevation API; central band p10–p90, capped by forest type | `backend/scripts/zone_elevation_ranges.py` (dry run first, then apply) | Never; recalculate if the zone point moves or OpenStreetMap forests change a lot |
+| `elevation_m` | Static | OpenTopoData API (EU-DEM 25 m, SRTM 30 m fallback) at `lat`/`lon` | `backend/scripts/zone_elevation_ranges.py` | Never |
+| `elevation_min_m`, `elevation_max_m` | Static | Grid of points in a circle around the zone (3 km, wider for zones in `ZONE_RADIUS_KM`), kept only where OpenStreetMap has forest (`landuse=forest`, `natural=wood`, Overpass API); their altitude from the OpenTopoData API (EU-DEM 25 m); central band p10–p90, capped by forest type | `backend/scripts/zone_elevation_ranges.py` (dry run first, then apply) | Never; recalculate if the zone point moves or OpenStreetMap forests change a lot |
 | `forest_type` | Static | MITECO Mapa Forestal de España (official classification); OpenStreetMap as a check | By hand | Never |
 | `soil_type` | Static | Geological map (IGME) when known | By hand, optional | Never |
 | `description` | Static | Own text | By hand | Never |
@@ -70,7 +70,7 @@ Every zone value is either **static** (set once when the zone is created, review
 | `weather_cache` (current weather) | Dynamic | Open-Meteo forecast API | `backend/app/services/weather_refresh.py` | Every 3 h |
 | `scores_cache` (`score_oi` + `score_detail` per model version) | Computed | `climate_history` + zone altitude, scoring model (`model_version`) | Daily ingest | Daily, after the ingest |
 
-Open-Meteo free tier: non-commercial use only, 10,000 calls/day shared by ingest, weather refresh, backfills and elevation. A paid plan is needed once Fungus has subscriptions or ads.
+Open-Meteo free tier: non-commercial use only, 10,000 calls/day shared by ingest, weather refresh and backfills; a request with several locations counts one call per location. Altitude comes from OpenTopoData (public API: 1,000 requests/day, 100 locations each). A paid plan is needed once Fungus has subscriptions or ads.
 
 ---
 
