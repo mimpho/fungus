@@ -11,7 +11,22 @@ Decisions made during active development, with their reasoning. Complements CLAU
 **Deviation from `system/workflows.spec.md`:** `epic/v8-android` was merged into `main` (PR #119, merge commit) **without release tag and without closing the epic**, while the app is incomplete. Reasons: everything should live in `main` as the base for the Observatory work; the web theming and fixes inside the epic (light theme, profile tabs) are already valuable in production; `mobile/` is an isolated Expo project, so having it in `main` does not affect the web build, the API or Vercel/Render deploys. The `vX.Y.0` tag and the epic close are deferred until v8.0 is finished.
 
 **Consequences:**
-- The Observatory gets its own epic, `epic/v9-observatory` (v9.0), cut from `main`; its `feat/`, `fix/` and `chore/` branches are cut from that epic as usual. The roadmap is renumbered: SEO moves from v9.0 to v10.0; v8.5 (shared package) is unchanged.
+- The Observatory gets its own epic, `epic/observatory`, cut from `main`; its `feat/`, `fix/` and `chore/` branches are cut from that epic as usual.
+
+---
+
+## Epics are named, not numbered, until delivery (2026-10-10)
+
+**Decision:** epics and their branches carry a name (`epic/observatory`, `feat/observatory-scoring-v2`), not a version. The version is assigned when the epic is merged into `main`: next free MINOR and tag `vX.Y.0`. The roadmap lists planned epics by priority without numbers.
+
+**Why:** a number on a planned epic implies a sequence that does not exist yet. Reprioritising (today SEO went from v9.0 to v10.0 and back to unnumbered) forces renaming docs and branches, and the numbers stop meaning anything; `/health` still reports 7.1.0 while v8 is already in `main`. The version should describe what was delivered and in what order.
+
+**Details:**
+- `system/workflows.spec.md` updated: branch naming (`epic/<name>`, `feat/<epic>-<topic>`), a Versioning section, and the tag rule (version assigned at merge to `main`).
+- Legacy: `epic/v8-android` and its `feat/v8-*` branches keep their names; v8.x stays reserved for the Android app.
+- The `v2` of the scoring is a model version (`model_version` in `score_detail`), unrelated to product versions.
+
+**Discarded:** keeping sequential numbers and renumbering on each reprioritisation (churn, wrong history); using dates as epic names (do not say what the epic does).
 - `memory/pending.md`: Observatory block first; the v8.0 block is marked paused.
 - `prebuild` css-vars hook removed (the generator is out of sync); `npm run gen:css-vars` stays as a manual script.
 

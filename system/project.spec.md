@@ -482,8 +482,13 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v6.0 | ✅ Done | OpenSpecs migration — structured SSOT, IDE-agnostic |
 | v7.0 | ✅ Done | Social login: Google OAuth2 |
 | v7.1 | ✅ Done | Email confirmation on registration (Resend) |
-| v8.0 | ⏸ Paused | Android mobile app (React Native + Expo SDK 54 · MapLibre · EAS Build). Paused 2026-10-10; merged into `main` without tag |
-| v9.0 | 🚧 In progress | Observatory (web): scoring v2 · daily series · date/species scores · Observatory page (`epic/v9-observatory`) |
-| v8.5 | 🗂 Backlog | Shared package — scoring, constants, types, i18n as monorepo internal packages |
-| v10.0 | 🗂 Backlog | SEO: static prerendering + Core Web Vitals |
-| — | 🗂 No date | Hardening: move generator API keys to backend FastAPI |
+
+**Next epics** — ordered by priority, no version number (assigned when the epic is merged into `main`; see `system/workflows.spec.md`):
+
+| # | Epic | Status | Scope |
+|---|---|---|---|
+| 1 | `epic/observatory` | 🚧 In progress | Observatory (web): scoring v2 · daily series · date/species scores · Observatory page |
+| — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ Paused | Android app (React Native + Expo SDK 54 · MapLibre · EAS Build). Paused 2026-10-10; merged into `main` without tag |
+| 2 | Shared package | 🗂 Backlog | Scoring, constants, types, i18n as monorepo internal packages |
+| 3 | SEO | 🗂 Backlog | Static prerendering + Core Web Vitals |
+| — | Hardening | 🗂 No date | Move generator API keys to backend FastAPI |

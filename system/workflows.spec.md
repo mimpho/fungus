@@ -38,22 +38,28 @@ Backlog (pending.md)
 
 | Type | Pattern | Target | Description |
 |---|---|---|---|
-| Epic | `epic/<name>` | `main` | Covers a full MINOR (vX.Y). E.g. `epic/v7-oauth` |
-| Feature | `feat/vX-Y-<name>` | epic branch | One PATCH. E.g. `feat/v7-0-google-signin` |
-| Fix | `fix/vX-Y-<name>` | epic branch | One fix PATCH |
-| Chore (code) | `chore/vX-Y-<name>` | epic branch | One maintenance PATCH |
-| Chore (project) | `chore/<name>` | `main` via PR | Docs, config, no feature version |
+| Epic | `epic/<name>` | `main` | Covers a full MINOR. Named by what it does, no version. E.g. `epic/observatory` |
+| Feature | `feat/<epic>-<topic>` | epic branch | One feature. E.g. `feat/observatory-scoring-v2` |
+| Fix (epic) | `fix/<epic>-<topic>` | epic branch | One fix inside the epic |
+| Chore (code) | `chore/<epic>-<topic>` | epic branch | One maintenance task inside the epic |
+| Fix / Chore (project) | `fix/<name>`, `chore/<name>` | `main` via PR | Cross-cutting fixes, docs, config; not part of any epic |
 
-**Rule**: `feat/`, `fix/` and `chore/vX-Y-*` branches are always cut from the epic branch, not from `main`. This avoids conflicts when the epic branch has changes that `main` does not yet have.
+**Rule**: branches that belong to an epic are always cut from the epic branch, not from `main`; the epic slug in the name says which one. This avoids conflicts when the epic branch has changes that `main` does not yet have.
+
+### Versioning
+
+Epics are **not numbered while they are planned or in development**: the roadmap is ordered by priority and reprioritising is just moving a row. The version is assigned **when the epic is merged into `main`**: next free MINOR, tag `vX.Y.0` right after the merge. The version therefore reflects delivery order, not planning order.
+
+Legacy: `epic/v8-android` and its `feat/v8-*` branches keep their names (v8.x stays reserved for the Android app). Epics created from 2026-10-10 follow the rule above.
 
 **`main` has branch protection** — never direct push. Every change, including one-line doc fixes, goes through a PR.
 
 ### Integration
 
 ```
-feat/vX-Y-*          ──squash──▶  epic/vX-Y  ──merge --no-ff──▶  main
-fix/vX-Y-*           ──squash──▶
-chore/vX-Y-* (code)  ──squash──▶
+feat/<epic>-*          ──squash──▶  epic/<epic>  ──merge --no-ff──▶  main
+fix/<epic>-*           ──squash──▶
+chore/<epic>-* (code)  ──squash──▶
 
 chore/* (project-wide)  ──squash──▶  main (directly)
 ```
@@ -79,8 +85,8 @@ Only after those file edits are in place, Claude's job is done. **Claude never r
 
 ```bash
 git checkout main
-git merge --no-ff epic/v7-oauth -m "chore: merge epic/v7-oauth — release v7.0.0"
-git tag -a v7.0.0 -m "v7.0.0: Google OAuth2 complete"
+git merge --no-ff epic/observatory -m "chore: merge epic/observatory — release vX.Y.0"
+git tag -a vX.Y.0 -m "vX.Y.0: Observatory complete"
 git push origin main --tags
 ```
 
@@ -88,7 +94,7 @@ git push origin main --tags
 
 ```bash
 git fetch origin
-git rebase epic/v7-oauth
+git rebase epic/observatory
 ```
 
 ### Invariable rules
@@ -98,7 +104,7 @@ git rebase epic/v7-oauth
 | Never rebase `epic/*` or `main` | Shared branches — rewriting history breaks everyone's local copy |
 | Never `push --force` to `epic/*` or `main` | Same reason |
 | QA before squash | `git checkout <branch>` for manual QA. Only provide the squash+delete block after QA is confirmed |
-| Tag after every MINOR merge to main | `git tag -a vX.Y.0` immediately after the merge |
+| Tag after every epic merged into main | `git tag -a vX.Y.0` immediately after the merge, with the next free MINOR (the version is assigned here, not before) |
 | Delete feature branches after merge | Use `git branch -D` (force) — squash leaves the tip unreachable |
 
 ### Cheatsheet
@@ -107,25 +113,25 @@ git rebase epic/v7-oauth
 
 ```bash
 # New feature
-git checkout epic/v7-oauth
-git checkout -b feat/v7-0-google-signin
+git checkout epic/observatory
+git checkout -b feat/observatory-scoring-v2
 
 # Sync while working
-git fetch origin && git rebase epic/v7-oauth
+git fetch origin && git rebase epic/observatory
 
 # QA — checkout for manual inspection
-git checkout feat/v7-0-google-signin
+git checkout feat/observatory-scoring-v2
 
 # After QA passes — squash + delete (paste the whole block)
-git checkout epic/v7-oauth && \
-git merge --squash feat/v7-0-google-signin && \
-git commit -m "feat(auth): add Google OAuth2 signin flow" && \
-git branch -D feat/v7-0-google-signin
+git checkout epic/observatory && \
+git merge --squash feat/observatory-scoring-v2 && \
+git commit -m "feat(scoring): add scoring v2 (pure functions)" && \
+git branch -D feat/observatory-scoring-v2
 
 # Phase close — merge to main + tag
 git checkout main && \
-git merge --no-ff epic/v7-oauth -m "chore: merge epic/v7-oauth — release v7.0.0" && \
-git tag -a v7.0.0 -m "v7.0.0: Google OAuth2 complete" && \
+git merge --no-ff epic/observatory -m "chore: merge epic/observatory — release vX.Y.0" && \
+git tag -a vX.Y.0 -m "vX.Y.0: Observatory complete" && \
 git push origin main --tags
 ```
 

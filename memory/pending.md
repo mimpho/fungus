@@ -4,9 +4,20 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
-## 🔴 Priority — Observatory (web), phase 1 (`epic/v9-observatory`) — 2026-10-10
+## 🔴 Priority — Observatory (web), phase 1 (`epic/observatory`) — 2026-10-10
 
-Product re-prioritised on 2026-10-10: the web Observatory comes first and the Android app is paused (see `memory/decisions.md`). Source of truth: the Observatory design document (includes scoring v2 and its task list). Hand-off: `observatorio-paso-a-desarrollo` in the Fungus project. Order of work:
+Product re-prioritised on 2026-10-10: the web Observatory comes first and the Android app is paused (see `memory/decisions.md`). Source of truth: the Observatory design document (includes scoring v2 and its task list). Hand-off: `observatorio-paso-a-desarrollo` in the Fungus project. Epic: `epic/observatory` (no version number until it is merged into `main`, see `system/workflows.spec.md`). Branches, cut from the epic and squash-merged into it, in this order:
+
+1. `feat/observatory-scoring-v2`: `scoring_v2.py` (pure functions) + tests with the design document's cases (Montseny 49, La Molina 7, Setcases 16, Costabona 20 on 2026-10-06).
+2. `feat/observatory-ingest-v2`: ingest requests 100 days and stores `score_detail.v2` with `model_version`; backfill from 2024-10-01 (`climate_history` only, no Open-Meteo calls).
+3. `feat/observatory-api`: daily series, score by date and by species, mushrooms favourable for a date, v2 with its breakdown.
+4. `feat/observatory-bands-elevation`: five-band scale with the `--mid` token, zone altitude as a range (`elevation_min_m` / `elevation_max_m`, migration).
+5. `feat/observatory-page`: the page following the prototype, view state in the URL.
+6. `feat/observatory-forecast`: multi-day Open-Meteo forecast stored (paid plan required).
+
+Before starting, two project-wide fixes from `main` (they affect this epic): `fix/migrations-on-startup` (a local run applies migrations to production; branch 4 adds one) and `fix/weather-cache`. Both are described below.
+
+Detail of the work:
 
 - [ ] Scoring v2 in the backend (next section).
 - [ ] Endpoints: daily series from `climate_history`; score by date and by species; mushrooms favourable for a given date.
@@ -117,7 +128,7 @@ iOS fuera de roadmap (Apple Developer $99/año); Google Play en v8.1.
 
 ---
 
-## 🗂 Backlog — v10.0 SEO
+## 🗂 Backlog — SEO epic
 
 - Static prerendering at build time for known routes (`/especies/:id`, `/zonas/:id`, etc.)
 - `react-helmet-async`: dynamic meta tags per route (title, description, Open Graph)
@@ -125,9 +136,9 @@ iOS fuera de roadmap (Apple Developer $99/año); Google Play en v8.1.
 
 ---
 
-## 🗂 v8.5 — `shared/` design tokens & business logic (web + mobile)
+## 🗂 Backlog — Shared package epic: `shared/` design tokens & business logic (web + mobile)
 
-**Nota (2026-06-18):** la porción de mayor riesgo (scoring + constants) se adelanta como `chore/v8-1-shared-scoring` antes de `v8-2-species` — ver epic Android arriba. Esta sección v8.5 queda acotada a colores, tipos e i18n, que sí requieren el refactor previo del web (`chore/shared-design-tokens`) y pueden esperar a después de v9.0.
+**Nota (2026-06-18):** la porción de mayor riesgo (scoring + constants) se adelanta como `chore/v8-1-shared-scoring` antes de `v8-2-species` — ver epic Android arriba. Esta sección queda acotada a colores, tipos e i18n, que sí requieren el refactor previo del web (`chore/shared-design-tokens`) y pueden esperar a después de la épica SEO.
 
 Actualmente web y mobile duplican lógica que debería tener una sola fuente de verdad:
 
@@ -146,7 +157,7 @@ Actualmente web y mobile duplican lógica que debería tener una sola fuente de 
 - `shared/types.ts` — Zone, Species, WeatherParams, etc.
 - `shared/i18n.ts` — strings de traducción (el mecanismo de carga queda en cada plataforma)
 
-**Prerequisito:** el web necesita refactorizarse para importar desde `shared/` en vez de definir colores en CSS directamente. Hacerlo en un `chore/shared-design-tokens` antes de v9.0.
+**Prerequisito:** el web necesita refactorizarse para importar desde `shared/` en vez de definir colores en CSS directamente. Hacerlo en un `chore/shared-design-tokens` antes de la épica SEO.
 
 **Prioridad inmediata:** scoring y constants son los más críticos — cualquier cambio en los pesos de la fórmula debe propagarse a ambos fronts.
 
