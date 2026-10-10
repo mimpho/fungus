@@ -26,7 +26,7 @@ Detail of the work:
 - [ ] Data: finish the backfill oct 2025 – sep 2026 (verify), backfill oct 2024 – sep 2025 on another day (Open-Meteo daily limit).
 - [ ] Ops: set `ALERT_EMAIL` and `STALE_ZONE_DAYS=3` in Render (done, verify they apply after deploy). With the normal ~2-day archive lag, `STALE_ZONE_DAYS=2` has no margin and flags zones one day behind.
 
-Open, does not block (calibration): field-trip log; validate with autumns 2024 and 2025; soil-temperature optimum per species; `cycle_days`; from which day the curve counts; altitude caps of Pyrenees species sheets and range for the other zones; trip phase label; report hash; years of history; remove the duplicated scoring in the app (phase 2).
+Open, does not block (calibration): a single rain of < 15 mm on dry soil adds no activation (the shaded bucket never reaches 25 %), check against the field-trip log; field-trip log; validate with autumns 2024 and 2025; soil-temperature optimum per species; `cycle_days`; from which day the curve counts; altitude caps of Pyrenees species sheets and range for the other zones; trip phase label; report hash; years of history; remove the duplicated scoring in the app (phase 2).
 
 ---
 

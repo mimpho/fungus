@@ -234,6 +234,14 @@ Feature: Daily ingest makes v2 the main score   [OQ-2]
     And the factor block of the zone card shows the v2 factors (activation, soil moisture, temperature, season, drying) instead of pa21, thermal, ripening
     And zones are sorted by v2
 
+  Scenario: a low v2 with rain on the way says so
+    Given a zone whose v2 is low and that has pending rain runs
+    Then the zone list and the card show, next to the score, when the biggest one would start to show ("lluvia del 6 oct, se notará hacia el 20")
+    # Check of 2026-10-10 on all 214 zones (data up to 9 Oct): 193 Malo, median v2 1, because the summer
+    # was dry and the 3–8 Oct rains are too recent to count; 200 zones have rain on the way, and with no
+    # more rain about 55 zones would reach Bueno or better around 23 Oct. Without this line the web would
+    # look broken right after a big rain.
+
 Feature: v1/v2 comparison for calibration   [OQ-1]
 
   Scenario: the script recalculates history without calling Open-Meteo
