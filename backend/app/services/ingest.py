@@ -12,7 +12,7 @@ import asyncio
 import logging
 from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,12 +45,17 @@ async def run_daily_ingest(db: AsyncSession) -> dict:
 
     await _refresh_scores_cache(db, zones)
 
+    stale = await get_stale_zones(db)
+    if stale:
+        await _alert_stale_zones(stale, results["errors"])
+
     summary = {
         "date": yesterday.isoformat(),
         "from": start.isoformat(),
         "zones_processed": len(zones),
         "rows_upserted": results["upserted"],
         "errors": results["errors"],
+        "stale_zones": [z["zone_id"] for z in stale],
         "completed_at": datetime.now(UTC).isoformat(),
     }
     log.info("Ingest complete: %s", summary)
@@ -82,6 +87,72 @@ async def run_backfill(
         "rows_upserted": results["upserted"],
         "errors": results["errors"],
     }
+
+
+# ── Staleness monitoring ──────────────────────────────────────────────────────
+
+async def get_stale_zones(db: AsyncSession, max_age_days: int | None = None) -> list[dict]:
+    """
+    Active zones whose latest climate_history day is older than `max_age_days`
+    (default settings.stale_zone_days), or that have no data at all.
+
+    The daily run re-fetches the last `ingest_lookback_days`, so a zone that
+    stays stale longer than that starts losing days for good — this is what
+    the alert and /health surface.
+    """
+    max_age = settings.stale_zone_days if max_age_days is None else max_age_days
+    cutoff = date.today() - timedelta(days=max_age)
+    # Correlated max() per zone: uses the (zone_id, date) index → ~10 ms for 214
+    # zones, vs ~1 s for a JOIN + GROUP BY over the whole table.
+    last_day = (
+        select(func.max(ClimateHistory.date))
+        .where(ClimateHistory.zone_id == Zone.id)
+        .correlate(Zone)
+        .scalar_subquery()
+    )
+    per_zone = (
+        select(Zone.id, Zone.name, last_day.label("last_date"))
+        .where(Zone.active == True)  # noqa: E712
+        .subquery()
+    )
+    result = await db.execute(
+        select(per_zone)
+        .where((per_zone.c.last_date.is_(None)) | (per_zone.c.last_date < cutoff))
+        .order_by(per_zone.c.id)
+    )
+    return [
+        {"zone_id": r.id, "name": r.name, "last_date": r.last_date}
+        for r in result
+    ]
+
+
+async def _alert_stale_zones(stale: list[dict], errors: list[dict]) -> None:
+    """Email the stale zones (and today's errors for them) to ALERT_EMAIL."""
+    from app.services.email import send_ops_alert  # local import: avoid cycles
+
+    err_by_zone = {e["zone_id"]: e["error"] for e in errors}
+    lookback = settings.ingest_lookback_days
+    rows = []
+    for z in stale:
+        last = z["last_date"]
+        days = (date.today() - last).days if last else None
+        risk = " ⚠️ perdiendo días" if days is None or days > lookback else ""
+        since = f" (hace {days} días)" if days is not None else ""
+        err = err_by_zone.get(z["zone_id"])
+        err_html = f"<br/><small>{err}</small>" if err else ""
+        rows.append(
+            f"<li><b>{z['zone_id']}</b> {z['name']} — último dato: "
+            f"{last.isoformat() if last else 'nunca'}{since}{risk}{err_html}</li>"
+        )
+    html = (
+        f"<p>{len(stale)} zona(s) sin datos recientes tras la ingesta diaria. "
+        f"La ingesta vuelve a pedir los últimos {lookback} días, así que pasado ese "
+        "plazo los días perdidos ya no se recuperan solos.</p>"
+        f"<ul>{''.join(rows)}</ul>"
+        "<p>Relanzar a mano: <code>python -m scripts.backfill --from AAAA-MM-DD "
+        f"--to AAAA-MM-DD --zones {','.join(z['zone_id'] for z in stale)}</code></p>"
+    )
+    await send_ops_alert(f"Fungus — {len(stale)} zona(s) sin datos recientes", html)
 
 
 # ── Core ingestion logic ──────────────────────────────────────────────────────
