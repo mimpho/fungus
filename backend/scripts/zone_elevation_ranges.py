@@ -39,7 +39,13 @@ from dataclasses import dataclass
 import httpx
 
 ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# Public Overpass servers: the main one, then a mirror. Busy servers answer 429 or 504.
+OVERPASS_URLS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+)
+OVERPASS_RETRIES = 3  # per server
+OVERPASS_BACKOFF_S = 10
 # Overpass answers 406 to generic client User-Agents: identify the app.
 HEADERS = {"User-Agent": "fungus-zone-elevation/1.0 (+https://github.com/mimpho/fungus)"}
 MAX_POINTS_PER_CALL = 100
@@ -197,6 +203,9 @@ async def fetch_elevations(client: httpx.AsyncClient, points: list[Point]) -> li
     return out
 
 
+BUSY_STATUSES = (429, 502, 503, 504)
+
+
 async def fetch_forests(
     client: httpx.AsyncClient, lat: float, lon: float, radius_km: float
 ) -> list[list[Segment]]:
@@ -209,19 +218,32 @@ async def fetch_forests(
   relation["natural"="wood"](around:{r},{lat},{lon});
 );
 out geom;"""
-    resp = await client.post(OVERPASS_URL, data={"data": query}, timeout=120)
-    resp.raise_for_status()
-    return forest_shapes(resp.json().get("elements", []))
+    last_error: Exception | None = None
+    for url in OVERPASS_URLS:
+        for attempt in range(OVERPASS_RETRIES):
+            try:
+                resp = await client.post(url, data={"data": query}, timeout=120)
+            except httpx.TransportError as exc:  # timeouts, dropped connections
+                last_error = exc
+            else:
+                if resp.status_code not in BUSY_STATUSES:
+                    resp.raise_for_status()
+                    return forest_shapes(resp.json().get("elements", []))
+                last_error = httpx.HTTPStatusError(
+                    f"busy ({resp.status_code})", request=resp.request, response=resp
+                )
+            await asyncio.sleep(OVERPASS_BACKOFF_S * (attempt + 1))
+    assert last_error is not None
+    raise last_error
 
 
 async def main(args: argparse.Namespace) -> None:
     from sqlalchemy import select, update
 
-    from app.database import AsyncSessionLocal
+    from app.database import AsyncSessionLocal, engine
     from app.models.zone import Zone
 
-    # The app engine echoes every SQL statement; this script only needs its own output.
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    engine.echo = False  # the app echoes every SQL statement in dev; keep only our table
 
     # Only the columns this script reads: the dry run must work before migration 014 is deployed.
     async with AsyncSessionLocal() as db:
