@@ -12,7 +12,7 @@ function ArticleCard({ article, onSelect, t }) {
   return (
     <div
       onClick={() => isPublished && onSelect(article)}
-      className={`glass rounded-2xl overflow-hidden transition-all duration-200 ${isPublished ? 'hover-lift cursor-pointer border border-green-f/20' : 'opacity-60 border border-white/[0.05]'}`}>
+      className={`glass rounded-2xl overflow-hidden transition-all duration-200 ${isPublished ? 'hover-lift cursor-pointer border border-[rgba(74,124,89,0.2)]' : 'opacity-60 border border-cream/[0.08]'}`}>
       <div className="h-56">
         <div className="absolute top-4 right-4">
           {!isPublished && (
@@ -38,7 +38,7 @@ function ArticleCard({ article, onSelect, t }) {
         <div className="flex items-center justify-between mt-3">
           <div className="flex gap-1.5 flex-wrap">
             {article.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="text-xs text-emerald-400 bg-emerald-400/5 px-2 py-0.5 rounded-full">
+              <span key={tag} className="text-xs text-accent-positive bg-accent-positive-subtle px-2 py-0.5 rounded-full">
                 {tag}
               </span>
             ))}
@@ -102,13 +102,13 @@ export default function Articles() {
               <h2 className="font-display text-xl sm:text-3xl text-cream mb-3 leading-snug">
                 {article.title}
               </h2>
-              <p className="text-sm text-amber-100/80 leading-relaxed mb-4 max-w-xl">
+              <p className="text-sm text-cream/75 leading-relaxed mb-4 max-w-xl">
                 {article.summary}
               </p>
               <div className="flex items-center gap-4">
                 <div className="flex gap-2">
                   {article.tags.map(tag => (
-                    <span key={tag} className="text-emerald-400 bg-emerald-400/5 text-xs px-2 py-0.5 rounded-full">
+                    <span key={tag} className="text-accent-positive bg-accent-positive-subtle text-xs px-2 py-0.5 rounded-full">
                       {tag}
                     </span>
                   ))}

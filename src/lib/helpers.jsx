@@ -1,6 +1,6 @@
 // =====================================================
-// helpers.jsx — Iconos, utilidades y micro-componentes compartidos
-// Importar desde cualquier página o componente:
+// helpers.jsx — Icons, utilities and shared micro-components
+// Import from any page or component:
 //   import { IC, getEdibilityColor, EdibilityTag, ... } from '@/lib/helpers'
 // =====================================================
 import { useState, useEffect } from 'react';
@@ -10,11 +10,10 @@ import { useApp } from '../contexts/AppContext';
 export { MODAL, COLORS };
 
 // =====================================================
-// resolveUrl — garantiza rutas absolutas desde la raíz
-// Las URLs de assets en los datos no tienen '/' inicial.
-// Cuando la ruta del browser es /especies/boletus-edulis
-// el browser resuelve rutas relativas desde /especies/,
-// rompiendo todas las imágenes. Esta función lo previene.
+// resolveUrl — ensures absolute paths from the root
+// Asset URLs in data lack a leading '/'.
+// When the browser path is /especies/boletus-edulis
+// relative URLs resolve from /especies/, breaking images.
 // =====================================================
 export function resolveUrl(url) {
   if (!url) return url
@@ -23,7 +22,7 @@ export function resolveUrl(url) {
 }
 
 // =====================================================
-// slugify — normaliza texto a slug URL-friendly
+// slugify — normalises text to a URL-friendly slug
 // =====================================================
 export function slugify(str) {
   return (str || '')
@@ -37,7 +36,7 @@ export function slugify(str) {
 }
 
 // =====================================================
-// IC — Iconos SVG inline (sin dependencias externas)
+// IC — Inline SVG icons (no external dependencies)
 // =====================================================
 export const IC = {
   map: (
@@ -156,57 +155,57 @@ export const IC = {
 };
 
 // =====================================================
-// getEdibilityColor — badge colors para nivel de comestibilidad
+// getEdibilityColor — badge colors by edibility level
 // =====================================================
 export function getEdibilityColor(com) {
   const m = {
-    excelente:     { bg: 'bg-emerald-500/15', text: 'text-emerald-400', dot: 'bg-emerald-400', tKey: 'edib_excelente',
-                     solidBg: 'bg-emerald-600', solidText: 'text-white' },
-    bueno:         { bg: 'bg-teal-500/15',    text: 'text-teal-400',    dot: 'bg-teal-400',    tKey: 'edib_comestible',
-                     solidBg: 'bg-teal-600',    solidText: 'text-white' },
-    comestible:    { bg: 'bg-teal-500/15',    text: 'text-teal-400',    dot: 'bg-teal-400',    tKey: 'edib_comestible',
-                     solidBg: 'bg-teal-600',    solidText: 'text-white' },
-    precaucion:    { bg: 'bg-amber-500/15',   text: 'text-amber-400',   dot: 'bg-amber-400',   tKey: 'edib_precaucion',
-                     solidBg: 'bg-amber-600',   solidText: 'text-white' },
-    no_comestible: { bg: 'bg-slate-500/15',   text: 'text-slate-400',   dot: 'bg-slate-400',   tKey: 'edib_no_comestible',
-                     solidBg: 'bg-slate-600',   solidText: 'text-white' },
-    toxico:        { bg: 'bg-orange-500/15',  text: 'text-orange-400',  dot: 'bg-orange-400',  tKey: 'edib_toxico',
-                     solidBg: 'bg-orange-600',  solidText: 'text-white' },
-    mortal:        { bg: 'bg-red-600/15',     text: 'text-red-400',     dot: 'bg-red-500',     tKey: 'edib_mortal',
-                     solidBg: 'bg-red-700',     solidText: 'text-white' },
+    excelente:     { bg: 'edib-excelente',  text: 'text-[var(--ui-edib-excelente-text)]',  dot: 'edib-dot-excelente',  tKey: 'edib_excelente',
+                     solidBg: 'edib-solid-excelente',  solidText: 'text-white' },
+    bueno:         { bg: 'edib-comestible', text: 'text-[var(--ui-edib-comestible-text)]', dot: 'edib-dot-comestible', tKey: 'edib_comestible',
+                     solidBg: 'edib-solid-comestible', solidText: 'text-white' },
+    comestible:    { bg: 'edib-comestible', text: 'text-[var(--ui-edib-comestible-text)]', dot: 'edib-dot-comestible', tKey: 'edib_comestible',
+                     solidBg: 'edib-solid-comestible', solidText: 'text-white' },
+    precaucion:    { bg: 'edib-precaucion', text: 'text-[var(--ui-edib-precaucion-text)]', dot: 'edib-dot-precaucion', tKey: 'edib_precaucion',
+                     solidBg: 'edib-solid-precaucion', solidText: 'text-white' },
+    no_comestible: { bg: 'edib-neutral',    text: 'text-[var(--ui-edib-neutral-text)]',    dot: 'edib-dot-neutral',    tKey: 'edib_no_comestible',
+                     solidBg: 'edib-solid-neutral',    solidText: 'text-white' },
+    toxico:        { bg: 'edib-toxico',     text: 'text-[var(--ui-edib-toxico-text)]',     dot: 'edib-dot-toxico',     tKey: 'edib_toxico',
+                     solidBg: 'edib-solid-toxico',     solidText: 'text-white' },
+    mortal:        { bg: 'edib-mortal',     text: 'text-[var(--ui-edib-mortal-text)]',     dot: 'edib-dot-mortal',     tKey: 'edib_mortal',
+                     solidBg: 'edib-solid-mortal',     solidText: 'text-white' },
   };
   return m[com] || m.no_comestible;
 }
 
 // =====================================================
-// getScoreColor — colores del termómetro de score
+// getScoreColor — score thermometer colors
 // =====================================================
 export function getScoreColor(s) {
-  if (s >= 85) return { bar: 'bg-emerald-400', text: 'text-emerald-400', tKey: 'excelente' };
-  if (s >= 70) return { bar: 'bg-bar',         text: 'text-coffee-light', tKey: 'muyBueno' };
-  if (s >= 55) return { bar: 'bg-amber-500',   text: 'text-amber-400',   tKey: 'bueno' };
-  return             { bar: 'bg-red-500',       text: 'text-red-400',     tKey: 'regular' };
+  if (s >= 85) return { bar: 'score-bar-high', text: 'score-text-high', tKey: 'excelente' };
+  if (s >= 70) return { bar: 'score-bar-good', text: 'score-text-good', tKey: 'muyBueno' };
+  if (s >= 55) return { bar: 'score-bar-ok',   text: 'score-text-ok',   tKey: 'bueno' };
+  return             { bar: 'score-bar-low',   text: 'score-text-low',   tKey: 'regular' };
 }
 
 // =====================================================
-// speciesQualityScore — puntuación de calidad de especies en temporada
+// speciesQualityScore — species quality score for the current season
 //
-// Para una zona y el mes actual, filtra las especies que coinciden en
-// forestType y fruitingMonths, y devuelve una puntuación 0-100 basada
-// en la comestibilidad media de las especies presentes.
+// For a given zone and the current month, filters species matching
+// forestType and fruitingMonths, and returns a 0-100 score based on
+// the mean edibility weight of present species.
 //
-// Pesos de comestibilidad (muy orientados al valor gastronómico real):
-//   excelente  → 100   (Boletus edulis, Cantharellus, Tuber… — el motivo del viaje)
-//   bueno      →  20   (Trufa bianchetto, Marzuelo… — interesantes pero no el objetivo)
-//   comestible →   5   (Hipóloma, Auriscalpio… — existen pero no justifican la salida)
-//   precaucion →   0   (no aptas para consumo general)
+// Edibility weights (strongly skewed toward real gastronomic value):
+//   excelente  → 100   (Boletus edulis, Cantharellus, Tuber… — the reason for the trip)
+//   bueno      →  20   (Tuber borchii, Marzuelo… — interesting but not the main goal)
+//   comestible →   5   (Hypholoma, Auriscalpium… — present but not worth the outing)
+//   precaucion →   0   (not suitable for general consumption)
 //   toxico     →   0
 //   mortal     →   0
 //
-// Retorna:
+// Returns:
 //   { sqs: number|null, allToxic: boolean }
-//   sqs=null  → no hay especies para esta zona/mes (sin ajuste al score)
-//   sqs=0 + allToxic=true → solo tóxicas/mortales → score final = 0
+//   sqs=null       → no species for this zone/month (score unchanged)
+//   sqs=0 + allToxic=true → only toxic/lethal species → final score = 0
 // =====================================================
 export const EDIBILITY_SCORE = {
   excelente:  100,
@@ -231,24 +230,24 @@ export function speciesQualityScore(zone, allSpecies) {
 }
 
 /**
- * Ajusta el overallScore de las condiciones meteorológicas según la calidad
- * de las especies disponibles en la zona y mes actual.
+ * Adjusts the overallScore of weather conditions based on the quality
+ * of species available in the zone for the current month.
  *
- *  - Solo tóxicas/mortales  → overallScore = 0 (zona sin interés gastronómico)
- *  - Con datos de especies  → 60 % meteorología + 40 % calidad de especies
- *  - Sin especies en temporada → score meteorológico sin cambio
+ *  - Only toxic/lethal species → overallScore = 0 (no gastronomic interest)
+ *  - With species data         → 60% weather + 40% species quality
+ *  - No in-season species      → weather score unchanged
  */
 export function applySpeciesModifier(conditions, zone, allSpecies) {
   const { sqs, allToxic } = speciesQualityScore(zone, allSpecies)
-  if (sqs === null) return conditions                                   // sin datos → neutro
+  if (sqs === null) return conditions                                   // no data → no change
   if (allToxic)     return { ...conditions, overallScore: 0, speciesScore: 0 }
   const adjusted = Math.round(conditions.overallScore * 0.60 + sqs * 0.40)
   return { ...conditions, overallScore: Math.max(0, Math.min(100, adjusted)), speciesScore: sqs }
 }
 
 // =====================================================
-// fakeConditions — genera condiciones aleatorias mock
-// Usar con useMemo(() => fakeConditions(), [zone.id]) para evitar flicker
+// fakeConditions — generates random mock conditions
+// Use with useMemo(() => fakeConditions(), [zone.id]) to avoid flicker
 // =====================================================
 export function fakeConditions() {
   const score = Math.floor(60 + Math.random() * 35);
@@ -264,9 +263,9 @@ export function fakeConditions() {
 }
 
 // =====================================================
-// EdibilityTag — badge de comestibilidad reutilizable
-// variant="glass"   → fondo semitransparente (listas)
-// variant="onImage" → fondo sólido (sobre fotos)
+// EdibilityTag — reusable edibility badge
+// variant="glass"   → semi-transparent background (lists)
+// variant="onImage" → solid background (over photos)
 // =====================================================
 export function EdibilityTag({ edibility, variant = 'glass', showDot = false, className = '' }) {
   const { t } = useApp();
@@ -288,7 +287,7 @@ export function EdibilityTag({ edibility, variant = 'glass', showDot = false, cl
 }
 
 // =====================================================
-// SpeciesImg — imagen de especie con fallback a Wikipedia
+// SpeciesImg — species image with Wikipedia fallback
 // =====================================================
 export function SpeciesImg({ localSrc, scientificName, className, style, objectFit, objectPosition }) {
   const [phase, setPhase]     = useState('local');
@@ -333,9 +332,9 @@ export function SpeciesImg({ localSrc, scientificName, className, style, objectF
 }
 
 // =====================================================
-// SpeciesCard — tarjeta de especie reutilizable
-// size="full"    → imagen alta (h-64), botón favorito
-// size="compact" → imagen corta (h-28), sin favorito
+// SpeciesCard — reusable species card
+// size="full"    → tall image (h-64), favourite button
+// size="compact" → short image (h-28), no favourite
 // =====================================================
 export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full', animDelay, enTemporada }) {
   const isCompact = size === 'compact';
@@ -364,7 +363,7 @@ export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full'
           <EdibilityTag edibility={species.edibility} variant="onImage" />
         </div>
         {enTemporada && (
-          <span className="absolute bottom-3 right-3 text-emerald-400 text-[9px] font-medium">EN TEMPORADA</span>
+          <span className="absolute bottom-3 right-3 text-accent-positive text-[9px] font-medium">EN TEMPORADA</span>
         )}
       </div>
       {isCompact ? (
@@ -384,31 +383,31 @@ export function SpeciesCard({ species, onOpen, isFav, onToggleFav, size = 'full'
 }
 
 // =====================================================
-// edibilityStyle — icono y colores derivados de edibility
-// Usado por ConfusionesBlock; la presentación no se almacena en BD
+// edibilityStyle — icon and colors derived from edibility
+// Used by ConfusionesBlock; presentation is not stored in the DB
 // =====================================================
 function edibilityStyle(edibility) {
   switch (edibility) {
     case 'excelente':
-      return { icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-emerald-400' }
+      return { icon: '⭐', borderColor: 'border-emerald-500/30', nameColor: 'text-[var(--ui-edib-excelente-text)]' }
     case 'bueno':
     case 'comestible':
-      return { icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-emerald-300' }
+      return { icon: '✅', borderColor: 'border-emerald-500/20', nameColor: 'text-[var(--ui-edib-comestible-text)]' }
     case 'mortal':
-      return { icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-red-400' }
+      return { icon: '☠️', borderColor: 'border-red-500/50', nameColor: 'text-[var(--ui-edib-mortal-text)]' }
     case 'no_comestible':
-      return { icon: 'ℹ️', borderColor: 'border-blue-500/30', nameColor: 'text-blue-400' }
+      return { icon: 'ℹ️', borderColor: 'border-blue-500/30', nameColor: 'text-[var(--ui-edib-neutral-text)]' }
     default: // toxico, precaucion, psicoactivo
-      return { icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-amber-400' }
+      return { icon: '⚠️', borderColor: 'border-amber-500/40', nameColor: 'text-[var(--ui-edib-precaucion-text)]' }
   }
 }
 
-// ELIMINADO: CONFUSIONES_POR_FAMILIA y CONFUSION_GENERICA (v4.6.2)
-// Las confusiones viven en extra_data.confusions (BD) → detail.confusions en el modal.
-// Ver memory/decisions.md § Confusiones — estructura de datos (v4.6.2)
+// REMOVED: CONFUSIONES_POR_FAMILIA and CONFUSION_GENERICA (v4.6.2)
+// Confusions now live in extra_data.confusions (DB) → detail.confusions in the modal.
+// See memory/decisions.md § Confusiones — data structure (v4.6.2)
 
 // =====================================================
-// TaxonomyBlock — acordeón de sinónimos
+// TaxonomyBlock — synonyms accordion
 // =====================================================
 export function TaxonomyBlock({ species }) {
   const { t } = useApp()
@@ -434,9 +433,9 @@ export function TaxonomyBlock({ species }) {
 }
 
 // =====================================================
-// ConfusionesBlock — lista de especies confundibles
-// Lee detail.confusions [{with_species_id, diff}] desde la API (v4.6.2)
-// icon/borderColor/nameColor se derivan de edibility via edibilityStyle()
+// ConfusionesBlock — list of confusable species
+// Reads detail.confusions [{with_species_id, diff}] from the API (v4.6.2)
+// icon/borderColor/nameColor are derived from edibility via edibilityStyle()
 // =====================================================
 export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
   const { t } = useApp()
@@ -450,9 +449,9 @@ export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
         return (
           <div key={i}
             onClick={canView ? () => onViewSpecies(ref) : undefined}
-            className={`flex items-start gap-3 bg-white/[0.03] rounded-xl p-3 transition-all ${canView ? 'cursor-pointer hover:bg-white/[0.06] hover-lift' : ''}`}>
-            {/* Imagen — anclada a la izquierda */}
-            <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-white/[0.04]">
+            className={`flex items-start gap-3 rounded-xl p-3 transition-all ${canView ? 'surface-hover cursor-pointer' : 'surface-subtle'}`}>
+            {/* Imagen — anchored left */}
+            <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 surface-subtle">
               <img
                 src={resolveUrl(ref?.photo?.url)}
                 alt={ref?.scientificName ?? ''}
@@ -481,24 +480,24 @@ export function ConfusionesBlock({ species, onViewSpecies, allSpecies = [] }) {
 }
 
 /**
- * Convierte una variable CSS Hexadecimal a RGBA
- * @param {string} variable - El nombre de la variable (ej: '--color-coffee')
- * @param {number} alpha - Opacidad de 0 a 1
+ * Converts a hex CSS variable to an RGBA string
+ * @param {string} variable - CSS variable name (e.g. '--color-coffee')
+ * @param {number} alpha - Opacity from 0 to 1
  */
 export const getRGBAFromAsset = (variable, alpha) => {
-  if (typeof window === 'undefined') return ''; // Prevención para SSR
+  if (typeof window === 'undefined') return ''; // SSR guard
 
-  // 1. Obtener el valor de la variable del root (ej: "#6f4e37")
+  // 1. Read the variable value from :root (e.g. "#6f4e37")
   const rootStyle = getComputedStyle(document.documentElement);
   let hex = rootStyle.getPropertyValue(variable).trim();
 
-  // Si la variable no existe o está vacía, devolvemos un fallback
+  // If the variable is missing or empty, return a fallback
   if (!hex) return `rgba(0,0,0,${alpha})`;
 
-  // Limpiar el '#' si existe
+  // Strip the '#' if present
   hex = hex.replace('#', '');
 
-  // 2. Parsear a RGB
+  // 2. Parse to RGB channels
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);

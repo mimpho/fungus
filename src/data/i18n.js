@@ -156,6 +156,7 @@ export const i18n = {
     avisoMicologo: '⚠️ Datos orientativos. Consulta siempre con un micólogo experto antes de consumir cualquier seta silvestre.',
 
     // ── Perfil ───────────────────────────────────────────────────────────────
+    perfilTabSiguiendo: 'Siguiendo', perfilTabConfig: 'Configuración',
     notifications: 'Notificaciones', datosPer: 'Datos personales', idioma: 'Idioma',
     nombrePer: 'Nombre', emailPer: 'Email', handleSave: 'Guardar cambios',
     followedZones: 'Zonas seguidas', favoriteSpecies: 'Especies favoritas',
@@ -472,6 +473,7 @@ export const i18n = {
     avisoMicologo: '⚠️ Dades orientatives. Consulta sempre amb un micòleg expert abans de consumir cap bolet silvestre.',
 
     // ── Perfil ────────────────────────────────────────────────────────────────
+    perfilTabSiguiendo: 'Seguint', perfilTabConfig: 'Configuració',
     notifications: 'Notificacions', datosPer: 'Dades personals', idioma: 'Idioma',
     nombrePer: 'Nom', emailPer: 'Correu', handleSave: 'Desa els canvis',
     followedZones: 'Zones seguides', favoriteSpecies: 'Espècies favorites',
@@ -788,6 +790,7 @@ export const i18n = {
     avisoMicologo: '⚠️ Indicative data. Always consult with an expert mycologist before consuming any wild mushroom.',
 
     // ── Profile ──────────────────────────────────────────────────────────────
+    perfilTabSiguiendo: 'Following', perfilTabConfig: 'Settings',
     notifications: 'Notifications', datosPer: 'Personal data', idioma: 'Language',
     nombrePer: 'Name', emailPer: 'Email', handleSave: 'Save changes',
     followedZones: 'Followed zones', favoriteSpecies: 'Favourite species',

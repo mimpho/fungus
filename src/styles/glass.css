@@ -1,0 +1,88 @@
+/* ── Glass morphism surfaces ──────────────────────────────────────────────── */
+
+.glass {
+  background: var(--glass-white);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-olive {
+  background: var(--glass-olive);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Opaque variant for floating elements over content (sticky bar) */
+.glass-olive-80 {
+  background: var(--glass-olive-80);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-warm {
+  background: var(--glass-warm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Search bar — uses --color-search-bg in dark, opaque white in light */
+.glass-search {
+  background: var(--color-search-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+[data-theme="light"] .glass-search {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* search-light variant: --color-search-bg (#4c5240) background with cream text.
+   No box-shadow here — shadow is applied on the sticky wrapper per page
+   to avoid being clipped by the Filter button's overflow-hidden. */
+.search-light {
+  background: var(--color-search-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Text/icon color for theme="light" in SearchFilterBar */
+.search-light-text {
+  color: var(--color-cream);
+}
+
+/* Input: cream text + cream placeholder with reduced opacity */
+.search-light-input {
+  color: var(--color-cream);
+}
+
+.search-light-input::placeholder {
+  color: var(--color-cream);
+  opacity: 0.55;
+}
+
+/* Filter dropdown in sticky light — separate class to avoid interfering with the icon.
+   Cascades cream color over search-bg background for all child elements. */
+.filter-dropdown-light * {
+  color: var(--color-cream);
+}
+
+.filter-dropdown-light select,
+.filter-dropdown-light input[type="text"] {
+  color: var(--color-cream);
+  background: rgba(244, 235, 225, 0.08);
+  border-color: rgba(244, 235, 225, 0.20);
+}
+
+.filter-dropdown-light select option {
+  background: var(--color-search-bg);
+  color: var(--color-cream);
+}
+
+/* ── Grain texture ────────────────────────────────────────────────────────── */
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}

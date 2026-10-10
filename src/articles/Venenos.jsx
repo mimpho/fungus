@@ -82,7 +82,7 @@ function VenenosContent() {
       </ArticleSection>
 
       {/* Referencias */}
-      <div className="pt-2 border-t border-white/[0.06]">
+      <div className="pt-2 border-t border-cream/[0.1]">
         <p className="text-cream/60 text-xs leading-relaxed">
           <strong className="text-coffee-light/90">{t.art_refs_label}:</strong><br />
           <span dangerouslySetInnerHTML={{ __html: t.art_ven_refs }} />

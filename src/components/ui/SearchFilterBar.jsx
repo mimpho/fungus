@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react'
 import { IC } from '../../lib/helpers'
 
-// variant="full"  → solo búsqueda
-// variant="split" → búsqueda + botón Filtrar integrado
-// theme="dark"    → (por defecto) fondo glass, texto crema
-// theme="light"   → fondo blanco, texto verde oscuro — para sticky bar
-// itemClassName / iconClassName — overrides manuales (toman precedencia sobre theme)
+// variant="full"  → search only
+// variant="split" → search + integrated Filter button
+// theme="dark"    → (default) glass background, cream text
+// theme="light"   → white background, dark olive text — for sticky bar
+// itemClassName / iconClassName — manual overrides (take precedence over theme)
 export function SearchFilterBar({ value, onChange, onClear, placeholder, onFilterClick, onSearchFocus, activeFilters = 0, variant = 'full', className = '', itemClassName, iconClassName, theme = 'dark' }) {
   const H = '52px'
   const R = '26px'
@@ -16,8 +16,8 @@ export function SearchFilterBar({ value, onChange, onClear, placeholder, onFilte
 
   const light = theme === 'light'
 
-  // itemClassName/iconClassName son overrides explícitos; sino, deriva del theme
-  const itemCls    = itemClassName ?? (light ? 'search-light'      : 'glass')
+  // itemClassName/iconClassName are explicit overrides; otherwise derived from theme
+  const itemCls    = itemClassName ?? (light ? 'glass-search'      : 'glass')
   const iconCls    = iconClassName ?? (light ? 'search-light-text' : 'text-cream/85')
   const inputTxtCls = light ? 'search-light-input' : 'text-cream placeholder-cream/85'
   const clearCls    = light

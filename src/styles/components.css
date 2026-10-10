@@ -1,0 +1,132 @@
+/* ── UI components — reusable class-based patterns ───────────────────────── */
+
+/* ── Hover lift (cards) ───────────────────────────────────────────────────── */
+.hover-lift {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Nav item ─────────────────────────────────────────────────────────────── */
+.nav-item {
+  color: var(--color-cream);
+}
+.nav-item:hover {
+  background: var(--ui-nav-hover-bg);
+}
+.nav-item--active {
+  background: var(--ui-nav-active-bg);
+  color: var(--ui-nav-active-text);
+}
+.nav-item--active:hover {
+  background: var(--ui-nav-active-bg);
+}
+
+/* ── Filter pill — inactive state ────────────────────────────────────────── */
+.filter-pill-inactive {
+  background: var(--ui-filter-pill-bg);
+  color: var(--ui-filter-pill-text);
+  border: var(--ui-filter-pill-border);
+}
+
+/* ── Progress bar ─────────────────────────────────────────────────────────── */
+.progress-bar {
+  height: 6px;
+  background: var(--ui-progress-track);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ── Modal ────────────────────────────────────────────────────────────────── */
+.modal-outer {
+  padding: 0;
+}
+
+@media (max-width: 639px) {
+  .modal-outer {
+    align-items: flex-end !important;
+  }
+
+  .modal-inner {
+    border-radius: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    position: fixed !important;
+    inset: 0 !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    overflow-y: auto !important;
+  }
+
+  .modal-header {
+    position: relative !important;
+  }
+
+  .modal-scroll {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .modal-inner {
+    border-radius: 1rem !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-scroll {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}
+
+/* ── Light theme — logo ───────────────────────────────────────────────────── */
+/* Logo is white-on-transparent; invert it to dark in light theme */
+[data-theme="light"] .logo-adaptive {
+  filter: invert(1) brightness(0.25);
+}
+
+/* ── Light theme — header border ──────────────────────────────────────────── */
+/* Subtle bottom border so the header is distinguishable from page background */
+[data-theme="light"] header.glass-olive {
+  border-bottom: 1px solid var(--border-default);
+}
+
+/* ── AdminGallery filter pills ────────────────────────────────────────────────
+   Mobile:  search = full pill · selects = single merged pill (no gap between them)
+   Desktop: search = left-rounded · family = flat · edibility = right-rounded
+   ─────────────────────────────────────────────────────────────────────────── */
+.ag-search {
+  border-radius: 26px;
+}
+
+.ag-family {
+  border-radius: 26px 0 0 26px;
+}
+
+.ag-edib {
+  border-radius: 0 26px 26px 0;
+}
+
+@media (min-width: 1024px) {
+  .ag-search {
+    border-radius: 26px 0 0 26px;
+  }
+
+  .ag-family {
+    border-radius: 0;
+  }
+
+  /* ag-edib stays 0 26px 26px 0 — same on both breakpoints */
+}

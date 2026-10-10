@@ -220,8 +220,8 @@ function MicorrizasContent() {
             <div key={i} className="flex gap-3 p-4 glass rounded-xl">
               <span className="text-xl flex-shrink-0 mt-0.5">{item.icon}</span>
               <div>
-                <p className="font-semibold text-[#d9cda1] mb-1" style={{ fontSize: '14px' }}>{item.title}</p>
-                <p className="text-[#f4ebe1]/55 leading-relaxed" style={{ fontSize: '13px' }}>{item.text}</p>
+                <p className="font-semibold text-cream mb-1" style={{ fontSize: '14px' }}>{item.title}</p>
+                <p className="text-cream/55 leading-relaxed" style={{ fontSize: '13px' }}>{item.text}</p>
               </div>
             </div>
           ))}
@@ -233,7 +233,7 @@ function MicorrizasContent() {
       </ArticleSection>
 
       <div className="mt-10 pt-6" style={{ borderTop: '1px solid #ffffff10' }}>
-        <p className="text-xs font-semibold text-[#f4ebe1]/30 uppercase tracking-widest mb-4">{t.art_sources}</p>
+        <p className="text-xs font-semibold text-cream/30 uppercase tracking-widest mb-4">{t.art_sources}</p>
         <div className="space-y-2">
           {[
             { author: 'Sheldrake, M. (2020)', title: 'Entangled Life: How Fungi Make Our Worlds', pub: 'Random House' },
@@ -241,9 +241,9 @@ function MicorrizasContent() {
             { author: 'Smith, S.E. & Read, D.J. (2008)', title: 'Mycorrhizal Symbiosis (3ª ed.)', pub: 'Academic Press' },
             { author: 'Societat Catalana de Micologia', title: "Guia d'introducció a la micologia", pub: 'scm.org.cat' },
           ].map((s, i) => (
-            <div key={i} className="text-xs text-[#f4ebe1]/40 leading-relaxed">
-              <span className="text-[#f4ebe1]/55">{s.author}</span> — <em>{s.title}</em>
-              <span className="text-[#f4ebe1]/22"> · {s.pub}</span>
+            <div key={i} className="text-xs text-cream/40 leading-relaxed">
+              <span className="text-cream/55">{s.author}</span> — <em>{s.title}</em>
+              <span className="text-cream/22"> · {s.pub}</span>
             </div>
           ))}
         </div>

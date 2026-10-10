@@ -6,7 +6,7 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ## v8.0 Mobile — Framework and architecture (2026-04-17)
 
-**Decision:** React Native + Expo SDK 52 (managed workflow) + expo-router v4. App lives in `mobile/` subdirectory of the existing monorepo.
+**Decision:** React Native + Expo SDK 54 (managed workflow) + expo-router v4. App lives in `mobile/` subdirectory of the existing monorepo.
 
 **Chosen stack:**
 - Expo managed workflow — no native code in v8.0; EAS Build generates APKs in the cloud
@@ -28,7 +28,39 @@ Decisions made during active development, with their reasoning. Complements CLAU
 - Google OAuth: **deferred to v8.1** — requires new backend endpoint `POST /auth/google/mobile`. v8.0 ships email/password only.
 - Distribution: **APK direct download** in v8.0 — zero setup cost, suitable for initial user base. Google Play Store ($25 one-time) planned for v8.1.
 
+**Closed decisions (2026-04-19):**
+- Navigation structure: **4 tabs** (Zonas · Mapa · Especies · Perfil) — no Dashboard tab, map is a primary tab not a toggle inside Zones.
+- Especies icon: custom SVG `MushroomIcon.tsx` ported from web `IC.mushroom` via `react-native-svg` (outline inactive, filled active). MaterialCommunityIcons mushroom discarded — style mismatch with web.
+- Design system: **`expo-linear-gradient`** + **`@expo-google-fonts`** (Cormorant Garamond + DM Sans). Gradient matches web `linear-gradient(135deg, #2b3529 → #3d4536 → #43421c)`. All screens use `backgroundColor: transparent` to let root gradient bleed through. Tab bar uses `Colors.modal (#30372a)`.
+- Shared tokens: deferred to post-v8.0 — web uses CSS vars + Tailwind, mobile uses JS constants. Scoring algorithm is highest-risk duplication. Tracked in `memory/pending.md`.
+
 See `memory/v8-android-plan.md` and `docs/mobile-architecture.md` for full detail.
+
+---
+
+## v8.0 Mobile — Zones UI design decisions (2026-04-20)
+
+Decisions taken during the zones screen QA pass. All implemented on `feat/v8-0-zones`, squash-merged to `epic/v8-android`.
+
+**Tab bar:**
+- Floating (`position: absolute`, transparent), `height: 59px` (+10px over standard 49).
+- Inactive tint: `#f4ebe1` (cream, full opacity). Active: `rgb(217,206,161)` (golden cream, `--color-muted` equivalent) with `rgba(217,206,161,0.10)` pill background.
+- Active pill covers icon **and** label — implemented via `tabBarButton` (custom `Pressable` wrapping React Navigation's children). Discarded: per-icon `View` wrapper (only covered icon, not label).
+- Web blur: `backdropFilter: blur(16px)` via `Platform.OS === 'web'` inline style on `TabBarBackground`. No `expo-blur` — avoids native dependency in managed workflow.
+
+**Search/filter bar:**
+- Pill background: `#4c5240` (`--color-search-bg`, web `.search-light` theme). Solid opaque — prevents card bleed-through when sticky without needing a container background.
+- Shadow: only applied when sticky (scroll offset > title row height). Implemented via `onScroll` + `titleRowHeight` ref + `isSticky` state. Native: `shadowColor/elevation` on pills. Web: `filter: drop-shadow(0 6px 24px rgba(0,0,0,0.5))` on the row wrapper.
+- `stickyHeaderIndices[1]` approach for sticky bar: title at index 0 (scrolls away), search bar at index 1 (pins). `contentContainerStyle` has no horizontal padding — each item owns its own `paddingHorizontal: 16` to avoid double-padding on iOS sticky items.
+
+**Filter sheet:**
+- Backdrop: `#232522d9` (`--modal-overlay`) + `backdropFilter: blur(8px)` web.
+- Background: `#30372a` (`--color-modal`).
+- Max height: `windowHeight - 50` (equivalent to `calc(-50px + 100dvh)`).
+- Comarca: always visible (removed `ccaaFilter !== ''` gate). Custom `ComarcaSelect` component — styled trigger + inline dropdown. Discarded: `@react-native-picker/picker` (not in dependencies, platform UI inconsistency).
+
+**Light mode decision:**
+- Light mode is explicitly prioritised **before** species and map screens. Building more screens with hardcoded hex tokens would require proportional rework when the colour system is migrated. The right sequence: `Colors.ts` + `theme.ts` → semantic tokens → then build new screens.
 
 ---
 

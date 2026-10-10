@@ -65,11 +65,10 @@ expo-router uses a file-based system similar to Next.js. Each file in `app/` bec
 mobile/app/
 ├── _layout.tsx               ← Root layout: auth guard, font loading, theme
 ├── (tabs)/
-│   ├── _layout.tsx           ← Tab bar: Dashboard · Zones · Species · Map · Profile
-│   ├── index.tsx             ← /          → Dashboard
-│   ├── zonas.tsx             ← /zonas     → Zones list
+│   ├── _layout.tsx           ← Tab bar: Zones · Map · Species · Profile (no Dashboard)
+│   ├── index.tsx             ← /          → Zones list (home tab)
+│   ├── mapa.tsx              ← /mapa      → Native map (primary tab, same level as list)
 │   ├── especies.tsx          ← /especies  → Species list
-│   ├── mapa.tsx              ← /mapa      → Native map
 │   └── perfil.tsx            ← /perfil    → Profile
 ├── zona/
 │   └── [id].tsx              ← /zona/:id  → Zone detail (bottom sheet modal)
@@ -85,10 +84,15 @@ mobile/app/
 
 | Route | Presentation | Reason |
 |---|---|---|
-| (tabs)/* | Standard tab | Primary navigation |
-| zona/[id] | Bottom sheet (modal) | Mirrors web modal pattern; map stays visible underneath |
+| (tabs)/index | Standard tab | Zones list — home screen |
+| (tabs)/mapa | Standard tab | Map — primary tab, same level as list. Both lead to zona/[id] via different interactions |
+| (tabs)/especies | Standard tab | Species catalogue |
+| (tabs)/perfil | Standard tab | Profile + lang selector |
+| zona/[id] | Bottom sheet (modal) | Reachable from both list and map |
 | especie/[id] | Full-screen modal | Species detail needs full height for gallery |
 | auth/* | Stack (no tabs) | Auth flow isolated from main navigation |
+
+**No Dashboard tab.** The Zones list sorted by score IS the home screen. A dedicated Dashboard adds no value at this stage. If a "today view" with geolocation is built in the future, it can be introduced then.
 
 ### Deep linking
 

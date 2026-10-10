@@ -4,6 +4,65 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
+## 🔴 Priority — Scoring v2 (Outbreak Index) — 2026-10-08
+
+Season priority (decided 2026-10-07): the Observatory and the zone-card score, both fed by the same calculation. v1 rewards rain on the day it falls and adds a fixed 25 points for October: on 6 Oct it gives 75 for La Molina and 76 for Setcases, while in the field they have been very poor for a month (v2.1: 7 and 16).
+
+Full spec, formula, plan and test cases: Observatory design document, section "Scoring v2: especificación para implementar". Reference prototype: the `v2Series` function in the Observatory canvas (Python must produce the same numbers).
+
+- [ ] `feat/scoring-v2`: new `backend/app/services/scoring_v2.py` (pure functions): rain activation with a two-speed fruiting curve (cold zone: peak on day 21; zone already active: peak on day 12, fades out by day 32), discounting 2 mm/day; soil water balance with two 60 mm reservoirs (sunny and shady slope, the latter drying at half the rate); 20-day air temperature + 7-day soil temperature with a 13.5 °C optimum; altitude-based season as a multiplier; drying from dry air and wind; heat (max > 25 °C); frost penalty fading over ~5 days; temperature-drop bonus (experimental). Scientific basis: document "Micelio y fructificación: base para el scoring". Also returns "rain on the way" (date it would start to show and its peak).
+- [ ] Ingest: request 100 days of `climate_history` and store v2 in `scores_cache.score_detail.v2` with `model_version`, no migration. `score_oi` stays v1 until calibrated.
+- [ ] Backfill v2 from 2024-10-01 (`climate_history` only, no Open-Meteo calls) + tests with the document's cases (v2.1 on 2026-10-06: Montseny 49, La Molina 7, Setcases 16, Costabona 20).
+- [ ] API + Observatory: expose v2 and its breakdown; the thermometer, the Momento tab and the species widget use v2 with v1 as reference. The zone card stays on v1.
+- [ ] Calibrate with a field-trip log (zone, date, what was found) and revisit the thermometer cut-offs (55/70/85): with v2 an ordinary day scores 30–40.
+- [ ] Catalogue: add the soil-temperature optimum per species (today only air ranges exist) and clarify what `cycle_days` measures (7–14 days, far below the ~21 days of real fruiting).
+- [ ] When `score_oi` switches to v2: remove the scoring copy in the app (see `chore/v8-1-shared-scoring`) so only one formula is maintained.
+
+---
+
+## 🔴 Fix — Backend: no auto-migrations outside production — 2026-10-10
+
+`lifespan` runs `alembic upgrade head` on every startup. Local `.env` points to the shared Supabase (production) DB, so any branch started locally applies its migrations to production before its code is deployed (e.g. `fix/soil-temp` would apply 013). It also blocks local startup when the DB is ahead of the branch: on `epic/v8-android` (head 011) startup aborts with "Can't locate revision '012'" and the API never answers.
+
+- [ ] Gate `_run_db_migrations()` behind a setting (e.g. `RUN_MIGRATIONS_ON_STARTUP`, default `false`, set `true` only in Render); log a warning instead of aborting when the DB revision is unknown locally.
+- [ ] Document in README: migrations are applied by Render on deploy; run `alembic upgrade head` manually only on purpose.
+
+---
+
+## 🔴 Fix — Weather data missing in zone list and card (`fix/weather-cache`) — 2026-10-10
+
+Symptoms: in production the zone card shows "–" for temperature, soil temp, rain, humidity and wind (`/weather/zones/{id}` → 502), and the zones list only shows weather for zones whose card was opened recently.
+
+Cause: `weather_cache` (TTL 3 h) is filled only on demand — when a card is opened and the cache is empty, `/weather/zones/{id}` calls Open-Meteo live. The daily ingest only writes `climate_history` and `scores_cache`; the startup warm-up runs only if the table is completely empty. `GET /zones` just attaches the still-valid cache row, so zones nobody opened in the last 3 h come back without weather. The live call from Render also fails (502), cause unknown: `fetch_weather_for_zone` swallows every `httpx.HTTPError` and returns `None` without logging (Open-Meteo answers fine from a home IP; per-IP limiting on Render's shared egress is a hypothesis, not confirmed).
+
+Design agreed (no stale data shown as current; never exceed Open-Meteo's free limit of 10,000 calls/day, shared with ingest and backfills):
+- [ ] **1. Diagnose first:** log the status code / body of failed Open-Meteo calls in `fetch_weather_for_zone`. If Render's IP is being rate-limited, a job won't help — move to the paid plan API key (also required for commercial use).
+- [ ] **2. Max age in the API:** `/zones` and `/weather/zones/{id}` return weather only if `collected_at` is ≤ 6 h old (two refresh cycles); older → no weather ("–" in the UI). Never serve `climate_history` as a stand-in (it is yesterday's data).
+- [ ] **3. Scheduled refresh job** every 3 h for all active zones (~1,700 requests/day, ~1,800 calls counting the 14-day window, ≈ 18 % of the free limit), reusing `INGEST_MAX_CONCURRENCY`. Guards: a daily call budget (stop before the limit); circuit breaker on 429 (stop, write nothing, rows age out to "–"); alert email through the `ALERT_EMAIL` path of #116 when zones have weather older than the max age; also expose it in `/health`.
+- [ ] Do not run the pending backfill (oct 2024 – sep 2025, ~9,000 calls) on the same day as heavy API use from the same IP.
+- [ ] Tests: max-age cut-off, budget guard, circuit breaker, job skips failed zones without overwriting good rows.
+
+---
+
+## 🗂 No date — DB: índices faltantes (baja prioridad)
+
+Identificados via análisis de `pg_stat_statements` + schema. A aplicar con `apply_migration` cuando haya una sesión de mantenimiento o antes de v8.2 (catálogo móvil).
+
+```sql
+-- Catálogo de especies ordenado por familia/nombre
+CREATE INDEX idx_species_family_name ON public.species (family, scientific_name);
+-- Búsquedas JSONB en extra_data (confusiones, condiciones ecológicas)
+CREATE INDEX idx_species_extra_data_gin ON public.species USING GIN (extra_data);
+-- Filtros de zonas por tipo de bosque
+CREATE INDEX idx_zones_forest_type_active ON public.zones (forest_type, active);
+-- FK zona en follows de usuario (sin índice de soporte)
+CREATE INDEX idx_user_followed_zones_zone_id ON public.user_followed_zones (zone_id);
+```
+
+Impacto real bajo con el volumen actual (202 especies, 200 zonas). El GIN sobre `extra_data` es el más valioso a medio plazo.
+
+---
+
 ## 🗂 No date — Hardening: move generator API keys to backend
 
 Technical debt documented in `memory/decisions.md` (section "Image generator — Monorepo vs Microservice").
@@ -18,11 +77,26 @@ Currently `VITE_GEMINI_API_KEY` is exposed in the frontend bundle. Acceptable wh
 
 ---
 
-## 🗂 No date — v8.0 Android app
+## 🟡 Activo — v8.0 Android app (`epic/v8-android`)
 
-- React Native + Expo — APK, native map, push notifications
-- **Conditional on prior monetisation** (development and distribution costs)
-- iOS removed from roadmap — requires Apple Developer ($99/year) + Apple Sign In; will be reconsidered if revenue materialises
+Stack: React Native + Expo SDK 54 + expo-router v4 + Zustand + MapLibre. Ver `memory/v8-android-plan.md`.
+
+**Completado:**
+- [x] Scaffold: expo-router, Zustand store, API client (cache AsyncStorage + SecureStore JWT), scoring port, i18n ES/CA/EN
+- [x] Nav: 4 tabs (Zonas · Mapa · Especies · Perfil), MushroomIcon SVG, expo-router file structure
+- [x] Design system: gradient background, Cormorant Garamond + DM Sans, `lib/theme.ts` (Typography, Glass, Font, Gradient), `components/ui/Background.tsx`
+- [x] `feat/v8-0-zones`: zones list (search, filter, sort, follow), zone detail modal, full UI QA pass — ✅ merged to epic
+
+**Pendiente (en orden):**
+- [x] `feat/v8-1-theming`: theming system — semantic tokens, light theme fixes, web-parity UI (zones/detail/auth/filter sheet) — ✅ merged to epic (#108, #110); final visual parity pass (icons, hero, glass) in the closing PR
+- [ ] `chore/v8-1-shared-scoring`: extraer `shared/scoring.ts` + `shared/constants.ts` (solo scoring + constants — riesgo "Alto" de divergencia, ver sección v8.5 más abajo). Bloqueante antes de `v8-2-species` para que el catálogo no introduzca una tercera copia de las constantes de puntuación.
+- [ ] `feat/v8-2-species`: catálogo + detalle de especie
+- [ ] `feat/v8-3-map`: mapa MapLibre con markers coloreados por score
+- [ ] `feat/v8-4-auth`: login/registro funcional + perfil completo (favoritos, seguidos)
+- [ ] `feat/v8-5-polish`: splash screen, icono, revisión UX
+- [ ] `feat/v8-6-eas-build`: EAS Build → APK de distribución directa
+
+iOS fuera de roadmap (Apple Developer $99/año); Google Play en v8.1.
 
 ---
 
@@ -31,6 +105,71 @@ Currently `VITE_GEMINI_API_KEY` is exposed in the frontend bundle. Acceptable wh
 - Static prerendering at build time for known routes (`/especies/:id`, `/zonas/:id`, etc.)
 - `react-helmet-async`: dynamic meta tags per route (title, description, Open Graph)
 - Core Web Vitals review
+
+---
+
+## 🗂 v8.5 — `shared/` design tokens & business logic (web + mobile)
+
+**Nota (2026-06-18):** la porción de mayor riesgo (scoring + constants) se adelanta como `chore/v8-1-shared-scoring` antes de `v8-2-species` — ver epic Android arriba. Esta sección v8.5 queda acotada a colores, tipos e i18n, que sí requieren el refactor previo del web (`chore/shared-design-tokens`) y pueden esperar a después de v9.0.
+
+Actualmente web y mobile duplican lógica que debería tener una sola fuente de verdad:
+
+| Archivo | Web | Mobile | Riesgo de divergencia |
+|---|---|---|---|
+| Colores | `src/styles.css` + `tailwind.config.js` | `mobile/constants/Colors.ts` | Medio |
+| Algoritmo scoring | `src/lib/helpers.jsx` (`computeOverallScore`) | `mobile/lib/scoring.ts` | **Alto** — pesos pueden desincronizarse |
+| Constantes (SEASONAL_FACTOR, EDIBILITY_SCORE…) | `src/lib/constants.js` | `mobile/lib/constants.ts` | **Alto** |
+| i18n strings | (web tiene su propio sistema) | `mobile/lib/i18n.ts` | Medio |
+| TypeScript types | (sin tipos) | dispersos en services/api.ts | Bajo |
+
+**Plan propuesto:** crear `shared/` en la raíz del monorepo con:
+- `shared/colors.ts` — tokens de color; web Tailwind config + CSS vars derivan de aquí
+- `shared/scoring.ts` — algoritmo puro sin dependencias de plataforma
+- `shared/constants.ts` — SEASONAL_FACTOR, EDIBILITY_SCORE, ForestType, Lang, API_BASE_URL
+- `shared/types.ts` — Zone, Species, WeatherParams, etc.
+- `shared/i18n.ts` — strings de traducción (el mecanismo de carga queda en cada plataforma)
+
+**Prerequisito:** el web necesita refactorizarse para importar desde `shared/` en vez de definir colores en CSS directamente. Hacerlo en un `chore/shared-design-tokens` antes de v9.0.
+
+**Prioridad inmediata:** scoring y constants son los más críticos — cualquier cambio en los pesos de la fórmula debe propagarse a ambos fronts.
+
+---
+
+## 🗂 Backlog — Refactor: entidades de usuario (Rich Domain Model)
+
+Diagnóstico completo en sesión Cowork 2026-05-17. Las tres entidades del módulo de usuarios (`User`, `UserFollowedZone`, `UserFavSpecies`) son puramente anémicas. `UserFollowedZone` y `UserFavSpecies` son tablas de asociación sin semántica propia — correctas tal como están. `User` es el foco del refactor.
+
+### Comportamiento a migrar a `User`
+
+**① `is_verification_token_valid()` + `consume_verification_token()` + `set_verification_token()`**
+Hoy la lógica de expiración del token está repartida entre `services/auth.py::create_verification_token` (genera la expiración) y `verify_email_token` (la evalúa). Si cambia la política de expiración hay que actualizar dos puntos sin cohesión entre sí. Prioridad: **alta**.
+
+**② `is_premium() -> bool`**
+Hoy no existe. Cualquier código que consulte el plan lee `user.plan == "premium"` sin verificar `plan_expires_at`. Un método único garantiza que nunca se consulta el campo sin comprobar la fecha. Crítico antes de activar la monetización. Prioridad: **alta**.
+
+**③ `is_admin() -> bool`**
+`dependencies.py` y cualquier futuro guard comparan `current_user.role == "admin"` directamente contra el string. Un método encapsula el invariante y evita el string literal disperso. Prioridad: **media**.
+
+**④ `link_google_account(google_id: str)`**
+La transición `local → google` ocurre en `get_or_create_google_user`. Esa decisión ("vincular cuenta existente") es un comportamiento de `User`, no del servicio. Prioridad: **baja**.
+
+**⑤ `full_name -> str | None` (property)**
+Cada consumidor concatena `first_name + last_name` manualmente. Prioridad: **baja**.
+
+### Scope del cambio
+
+- Modificar solo `models/user.py` — añadir los métodos de instancia.
+- Actualizar `services/auth.py` para delegar las decisiones a los métodos nuevos (las operaciones de persistencia quedan en el servicio).
+- Actualizar `dependencies.py` para usar `user.is_admin()`.
+- No requiere migración de base de datos.
+- Tests: cubrir `is_premium()` con casos de borde (plan expirado, sin fecha, plan free).
+
+### Orden de ejecución sugerido
+
+1. `is_verification_token_valid` + `consume_verification_token` + `set_verification_token` — mayor impacto en correctitud actual.
+2. `is_premium` — bloqueante para monetización.
+3. `is_admin` + `full_name` — limpieza, cualquier sesión de mantenimiento.
+4. `link_google_account` — al tocar el flujo OAuth en el futuro.
 
 ---
 
@@ -52,6 +191,14 @@ Priority calculated as (Impact + Risk) × (6 − Effort). Ordered by urgency.
 **Phase 3 — Tests (10–20% of each sprint)**
 - [ ] Backend router tests: `auth.py` + `zones.py` as first iteration
 - [ ] Set up Vitest and cover `normalizeScore`, `normalizeZone`, `useSpecies`
+
+---
+
+## 🗂 Backlog — token residuals (menores, no afectan light theme)
+
+- `Profile.jsx` line ~241 y `Layout.jsx` lines ~134, ~160: badges de conteo (`bg-emerald-500`) — rol semántico "indicador de actividad". Pendiente de token `--ui-badge-indicator` cuando se expanda el sistema.
+- `helpers.jsx` `edibilityStyle()`: `border-emerald-*` en ConfusionesBlock — borders decorativos, impacto mínimo.
+- `admin/` components: emerald primitivos en ImageGenerator, CatalogImagesModal, SpeciesAdminModal — admin-only, nunca en light theme usuario. Fuera de scope.
 
 ---
 

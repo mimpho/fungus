@@ -3,6 +3,8 @@
 > Defines the lifecycle of changes: from idea to production.
 > Covers git, documentation and session close protocol.
 
+> **Claude trigger**: whenever the user says "integra", "squash", "merge a epic", "prepara la PR", or similar — Claude's first action is to run the doc checklist in the Integration section. Code comes second.
+
 ---
 
 ## Change lifecycle
@@ -58,12 +60,20 @@ chore/* (project-wide)  ──squash──▶  main (directly)
 
 **feat/fix/chore → epic**: squash merge. One logical commit per feature, with Conventional Commits message.
 
-```bash
-git checkout epic/v7-oauth
-git merge --squash feat/v7-0-google-signin
-git commit -m "feat(auth): add Google OAuth2 signin flow"
-git branch -D feat/v7-0-google-signin
-```
+> ⚠️ **BEFORE running the squash-merge commands**, complete the doc checklist below. No exceptions — not even for small branches.
+
+**Doc checklist (run this first, every time):**
+
+1. `CHANGELOG.md` — add entry under `[Unreleased]` for everything that changed
+2. `memory/pending.md` — remove or update the active block for this branch; mark completed items in the epic's task list
+3. `memory/v8-android-plan.md` (or equivalent plan file) — update phase status if applicable
+4. `memory/decisions.md` — record any new architectural decision
+5. Commit doc changes on the feature branch: `docs: update changelog and pending for feat/…`
+
+Only after those file edits are in place, Claude's job is done. **Claude never runs git commands** — not commits, not merges. The sandbox cannot write to `.git/`. The human runs all git operations from their terminal. Claude provides:
+1. The edited doc files (ready to `git add`)
+2. The exact commit message to use: `docs: update changelog and pending for feat/…`
+3. The PR title and body as copy-pasteable blocks (see PR preparation section)
 
 **Epic → main**: `--no-ff` merge commit. Creates a visible boundary in the graph.
 
@@ -92,6 +102,8 @@ git rebase epic/v7-oauth
 | Delete feature branches after merge | Use `git branch -D` (force) — squash leaves the tip unreachable |
 
 ### Cheatsheet
+
+> All commands below are for the **human** to run in their terminal. Claude edits files but cannot write to `.git/` — so Claude never runs git commands of any kind (add, commit, checkout, merge). Claude's output is: edited files + commit message suggestion + PR title/body blocks.
 
 ```bash
 # New feature
@@ -139,7 +151,50 @@ docs(system): update project.spec.md with v7 roadmap
 
 ---
 
-## Documentation update protocol
+## Epic lifecycle
+
+Every epic (`epic/<slug>`) follows three mandatory ceremonies in addition to the regular branch/PR workflow.
+
+---
+
+### 1. Epic kick-off (before the first feature branch)
+
+Produce two documents in `memory/`:
+
+**`memory/<epic-slug>-prd.md`** — the product contract. Written before any code. Sections:
+
+| Section | Content |
+|---|---|
+| Problem / Why | What user problem does this phase solve? Why now? |
+| Scope — In | Features that MUST ship for this epic to be considered done |
+| Scope — Out | Explicit exclusions (reduces scope creep during development) |
+| User flows | The 2–4 primary flows in plain language (not technical) |
+| Open questions | Unresolved product decisions that would block development — must all be answered before the first commit |
+| Definition of Done | Measurable criteria to declare the epic complete |
+
+**`memory/<epic-slug>-plan.md`** — the technical plan. Can be started during kick-off and refined early in development. Sections: stack decisions, folder structure, API endpoints, risks. See `memory/v8-android-plan.md` as reference.
+
+**Gate:** no feature branch is opened until all Open questions in the PRD are answered and the DoD is written.
+
+---
+
+### 2. Epic retrospective (before epic → main merge)
+
+Held at the close of the epic, before the final `--no-ff` merge to `main`. Output: concrete improvements to `workflows.spec.md` (this file). The retro is not a document — it produces changes.
+
+Mandatory questions:
+
+| Question | Purpose |
+|---|---|
+| What slowed us down? | Identify friction in tooling, process, or communication |
+| What decisions were taken too late? | Should have been in the PRD Open questions |
+| What did we build that we then had to change? | Signals missing upfront design |
+| What would we do differently in the next epic? | Concrete process improvements |
+| Does the workflow need updating? | If yes, apply changes to this file in the same session |
+
+The retrospective is a conversation between Claude and the human. Claude leads with observations from the git log and memory files; the human confirms or adds context. Changes are committed with `docs(system): retro vX.Y — <summary of improvements>`.
+
+---
 
 ### On closing a task (PATCH: vX.Y.Z → vX.Y.Z+1)
 
@@ -271,6 +326,26 @@ When topics arise around monetisation, business model, premium features, pricing
 - PR titles, bodies, and commit messages
 
 Inline code comments in source files may use Spanish where the domain language is naturally Spanish (e.g. species names, UI strings in `i18n.js`), but all prose documentation must be in English.
+
+---
+
+## Branch close checklist
+
+This is the expanded reference for the doc checklist summarised in the Integration section above. Same rules, more detail.
+
+**Claude must not skip this checklist.** Triggers: "integra", "squash", "merge a epic", "prepara la PR". First action is always docs — not git.
+
+| # | Item | Applies to |
+|---|---|---|
+| 1 | `CHANGELOG.md` — add entry in `[Unreleased]` under the right type | Every branch |
+| 2 | `memory/pending.md` — remove the active block for this branch; update completed items in the epic task list | Every branch |
+| 3 | `memory/<epic-slug>-plan.md` — update phase status table (✅ / 🟡 / ⬜) if this epic has a plan file | Epics with a plan doc |
+| 4 | `memory/decisions.md` — record any new architectural decision taken during implementation | If decisions were made |
+| 5 | `system/project.spec.md` — update roadmap status or stack if changed | If roadmap/stack changed |
+| 6 | `README.md` — update roadmap or endpoints if changed | If roadmap/stack changed |
+| 7 | Commit all doc changes on the feature branch: `docs: close feat/… — update changelog and pending` | After steps 1–6 |
+
+**Epic plan convention:** when an epic is large enough to warrant its own plan (multiple feature branches, cross-cutting decisions), create `memory/<epic-slug>-plan.md` at epic kickoff. The slug matches the epic branch name — e.g. `epic/v8-android` → `memory/v8-android-plan.md`. Not every epic needs one; simple single-feature epics can rely solely on `pending.md`.
 
 ---
 

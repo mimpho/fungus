@@ -1,0 +1,74 @@
+/* ── Map — Leaflet overrides and custom styles ────────────────────────────── */
+
+.leaflet-container {
+  background: var(--color-bg-deep) !important;
+}
+
+.leaflet-tile-pane {
+  filter: brightness(0.85) saturate(0.8);
+}
+
+/* ── Leaflet popup: fungus theme ──────────────────────────────────────────── */
+.fungus-popup .leaflet-popup-content-wrapper {
+  background: var(--color-modal);
+  border: 1px solid rgba(244, 235, 225, 0.10);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  padding: 0;
+  color: var(--color-cream);
+}
+
+.fungus-popup .leaflet-popup-tip {
+  background: var(--color-modal);
+}
+
+.fungus-popup .leaflet-popup-content {
+  margin: 13px 15px;
+}
+
+.fungus-popup .leaflet-popup-close-button {
+  display: none;
+}
+
+.fungus-popup .popup-zone-btn:hover {
+  background: rgba(139, 111, 71, 0.35) !important;
+  border-color: rgba(196, 160, 107, 0.5) !important;
+}
+
+/* Visible on touch only — on desktop the zone opens by clicking the pin */
+@media (hover: hover) {
+  .fungus-popup .popup-zone-btn {
+    display: none;
+  }
+}
+
+/* ── Map expand button ────────────────────────────────────────────────────── */
+.map-expand-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 999;
+  background: rgba(30, 42, 26, 0.88);
+  border: 1px solid rgba(196, 160, 107, 0.30);
+  border-radius: 10px;
+  padding: 10px;
+  color: var(--color-coffee-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.map-expand-btn:hover {
+  background: rgba(196, 160, 107, 0.18);
+  border-color: rgba(196, 160, 107, 0.55);
+  transform: scale(1.08);
+}
+
+.map-expand-btn svg {
+  width: 18px;
+  height: 18px;
+}

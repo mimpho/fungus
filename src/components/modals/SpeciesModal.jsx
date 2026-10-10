@@ -225,32 +225,31 @@ export function SpeciesModal({ species, onClose }) {
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button onClick={() => toggleFavorite(species)}
-              className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-white/50 hover:text-red-400 hover:bg-white/10'}`}>
+              className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-cream/50 hover:text-red-400 hover:[background-color:var(--ui-surface-hover)]'}`}>
               {IC.heart(isFav)}
             </button>
-            <button onClick={onClose} className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all">{IC.close}</button>
+            <button onClick={onClose} className="p-2 rounded-xl text-cream/50 hover:text-cream hover:[background-color:var(--ui-surface-hover)] transition-all">{IC.close}</button>
           </div>
         </div>
 
         {/* Hero foto */}
         <div
           ref={heroRef}
-          className={`relative min-h-[50vh] aspect-video w-full overflow-hidden sm:rounded-t-2xl modal-header group ${heroPhotos.length > 0 ? 'cursor-zoom-in' : ''}`}
+          className={`relative min-h-[50vh] aspect-video w-full overflow-hidden rounded-b-2xl sm:rounded-2xl modal-header group ${heroPhotos.length > 0 ? 'cursor-zoom-in' : ''}`}
           onClick={heroPhotos.length > 0 ? (e) => { e.stopPropagation(); handleOpenLightbox(heroPhotos, 0) } : undefined}
         >
           {/* Fade-in once the full detail is loaded — avoids the stale-photo flash
               caused by setDetail(species) using the partial list-cache entry.      */}
-          <div className={`absolute inset-0 transition-opacity duration-500 ${detailLoading ? 'opacity-0' : 'opacity-100'}`}>
+          <div className={`absolute inset-0 transition-opacity duration-500 ${detailLoading ? 'opacity-0' : 'opacity-[0.85]'}`}>
             <SpeciesImg localSrc={detail.photo?.largeUrl || detail.photo?.url} scientificName={detail.scientificName} className="w-full h-full transition-transform duration-300 group-hover:scale-[1.02]" objectFit="cover" objectPosition="top" />
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-modal via-modal/0 to-transparent" />
           {heroPhotos.length > 0 && (
             <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/40 rounded-lg px-2 py-1 flex items-center gap-1.5 text-white/80 text-xs pointer-events-none">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
               {heroPhotos.length > 1 ? `${heroPhotos.length} fotos` : ''}
             </div>
           )}
-          <div className="absolute bottom-0 left-6 right-6">
+          <div className="absolute bottom-4 left-6 right-6 hero-on-image">
             <h2 className="font-display text-4xl font-semibold text-cream drop-shadow-lg">{detail.scientificName}</h2>
             <p className="text-muted text-sm mt-1">{detail.family} · {detail.commonNames?.[0]}</p>
           </div>
@@ -330,7 +329,7 @@ export function SpeciesModal({ species, onClose }) {
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-3">{t.fructificacion}</h3>
             <div className="grid grid-cols-12 gap-1.5">
               {MONTHS.map((m, i) => (
-                <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${detail.fruitingMonths?.includes(i + 1) ? 'bg-emerald-500/25 text-emerald-400' : 'bg-white/[0.03] text-cream/50'}`}>{m}</div>
+                <div key={i} className={`text-center py-2 rounded-lg text-[10px] font-medium ${detail.fruitingMonths?.includes(i + 1) ? 'bg-accent-positive-subtle text-accent-positive' : 'calendar-inactive'}`}>{m}</div>
               ))}
             </div>
           </section>
@@ -342,7 +341,7 @@ export function SpeciesModal({ species, onClose }) {
           <section>
             <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-4">{t.condFruct}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-white/[0.03] rounded-xl p-4 flex items-start gap-3">
+              <div className="surface-subtle rounded-xl p-4 flex items-start gap-3">
                 <div className="shrink-0">
                   <img src="/assets/images/icons/temperature.png" alt="Temperatura" height="36" width="36" />
                 </div>
@@ -362,7 +361,7 @@ export function SpeciesModal({ species, onClose }) {
                 </div>
               </div>
 
-              <div className="bg-white/[0.03] rounded-xl p-4 flex items-start gap-3">
+              <div className="surface-subtle rounded-xl p-4 flex items-start gap-3">
                 <div className="shrink-0">
                   <img src="/assets/images/icons/cloudy-sun.png" alt="Precipitación" height="36" width="36" />
                 </div>
@@ -380,7 +379,7 @@ export function SpeciesModal({ species, onClose }) {
                 </div>
               </div>
 
-              <div className="bg-white/[0.03] rounded-xl p-4 flex items-start gap-3">
+              <div className="surface-subtle rounded-xl p-4 flex items-start gap-3">
                 <div className="text-2xl shrink-0">🌱</div>
                 <div>
                   <h4 className="text-coffee-light font-medium text-xs uppercase tracking-wide mb-1">{t.suelo}</h4>
@@ -398,7 +397,7 @@ export function SpeciesModal({ species, onClose }) {
                 </div>
               </div>
 
-              <div className="bg-white/[0.03] rounded-xl p-4 flex items-start gap-3">
+              <div className="surface-subtle rounded-xl p-4 flex items-start gap-3">
                 <div className="shrink-0">
                   <img src="/assets/images/icons/search.png" alt="Requisitos especiales" height="36" width="36" />
                 </div>
@@ -444,7 +443,7 @@ export function SpeciesModal({ species, onClose }) {
               <h3 className="text-sm font-semibold uppercase tracking-widest text-muted mb-4">{t.morfologia}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {detail.cap && (
-                  <div className="bg-white/[0.03] rounded-xl p-4">
+                  <div className="surface-subtle rounded-xl p-4">
                     <div className="text-center mb-3">
                       <svg width="60" height="40" viewBox="0 0 60 40" className="mx-auto">
                         <ellipse cx="30" cy="35" rx="28" ry="5" fill="rgba(139,111,71,0.3)" />
@@ -462,7 +461,7 @@ export function SpeciesModal({ species, onClose }) {
                   </div>
                 )}
                 {detail.stem && (
-                  <div className="bg-white/[0.03] rounded-xl p-4">
+                  <div className="surface-subtle rounded-xl p-4">
                     <div className="text-center mb-3">
                       <svg width="30" height="60" viewBox="0 0 30 60" className="mx-auto">
                         <rect x="10" y="5" width="10" height="45" rx="4" fill="rgba(139,111,71,0.5)" stroke="rgba(196,160,107,0.4)" strokeWidth="1" />
@@ -479,7 +478,7 @@ export function SpeciesModal({ species, onClose }) {
                   </div>
                 )}
                 {detail.flesh && (
-                  <div className="bg-white/[0.03] rounded-xl p-4">
+                  <div className="surface-subtle rounded-xl p-4">
                     <div className="text-center mb-3">
                       <svg width="50" height="50" viewBox="0 0 50 50" className="mx-auto">
                         <circle cx="25" cy="25" r="22" fill="none" stroke="rgba(139,111,71,0.5)" strokeWidth="1.5" strokeDasharray="4 2" />
@@ -498,7 +497,7 @@ export function SpeciesModal({ species, onClose }) {
                 )}
               </div>
               {detail.sporePrint && (
-                <div className="mt-3 flex items-center gap-2 text-xs text-cream/50 bg-white/[0.03] rounded-lg px-4 py-2">
+                <div className="mt-3 flex items-center gap-2 text-xs text-cream/50 surface-subtle rounded-lg px-4 py-2">
                   <span className="text-cream/30">{t.esporada}</span> {detail.sporePrint}
                 </div>
               )}

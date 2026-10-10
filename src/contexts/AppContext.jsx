@@ -44,6 +44,29 @@ export function AppProvider({ children }) {
   // ── i18n ────────────────────────────────────────────────────────────────────
   const [lang, setLang] = useState(saved.lang || 'es')
 
+  // ── Theme ────────────────────────────────────────────────────────────────────
+  // 'system' follows the OS/browser media preference; 'dark'/'light' override.
+  const [themeMode, _setThemeMode] = useState(saved.themeMode || 'system')
+
+  function setThemeMode(mode) {
+    _setThemeMode(mode)
+  }
+
+  // Apply [data-theme] on <html> whenever themeMode or the OS preference changes.
+  useEffect(() => {
+    function apply() {
+      let resolved = themeMode
+      if (resolved === 'system') {
+        resolved = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+      }
+      document.documentElement.setAttribute('data-theme', resolved)
+    }
+    apply()
+    const mq = window.matchMedia('(prefers-color-scheme: light)')
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [themeMode])
+
   // ── User data (persisted in localStorage for guests, API for auth users) ───
   const [followedZones, setFollowedZones]     = useState(saved.zonas     || [])
   const [favoriteSpecies, setFavoriteSpecies] = useState(saved.favoritos || [])
@@ -66,12 +89,12 @@ export function AppProvider({ children }) {
   const [selectedFamily, setSelectedFamily]   = useState(null)
   const [lightbox, setLightbox]               = useState(null)
 
-  // ── Persist lang + guest follows/favs to localStorage ───────────────────────
+  // ── Persist lang + themeMode + guest follows/favs to localStorage ───────────
   // When authenticated, follows/favs are in the DB — we still keep localStorage
   // as a local cache so the UI is instant on page load.
   useEffect(() => {
-    saveStorage({ lang, zonas: followedZones, favoritos: favoriteSpecies, profile })
-  }, [lang, followedZones, favoriteSpecies, profile])
+    saveStorage({ lang, themeMode, zonas: followedZones, favoritos: favoriteSpecies, profile })
+  }, [lang, themeMode, followedZones, favoriteSpecies, profile])
 
   // ── Silent session restore on mount ─────────────────────────────────────────
   useEffect(() => {
@@ -219,6 +242,8 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       // i18n
       lang, setLang, t,
+      // theme
+      themeMode, setThemeMode,
       // persistentes
       followedZones, toggleFollow,
       favoriteSpecies, toggleFavorite,

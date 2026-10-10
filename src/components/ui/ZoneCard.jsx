@@ -16,7 +16,7 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
             <p className="text-muted text-xs mt-0.5">{zone.region} · {zone.province}</p>
           </div>
           <button onClick={e => { e.stopPropagation(); onToggle() }}
-            className={`ml-3 p-2 rounded-xl transition-all ${isFollowed ? 'text-yellow-400' : 'text-cream/50 hover:text-yellow-400'}`}>
+            className={`ml-3 p-2 rounded-xl transition-all ${isFollowed ? 'ui-star-text' : 'text-cream/50 hover:text-yellow-400'}`}>
             {IC.star(isFollowed)}
           </button>
         </div>
@@ -76,7 +76,7 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
           )}
         </div>
 
-        <img className="absolute bottom-0 right-1 opacity-25 pointer-events-none"
+        <img className="absolute bottom-0 right-1 opacity-20 pointer-events-none"
           src={`/assets/images/forest-type/${zone.forestType}.webp`}
           alt={zone.forestType} height="125" width="125" />
       </div>

@@ -41,7 +41,7 @@ export function EditProfileModal({ onClose }) {
     }
   }
 
-  const inputCls = 'w-full bg-white/[0.04] rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all'
+  const inputCls = 'w-full surface-input rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all'
   const labelCls = 'text-muted text-xs uppercase tracking-wide block mb-1.5'
 
   return (
@@ -117,7 +117,7 @@ export function EditProfileModal({ onClose }) {
             disabled={loading || saved}
             className={`w-full py-3 rounded-xl text-sm font-medium transition-all disabled:cursor-not-allowed ${
               saved
-                ? 'bg-emerald-600/20 text-emerald-400'
+                ? 'bg-accent-positive-subtle text-accent-positive'
                 : 'bg-bar hover:bg-[#a0834d] text-white disabled:opacity-60'
             }`}
           >

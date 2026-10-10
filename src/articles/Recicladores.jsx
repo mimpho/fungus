@@ -91,7 +91,7 @@ function RecicladoresContent() {
       </ArticleSection>
 
       {/* Referencias */}
-      <div className="pt-2 border-t border-white/[0.06]">
+      <div className="pt-2 border-t border-cream/[0.1]">
         <p className="text-cream/60 text-xs leading-relaxed">
           <strong className="text-coffee-light/90">Referencias:</strong><br />
           · Agencia SINC (2012). <em>Unos hongos marcaron el final del Carbonífero</em>. Science.<br />

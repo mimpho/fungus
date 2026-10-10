@@ -70,7 +70,7 @@ export function Fig({ fotos, idx, height = 'auto', openLightbox }) {
       </div>
       <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }} />
-      <figcaption className="absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
+      <figcaption className="hero-on-image absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
         <strong className="text-muted">Fig. {idx + 1}:</strong>{' '}
         {fotos[idx].caption.replace(/^Fig\. \d+ — /, '')}
       </figcaption>
@@ -142,18 +142,16 @@ export function ArticleModal({ slug, onClose }) {
             <p className="text-muted/80 text-xs truncate">{article.subtitle}</p>
           </div>
           <button onClick={onClose}
-            className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all shrink-0">
+            className="p-2 rounded-xl text-cream/50 hover:text-cream hover:[background-color:var(--ui-surface-hover)] transition-all shrink-0">
             {IC.close}
           </button>
         </div>
 
         {/* Hero */}
-        <div ref={heroRef} className="relative overflow-hidden sm:rounded-t-2xl modal-header"
+        <div ref={heroRef} className="relative overflow-hidden rounded-b-2xl sm:rounded-2xl modal-header"
           style={{ minHeight: '224px', height: '52vh' }}>
-          <img src={article.heroImage} className="w-full h-full object-cover object-center" alt={article.title} />
-          <div className="absolute inset-0"
-            style={{ background: 'linear-gradient(to top, rgb(48,55,42) 15%, rgba(48,55,42,0.25) 60%, transparent 100%)' }} />
-          <div className="absolute bottom-0 left-0 right-0 px-6 pb-8">
+          <img src={article.heroImage} className="w-full h-full object-cover object-center hero-img" alt={article.title} />
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-8 hero-on-image">
             <p className="text-xs font-semibold uppercase tracking-widest mb-2 text-coffee-light">
               {tagsLabel}
             </p>
@@ -174,9 +172,11 @@ export function ArticleModal({ slug, onClose }) {
         </div>
 
         {/* Cuerpo */}
-        {Body ? <Body /> : (
-          <div className="p-8 text-center text-cream/40 text-sm">{t.contenidoNoDisp}</div>
-        )}
+        <div className="pt-6">
+          {Body ? <Body /> : (
+            <div className="p-8 text-center text-cream/40 text-sm">{t.contenidoNoDisp}</div>
+          )}
+        </div>
       </div>
     </div>,
     document.body
