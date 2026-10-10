@@ -71,7 +71,7 @@ The ingest, backfills, the `weather_cache` refresh job (~1,850/day) and the card
 
 ### ⚠️ Alembic's `fileConfig()` disables the app's loggers
 
-`migrations/env.py` loads the logging config from `alembic.ini`. With the default `disable_existing_loggers=True`, every logger created before (all `app.*`) is silenced for the rest of the process, so after the startup migrations Render showed no app logs. Keep `disable_existing_loggers=False`.
+`migrations/env.py` loads the logging config from `alembic.ini`, which disables existing loggers by default and sets the root logger to `WARN`. Run inside the API (startup migrations), that silenced every `app.*` INFO log on Render. `env.py` now calls `fileConfig()` only when the root logger has no handlers (Alembic CLI), with `disable_existing_loggers=False`.
 
 ---
 
