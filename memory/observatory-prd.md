@@ -100,6 +100,7 @@ Non-blocking (calibration, keep prototype values for now): grade thresholds of t
 
 - [ ] `scoring_v2` reproduces the design document's test cases (±1): Montseny 49, La Molina 7, Setcases 16, Costabona 20 on 2026-10-06, plus the factor values, rains on the way, frost case and season-by-altitude cases.
 - [ ] The API returns, for any zone and any date with data: daily series (climate + v1 + v2 with factors), the thermometer snapshot, favourable species and the calendar estimate, generic or per species, in under 500 ms p95 for a 180-day window.
+- [ ] The score is never shown alone: every condition that pushes it up or down comes with a reason and, when it helps, where to look; a low score never reads as "no mushrooms".
 - [ ] The Observatory page implements Flows 1–4 on desktop and at phone width, following the prototype.
 - [ ] Every view-state parameter round-trips through the URL; invalid parameters fall back to defaults without breaking the page.
 - [ ] The daily ingest stores a 16-day forecast per zone without extra Open-Meteo calls; Momento and the calendar use it, with the no-forecast estimate as fallback.

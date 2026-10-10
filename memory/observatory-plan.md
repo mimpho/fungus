@@ -340,21 +340,47 @@ Feature: The explanation covers the grey areas
     Given activation 0 and no rain on the way
     Then the explanation says the weather does not help in this zone right now
 
-  Scenario Outline: where to look depends on what limits
-    Given the limiting factor is <factor>
-    Then the snapshot returns the hint code <hint>
+Feature: Every condition explains itself
+  # Principle (2026-10-10): the number is never left alone. Every condition that pushes it up or
+  # down, not only the main limit, comes with a short reason and, when it helps, where to look.
+  # Messages help to understand AND to search. The backend returns codes and values; the front
+  # writes the sentences (ES/CA/EN).
+
+  Scenario: the snapshot lists every active condition
+    When I ask for a snapshot
+    Then it returns a list of conditions, each with code, sign (+ / −), values and an optional hint code
+    And they are sorted: what limits most first, then the other negatives, positives last
+
+  Scenario Outline: conditions, their signal and their hint
+    Given <signal>
+    Then the snapshot has the condition <code> with sign <sign> and the hint <hint>
     Examples:
-      | factor                 | hint            | front text (ES)                                        |
-      | moisture               | shaded_spots    | umbrías, fondos de valle y junto al agua               |
-      | drying                 | sheltered_spots | zonas resguardadas del viento                          |
-      | temperature (too warm) | cooler_spots    | orientaciones norte y cotas más altas                  |
-      | temperature (too cold) | warmer_spots    | solanas y cotas más bajas                              |
-      | activation             | none            | (no hint: the rain has not arrived or has not started) |
+      | code             | sign | signal                                                            | hint (ES, front)                                       |
+      | rain_on_the_way  | +    | a pending rain run                                                | when it would start to show and peak                   |
+      | warm_zone        | +    | warm = true                                                       | responds 1–2 weeks after rain instead of ~3            |
+      | temperature_drop | +    | B = 1.1                                                           | the drop after the rain usually triggers fruiting      |
+      | dry_soil         | −    | soil moisture < 50                                                | umbrías, fondos de valle y junto al agua               |
+      | drying_wind      | −    | D < 1                                                             | zonas resguardadas del viento                          |
+      | heat             | −    | C < 1                                                             | orientaciones norte, cotas altas, bajo arbolado        |
+      | too_warm         | −    | 20-day air mean above the optimum and temperature < 50            | orientaciones norte y cotas más altas                  |
+      | too_cold         | −    | 20-day air mean below the optimum and temperature < 50            | solanas y cotas más bajas                              |
+      | cold_soil        | −    | 7-day soil mean < 2 °C                                            | solanas y cotas más bajas                              |
+      | frost            | −    | F < 1 (with its date and minimum)                                 | zonas protegidas bajo arbolado; mejora en unos 5 días  |
+      | cold_snap        | −    | max or mean dropped ≥ 8 °C in 3 days to a minimum < 3 °C, no frost | puede cortar la salida; cotas bajas y solanas         |
+      | late_season      | −    | S < 0.8 after the band's peak                                     | bajar de cota                                          |
+      | out_of_season    | −    | species outside its months                                        | (species only) its months                              |
+      | estimated        | −    | estimated = true                                                  | (transparency) missing data in the last weeks          |
+    # cold_snap has no effect on the number in v2.1 (only frost does): message only, experimental.
+    # Candidate for v2.2 together with micro-sites.
 
   Scenario: hints balance moisture and light
     Then shaded-spot hints never point to closed, dark woodland ("umbrías, pero no bosque cerrado")
 
+  Scenario: a positive and a negative can coexist
+    Given rain on the way and a recent frost
+    Then both conditions are listed, and the sentence says the rain will help once the frost effect fades
 
+Feature: Species for a date
 
   Scenario: only compatible species   [OQ-8]
     Then a species appears only if it fits the zone's forest type, its month and its altitude range (with the 150 m margin)
