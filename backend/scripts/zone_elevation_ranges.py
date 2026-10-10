@@ -7,8 +7,9 @@ keeps the central band of elevations (percentiles, so the deepest valley and the
 not count) and caps it at the usual upper limit of the zone's forest type (no pines on a
 2,700 m summit).
 
-Dry run by default: prints the proposal. --apply writes elevation_min_m / elevation_max_m
-(and elevation_m with --update-point). Each zone costs ceil(points / 100) API calls
+Dry run by default: prints the proposal (works before migration 014 is deployed). --apply
+writes elevation_min_m / elevation_max_m (and elevation_m with --update-point) and needs
+migration 014 applied to that database. Each zone costs ceil(points / 100) API calls
 (2 with the defaults), from the same daily Open-Meteo budget as the ingest.
 
 Usage:
@@ -126,14 +127,20 @@ async def fetch_elevations(
 
 
 async def main(args: argparse.Namespace) -> None:
-    from sqlalchemy import update
+    from sqlalchemy import select, update
 
     from app.database import AsyncSessionLocal
     from app.models.zone import Zone
-    from app.services.ingest import _get_active_zones
 
+    # Only the columns this script reads: the dry run must work before migration 014 is deployed.
     async with AsyncSessionLocal() as db:
-        zones = await _get_active_zones(db)
+        zones = (
+            await db.execute(
+                select(Zone.id, Zone.name, Zone.lat, Zone.lon, Zone.elevation_m, Zone.forest_type)
+                .where(Zone.active.is_(True))
+                .order_by(Zone.id)
+            )
+        ).all()
     wanted = set(args.zones.split(",")) if args.zones else None
     zones = [z for z in zones if not wanted or z.id in wanted]
     if wanted and len(zones) != len(wanted):
