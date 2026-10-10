@@ -211,11 +211,13 @@ app = FastAPI(
 )
 
 # CORS — allow the Vite dev server, Vercel production URL and Vercel preview deployments
-# allow_origin_regex cubre URLs de preview dinámicas tipo fungus-xxxx.vercel.app
+# allow_origin_regex cubre:
+#   - URLs de preview dinámicas tipo fungus-xxxx.vercel.app
+#   - localhost en cualquier puerto (Vite :5173, Expo web :8081, etc.)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_origin_regex=r"https://fungus[^.]*\.vercel\.app",
+    allow_origin_regex=r"(https://fungus[^.]*\.vercel\.app|http://localhost:\d+)",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],  # PATCH for profile update
     allow_headers=["*"],

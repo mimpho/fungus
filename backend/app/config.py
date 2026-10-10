@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     # Ingesta
     ingest_cron_hour: int = 5
     ingest_max_concurrency: int = 6
+    # Days re-fetched on every daily run (ending yesterday) to fill missed days
+    ingest_lookback_days: int = 7
+    # A zone is "stale" when its latest climate_history day is older than this
+    stale_zone_days: int = 2
+    # Ops alerts (stale zones after the daily ingest). Empty = no email.
+    alert_email: str = ""
 
     # Versión de la API
     api_version: str = "v1"

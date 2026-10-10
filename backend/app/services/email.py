@@ -160,3 +160,41 @@ async def send_verification_email(
     except Exception as exc:  # noqa: BLE001
         log.error("Unexpected error sending verification email to %s: %s", email, exc)
         return False
+
+
+async def send_ops_alert(subject: str, html: str) -> bool:
+    """
+    Send an operational alert to ALERT_EMAIL via Resend.
+
+    Returns True on success. Skipped (False) when ALERT_EMAIL or RESEND_API_KEY
+    is not configured. Never raises — alerts must not break the caller.
+    """
+    if not settings.alert_email:
+        log.warning("ALERT_EMAIL not configured — skipping alert: %s", subject)
+        return False
+    if not settings.has_resend:
+        log.warning("RESEND_API_KEY not configured — skipping alert: %s", subject)
+        return False
+
+    payload = {
+        "from": settings.email_from,
+        "to": [settings.alert_email],
+        "subject": subject,
+        "html": html,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                _RESEND_API,
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {settings.resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
+            log.info("Ops alert sent: %s", subject)
+            return True
+    except Exception as exc:  # noqa: BLE001
+        log.error("Failed to send ops alert %r: %s", subject, exc)
+        return False

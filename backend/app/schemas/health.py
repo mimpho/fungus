@@ -12,3 +12,4 @@ class HealthResponse(BaseModel):
     active_zones: int
     providers: dict[str, bool]         # {'open-meteo': True, 'aemet': False, …}
     db_reachable: bool
+    stale_zones: list[str] = []        # zone ids with no recent climate data

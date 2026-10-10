@@ -26,6 +26,8 @@ class WeatherCache(Base):
     humidity: Mapped[float | None] = mapped_column(Float, nullable=True)
     rainfall14d: Mapped[float | None] = mapped_column(Float, nullable=True)
     wind: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Soil temperature at 0 cm for the current hour (°C)
+    soil_temp: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Timestamp of the actual Open-Meteo API call (not the time the cache is read)
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
