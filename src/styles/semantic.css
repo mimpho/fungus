@@ -56,6 +56,7 @@
 /* ── Star / follow accent ─────────────────────────────────────────────────── */
 .ui-star-on   { background-color: var(--ui-star-bg); color: var(--ui-star-text); }
 .ui-star-text { color: var(--ui-star-text); }
+.ui-rain-on   { background-color: var(--ui-rain-bg); color: var(--ui-rain-text); }
 
 /* ── Modal hero (zone + species) ──────────────────────────────────────────────
    Photo at 85 % with rounded corners, no fade. Text over it is white with a

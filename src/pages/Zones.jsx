@@ -188,7 +188,7 @@ export default function Zones() {
             ⭐ {t.misZonas}
           </button>
           <button onClick={() => setOnlyRained(v => !v)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyRained ? 'bg-sky-400/20 text-sky-400' : 'filter-pill-inactive'}`}>
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${onlyRained ? 'ui-rain-on' : 'filter-pill-inactive'}`}>
             {t.haLlovido}
           </button>
         </div>
