@@ -47,8 +47,8 @@ OVERPASS_URLS = (
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 )
-OVERPASS_RETRIES = 3  # per server
-OVERPASS_BACKOFF_S = 10
+OVERPASS_RETRIES = 3  # rounds over all servers
+OVERPASS_BACKOFF_S = 5
 # Overpass answers 406 to generic client User-Agents: identify the app.
 HEADERS = {"User-Agent": "fungus-zone-elevation/1.0 (+https://github.com/mimpho/fungus)"}
 MAX_POINTS_PER_CALL = 100
@@ -75,6 +75,9 @@ FOREST_MAX_M = {
     "encinar": 1500,
 }
 ROUND_TO_M = 50
+# Stored elevation_m this far from the terrain at the zone point → flag it (? in the output):
+# either the altitude or the point is wrong. v2 picks its season curve from elevation_m.
+STORED_DIFF_ALERT_M = 150
 
 log = logging.getLogger("zone_elevation_ranges")
 
@@ -222,8 +225,9 @@ async def fetch_forests(
 );
 out geom;"""
     last_error: Exception | None = None
-    for url in OVERPASS_URLS:
-        for attempt in range(OVERPASS_RETRIES):
+    # Alternate servers on every attempt: the main one is often busy (504) for a while.
+    for attempt in range(OVERPASS_RETRIES):
+        for url in OVERPASS_URLS:
             try:
                 resp = await client.post(url, data={"data": query}, timeout=60)
             except httpx.TransportError as exc:  # timeouts, dropped connections
@@ -271,7 +275,7 @@ async def main(args: argparse.Namespace) -> None:
         log.warning("Not found or inactive: %s", ",".join(sorted(missing)))
 
     print(
-        f"{'zone':9} {'forest':9} {'r km':>4} {'pts':>7} {'stored':>6} {'dem':>6}  "
+        f"{'zone':9} {'forest':9} {'r km':>4} {'pts':>7} {'stored':>6} {'dem':>6} {'diff':>5}  "
         f"{'proposal':>11}  {'p10':>5} {'p50':>5} {'p90':>5} {'min':>5} {'max':>5}  name"
     )
     results = []
@@ -300,10 +304,16 @@ async def main(args: argparse.Namespace) -> None:
             results.append((z, point_m, band))
             p10, p50, p90 = (percentile(elevations, q) for q in (10, 50, 90))
             stored = str(z.elevation_m or "-")
+            if z.elevation_m is None:
+                diff = "    -"
+            else:
+                d = round(point_m - z.elevation_m)
+                diff = f"{d:+5d}" + ("?" if abs(d) > STORED_DIFF_ALERT_M else " ")
             pts = f"{len(forest)}/{len(grid)}" + ("" if masked else "!")
             print(
                 f"{z.id:9} {(z.forest_type or '-'):9} {radius:4.0f} {pts:>7} {stored:>6} "
-                f"{point_m:6.0f}  {band.min_m:>5}–{band.max_m:<5}{'*' if band.capped else ' '} "
+                f"{point_m:6.0f} {diff} {band.min_m:>5}–{band.max_m:<5}"
+                f"{'*' if band.capped else ' '} "
                 f"{p10:5.0f} {p50:5.0f} {p90:5.0f} {min(elevations):5.0f} {max(elevations):5.0f}  "
                 f"{z.name}  ({time.monotonic() - t0:.0f} s)",
                 flush=True,
@@ -312,6 +322,7 @@ async def main(args: argparse.Namespace) -> None:
     print("pts = forest points / grid points; ! = too few forest points in OpenStreetMap, ")
     print("      band computed on every point: check by hand")
     print("*   = top lowered to the forest type's usual limit")
+    print(f"?   = stored elevation_m differs from the terrain by more than {STORED_DIFF_ALERT_M} m")
 
     if not args.apply:
         print("\nDry run: nothing written. Re-run with --apply to save.")
