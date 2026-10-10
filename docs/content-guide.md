@@ -52,11 +52,25 @@ In order of preference:
 4. **GBIF** (`gbif.org`) — distribution data, taxonomic backbone, accepted name vs. synonyms.
 5. **Index Fungorum** (`indexfungorum.org`) — canonical taxonomy, basionym, all known synonyms.
 
-### Zone data
+### Zone data — where every value comes from
 
-1. **IGN / CNIG** (`ign.es`) — elevation, coordinates, official place names.
-2. **OpenStreetMap** — forest type, administrative boundaries.
-3. **MITECO forest map** — species composition, official forest type classification.
+Every zone value is either **static** (set once when the zone is created, reviewed by hand) or **dynamic** (refreshed by a job). Record here any new field and its source before it is used.
+
+| Field | Kind | Source | How it is obtained | Refreshed |
+|---|---|---|---|---|
+| `name`, `region`, `province` | Static | [IGN / CNIG](https://www.ign.es) official place names | By hand | Never |
+| `lat`, `lon` | Static | IGN viewer or OpenStreetMap; a representative point of the forest, not a summit or a village | By hand | Never |
+| `geom` | Derived | PostGIS, generated from `lat`/`lon` | Automatic (do not insert) | With `lat`/`lon` |
+| `elevation_m` | Static | Open-Meteo Elevation API (Copernicus DEM, ~90 m) at `lat`/`lon` | `backend/scripts/zone_elevation_ranges.py` | Never |
+| `elevation_min_m`, `elevation_max_m` | Static | Open-Meteo Elevation API: grid of points around the zone, central band of elevations (percentiles), capped at the treeline for conifer forests | `backend/scripts/zone_elevation_ranges.py` (dry run first, then apply) | Never; recalculate only if the zone point moves |
+| `forest_type` | Static | MITECO Mapa Forestal de España (official classification); OpenStreetMap as a check | By hand | Never |
+| `soil_type` | Static | Geological map (IGME) when known | By hand, optional | Never |
+| `description` | Static | Own text | By hand | Never |
+| `climate_history` (daily min/max/mean temperature, soil temperature, rain, humidity, wind) | Dynamic | Open-Meteo: archive API for days older than ~8 days, forecast API for recent days | Backfill on creation (`backend/scripts/backfill.py`), then the daily ingest | Daily, 05:00 UTC |
+| `weather_cache` (current weather) | Dynamic | Open-Meteo forecast API | `backend/app/services/weather_refresh.py` | Every 3 h |
+| `scores_cache` (`score_oi` + `score_detail` per model version) | Computed | `climate_history` + zone altitude, scoring model (`model_version`) | Daily ingest | Daily, after the ingest |
+
+Open-Meteo free tier: non-commercial use only, 10,000 calls/day shared by ingest, weather refresh, backfills and elevation. A paid plan is needed once Fungus has subscriptions or ads.
 
 ---
 
@@ -299,48 +313,62 @@ INSERT INTO species (
 
 ## Adding a new zone — step by step
 
-### Step 1 — Collect data
+### Step 1 — Collect the static data by hand
 
-- [ ] Official name
-- [ ] Province + Comunidad Autónoma
-- [ ] Comarca / region (informal name)
-- [ ] Coordinates (lat/lng) — use IGN or Google Maps
-- [ ] Elevation (metres) — use IGN viewer or topographic map
-- [ ] Forest type: `pinar | hayedo | robledal | encinar | mixto`
+- [ ] Official name, province + Comunidad Autónoma, comarca / region (IGN)
+- [ ] Coordinates (lat/lon): a representative point inside the forest (IGN viewer or OpenStreetMap)
+- [ ] Forest type: `pinar | hayedo | robledal | encinar | mixto` (MITECO forest map)
 - [ ] Short description (1–2 sentences about the area)
 
-### Step 2 — Add to frontend mock (`src/data/zones.js`)
+Altitude is **not** collected by hand: step 3 computes it.
 
-Append a new object to `mockZones` with the next sequential ID (`zone-XXX`).
-
-### Step 3 — Add to backend (Supabase)
+### Step 2 — Insert the zone (Supabase)
 
 ```sql
 INSERT INTO zones (
   id, name, province, region,
-  lat, lon, elevation_m, forest_type,
+  lat, lon, forest_type,
   description, active
 ) VALUES (
-  'zone-029',
+  'zone-215',
   'Hayedo de Montejo',
   'Madrid',
   'Sierra Norte de Madrid',
   41.0833, -3.5667,
-  1300,
   'hayedo',
   'El hayedo más meridional de Europa...',
   true
 );
--- geom column is generated automatically from lat/lon (PostGIS GENERATED ALWAYS AS)
--- Do NOT insert geom directly
+-- geom is generated from lat/lon (PostGIS GENERATED ALWAYS AS): do NOT insert it
 ```
 
-### Step 4 — Verify
+If the web still reads `src/data/zones.js` for that screen, add the zone there too with the same id.
 
-- [ ] Zone appears in `/zonas` map and list
-- [ ] ZoneModal opens with correct data
-- [ ] Weather data loads for the zone (backend fetches from Open-Meteo by coordinates)
-- [ ] Zone appears in Dashboard top zones if conditions are good
+### Step 3 — Altitude and its range
+
+```bash
+cd backend
+python -m scripts.zone_elevation_ranges --zones zone-215            # dry run: prints the proposal
+python -m scripts.zone_elevation_ranges --zones zone-215 --apply    # writes elevation_m, elevation_min_m, elevation_max_m
+```
+
+Check the proposal against what you know of the zone before applying.
+
+### Step 4 — Climate history
+
+```bash
+cd backend
+python -m scripts.backfill --from 2024-10-01 --to <yesterday> --zones zone-215
+```
+
+The scoring model needs at least 100 days of history; the Observatory compares years, so backfill from 2024-10-01. Mind the daily Open-Meteo budget (one year for one zone ≈ 26 calls).
+
+### Step 5 — Verify
+
+- [ ] Zone appears in `/zonas` map and list, and the card opens with correct data
+- [ ] `climate_history` has rows from the backfill start to yesterday, without gaps
+- [ ] After the next daily ingest, `scores_cache` has a row for the zone with `model_version`
+- [ ] Current weather shows in the card (next weather refresh, every 3 h)
 
 ---
 
