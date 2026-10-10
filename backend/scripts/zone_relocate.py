@@ -25,6 +25,7 @@ import argparse
 import asyncio
 import csv
 import math
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -87,12 +88,28 @@ def search_box(place: dict) -> tuple[float, float, float, float]:
     return lat - dy, lon - dx, lat + dy, lon + dx
 
 
+# Results that are never the place of a forest zone.
+REJECTED_CATEGORIES = {"highway", "amenity", "shop", "railway", "building", "office", "tourism"}
+FOREST_WORDS = re.compile(
+    r"^(hayedo|pinar|robledal|encinar|bosque|selva|monte|fageda|pineda|roureda|alzinar)"
+    r"\s+(de\s+la\s+|de\s+los\s+|de\s+las\s+|del\s+|de\s+l'|de\s+|d')?",
+    re.IGNORECASE,
+)
+
+
+def name_variants(name: str) -> list[str]:
+    """The zone name, then the place alone: "Pinar de la Cerdanya" → "Cerdanya"."""
+    bare = FOREST_WORDS.sub("", name).strip()
+    return [name] if not bare or bare == name else [name, bare]
+
+
 def pick_place(results: list[dict]) -> dict | None:
-    """Prefer natural places (park, forest, sierra) over villages and roads."""
-    if not results:
+    """Prefer natural places (park, forest, sierra), then towns; never roads, stops or shops."""
+    usable = [r for r in results if r.get("category") not in REJECTED_CATEGORIES]
+    if not usable:
         return None
-    natural = [r for r in results if (r.get("category"), r.get("type")) in NATURAL_KINDS]
-    return (natural or results)[0]
+    natural = [r for r in usable if (r.get("category"), r.get("type")) in NATURAL_KINDS]
+    return (natural or usable)[0]
 
 
 @dataclass(frozen=True)
@@ -218,7 +235,7 @@ async def overpass_forests(client, box) -> list[dict]:
     q = f"""[out:json][timeout:45][bbox:{s},{w},{n},{e}];
 (way["landuse"="forest"]; way["natural"="wood"];
  relation["landuse"="forest"]; relation["natural"="wood"];);
-out tags center bb;"""
+out center bb;"""
     last: Exception | None = None
     for url in OVERPASS_URLS:
         try:
@@ -289,7 +306,16 @@ async def main(args: argparse.Namespace) -> None:
                     and abs(dem_now - z.elevation_m) <= args.min_diff
                 ):
                     continue  # the point already matches its altitude
-                place = pick_place(await geocode(client, nominatim, z.name, z.province))
+                place = None
+                for variant in name_variants(z.name):
+                    candidate = pick_place(await geocode(client, nominatim, variant, z.province))
+                    if candidate and (
+                        place is None
+                        or (candidate.get("category"), candidate.get("type")) in NATURAL_KINDS
+                    ):
+                        place = candidate
+                    if place and (place.get("category"), place.get("type")) in NATURAL_KINDS:
+                        break
                 forest = None
                 if place:
                     elements = await overpass_forests(client, search_box(place))

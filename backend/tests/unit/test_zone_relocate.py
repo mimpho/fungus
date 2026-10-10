@@ -10,6 +10,7 @@ from scripts.zone_relocate import (
     confidence,
     forests_from_overpass,
     km_between,
+    name_variants,
     pick_place,
     search_box,
     type_match,
@@ -17,6 +18,27 @@ from scripts.zone_relocate import (
 
 VILLAGE = {"category": "place", "type": "village", "lat": "42.6", "lon": "0.0"}
 PARK = {"category": "boundary", "type": "protected_area", "lat": "42.65", "lon": "0.03"}
+
+
+def test_roads_and_stops_are_never_the_place():
+    stop = {"category": "highway", "type": "bus_stop"}
+    assert pick_place([stop]) is None
+    assert pick_place([stop, VILLAGE]) is VILLAGE
+
+
+@pytest.mark.parametrize(
+    "name, variants",
+    [
+        ("Pinar de la Cerdanya", ["Pinar de la Cerdanya", "Cerdanya"]),
+        ("Hayedo del Berguedà", ["Hayedo del Berguedà", "Berguedà"]),
+        ("Robledal de Gredos", ["Robledal de Gredos", "Gredos"]),
+        ("Pinar de la Vall d'Àneu", ["Pinar de la Vall d'Àneu", "Vall d'Àneu"]),
+        ("Sierra Tejeda", ["Sierra Tejeda"]),
+        ("Aiako Harria", ["Aiako Harria"]),
+    ],
+)
+def test_name_variants(name, variants):
+    assert name_variants(name) == variants
 
 
 def test_a_natural_place_beats_a_village():
