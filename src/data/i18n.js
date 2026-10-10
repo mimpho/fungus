@@ -97,7 +97,7 @@ export const i18n = {
     edib_mortal: '⚠ MORTAL',
 
     // ── Scores ──────────────────────────────────────────────────────────────
-    excelente: 'Excelente', muyBueno: 'Muy bueno', bueno: 'Bueno', regular: 'Regular',
+    excelente: 'Excelente', muyBueno: 'Muy bueno', bueno: 'Bueno', regular: 'Regular', malo: 'Malo',
 
     // ── Especie — ficha ──────────────────────────────────────────────────────
     fichaEspecie: 'Ficha técnica', descripcion: 'Descripción', morfologia: 'Morfología',
@@ -414,7 +414,7 @@ export const i18n = {
     edib_mortal: '⚠ MORTAL',
 
     // ── Scores ──────────────────────────────────────────────────────────────
-    excelente: "Excel·lent", muyBueno: 'Molt bo', bueno: 'Bo', regular: 'Regular',
+    excelente: "Excel·lent", muyBueno: 'Molt bo', bueno: 'Bo', regular: 'Regular', malo: 'Dolent',
 
     // ── Espècie — fitxa ───────────────────────────────────────────────────────
     fichaEspecie: 'Fitxa tècnica', descripcion: 'Descripció', morfologia: 'Morfologia',
@@ -731,7 +731,7 @@ export const i18n = {
     edib_mortal: '⚠ DEADLY',
 
     // ── Scores ──────────────────────────────────────────────────────────────
-    excelente: 'Excellent', muyBueno: 'Very good', bueno: 'Good', regular: 'Fair',
+    excelente: 'Excellent', muyBueno: 'Very good', bueno: 'Good', regular: 'Fair', malo: 'Poor',
 
     // ── Species — card ───────────────────────────────────────────────────────
     fichaEspecie: 'Species card', descripcion: 'Description', morfologia: 'Morphology',
