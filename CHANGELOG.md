@@ -16,6 +16,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Daily ingest**: if any zone is stale, emails `ALERT_EMAIL` via Resend with the zones, last data date, the run's error and the backfill command to re-run; zones stale beyond the 7-day lookback are flagged as losing days.
 - **New env vars**: `ALERT_EMAIL` (empty = no email), `STALE_ZONE_DAYS`.
 
+### Fixed — Soil temperature in the zone card (2026-10-07)
+
+- **Alembic `013`**: `weather_cache.soil_temp` (float, nullable). Applied on Render startup.
+- **`backend/app/services/weather_cache.py`**: stores the current hour's `soil_temperature_0cm` (falls back to the latest non-null value before now); returned by `/weather/zones/{id}` and in `GET /zones` (`ZoneWeather.soil_temp`).
+- **`src/hooks/useWeatherConditions.js`**, **`src/services/apiService.js`**: map `soil_temp` instead of the hardcoded `null` ("T. Sòl" showed "–" since the frontend moved to the backend cache). Existing cache rows fill in as they expire (TTL 3 h).
+
+### Fixed — Daily ingest dropping zones (2026-10-07, #112)
+
+- **`backend/app/services/ingest.py`**: the 6 concurrent Open-Meteo fetches shared one `AsyncSession`, which does not allow overlapping operations, so ~10% of zones per day (mostly the first ones) failed silently. HTTP calls stay concurrent; DB writes are serialized with a lock and each zone commits on its own. Failed zones are logged in one warning line.
+- **Lookback**: each daily run re-fetches the last 7 days (`ingest_lookback_days`), so a missed day is filled on the next run. Upserts keep it idempotent.
+- **`backend/app/connectors/open_meteo.py`**: 429 and 5xx responses are now retried (they were wrapped in `ProviderUnavailable` and never reached tenacity). Days older than 8 days are requested from the archive API (`archive-api.open-meteo.com`); archive soil temperature is the 0–7 cm layer.
+- **`backend/scripts/backfill.py`**: throttled to the Open-Meteo free tier (a request over 2 weeks counts as days/14 calls): batches of ~70 calls/min, refuses runs over ~9,000 calls/day, prints failed zones to re-run.
+
+### Added — 14 zones in Catalonia (2026-10-07)
+
+- **`migrations/039_zones_catalonia.sql`**: `zone-201`…`zone-214` (pino negro in La Molina, Costabona, Vall de Boí, Meranges; Viladrau, Collsacabra, Lluçanès, Moianès, Castellar del Riu, Cardona, Alta Garrotxa, Albera, Boumort, Coll de Nargó). Forest type = dominant one among the four the UI supports. `zone-030` (Pinar de Setcases) moved up to ~1,885 m on the Vallter road; its old-point history was cleared. Run 2026-10-07.
+- **`src/data/zones.js`**: mirror updated (214 zones).
+
+### Changed — Database (2026-10-07)
+
+- **Alembic `012` (#111)**: RLS on all public tables recorded in Alembic (it had been enabled by hand on 2026-06-17). Applied on Render startup.
+- **Climate history backfill**: `climate_history` loaded for all 214 zones from 2024-10-01 to 2026-10-06 (736 days per zone, 156,774 rows). Run locally in two passes to stay under the daily API limit:
+  - `python -m scripts.backfill --from 2025-10-01 --to 2026-09-30` (2026-10-07 00:52–02:39)
+  - `python -m scripts.backfill --from 2024-10-01 --to 2025-09-30` (2026-10-07 07:39–09:25; `zone-182`, `zone-183` re-run with `--zones`)
+
 ### Added — v7.1 Email verification on registration
 
 - **`backend/migrations/versions/011_email_verification.py`**: adds `email_verified` (boolean, default `false`), `email_verification_token` (text, nullable), and `email_verification_expires_at` (timestamptz, nullable) to `users`. Partial unique index on the token column.
