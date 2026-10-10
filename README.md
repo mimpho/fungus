@@ -63,6 +63,14 @@ FRONTEND_URL=http://localhost:5173
 
 For a fully local database instead, run `docker compose up -d` in `backend/` and keep the default `DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/fungus`.
 
+**Migrations.** Render applies pending migrations when the API starts (`RUN_MIGRATIONS_ON_STARTUP`, on by default only when `ENVIRONMENT=production`). A local run does **not** migrate, because `backend/.env` points at the same Supabase database: a branch's migrations would reach production before its code. Apply them by hand only on purpose:
+
+```bash
+cd backend && alembic upgrade head
+```
+
+With a local Docker database, set `RUN_MIGRATIONS_ON_STARTUP=true` to migrate on startup.
+
 ### Mobile app — Android (local development)
 
 ```bash

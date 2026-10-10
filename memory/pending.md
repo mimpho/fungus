@@ -35,15 +35,6 @@ Full spec, formula, plan and test cases: Observatory design document, section "S
 
 ---
 
-## 🔴 Fix — Backend: no auto-migrations outside production — 2026-10-10
-
-`lifespan` runs `alembic upgrade head` on every startup. Local `.env` points to the shared Supabase (production) DB, so any branch started locally applies its migrations to production before its code is deployed (e.g. `fix/soil-temp` would apply 013). It also blocks local startup when the DB is ahead of the branch: on `epic/v8-android` (head 011) startup aborts with "Can't locate revision '012'" and the API never answers.
-
-- [ ] Gate `_run_db_migrations()` behind a setting (e.g. `RUN_MIGRATIONS_ON_STARTUP`, default `false`, set `true` only in Render); log a warning instead of aborting when the DB revision is unknown locally.
-- [ ] Document in README: migrations are applied by Render on deploy; run `alembic upgrade head` manually only on purpose.
-
----
-
 ## 🔴 Fix — Weather data missing in zone list and card (`fix/weather-cache`) — 2026-10-10
 
 Symptoms: in production the zone card shows "–" for temperature, soil temp, rain, humidity and wind (`/weather/zones/{id}` → 502), and the zones list only shows weather for zones whose card was opened recently.

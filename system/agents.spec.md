@@ -78,7 +78,7 @@ These rules apply in every work session. No review needed — they are in force 
 
 19. **Column `geom`** in `zones` and `weather_stations` is `GENERATED ALWAYS AS` (PostGIS). Never insert directly.
 20. **Upsert upgrade rule** in `climate_history` — never overwrite a higher-quality source with a lower one. Open-Meteo is P3.
-21. **Auto-migrate in lifespan**: `await asyncio.to_thread(_run_db_migrations)`. Do not use `asyncio.run()` inside the lifespan (event loop already running → RuntimeError).
+21. **Auto-migrate in lifespan, production only**: `_startup_migrations()` runs `await asyncio.to_thread(_run_db_migrations)` only when `RUN_MIGRATIONS_ON_STARTUP` is on (unset = `ENVIRONMENT=production`, i.e. Render). Local runs share the production DB and must not migrate it; apply migrations locally only on purpose (`alembic upgrade head`). Do not use `asyncio.run()` inside the lifespan (event loop already running → RuntimeError).
 22. **Backend floats** — always round when normalising in the frontend (helpers `r1`, `r0` in `apiService.js`).
 
 ---
