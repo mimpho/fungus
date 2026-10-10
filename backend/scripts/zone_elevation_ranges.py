@@ -33,6 +33,7 @@ import asyncio
 import logging
 import math
 import sys
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -232,7 +233,12 @@ out geom;"""
                 last_error = httpx.HTTPStatusError(
                     f"busy ({resp.status_code})", request=resp.request, response=resp
                 )
-            await asyncio.sleep(OVERPASS_BACKOFF_S * (attempt + 1))
+            wait = OVERPASS_BACKOFF_S * (attempt + 1)
+            print(
+                f"          retry: {last_error} on {httpx.URL(url).host}, waiting {wait} s",
+                flush=True,
+            )
+            await asyncio.sleep(wait)
     assert last_error is not None
     raise last_error
 
@@ -267,6 +273,7 @@ async def main(args: argparse.Namespace) -> None:
     results = []
     async with httpx.AsyncClient(timeout=30, headers=HEADERS) as client:
         for z in zones:
+            t0 = time.monotonic()
             radius = args.radius_km or ZONE_RADIUS_KM.get(z.id, DEFAULT_RADIUS_KM)
             grid = grid_points(z.lat, z.lon, radius, grid_step_m(radius))
             try:
@@ -277,10 +284,13 @@ async def main(args: argparse.Namespace) -> None:
                 elevations = await fetch_elevations(client, sample)
             except httpx.HTTPStatusError as exc:
                 body = exc.response.text[:200].replace("\n", " ")
-                print(f"{z.id:9} ERROR {exc.response.status_code} {exc.request.url.host}: {body}")
+                print(
+                    f"{z.id:9} ERROR {exc.response.status_code} {exc.request.url.host}: {body}",
+                    flush=True,
+                )
                 continue
             except httpx.HTTPError as exc:
-                print(f"{z.id:9} ERROR {type(exc).__name__}: {exc}")
+                print(f"{z.id:9} ERROR {type(exc).__name__}: {exc}", flush=True)
                 continue
             band = elevation_band(elevations, point_m, z.forest_type, args.low_pct, args.high_pct)
             results.append((z, point_m, band))
@@ -291,7 +301,8 @@ async def main(args: argparse.Namespace) -> None:
                 f"{z.id:9} {(z.forest_type or '-'):9} {radius:4.0f} {pts:>7} {stored:>6} "
                 f"{point_m:6.0f}  {band.min_m:>5}–{band.max_m:<5}{'*' if band.capped else ' '} "
                 f"{p10:5.0f} {p50:5.0f} {p90:5.0f} {min(elevations):5.0f} {max(elevations):5.0f}  "
-                f"{z.name}"
+                f"{z.name}  ({time.monotonic() - t0:.0f} s)",
+                flush=True,
             )
             await asyncio.sleep(1.0)  # be gentle with the public Overpass server
     print("pts = forest points / grid points; ! = too few forest points in OpenStreetMap, ")
