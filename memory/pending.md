@@ -17,7 +17,14 @@ Product re-prioritised on 2026-10-10: the web Observatory comes first and the An
 
 Project-wide fixes `fix/migrations-on-startup` and `fix/weather-cache` are merged into `main` and the epic (#121, #122, #123).
 
-**Next, before merging `feat/observatory-ingest-v2` (data quality, found 2026-10-10):** the 200 original zones have approximate coordinates (from the early mock data): their stored altitude differs from the terrain at their point by a median of 229 m (125 zones > 150 m, 36 > 500 m; e.g. zone-066 Serra da Grova lands in the sea, zone-161 Sierra Tejeda 1,500 m stored vs 306 m). The 14 zones added in Oct 2026 match (median 2 m). Climate is fetched at those coordinates, so v1, v2 and the Observatory are affected. Plan: script that geocodes each zone name (Nominatim), picks a point in an OSM forest of the zone's type inside it, computes its altitude and lists old vs proposed point with confidence and map link; doubtful ones checked by web search; Marcos spot-checks. Then: update coordinates, re-run the climate backfill for moved zones, elevation bands (`zone_elevation_ranges --apply`, also re-running the 105 zones computed without forest mask) and scores. Dry run of 2026-10-10 in `rangos_zonas.txt` (not committed).
+**Next, before merging `feat/observatory-ingest-v2` (data quality, found 2026-10-10):** the original zones have approximate coordinates (early mock data): stored altitude differs from the terrain by a median of 229 m, so v1, v2 and the Observatory are affected. Decided with Marcos: only real, named places; focus on Catalonia.
+
+- Done 2026-10-10: migration 040 deactivates 47 generic zones.
+- Done 2026-10-11: migration 041 (applied) moves and renames 17 Catalan zones onto places from the route index of "El secret més ben guardat" (M. Estévez Casabosch), renames zone-030 (L'alta vall del Ter), and adds 23 zones (zone-215…237). Elevation of those 40 zones is NULL until the script runs. Not in the book and dropped for now: Fageda d'en Jordà, Grevolosa, Busa, Rasos de Peguera, Poblet, Gerdar (`backend/scripts/data/catalonia_candidates.csv`).
+- Night of 2026-10-11 (launched by Marcos): `zone_elevation_ranges --apply --update-point` then `backfill --from 2024-10-01` for the 40 zones; logs `~/elev41.log`, `~/backfill41.log`. To check: bands (zone-235 Serrat de la Bandera should be ~500–900 m), zones with `~`, then scores.
+- Points marked `-- approx` in 041 (Pla de les Vaques, Santa Fe, Corredor, Marina, Montgrí, Riells i Montsoriu, Sant Iscle, Rialb, Verd, Moianès) and forest types of the new zones are unverified: check with `zone_relocate.py`.
+- Still to do: the original Catalan zones not in the book (031 Gavarres, 032 Beget, 036 Montnegre, 037 Sant Llorenç, 038 Guilleries, 028 Prades, 047, 048, 202, 203, 206, 210, 211, 212, 213), then the rest of Spain; re-run the 105 zones computed without forest mask; update coordinates, backfill moved zones, scores. Dry run of 2026-10-10 in `rangos_zonas.txt` (not committed). Then merge `feat/observatory-ingest-v2`.
+- Clean up when done: untracked `rangos_zonas.txt`, `relocate.csv`, `new.csv`; stale branch `fix/carto-basemap-key`.
 
 Detail of the work:
 

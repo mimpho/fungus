@@ -29,7 +29,7 @@ FROM (VALUES
   ('zone-209', 'La baga de Campllong',         'Barcelona', 'Berguedà',       42.1034, 1.7658, 'pinar',    'Baga de Campllong, en Castellar del Riu.'),
   ('zone-214', 'La muntanya d''Alinyà',        'Lleida',    'Alt Urgell',     42.1602, 1.4309, 'pinar',    'Macizo de Alinyà, en Fígols i Alinyà.'),
   ('zone-035', 'Les obagues del Verd',         'Lleida',    'Solsonès',       42.1976, 1.6155, 'pinar',    'Umbrías de la serra del Verd. -- approx'),
-  ('zone-029', 'La serra Cavallera',           'Girona',    'Ripollès',       42.2949, 2.2986, 'hayedo',   'Serra Cavallera, entre Vilallonga de Ter y Ogassa.'),
+  ('zone-029', 'La serra Cavallera',           'Girona',    'Ripollès',       42.2949, 2.2986, 'pinar',    'Serra Cavallera (Ripollès): pinares de pino rojo y robledales sobre suelos calcáreos, de 800 a 2.000 m. Acceso por el sector occidental desde Ribes de Freser y el Taga.'),
   ('zone-006', 'El bosc de la Font Groga',     'Barcelona', 'Barcelonès',     41.4314, 2.1217, 'encinar',  'Bosque de la Font Groga, en Collserola (Sant Cugat).'),
   ('zone-045', 'La serra de Llaberia',         'Tarragona', 'Baix Camp',      41.0957, 0.8369, 'pinar',    'Serra de Llaberia.'),
   ('zone-003', 'La Pineda Fosca',              'Barcelona', 'Osona',          41.7679, 2.3978, 'robledal', 'Pineda Fosca, en el Montseny.'),
