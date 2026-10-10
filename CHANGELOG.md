@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Five score bands and zone altitude ranges (2026-10-10, `epic/observatory`)
+
+- **Five-band scale** everywhere a score is shown: Malo (< 30), Regular (30–54), Bueno (55–69), Muy bueno (70–84), Excelente (≥ 85). New `src/lib/scoreBands.js` is the only place with the thresholds; `getScoreColor` delegates to it, so the zone list, card, dashboard and profile follow it without changes. New `--ui-score-mid-*` tokens (orange) for Regular in both themes; the light theme gains the "good" tokens it was missing. i18n key `malo` (ES/CA/EN). Backend `score_label` returns the same five bands (adds "Fair").
+- **Zone altitude as a range**: migration 014 adds nullable `zones.elevation_min_m` / `elevation_max_m` (applied to Supabase on 2026-10-10).
+- **New `backend/scripts/zone_elevation_ranges.py`**: computes each zone's band from a grid of points around it, kept only where OpenStreetMap has forest (Overpass), with altitudes from the Open-Meteo Elevation API; p10–p90, capped by forest type, always containing the zone point. Dry run by default, `--apply` to save. Setcases uses a 6 km radius to reach down the valley. Checked against field knowledge: La Molina 1,500–1,850 m, Costabona 1,450–1,900 m, Setcases 1,400–2,200 m.
+- **New `backend/app/services/altitude_fit.py`**: species × zone altitude fit — overlap fits (with the altitudes where to look), within 150 m "at the limit" (score × 0.85), beyond does not fit, missing data never filters.
+- **Docs**: `docs/content-guide.md` lists the source of every zone value (static or dynamic, how it is obtained, how often it is refreshed) and the new-zone steps with computed altitude and climate backfill.
+
 ### Fixed — Map basemap shows "API KEY REQUIRED" (2026-10-10)
 
 - **`src/components/map/LeafletMap.jsx`**: since 25 Sep 2026 CARTO serves basemap tiles only with an API key, so every map showed the watermark instead of the base map. Tiles now use `rastertiles/dark_all` with `?key=` from `VITE_CARTO_KEY`, and the console warns when the key is missing.
