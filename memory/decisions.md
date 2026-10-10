@@ -11,7 +11,7 @@ Decisions made during active development, with their reasoning. Complements CLAU
 **Deviation from `system/workflows.spec.md`:** `epic/v8-android` was merged into `main` (PR #119, merge commit) **without release tag and without closing the epic**, while the app is incomplete. Reasons: everything should live in `main` as the base for the Observatory work; the web theming and fixes inside the epic (light theme, profile tabs) are already valuable in production; `mobile/` is an isolated Expo project, so having it in `main` does not affect the web build, the API or Vercel/Render deploys. The `vX.Y.0` tag and the epic close are deferred until v8.0 is finished.
 
 **Consequences:**
-- New Observatory branches are cut from `main` (there is no active epic for the web); revisit when v8.0 resumes.
+- The Observatory gets its own epic, `epic/v9-observatory` (v9.0), cut from `main`; its `feat/`, `fix/` and `chore/` branches are cut from that epic as usual. The roadmap is renumbered: SEO moves from v9.0 to v10.0; v8.5 (shared package) is unchanged.
 - `memory/pending.md`: Observatory block first; the v8.0 block is marked paused.
 - `prebuild` css-vars hook removed (the generator is out of sync); `npm run gen:css-vars` stays as a manual script.
 

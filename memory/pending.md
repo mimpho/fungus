@@ -4,7 +4,7 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
-## 🔴 Priority — Observatory (web), phase 1 — 2026-10-10
+## 🔴 Priority — Observatory (web), phase 1 (`epic/v9-observatory`) — 2026-10-10
 
 Product re-prioritised on 2026-10-10: the web Observatory comes first and the Android app is paused (see `memory/decisions.md`). Source of truth: the Observatory design document (includes scoring v2 and its task list). Hand-off: `observatorio-paso-a-desarrollo` in the Fungus project. Order of work:
 
@@ -117,7 +117,7 @@ iOS fuera de roadmap (Apple Developer $99/año); Google Play en v8.1.
 
 ---
 
-## 🗂 Backlog — v9.0 SEO
+## 🗂 Backlog — v10.0 SEO
 
 - Static prerendering at build time for known routes (`/especies/:id`, `/zonas/:id`, etc.)
 - `react-helmet-async`: dynamic meta tags per route (title, description, Open Graph)
