@@ -24,6 +24,8 @@ Usage:
     python -m scripts.zone_elevation_ranges --zones zone-030,zone-201,zone-202
     python -m scripts.zone_elevation_ranges --zones zone-030 --apply
     python -m scripts.zone_elevation_ranges --apply            # every active zone
+    caffeinate -i python -m scripts.zone_elevation_ranges      # macOS: keep the Mac awake
+    python -m scripts.zone_elevation_ranges --start-from zone-120   # resume a cut run
 """
 
 from __future__ import annotations
@@ -211,7 +213,7 @@ async def fetch_forests(
     client: httpx.AsyncClient, lat: float, lon: float, radius_km: float
 ) -> list[list[Segment]]:
     r = int(radius_km * 1000)
-    query = f"""[out:json][timeout:90];
+    query = f"""[out:json][timeout:45];
 (
   way["landuse"="forest"](around:{r},{lat},{lon});
   way["natural"="wood"](around:{r},{lat},{lon});
@@ -223,7 +225,7 @@ out geom;"""
     for url in OVERPASS_URLS:
         for attempt in range(OVERPASS_RETRIES):
             try:
-                resp = await client.post(url, data={"data": query}, timeout=120)
+                resp = await client.post(url, data={"data": query}, timeout=60)
             except httpx.TransportError as exc:  # timeouts, dropped connections
                 last_error = exc
             else:
@@ -262,6 +264,8 @@ async def main(args: argparse.Namespace) -> None:
         ).all()
     wanted = set(args.zones.split(",")) if args.zones else None
     zones = [z for z in zones if not wanted or z.id in wanted]
+    if args.start_from:
+        zones = [z for z in zones if z.id >= args.start_from]
     if wanted and len(zones) != len(wanted):
         missing = wanted - {z.id for z in zones}
         log.warning("Not found or inactive: %s", ",".join(sorted(missing)))
@@ -333,6 +337,9 @@ if __name__ == "__main__":
         type=float,
         default=None,
         help=f"Sampling radius for every zone (default {DEFAULT_RADIUS_KM} km or ZONE_RADIUS_KM)",
+    )
+    parser.add_argument(
+        "--start-from", default=None, help="Skip zones before this ID (resume a cut run)"
     )
     parser.add_argument("--low-pct", type=float, default=10, help="Bottom percentile (default 10)")
     parser.add_argument("--high-pct", type=float, default=90, help="Top percentile (default 90)")
