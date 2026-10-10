@@ -17,6 +17,7 @@
 # Virtual environments and dependencies
 venv/
 node_modules/
+node_modules
 .sass-cache/
 
 # Vite build output
@@ -24,6 +25,7 @@ dist/
 .vite/
 
 # Variables de entorno locales (nunca commitear)
+.env
 .env.local
 .env.*.local
 

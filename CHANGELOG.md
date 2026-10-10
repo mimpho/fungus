@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — Map basemap shows "API KEY REQUIRED" (2026-10-10)
+
+- **`src/components/map/LeafletMap.jsx`**: since 25 Sep 2026 CARTO serves basemap tiles only with an API key, so every map showed the watermark instead of the base map. Tiles now use `rastertiles/dark_all` with `?key=` from `VITE_CARTO_KEY`, and the console warns when the key is missing.
+- Two keys, one per environment: production (restricted to the production domain) in Vercel, development (restricted to `localhost`) in the local `.env`. Documented in `docs/environments.md`. Free tier: 5M requests/month non-commercial; a commercial key is needed when premium launches.
+
 ### Added — Outbreak Index v2.1, scoring engine (2026-10-10, `epic/observatory`)
 
 - **New `backend/app/services/scoring_v2.py`**: pure functions, no database access. Rain counts when it starts producing mushrooms (two-speed fruiting curve: cold zone peak on day 21, zone already producing peak on day 12), only while the shaded soil keeps moisture; two-bucket soil water balance (sunny and shaded slope); air and soil temperature against an optimum; season by altitude band; drying, heat and frost penalties; experimental bonus for a temperature drop after rain. Also returns the rains on the way (when they would start to show and peak), fills missing days and marks the score as estimated when data is short. Per-species parameters supported. `model_version` "2.1".
