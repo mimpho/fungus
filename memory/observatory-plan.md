@@ -31,7 +31,7 @@ All under `/api/v1/observatory`, no auth required `[OQ-4]`; `species` is optiona
 
 | # | Branch | Depends on |
 |---|---|---|
-| 1 | `feat/observatory-scoring-v2` | OQ-5 is measured here |
+| 1 | `feat/observatory-scoring-v2` | OQ-5 measured: 100 days are enough |
 | 2 | `feat/observatory-bands-elevation` | Goes before the switch so the zone card gets the five bands with v2 |
 | 3 | `feat/observatory-ingest-v2` | 1, 2. Switches `score_oi` to v2 `[OQ-2]` |
 | 4 | `feat/observatory-forecast` | 3. Same files as the ingest; the API's estimates are born with the forecast `[OQ-3]` |
@@ -191,16 +191,17 @@ Feature: Scoring v2, per species
       | 21 Sep | 22 Sep | 23 Sep | 24 Sep | 25 Sep | 28 Sep |
       | 58     | 57     | 37     | 24     | 23     | 16     |
 
-Feature: v1 parity
-
-  Scenario: compute_oi reproduces scores_cache on 2026-10-06
-    Then v1 is 58, 75, 76 and 81 for zone-003, zone-201, zone-030 and zone-202
 ```
+
+Done 2026-10-10: 51 tests; the Python port also matches the prototype day by day (1.424 days, generic model and cep, Jul–Oct 2025 and 2026, 0 differences). Rains on the way are computed for every day, not only the last one as in the prototype, so the time machine can show them. The v1 parity scenario moves to the ingest branch, where the v1 inputs are derived from `climate_history`.
 
 ## 2. `feat/observatory-ingest-v2`
 
 ```gherkin
 Feature: Daily ingest makes v2 the main score   [OQ-2]
+
+  Scenario: v1 parity — compute_oi reproduces scores_cache on 2026-10-06
+    Then v1 is 58, 75, 76 and 81 for zone-003, zone-201, zone-030 and zone-202
 
   Scenario: score_oi is the current model, whatever its version
     When the daily ingest computes the scores of a zone
@@ -216,7 +217,7 @@ Feature: Daily ingest makes v2 the main score   [OQ-2]
     Then score_label(score_oi) returns Malo, Regular, Bueno, Muy bueno or Excelente with the lower bound inclusive
 
   Scenario: the ingest reads the window v2 needs
-    Then it reads 100 days of climate_history (190 if OQ-5 says so), not 21
+    Then it reads 100 days of climate_history, not 21
 
   Scenario: a v2 failure does not leave the zone without a score
     Given v2 raises for a zone
