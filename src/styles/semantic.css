@@ -52,3 +52,19 @@
 .score-bar-good   { background-color: var(--ui-score-good-bar); }
 .score-bar-ok     { background-color: var(--ui-score-ok-bar); }
 .score-bar-low    { background-color: var(--ui-score-low-bar); }
+
+/* ── Star / follow accent ─────────────────────────────────────────────────── */
+.ui-star-on   { background-color: var(--ui-star-bg); color: var(--ui-star-text); }
+.ui-star-text { color: var(--ui-star-text); }
+
+/* ── Modal hero (zone + species) ──────────────────────────────────────────────
+   Dark: photo fades into the modal background. Light: no white fade, photo
+   stays visible and the text over it turns white (with a soft shadow).        */
+.hero-img { opacity: 0.75; }
+[data-theme="light"] .hero-img { opacity: 0.85; }
+[data-theme="light"] .hero-fade { display: none; }
+[data-theme="light"] .hero-on-image {
+  --color-cream-rgb: 255, 255, 255;
+  --color-muted-rgb: 255, 255, 255;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45), 0 0 2px rgba(0, 0, 0, 0.35);
+}

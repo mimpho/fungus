@@ -58,6 +58,10 @@
   --ui-accent-positive:        #34d399;
   --ui-accent-positive-subtle: rgba(52, 211, 153, 0.10);
 
+  /* Star / follow accent (followed zones, "only followed" filter, premium) */
+  --ui-star-bg:   rgba(250, 204, 21, 0.20);
+  --ui-star-text: #facc15;
+
   /* Nav active state */
   --ui-nav-active-bg:        rgba(217, 206, 161, 0.10);
   --ui-nav-active-text:      #d9cea1;
@@ -172,6 +176,10 @@
   /* Positive accent — dark green readable on light backgrounds */
   --ui-accent-positive:        #059669;
   --ui-accent-positive-subtle: rgba(5, 150, 105, 0.10);
+
+  /* Star / follow accent — amber-700 on a pale amber tint: yellow-400 on light is unreadable */
+  --ui-star-bg:   rgba(180, 83, 9, 0.12);
+  --ui-star-text: #b45309;
 
   /* Nav active state */
   --ui-nav-active-bg:        rgb(136 133 87 / 10%);

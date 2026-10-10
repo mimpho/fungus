@@ -178,7 +178,7 @@ export default function Profile() {
           )}
           <p className="text-cream/60 text-sm truncate">{user.email}</p>
           <span className={`text-xs px-2 py-0.5 rounded-full ${user.plan === 'premium'
-            ? 'bg-amber-500/20 text-amber-400'
+            ? 'ui-star-on'
             : 'surface-subtle text-cream/50'
             }`}>
             {user.plan === 'premium' ? '⭐ Premium' : 'Free'}

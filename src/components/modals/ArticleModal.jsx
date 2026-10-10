@@ -142,7 +142,7 @@ export function ArticleModal({ slug, onClose }) {
             <p className="text-muted/80 text-xs truncate">{article.subtitle}</p>
           </div>
           <button onClick={onClose}
-            className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all shrink-0">
+            className="p-2 rounded-xl text-cream/50 hover:text-cream hover:[background-color:var(--ui-surface-hover)] transition-all shrink-0">
             {IC.close}
           </button>
         </div>
