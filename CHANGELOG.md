@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — Map basemap shows "API KEY REQUIRED" (2026-10-10)
+
+- **`src/components/map/LeafletMap.jsx`**: since 25 Sep 2026 CARTO serves basemap tiles only with an API key, so every map showed the watermark instead of the base map. Tiles now use `rastertiles/dark_all` with `?key=` from `VITE_CARTO_KEY`, and the console warns when the key is missing.
+- Two keys, one per environment: production (restricted to the production domain) in Vercel, development (restricted to `localhost`) in the local `.env`. Documented in `docs/environments.md`. Free tier: 5M requests/month non-commercial; a commercial key is needed when premium launches.
+
 ### Fixed — App logs missing on Render after startup migrations (2026-10-10)
 
 - **`backend/migrations/env.py`**: logging is configured from `alembic.ini` only when Alembic runs from the CLI. Inside the API, `alembic.ini` reset the root logger to `WARN`, so every `app.*` INFO log (migrations complete, scheduler, ingest, weather refresh) was dropped on Render. The previous fix (`disable_existing_loggers=False`) was not enough.

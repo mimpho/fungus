@@ -24,6 +24,7 @@ obligation and destination.
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `VITE_API_URL` | No (v4.1) | *(not set)* | Base URL of the backend API. Will be wired up at end of v4.1 phase |
+| `VITE_CARTO_KEY` | Yes | *(not set → map shows "API KEY REQUIRED")* | CARTO basemap key (required since 2026-09-25). Two keys: production key restricted to the production domain (Vercel env var), development key restricted to `localhost` (local `.env`). Free up to 5M requests/month non-commercial, 1M commercial — request a commercial key when premium launches. [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/) |
 
 ---
 

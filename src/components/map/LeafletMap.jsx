@@ -12,6 +12,15 @@ async function ensureHeat() {
 import { IC } from '../../lib/helpers'
 import { Tabs } from '../ui/Tabs'
 
+// CARTO basemap tiles. Since 2026-09-25 CARTO serves tiles only with an API key
+// (without it every tile shows "API KEY REQUIRED"). Two keys, one per environment,
+// both in VITE_CARTO_KEY: production key (restricted to the production domain) in
+// Vercel, development key (restricted to localhost) in the local .env.
+// Free up to 5M requests/month non-commercial, 1M commercial (carto.com/basemaps/apikey).
+const CARTO_KEY = import.meta.env.VITE_CARTO_KEY
+if (!CARTO_KEY) console.warn('[LeafletMap] VITE_CARTO_KEY is not set: the basemap will show "API KEY REQUIRED"')
+const CARTO_TILES_URL = `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY ?? ''}`
+
 // ─── Heatmap basado en scores reales de zonas ────────────────────────────────
 
 /**
@@ -76,7 +85,7 @@ function LeafletMapInner({ zonas, onZoneClick, height = '400px', singleZone = nu
       const map = L.map(mapRef.current, { zoomControl: false, scrollWheelZoom: true })
         .setView(center, zoom)
       L.control.zoom({ position: 'bottomleft' }).addTo(map)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      L.tileLayer(CARTO_TILES_URL, {
         attribution: '© OpenStreetMap contributors © CARTO',
         subdomains: 'abcd', maxZoom: 19,
       }).addTo(map)
