@@ -49,9 +49,10 @@ ELEVATION_PAUSE_S = 1.1
 # Public Overpass servers: the main one, then a mirror. Busy servers answer 429 or 504.
 OVERPASS_URLS = (
     "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 )
-OVERPASS_RETRIES = 3  # rounds over all servers
+OVERPASS_RETRIES = 2  # rounds over all servers; then the zone goes on without the forest mask
 OVERPASS_BACKOFF_S = 5
 # Overpass answers 406 to generic client User-Agents: identify the app.
 HEADERS = {"User-Agent": "fungus-zone-elevation/1.0 (+https://github.com/mimpho/fungus)"}
@@ -282,13 +283,21 @@ async def main(args: argparse.Namespace) -> None:
     )
     results = []
     failed: list[str] = []
+    no_osm: list[str] = []
     async with httpx.AsyncClient(timeout=30, headers=HEADERS) as client:
         for z in zones:
             t0 = time.monotonic()
             radius = args.radius_km or ZONE_RADIUS_KM.get(z.id, DEFAULT_RADIUS_KM)
             grid = grid_points(z.lat, z.lon, radius, grid_step_m(radius))
             try:
-                forest = in_forest(grid, await fetch_forests(client, z.lat, z.lon, radius))
+                try:
+                    forest = in_forest(grid, await fetch_forests(client, z.lat, z.lon, radius))
+                    osm_ok = True
+                except httpx.HTTPError:
+                    # OpenStreetMap servers busy: compute without the mask, flag it (~) and
+                    # re-run the zone later with --zones when they are free.
+                    forest, osm_ok = [], False
+                    no_osm.append(z.id)
                 masked = len(forest) >= MIN_FOREST_POINTS
                 sample = forest if masked else grid
                 # the zone point goes first in the same request: one call less per zone
@@ -319,7 +328,7 @@ async def main(args: argparse.Namespace) -> None:
             else:
                 d = round(point_m - z.elevation_m)
                 diff = f"{d:+5d}" + ("?" if abs(d) > STORED_DIFF_ALERT_M else " ")
-            pts = f"{len(forest)}/{len(grid)}" + ("" if masked else "!")
+            pts = f"{len(forest)}/{len(grid)}" + ("" if masked else "!" if osm_ok else "~")
             print(
                 f"{z.id:9} {(z.forest_type or '-'):9} {radius:4.0f} {pts:>7} {stored:>6} "
                 f"{point_m:6.0f} {diff} {band.min_m:>5}–{band.max_m:<5}"
@@ -329,9 +338,17 @@ async def main(args: argparse.Namespace) -> None:
                 flush=True,
             )
             await asyncio.sleep(1.0)  # be gentle with the public Overpass server
+    if no_osm:
+        print(
+            f"\n{len(no_osm)} zones computed without the forest mask (OpenStreetMap busy). "
+            f"Re-run them later with:\n  --zones {','.join(no_osm)}"
+        )
     if failed:
         print(f"\n{len(failed)} zones failed. Re-run them with:\n  --zones {','.join(failed)}\n")
-    print("pts = forest points / grid points; ! = too few forest points in OpenStreetMap, ")
+    print(
+        "pts = forest points / grid points; ~ = OpenStreetMap busy, no forest mask (re-run later);"
+    )
+    print("      ! = too few forest points in OpenStreetMap, ")
     print("      band computed on every point: check by hand")
     print("*   = top lowered to the forest type's usual limit")
     print(f"?   = stored elevation_m differs from the terrain by more than {STORED_DIFF_ALERT_M} m")
