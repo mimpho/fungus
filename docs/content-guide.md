@@ -62,7 +62,7 @@ Every zone value is either **static** (set once when the zone is created, review
 | `lat`, `lon` | Static | IGN viewer or OpenStreetMap; a representative point of the forest, not a summit or a village | By hand | Never |
 | `geom` | Derived | PostGIS, generated from `lat`/`lon` | Automatic (do not insert) | With `lat`/`lon` |
 | `elevation_m` | Static | Open-Meteo Elevation API (Copernicus DEM, ~90 m) at `lat`/`lon` | `backend/scripts/zone_elevation_ranges.py` | Never |
-| `elevation_min_m`, `elevation_max_m` | Static | Open-Meteo Elevation API: grid of points around the zone, central band of elevations (percentiles), capped at the treeline for conifer forests | `backend/scripts/zone_elevation_ranges.py` (dry run first, then apply) | Never; recalculate only if the zone point moves |
+| `elevation_min_m`, `elevation_max_m` | Static | Grid of points in a circle around the zone (3 km, wider for zones in `ZONE_RADIUS_KM`), kept only where OpenStreetMap has forest (`landuse=forest`, `natural=wood`, Overpass API); their altitude from the Open-Meteo Elevation API; central band p10–p90, capped by forest type | `backend/scripts/zone_elevation_ranges.py` (dry run first, then apply) | Never; recalculate if the zone point moves or OpenStreetMap forests change a lot |
 | `forest_type` | Static | MITECO Mapa Forestal de España (official classification); OpenStreetMap as a check | By hand | Never |
 | `soil_type` | Static | Geological map (IGME) when known | By hand, optional | Never |
 | `description` | Static | Own text | By hand | Never |

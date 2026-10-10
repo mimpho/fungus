@@ -1,15 +1,21 @@
-"""Pure parts of scripts/zone_elevation_ranges.py: sampling grid and altitude band."""
+"""Pure parts of scripts/zone_elevation_ranges.py: grid, forest mask and altitude band."""
 
 import math
 
 import pytest
 
 from scripts.zone_elevation_ranges import (
-    MAX_POINTS_PER_CALL,
+    MAX_GRID_POINTS,
     elevation_band,
+    forest_shapes,
     grid_points,
+    grid_step_m,
+    in_forest,
+    inside,
     percentile,
 )
+
+# ── Grid ──────────────────────────────────────────────────────────────────────
 
 
 def test_the_grid_stays_inside_the_radius():
@@ -22,9 +28,57 @@ def test_the_grid_stays_inside_the_radius():
         assert dx * dx + dy * dy <= 9 + 0.01
 
 
-def test_default_grid_costs_two_calls_per_zone():
-    points = grid_points(42.405, 2.272, radius_km=3, step_m=500)
-    assert MAX_POINTS_PER_CALL < len(points) <= 2 * MAX_POINTS_PER_CALL
+@pytest.mark.parametrize("radius_km", [3, 6, 10])
+def test_the_spacing_grows_with_the_radius_to_cap_the_api_calls(radius_km):
+    step = grid_step_m(radius_km)
+    assert step >= 500
+    assert len(grid_points(42.4, 2.27, radius_km, step)) <= MAX_GRID_POINTS
+
+
+def test_a_3_km_circle_keeps_the_500_m_spacing():
+    assert grid_step_m(3) == 500
+
+
+# ── Forest mask ───────────────────────────────────────────────────────────────
+
+
+def _node(lat, lon):
+    return {"lat": lat, "lon": lon}
+
+
+SQUARE = [_node(0, 0), _node(0, 10), _node(10, 10), _node(10, 0), _node(0, 0)]
+
+
+def test_a_closed_way_is_one_forest():
+    shapes = forest_shapes([{"type": "way", "geometry": SQUARE}])
+    assert inside((5, 5), shapes[0])
+    assert not inside((15, 5), shapes[0])
+
+
+def test_a_relation_with_a_split_outer_ring_and_a_hole():
+    outer_a = [_node(0, 0), _node(0, 10), _node(10, 10)]
+    outer_b = [_node(10, 10), _node(10, 0), _node(0, 0)]
+    hole = [_node(4, 4), _node(4, 6), _node(6, 6), _node(6, 4), _node(4, 4)]
+    relation = {
+        "type": "relation",
+        "members": [
+            {"type": "way", "role": "outer", "geometry": outer_a},
+            {"type": "way", "role": "outer", "geometry": outer_b},
+            {"type": "way", "role": "inner", "geometry": hole},
+        ],
+    }
+    (shape,) = forest_shapes([relation])
+    assert inside((2, 2), shape)  # forest
+    assert not inside((5, 5), shape)  # clearing
+    assert not inside((12, 5), shape)  # outside
+
+
+def test_only_points_in_some_forest_are_kept():
+    shapes = forest_shapes([{"type": "way", "geometry": SQUARE}, {"type": "node"}])
+    assert in_forest([(5, 5), (20, 20), (1, 9)], shapes) == [(5, 5), (1, 9)]
+
+
+# ── Band ──────────────────────────────────────────────────────────────────────
 
 
 def test_percentile_interpolates():
