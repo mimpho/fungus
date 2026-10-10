@@ -102,7 +102,7 @@ export default function Articles() {
               <h2 className="font-display text-xl sm:text-3xl text-cream mb-3 leading-snug">
                 {article.title}
               </h2>
-              <p className="text-sm text-amber-100/80 leading-relaxed mb-4 max-w-xl">
+              <p className="text-sm text-cream/75 leading-relaxed mb-4 max-w-xl">
                 {article.summary}
               </p>
               <div className="flex items-center gap-4">
