@@ -17,6 +17,7 @@ Usage:
     cd backend
     python -m scripts.zone_relocate --zones zone-021,zone-161 --out ~/Desktop/relocate.csv
     python -m scripts.zone_relocate --min-diff 150 --out ~/Desktop/relocate.csv   # misplaced only
+    python -m scripts.zone_relocate --new scripts/data/catalonia_candidates.csv --out ../new.csv
 """
 
 from __future__ import annotations
@@ -295,7 +296,57 @@ COLUMNS = [
 ]  # fmt: skip
 
 
+async def propose_new(args: argparse.Namespace) -> None:
+    """--new: candidate zones from a CSV (name, query, province, region, forest_type)."""
+    with open(args.new, newline="") as f:
+        candidates = list(csv.DictReader(f))
+    out = open(args.out, "w", newline="") if args.out else sys.stdout  # noqa: SIM115
+    writer = csv.writer(out)
+    writer.writerow(
+        ["name", "province", "region", "forest_type", "confidence", "place_found", "place_kind",
+         "lat", "lon", "dem_m", "forest_match", "forest_ha", "forest_tags", "map"]
+    )  # fmt: skip
+    nominatim, topo = Throttle(1.1), Throttle(1.1)
+    async with httpx.AsyncClient(timeout=30, headers=HEADERS) as client:
+        for c in candidates:
+            try:
+                place = pick_place(await geocode(client, nominatim, c["query"], c["province"]))
+                forest = None
+                if place:
+                    elements = await overpass_forests(client, search_box(place))
+                    near = (float(place["lat"]), float(place["lon"]))
+                    forest = best_forest(forests_from_overpass(elements, c["forest_type"]), near)
+                dem = None
+                if forest:
+                    (dem,) = await elevations(client, topo, [(forest.lat, forest.lon)])
+            except (httpx.HTTPError, RuntimeError) as exc:
+                print(f"{c['name']}: ERROR {exc}", file=sys.stderr, flush=True)
+                continue
+            conf = confidence(place, forest)
+            writer.writerow(
+                [c["name"], c["province"], c["region"], c["forest_type"], conf,
+                 place.get("display_name", "")[:80] if place else "",
+                 f"{place.get('category')}/{place.get('type')}" if place else "",
+                 f"{forest.lat:.5f}" if forest else "", f"{forest.lon:.5f}" if forest else "",
+                 round(dem) if dem is not None else "", forest.match if forest else "",
+                 round(forest.hectares) if forest else "", forest.tags if forest else "",
+                 osm_link(forest.lat, forest.lon) if forest else ""]
+            )  # fmt: skip
+            if out is not sys.stdout:
+                out.flush()
+            print(
+                f"{conf:6} {c['name']:32} {forest.match if forest else '-':8} "
+                f"{round(dem) if dem is not None else '-':>5} m",
+                file=sys.stderr,
+                flush=True,
+            )
+    if out is not sys.stdout:
+        out.close()
+
+
 async def main(args: argparse.Namespace) -> None:
+    if args.new:
+        return await propose_new(args)
     from sqlalchemy import select
 
     from app.database import AsyncSessionLocal, engine
@@ -397,4 +448,9 @@ if __name__ == "__main__":
         help="Only zones whose stored altitude differs from the terrain by more than this (m)",
     )
     parser.add_argument("--out", default=None, help="CSV file (default: stdout)")
+    parser.add_argument(
+        "--new",
+        default=None,
+        help="CSV of candidate zones (name,query,province,region,forest_type)",
+    )
     asyncio.run(main(parser.parse_args()))
