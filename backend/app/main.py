@@ -4,9 +4,9 @@ Fungus API — FastAPI application entry point.
 Startup sequence:
   1. Run Alembic migrations (upgrade head) — only when RUN_MIGRATIONS_ON_STARTUP
      is on (default: ENVIRONMENT=production, i.e. Render). Local runs skip it.
-  2. Schedule the daily ingestion cron (APScheduler)
+  2. Schedule the daily ingestion cron and the weather_cache refresh (every 3 h)
   3. If scores_cache is empty, run an ingest immediately (background task)
-  4. If weather_cache is empty, warm up weather for all zones (background task)
+  4. If any zone lacks fresh weather, refresh weather_cache now (background task)
   5. Mount API routers
 
 Shutdown sequence:
@@ -34,15 +34,9 @@ from sqlalchemy import func, select
 from app.config import settings
 from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
-from app.models.weather_cache import WeatherCache
-from app.models.zone import Zone
 from app.routers import auth, health, me, species, weather, zones
 from app.services.ingest import run_backfill, run_daily_ingest
-from app.services.weather_cache import (
-    DEFAULT_PROVIDER,
-    fetch_weather_for_zone,
-    store_weather_cache,
-)
+from app.services.weather_refresh import get_outdated_weather_zones, refresh_weather_cache
 
 # Single source of truth for version — reads from pyproject.toml at runtime
 APP_VERSION = pkg_version("fungus-api")
@@ -149,53 +143,34 @@ async def _startup_ingest_if_empty() -> None:
             log.exception("Startup ingest failed: %s", exc)
 
 
-_WEATHER_WARMUP_BATCH = 10  # concurrent Open-Meteo requests per batch
+# Every 3 h at :30 (00:30, 03:30, …) — never at the same time as the 05:00 ingest
+WEATHER_REFRESH_CRON = {"hour": "*/3", "minute": 30}
 
 
-async def _startup_weather_warmup() -> None:
+async def _scheduled_weather_refresh() -> None:
+    async with AsyncSessionLocal() as db:
+        try:
+            await refresh_weather_cache(db)
+        except Exception as exc:
+            log.exception("Weather refresh failed: %s", exc)
+
+
+async def _startup_weather_refresh() -> None:
     """
-    On startup, populate weather_cache if it is completely empty.
-
-    Fetches Open-Meteo for all active zones in batches of _WEATHER_WARMUP_BATCH
-    concurrent requests so the zones list returns real weather from the first hit.
+    On startup, refresh only the active zones that lack fresh weather (first deploy,
+    or the service was down). A redeploy with fresh rows costs no calls.
     Runs in the background — does not block app startup.
     """
     async with AsyncSessionLocal() as db:
         try:
-            # Skip if any valid cache entry already exists
-            count_result = await db.execute(select(func.count()).select_from(WeatherCache))
-            if count_result.scalar_one() > 0:
-                log.info("weather_cache already populated — skipping warmup")
+            outdated = await get_outdated_weather_zones(db)
+            if not outdated:
+                log.info("weather_cache is fresh for all zones — skipping startup refresh")
                 return
-
-            # Load all active zones
-            zones_result = await db.execute(
-                select(Zone).where(Zone.active == True)  # noqa: E712
-            )
-            active_zones = zones_result.scalars().all()
-            total = len(active_zones)
-            log.info(
-                "weather_cache empty — warming up %d zones in batches of %d",
-                total, _WEATHER_WARMUP_BATCH
-            )
-
-            ok = 0
-            for i in range(0, total, _WEATHER_WARMUP_BATCH):
-                batch = active_zones[i : i + _WEATHER_WARMUP_BATCH]
-                results = await asyncio.gather(
-                    *(fetch_weather_for_zone(z.lat, z.lon) for z in batch),
-                    return_exceptions=True,
-                )
-                for z, data in zip(batch, results):
-                    if isinstance(data, Exception) or data is None:
-                        log.warning("weather warmup: no data for zone %s", z.id)
-                        continue
-                    await store_weather_cache(z.id, DEFAULT_PROVIDER, data, db)
-                    ok += 1
-
-            log.info("weather warmup finished: %d/%d zones populated", ok, total)
+            log.info("%d zones without fresh weather — refreshing now", len(outdated))
+            await refresh_weather_cache(db, zone_ids=outdated)
         except Exception as exc:
-            log.exception("Weather warmup failed: %s", exc)
+            log.exception("Startup weather refresh failed: %s", exc)
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
@@ -217,13 +192,25 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         id="daily_ingest",
         replace_existing=True,
     )
+    scheduler.add_job(
+        _scheduled_weather_refresh,
+        trigger="cron",
+        **WEATHER_REFRESH_CRON,
+        id="weather_refresh",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
     scheduler.start()
-    log.info("Scheduler started — daily ingest at %02d:00 UTC", settings.ingest_cron_hour)
+    log.info(
+        "Scheduler started — daily ingest at %02d:00 UTC, weather refresh every 3 h at :30",
+        settings.ingest_cron_hour,
+    )
 
     # Fire-and-forget: populate scores_cache on first deploy / cold start
     asyncio.create_task(_startup_ingest_if_empty())
-    # Fire-and-forget: populate weather_cache on first deploy / cold start
-    asyncio.create_task(_startup_weather_warmup())
+    # Fire-and-forget: fill weather_cache if any zone lacks fresh weather
+    asyncio.create_task(_startup_weather_refresh())
 
     yield
 
