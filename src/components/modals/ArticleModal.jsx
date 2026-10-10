@@ -70,7 +70,7 @@ export function Fig({ fotos, idx, height = 'auto', openLightbox }) {
       </div>
       <div className="absolute inset-x-0 bottom-0 h-20 rounded-b-xl"
         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)' }} />
-      <figcaption className="absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
+      <figcaption className="hero-on-image absolute bottom-3 left-4 right-4 text-cream/85 text-xs leading-snug">
         <strong className="text-muted">Fig. {idx + 1}:</strong>{' '}
         {fotos[idx].caption.replace(/^Fig\. \d+ — /, '')}
       </figcaption>
@@ -172,9 +172,11 @@ export function ArticleModal({ slug, onClose }) {
         </div>
 
         {/* Cuerpo */}
-        {Body ? <Body /> : (
-          <div className="p-8 text-center text-cream/40 text-sm">{t.contenidoNoDisp}</div>
-        )}
+        <div className="pt-6">
+          {Body ? <Body /> : (
+            <div className="p-8 text-center text-cream/40 text-sm">{t.contenidoNoDisp}</div>
+          )}
+        </div>
       </div>
     </div>,
     document.body
