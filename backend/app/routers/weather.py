@@ -27,7 +27,11 @@ async def get_zone_weather(
     if cached:
         return {"zone_id": zone_id, "provider": provider, "weather": cached, "cached": True}
 
-    weather = await weather_cache.fetch_weather_for_zone(zone.lat, zone.lon)
+    # No fresh row (the refresh job fills them every 3 h): one live call, within
+    # the shared daily budget. No data → 502 and the card shows "–".
+    weather = None
+    if weather_cache.budget.try_spend():
+        weather = await weather_cache.fetch_weather_for_zone(zone.lat, zone.lon, zone_id)
     if not weather:
         raise HTTPException(status_code=502, detail="Failed to fetch weather data")
 

@@ -13,6 +13,7 @@ from app.models.scores_cache import ScoresCache
 from app.models.zone import Zone
 from app.schemas.health import HealthResponse
 from app.services.ingest import get_stale_zones
+from app.services.weather_refresh import get_outdated_weather_zones
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -31,7 +32,8 @@ async def health_head() -> None:
 async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
     """
     System status: database reachability, last ingest timestamp, active zone count
-    and `stale_zones` (zones without climate data in the last `stale_zone_days`).
+    `stale_zones` (zones without climate data in the last `stale_zone_days`) and
+    `weather_outdated` (zones without current weather younger than `weather_max_age_hours`).
     Used by Render/UptimeRobot keep-alive pings and the frontend status indicator.
     """
     db_ok = True
@@ -44,6 +46,7 @@ async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
     active_zones = 0
     last_ingest: datetime | None = None
     stale_zones: list[str] = []
+    weather_outdated = 0
 
     if db_ok:
         zone_count = await db.execute(
@@ -57,6 +60,7 @@ async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
         last_ingest = latest_cache.scalar()
 
         stale_zones = [z["zone_id"] for z in await get_stale_zones(db)]
+        weather_outdated = len(await get_outdated_weather_zones(db))
 
     return HealthResponse(
         status="ok" if db_ok else "degraded",
@@ -71,4 +75,5 @@ async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
         },
         db_reachable=db_ok,
         stale_zones=stale_zones,
+        weather_outdated=weather_outdated,
     )

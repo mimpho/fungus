@@ -1,19 +1,85 @@
-from datetime import UTC, datetime, timedelta
+import logging
+from datetime import UTC, date, datetime, timedelta
 
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.weather_cache import WeatherCache
 
+log = logging.getLogger(__name__)
+
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
-CACHE_TTL_HOURS = 3
 DEFAULT_PROVIDER = "open-meteo"
+# Open-Meteo bills a request spanning more than 2 weeks as days/14 calls:
+# past_days=14 + today = 15 days.
+CALL_COST = 15 / 14
 
 
-async def fetch_weather_for_zone(lat: float, lon: float) -> dict | None:
+class WeatherFetchError(Exception):
+    """A failed Open-Meteo call. `status` is None for transport errors (timeout, DNS…)."""
+
+    def __init__(self, status: int | None, detail: str) -> None:
+        super().__init__(f"HTTP {status or '-'}: {detail}")
+        self.status = status
+        self.detail = detail
+
+    @property
+    def rate_limited(self) -> bool:
+        return self.status == 429
+
+
+class CallBudget:
+    """
+    Daily (UTC) cap on Open-Meteo calls for weather_cache, shared by the refresh
+    job and the live fallback in /weather/zones/{id}. In memory: a restart resets
+    it, which is acceptable on a single Render instance (worst case one extra
+    refresh run's worth of calls).
+    """
+
+    def __init__(self, limit: float) -> None:
+        self.limit = limit
+        self.used = 0.0
+        self._day: date | None = None
+
+    def try_spend(self, cost: float = CALL_COST) -> bool:
+        today = datetime.now(UTC).date()
+        if today != self._day:
+            self._day, self.used = today, 0.0
+        if self.used + cost > self.limit:
+            return False
+        self.used += cost
+        return True
+
+
+budget = CallBudget(settings.weather_daily_call_budget)
+
+
+def valid_until_for(collected_at: datetime) -> datetime:
+    """Rows are served while younger than WEATHER_MAX_AGE_HOURS (two refresh cycles)."""
+    return collected_at + timedelta(hours=settings.weather_max_age_hours)
+
+
+async def fetch_weather_for_zone(lat: float, lon: float, zone_id: str = "") -> dict | None:
+    """Like fetch_weather(), but logs the failure and returns None."""
+    try:
+        return await fetch_weather(lat, lon)
+    except WeatherFetchError as exc:
+        log.warning("Open-Meteo weather fetch failed for %s: %s", zone_id or (lat, lon), exc)
+        return None
+
+
+def new_client() -> httpx.AsyncClient:
+    """HTTP client for Open-Meteo. Reuse one per refresh run (keep-alive): opening a
+    new TLS connection per zone led to intermittent ConnectTimeouts."""
+    return httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=10.0))
+
+
+async def fetch_weather(lat: float, lon: float, client: httpx.AsyncClient | None = None) -> dict:
     """
     Fetch current weather from Open-Meteo for a single zone.
+    Raises WeatherFetchError with the status code and body on failure.
 
     Returns a dict with:
       - temp_min / temp_max: today's forecasted daily range (°C)
@@ -35,45 +101,49 @@ async def fetch_weather_for_zone(lat: float, lon: float) -> dict | None:
         "forecast_days": 1,
         "timezone": "Europe/Madrid",
     }
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            res = await client.get(OPEN_METEO_URL, params=params)
-            res.raise_for_status()
-        except httpx.HTTPError:
-            return None
+    if client is None:
+        async with new_client() as own:
+            return await fetch_weather(lat, lon, own)
 
-        data = res.json()
-        current = data.get("current", {})
-        daily = data.get("daily", {})
-        soil_temp = _current_hour_value(
-            data.get("hourly", {}), "soil_temperature_0cm", current.get("time")
-        )
+    try:
+        res = await client.get(OPEN_METEO_URL, params=params)
+    except httpx.HTTPError as exc:
+        raise WeatherFetchError(None, f"{type(exc).__name__}: {exc}") from exc
+    if res.status_code != 200:
+        raise WeatherFetchError(res.status_code, res.text[:300])
 
-        humidity = current.get("relative_humidity_2m") or 75
-        wind = current.get("wind_speed_10m") or 10
+    data = res.json()
+    current = data.get("current", {})
+    daily = data.get("daily", {})
+    soil_temp = _current_hour_value(
+        data.get("hourly", {}), "soil_temperature_0cm", current.get("time")
+    )
 
-        precip_arr = daily.get("precipitation_sum") or []
-        past_14 = precip_arr[:14]
-        rainfall_14d = round(sum(v or 0 for v in past_14), 1)
-        recent_7 = precip_arr[-7:] if len(precip_arr) >= 7 else precip_arr
-        dry_days = sum(1 for v in recent_7 if (v or 0) < 1)
+    humidity = current.get("relative_humidity_2m") or 75
+    wind = current.get("wind_speed_10m") or 10
 
-        # Daily min/max: last entry = today's forecast (index -1 of 15-day array)
-        temp_min_arr = daily.get("temperature_2m_min") or []
-        temp_max_arr = daily.get("temperature_2m_max") or []
-        temp_min = round(temp_min_arr[-1], 1) if temp_min_arr else None
-        temp_max = round(temp_max_arr[-1], 1) if temp_max_arr else None
+    precip_arr = daily.get("precipitation_sum") or []
+    past_14 = precip_arr[:14]
+    rainfall_14d = round(sum(v or 0 for v in past_14), 1)
+    recent_7 = precip_arr[-7:] if len(precip_arr) >= 7 else precip_arr
+    dry_days = sum(1 for v in recent_7 if (v or 0) < 1)
 
-        return {
-            "temp_min": temp_min,
-            "temp_max": temp_max,
-            "humidity": round(humidity),
-            "wind": round(wind),
-            "rainfall14d": rainfall_14d,
-            "soil_temp": soil_temp,
-            "dry_days": dry_days,
-            "collected_at": datetime.now(UTC),
-        }
+    # Daily min/max: last entry = today's forecast (index -1 of 15-day array)
+    temp_min_arr = daily.get("temperature_2m_min") or []
+    temp_max_arr = daily.get("temperature_2m_max") or []
+    temp_min = round(temp_min_arr[-1], 1) if temp_min_arr else None
+    temp_max = round(temp_max_arr[-1], 1) if temp_max_arr else None
+
+    return {
+        "temp_min": temp_min,
+        "temp_max": temp_max,
+        "humidity": round(humidity),
+        "wind": round(wind),
+        "rainfall14d": rainfall_14d,
+        "soil_temp": soil_temp,
+        "dry_days": dry_days,
+        "collected_at": datetime.now(UTC),
+    }
 
 
 def _current_hour_value(hourly: dict, key: str, current_time: str | None) -> float | None:
@@ -109,7 +179,7 @@ async def store_weather_cache(
 
     # Use the timestamp from the fetch, not the time of DB write
     collected_at = data.get("collected_at") or datetime.now(UTC)
-    valid_until = collected_at + timedelta(hours=CACHE_TTL_HOURS)
+    valid_until = valid_until_for(collected_at)
 
     stmt = select(WeatherCache).where(
         WeatherCache.zone_id == zone_id,
