@@ -29,22 +29,18 @@ Full spec, formula, plan and test cases: Observatory design document, section "S
 
 ---
 
-## 🔴 Fix — Zone card weather shows "–" in production — 2026-10-10
+## 🔴 Fix — Weather data missing in zone list and card (`fix/weather-cache`) — 2026-10-10
 
-`/weather/zones/{id}` returns 502 in production: `weather_cache` has no valid rows (last write 2026-10-08 00:36 UTC; 36 of 214 zones never cached) because the daily ingest only refreshes `scores_cache`. On cache miss the API calls Open-Meteo live from Render, which fails (Open-Meteo answers fine from a home IP — likely per-IP rate limiting on Render's shared egress; to confirm in Render logs). Score v1 and dry days still show (they come from `scores_cache`).
+Symptoms: in production the zone card shows "–" for temperature, soil temp, rain, humidity and wind (`/weather/zones/{id}` → 502), and the zones list only shows weather for zones whose card was opened recently.
 
-- [ ] `fix/weather-cache` (on `main`): daily ingest also refreshes `weather_cache` for every active zone.
-- [ ] `/weather/zones/{id}`: on Open-Meteo failure serve the latest cache row flagged as stale instead of 502.
+Cause: `weather_cache` (TTL 3 h) is filled only on demand — when a card is opened and the cache is empty, `/weather/zones/{id}` calls Open-Meteo live. The daily ingest only writes `climate_history` and `scores_cache`; the startup warm-up runs only if the table is completely empty. `GET /zones` just attaches the still-valid cache row, so zones nobody opened in the last 3 h come back without weather. The live call from Render also fails (502), cause unknown: `fetch_weather_for_zone` swallows every `httpx.HTTPError` and returns `None` without logging (Open-Meteo answers fine from a home IP; per-IP limiting on Render's shared egress is a hypothesis, not confirmed).
 
----
-
-## 🔴 Fix — `scripts/generate-css-vars.ts` is out of sync with the CSS split — 2026-10-10
-
-The `prebuild` hook was removed from `package.json` in the merge of `epic/v8-android` into main: running the generator is destructive. Vercel now builds with the committed `src/styles/tokens.css`. `npm run gen:css-vars` stays as a manual tool — **do not run it yet**.
-
-- It still targets `src/styles.css`, which after the split is only an import manifest without markers: the script appends a `:root` block and a `[data-theme="light"]` block at the end, overriding light-theme variables (e.g. `--glass-white`).
-- Pointing it at `src/styles/tokens.css` is worse: regenerating the `[generated:light-theme]` block deletes ~100 lines of hand-maintained `--ui-*` tokens (edibility badges, scores, surfaces, nav) and the `--color-*-rgb` channels, because `shared/colors.ts` does not generate them all.
-- [ ] Make the generator write to `tokens.css`, cover every token in the generated blocks (or narrow the markers to what it fully owns), check it reproduces the committed file with no diff, and only then restore `prebuild` (with `tsx` as a pinned devDependency instead of `npx` downloading it on every build).
+Design agreed (no stale data shown as current; never exceed Open-Meteo's free limit of 10,000 calls/day, shared with ingest and backfills):
+- [ ] **1. Diagnose first:** log the status code / body of failed Open-Meteo calls in `fetch_weather_for_zone`. If Render's IP is being rate-limited, a job won't help — move to the paid plan API key (also required for commercial use).
+- [ ] **2. Max age in the API:** `/zones` and `/weather/zones/{id}` return weather only if `collected_at` is ≤ 6 h old (two refresh cycles); older → no weather ("–" in the UI). Never serve `climate_history` as a stand-in (it is yesterday's data).
+- [ ] **3. Scheduled refresh job** every 3 h for all active zones (~1,700 requests/day, ~1,800 calls counting the 14-day window, ≈ 18 % of the free limit), reusing `INGEST_MAX_CONCURRENCY`. Guards: a daily call budget (stop before the limit); circuit breaker on 429 (stop, write nothing, rows age out to "–"); alert email through the `ALERT_EMAIL` path of #116 when zones have weather older than the max age; also expose it in `/health`.
+- [ ] Do not run the pending backfill (oct 2024 – sep 2025, ~9,000 calls) on the same day as heavy API use from the same IP.
+- [ ] Tests: max-age cut-off, budget guard, circuit breaker, job skips failed zones without overwriting good rows.
 
 ---
 
