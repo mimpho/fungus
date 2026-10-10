@@ -61,6 +61,18 @@ hourly: 'soil_temperature_0cm'
 current: 'temperature_2m,soil_temperature_0cm'
 ```
 
+### ⚠️ One free daily limit for everything (10,000 calls/day per IP)
+
+The ingest, backfills, the `weather_cache` refresh job (~1,850/day) and the card's live fallback all share it. A request over 2 weeks counts as days/14 calls. Do not run a large backfill (~9,000 calls) on the same day as normal traffic; the weather job stops itself at `WEATHER_DAILY_CALL_BUDGET` or on the first 429.
+
+---
+
+## Backend — Logging
+
+### ⚠️ Alembic's `fileConfig()` disables the app's loggers
+
+`migrations/env.py` loads the logging config from `alembic.ini`, which disables existing loggers by default and sets the root logger to `WARN`. Run inside the API (startup migrations), that silenced every `app.*` INFO log on Render. `env.py` now calls `fileConfig()` only when the root logger has no handlers (Alembic CLI), with `disable_existing_loggers=False`.
+
 ---
 
 ## Leaflet

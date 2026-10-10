@@ -14,5 +14,5 @@ RUN pip install --no-cache-dir -e .
 # Copy source
 COPY . .
 
-# Run Alembic migrations then start Uvicorn
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start Uvicorn — the API applies migrations on startup when RUN_MIGRATIONS_ON_STARTUP is on (default: production only)
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -13,3 +13,5 @@ class HealthResponse(BaseModel):
     providers: dict[str, bool]         # {'open-meteo': True, 'aemet': False, …}
     db_reachable: bool
     stale_zones: list[str] = []        # zone ids with no recent climate data
+    # active zones without current weather younger than WEATHER_MAX_AGE_HOURS
+    weather_outdated: int = 0

@@ -64,12 +64,30 @@ class Settings(BaseSettings):
     # Ops alerts (stale zones after the daily ingest). Empty = no email.
     alert_email: str = ""
 
+    # Current weather (weather_cache), refreshed by a job every 3 h.
+    # Rows older than this are not served (the UI shows "–"): two refresh cycles.
+    weather_max_age_hours: int = 6
+    # Max Open-Meteo calls per UTC day for weather_cache (refresh job + live card
+    # fetches). The free limit (10,000/day) is shared with the ingest and backfills.
+    weather_daily_call_budget: int = 3000
+
     # Versión de la API
     api_version: str = "v1"
+
+    # Apply Alembic migrations (`upgrade head`) on API startup. Unset = only when
+    # ENVIRONMENT=production (Render). Local runs share the production Supabase DB,
+    # so they must never migrate it implicitly — run `alembic upgrade head` on purpose.
+    run_migrations_on_startup: bool | None = None
 
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def should_run_migrations_on_startup(self) -> bool:
+        if self.run_migrations_on_startup is None:
+            return self.is_production
+        return self.run_migrations_on_startup
 
     @property
     def cors_origins_list(self) -> list[str]:

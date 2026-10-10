@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — App logs missing on Render after startup migrations (2026-10-10)
+
+- **`backend/migrations/env.py`**: logging is configured from `alembic.ini` only when Alembic runs from the CLI. Inside the API, `alembic.ini` reset the root logger to `WARN`, so every `app.*` INFO log (migrations complete, scheduler, ingest, weather refresh) was dropped on Render. The previous fix (`disable_existing_loggers=False`) was not enough.
+
+### Fixed — Current weather missing in the zone list and card (2026-10-10)
+
+- **New `backend/app/services/weather_refresh.py`**: a job refreshes `weather_cache` for all active zones every 3 h (at :30, never at the same time as the 05:00 ingest), plus at startup for the zones that lack fresh weather. Before, the cache was filled only when someone opened a zone card, so the list showed weather only for recently opened zones.
+- **Guards on Open-Meteo usage** (free limit 10,000 calls/day, shared with the ingest and backfills): daily call budget `WEATHER_DAILY_CALL_BUDGET` (default 3,000; the job uses ~1,850) shared with the card's live fallback; one request at a time (Open-Meteo answers 429 "Too many concurrent requests" to parallel calls from one IP — the likely cause of the card's 502s); that 429 and network errors are retried once; one keep-alive HTTP connection per run (a new TLS connection per zone caused intermittent connect timeouts), any other 429 stops the run at once (circuit breaker); a failed zone keeps its previous row.
+- **Max age**: rows are served for `WEATHER_MAX_AGE_HOURS` (default 6 h, two refresh cycles); older → no weather ("–"), never stale data shown as current.
+- **Diagnosis**: failed Open-Meteo calls are now logged with status code and body (`fetch_weather_for_zone` used to swallow them, so `/weather/zones/{id}` returned 502 with no trace).
+- **Alerts**: email to `ALERT_EMAIL` (at most once per day) when zones are left without current weather; `/health` gains `weather_outdated` (count).
+- **`backend/migrations/env.py`**: `fileConfig(..., disable_existing_loggers=False)`. Alembic's logging setup disabled every `app.*` logger after the startup migrations, so Render logs showed nothing from the app (ingest, alerts, errors) after "Running DB migrations...".
+- Removed the startup weather warm-up (it only ran when `weather_cache` was completely empty).
+
+### Fixed — Local runs no longer migrate the production DB (2026-10-10)
+
+- **`backend/app/main.py`**: startup migrations (`alembic upgrade head`) now run only when `RUN_MIGRATIONS_ON_STARTUP` is on. Unset, it follows `ENVIRONMENT`: on in production (Render), off locally. Before, any branch started locally applied its migrations to the shared Supabase DB before its code was deployed.
+- **Unknown DB revision**: when the DB is ahead of the code (e.g. an older branch, head 011 vs DB 012), startup logs a warning and keeps serving instead of aborting with "Can't locate revision". Other migration errors still abort startup.
+- **`backend/Dockerfile`**: no longer runs `alembic upgrade head` before Uvicorn (it migrated whatever DB the `.env` pointed to); the startup gate above decides.
+- **New env var**: `RUN_MIGRATIONS_ON_STARTUP` (optional; unset = only in production).
+
 ### Added — Stale-zone alerts for the daily ingest (2026-10-07)
 
 - **`backend/app/services/ingest.py`**: `get_stale_zones()` — active zones whose latest `climate_history` day is older than `STALE_ZONE_DAYS` (default 2) or with no data (correlated `max()` per zone on the `(zone_id, date)` index, ~10 ms).

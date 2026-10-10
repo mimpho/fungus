@@ -441,3 +441,23 @@ useEffect(() => {
 - *Content hash* (`esp-001-a3f2c8.jpg`): not deterministic for administrator.
 
 **Immediate action:** Phase A ready. Create issue/milestone for Phase B when redesploying frontend assets. Phase C when deciding monetization and needing to optimize DB size.
+
+---
+
+## DB migrations — only on production startup (2026-10-10)
+
+**Decision:** the API applies `alembic upgrade head` on startup only when `RUN_MIGRATIONS_ON_STARTUP` is on; unset, it follows `ENVIRONMENT` (on in production/Render, off locally). An unknown DB revision (DB ahead of the code) logs a warning instead of aborting. The `Dockerfile` no longer migrates before Uvicorn.
+
+**Why:** the local `.env` points at the shared Supabase DB, so any branch started locally migrated production before its code was deployed, and an older branch could not start at all ("Can't locate revision").
+
+**Discarded:** default `false` with the flag set by hand in Render — a forgotten env var would deploy code without its schema. Removing auto-migrate entirely — Render free tier has no pre-deploy hook.
+
+---
+
+## Current weather — scheduled refresh, max age, shared call budget (2026-10-10)
+
+**Decision:** `weather_cache` is filled by a job every 3 h for all active zones (not on demand). Rows are served for 6 h (two cycles); older → no weather ("–"). Open-Meteo calls for it are capped per UTC day (`WEATHER_DAILY_CALL_BUDGET`, in memory) the job calls Open-Meteo one request at a time (parallel calls from one IP get 429 "Too many concurrent requests", retried once) and stops on any other 429; a failed zone keeps its previous row. Alert by email at most once per day and `weather_outdated` in `/health`.
+
+**Why:** on-demand filling left most zones without weather in the list, and the live call from Render failed with no trace. The free Open-Meteo limit is shared with the ingest and backfills, so the job must never be the one that exhausts it.
+
+**Discarded:** serving `climate_history` as a stand-in (it is yesterday's data, shown as current); a persistent budget counter in the DB (a restart only resets the job's share; not worth a migration); refreshing on every startup (frequent redeploys would waste calls — startup refresh only when some zone lacks fresh weather).

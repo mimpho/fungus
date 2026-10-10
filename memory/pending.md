@@ -46,30 +46,6 @@ Full spec, formula, plan and test cases: Observatory design document, section "S
 
 ---
 
-## 🔴 Fix — Backend: no auto-migrations outside production — 2026-10-10
-
-`lifespan` runs `alembic upgrade head` on every startup. Local `.env` points to the shared Supabase (production) DB, so any branch started locally applies its migrations to production before its code is deployed (e.g. `fix/soil-temp` would apply 013). It also blocks local startup when the DB is ahead of the branch: on `epic/v8-android` (head 011) startup aborts with "Can't locate revision '012'" and the API never answers.
-
-- [ ] Gate `_run_db_migrations()` behind a setting (e.g. `RUN_MIGRATIONS_ON_STARTUP`, default `false`, set `true` only in Render); log a warning instead of aborting when the DB revision is unknown locally.
-- [ ] Document in README: migrations are applied by Render on deploy; run `alembic upgrade head` manually only on purpose.
-
----
-
-## 🔴 Fix — Weather data missing in zone list and card (`fix/weather-cache`) — 2026-10-10
-
-Symptoms: in production the zone card shows "–" for temperature, soil temp, rain, humidity and wind (`/weather/zones/{id}` → 502), and the zones list only shows weather for zones whose card was opened recently.
-
-Cause: `weather_cache` (TTL 3 h) is filled only on demand — when a card is opened and the cache is empty, `/weather/zones/{id}` calls Open-Meteo live. The daily ingest only writes `climate_history` and `scores_cache`; the startup warm-up runs only if the table is completely empty. `GET /zones` just attaches the still-valid cache row, so zones nobody opened in the last 3 h come back without weather. The live call from Render also fails (502), cause unknown: `fetch_weather_for_zone` swallows every `httpx.HTTPError` and returns `None` without logging (Open-Meteo answers fine from a home IP; per-IP limiting on Render's shared egress is a hypothesis, not confirmed).
-
-Design agreed (no stale data shown as current; never exceed Open-Meteo's free limit of 10,000 calls/day, shared with ingest and backfills):
-- [ ] **1. Diagnose first:** log the status code / body of failed Open-Meteo calls in `fetch_weather_for_zone`. If Render's IP is being rate-limited, a job won't help — move to the paid plan API key (also required for commercial use).
-- [ ] **2. Max age in the API:** `/zones` and `/weather/zones/{id}` return weather only if `collected_at` is ≤ 6 h old (two refresh cycles); older → no weather ("–" in the UI). Never serve `climate_history` as a stand-in (it is yesterday's data).
-- [ ] **3. Scheduled refresh job** every 3 h for all active zones (~1,700 requests/day, ~1,800 calls counting the 14-day window, ≈ 18 % of the free limit), reusing `INGEST_MAX_CONCURRENCY`. Guards: a daily call budget (stop before the limit); circuit breaker on 429 (stop, write nothing, rows age out to "–"); alert email through the `ALERT_EMAIL` path of #116 when zones have weather older than the max age; also expose it in `/health`.
-- [ ] Do not run the pending backfill (oct 2024 – sep 2025, ~9,000 calls) on the same day as heavy API use from the same IP.
-- [ ] Tests: max-age cut-off, budget guard, circuit breaker, job skips failed zones without overwriting good rows.
-
----
-
 ## 🗂 No date — DB: índices faltantes (baja prioridad)
 
 Identificados via análisis de `pg_stat_statements` + schema. A aplicar con `apply_migration` cuando haya una sesión de mantenimiento o antes de v8.2 (catálogo móvil).
