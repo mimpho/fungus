@@ -209,7 +209,7 @@ async def fetch_elevations(client: httpx.AsyncClient, points: list[Point]) -> li
     return out
 
 
-BUSY_STATUSES = (429, 502, 503, 504)
+BUSY_STATUSES = (429, 500, 502, 503, 504)  # public Overpass servers fail with any of these
 
 
 async def fetch_forests(
@@ -279,6 +279,7 @@ async def main(args: argparse.Namespace) -> None:
         f"{'proposal':>11}  {'p10':>5} {'p50':>5} {'p90':>5} {'min':>5} {'max':>5}  name"
     )
     results = []
+    failed: list[str] = []
     async with httpx.AsyncClient(timeout=30, headers=HEADERS) as client:
         for z in zones:
             t0 = time.monotonic()
@@ -296,9 +297,11 @@ async def main(args: argparse.Namespace) -> None:
                     f"{z.id:9} ERROR {exc.response.status_code} {exc.request.url.host}: {body}",
                     flush=True,
                 )
+                failed.append(z.id)
                 continue
             except httpx.HTTPError as exc:
                 print(f"{z.id:9} ERROR {type(exc).__name__}: {exc}", flush=True)
+                failed.append(z.id)
                 continue
             band = elevation_band(elevations, point_m, z.forest_type, args.low_pct, args.high_pct)
             results.append((z, point_m, band))
@@ -319,6 +322,8 @@ async def main(args: argparse.Namespace) -> None:
                 flush=True,
             )
             await asyncio.sleep(1.0)  # be gentle with the public Overpass server
+    if failed:
+        print(f"\n{len(failed)} zones failed. Re-run them with:\n  --zones {','.join(failed)}\n")
     print("pts = forest points / grid points; ! = too few forest points in OpenStreetMap, ")
     print("      band computed on every point: check by hand")
     print("*   = top lowered to the forest type's usual limit")
