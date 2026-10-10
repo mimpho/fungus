@@ -326,7 +326,35 @@ Feature: Thermometer snapshot
     When I ask for date=2026-09-20&species=<id>
     Then every value is computed at 2026-09-20 for that species
 
-Feature: Species for a date
+Feature: The explanation covers the grey areas
+  # A zone is not uniform (moisture, sun, temperature and wind drying vary within it), and the
+  # model averages it. The number says how much the weather helps; the text says where it still
+  # makes sense to look. Hard to put in numbers, easy to put in words. Agreed 2026-10-10.
+
+  Scenario: a low score is not "nothing"
+    Given a v2 below 30 with some activation (activation > 0)
+    Then the explanation says that, if anything comes up, it will be in very specific spots
+    And it never says there are no mushrooms
+
+  Scenario: no conditions at all
+    Given activation 0 and no rain on the way
+    Then the explanation says the weather does not help in this zone right now
+
+  Scenario Outline: where to look depends on what limits
+    Given the limiting factor is <factor>
+    Then the snapshot returns the hint code <hint>
+    Examples:
+      | factor                 | hint            | front text (ES)                                        |
+      | moisture               | shaded_spots    | umbrías, fondos de valle y junto al agua               |
+      | drying                 | sheltered_spots | zonas resguardadas del viento                          |
+      | temperature (too warm) | cooler_spots    | orientaciones norte y cotas más altas                  |
+      | temperature (too cold) | warmer_spots    | solanas y cotas más bajas                              |
+      | activation             | none            | (no hint: the rain has not arrived or has not started) |
+
+  Scenario: hints balance moisture and light
+    Then shaded-spot hints never point to closed, dark woodland ("umbrías, pero no bosque cerrado")
+
+
 
   Scenario: only compatible species   [OQ-8]
     Then a species appears only if it fits the zone's forest type, its month and its altitude range (with the 150 m margin)

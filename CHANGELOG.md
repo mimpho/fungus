@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Outbreak Index v2.1, scoring engine (2026-10-10, `epic/observatory`)
+
+- **New `backend/app/services/scoring_v2.py`**: pure functions, no database access. Rain counts when it starts producing mushrooms (two-speed fruiting curve: cold zone peak on day 21, zone already producing peak on day 12), only while the shaded soil keeps moisture; two-bucket soil water balance (sunny and shaded slope); air and soil temperature against an optimum; season by altitude band; drying, heat and frost penalties; experimental bonus for a temperature drop after rain. Also returns the rains on the way (when they would start to show and peak), fills missing days and marks the score as estimated when data is short. Per-species parameters supported. `model_version` "2.1".
+- Port of the Observatory prototype's `v2Series`, which stays the reference: same numbers on every day compared (1,424 days, generic model and cep, Jul–Oct 2025 and 2026).
+- **Tests** (`tests/unit/test_scoring_v2.py`, 51): the design document's cases (Montseny 49, La Molina 7, Setcases 16, Costabona 20 on 2026-10-06), factor-by-factor behaviour, rains on the way, gaps and species. Fixtures in `tests/fixtures/climate/`, an export of `climate_history` for the four zones.
+- A 100-day data window gives the same scores as starting the water balance on 1 April, so the ingest will read 100 days.
+- Not wired yet: the zone score (`score_oi`) is still v1 until `feat/observatory-ingest-v2`.
+- Docs: Observatory kick-off (`memory/observatory-prd.md`, `memory/observatory-plan.md`).
+
 ### Fixed — App logs missing on Render after startup migrations (2026-10-10)
 
 - **`backend/migrations/env.py`**: logging is configured from `alembic.ini` only when Alembic runs from the CLI. Inside the API, `alembic.ini` reset the root logger to `WARN`, so every `app.*` INFO log (migrations complete, scheduler, ingest, weather refresh) was dropped on Render. The previous fix (`disable_existing_loggers=False`) was not enough.
