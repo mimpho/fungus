@@ -32,6 +32,7 @@ import argparse
 import asyncio
 import logging
 import math
+import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -219,6 +220,9 @@ async def main(args: argparse.Namespace) -> None:
     from app.database import AsyncSessionLocal
     from app.models.zone import Zone
 
+    # The app engine echoes every SQL statement; this script only needs its own output.
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+
     # Only the columns this script reads: the dry run must work before migration 014 is deployed.
     async with AsyncSessionLocal() as db:
         zones = (
@@ -249,8 +253,12 @@ async def main(args: argparse.Namespace) -> None:
                 sample = forest if masked else grid
                 (point_m,) = await fetch_elevations(client, [(z.lat, z.lon)])
                 elevations = await fetch_elevations(client, sample)
+            except httpx.HTTPStatusError as exc:
+                body = exc.response.text[:200].replace("\n", " ")
+                print(f"{z.id:9} ERROR {exc.response.status_code} {exc.request.url.host}: {body}")
+                continue
             except httpx.HTTPError as exc:
-                log.error("%s: request failed: %s", z.id, exc)
+                print(f"{z.id:9} ERROR {type(exc).__name__}: {exc}")
                 continue
             band = elevation_band(elevations, point_m, z.forest_type, args.low_pct, args.high_pct)
             results.append((z, point_m, band))
@@ -282,7 +290,9 @@ async def main(args: argparse.Namespace) -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
+    logging.basicConfig(
+        level=logging.WARNING, format="%(levelname)s %(name)s — %(message)s", stream=sys.stdout
+    )
     parser = argparse.ArgumentParser(description="Compute zone altitude bands (forest only)")
     parser.add_argument("--zones", default=None, help="Comma-separated zone IDs (default: all)")
     parser.add_argument(
