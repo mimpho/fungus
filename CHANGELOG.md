@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — Local runs no longer migrate the production DB (2026-10-10)
+
+- **`backend/app/main.py`**: startup migrations (`alembic upgrade head`) now run only when `RUN_MIGRATIONS_ON_STARTUP` is on. Unset, it follows `ENVIRONMENT`: on in production (Render), off locally. Before, any branch started locally applied its migrations to the shared Supabase DB before its code was deployed.
+- **Unknown DB revision**: when the DB is ahead of the code (e.g. an older branch, head 011 vs DB 012), startup logs a warning and keeps serving instead of aborting with "Can't locate revision". Other migration errors still abort startup.
+- **`backend/Dockerfile`**: no longer runs `alembic upgrade head` before Uvicorn (it migrated whatever DB the `.env` pointed to); the startup gate above decides.
+- **New env var**: `RUN_MIGRATIONS_ON_STARTUP` (optional; unset = only in production).
+
 ### Added — Stale-zone alerts for the daily ingest (2026-10-07)
 
 - **`backend/app/services/ingest.py`**: `get_stale_zones()` — active zones whose latest `climate_history` day is older than `STALE_ZONE_DAYS` (default 2) or with no data (correlated `max()` per zone on the `(zone_id, date)` index, ~10 ms).

@@ -67,9 +67,20 @@ class Settings(BaseSettings):
     # Versión de la API
     api_version: str = "v1"
 
+    # Apply Alembic migrations (`upgrade head`) on API startup. Unset = only when
+    # ENVIRONMENT=production (Render). Local runs share the production Supabase DB,
+    # so they must never migrate it implicitly — run `alembic upgrade head` on purpose.
+    run_migrations_on_startup: bool | None = None
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def should_run_migrations_on_startup(self) -> bool:
+        if self.run_migrations_on_startup is None:
+            return self.is_production
+        return self.run_migrations_on_startup
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -426,3 +426,13 @@ useEffect(() => {
 - *Content hash* (`esp-001-a3f2c8.jpg`): not deterministic for administrator.
 
 **Immediate action:** Phase A ready. Create issue/milestone for Phase B when redesploying frontend assets. Phase C when deciding monetization and needing to optimize DB size.
+
+---
+
+## DB migrations — only on production startup (2026-10-10)
+
+**Decision:** the API applies `alembic upgrade head` on startup only when `RUN_MIGRATIONS_ON_STARTUP` is on; unset, it follows `ENVIRONMENT` (on in production/Render, off locally). An unknown DB revision (DB ahead of the code) logs a warning instead of aborting. The `Dockerfile` no longer migrates before Uvicorn.
+
+**Why:** the local `.env` points at the shared Supabase DB, so any branch started locally migrated production before its code was deployed, and an older branch could not start at all ("Can't locate revision").
+
+**Discarded:** default `false` with the flag set by hand in Render — a forgotten env var would deploy code without its schema. Removing auto-migrate entirely — Render free tier has no pre-deploy hook.

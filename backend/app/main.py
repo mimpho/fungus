@@ -2,7 +2,8 @@
 Fungus API — FastAPI application entry point.
 
 Startup sequence:
-  1. Run Alembic migrations (upgrade head) — garantiza schema actualizado sin shell
+  1. Run Alembic migrations (upgrade head) — only when RUN_MIGRATIONS_ON_STARTUP
+     is on (default: ENVIRONMENT=production, i.e. Render). Local runs skip it.
   2. Schedule the daily ingestion cron (APScheduler)
   3. If scores_cache is empty, run an ingest immediately (background task)
   4. If weather_cache is empty, warm up weather for all zones (background task)
@@ -22,6 +23,7 @@ from pathlib import Path
 
 from alembic import command as alembic_command
 from alembic.config import Config as AlembicConfig
+from alembic.util import CommandError as AlembicCommandError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -67,6 +69,45 @@ def _run_db_migrations() -> None:
     cfg = AlembicConfig(str(_ALEMBIC_INI))
     alembic_command.upgrade(cfg, "head")
     log.info("DB migrations: schema up to date")
+
+
+async def _startup_migrations() -> None:
+    """
+    Apply pending migrations at startup, if enabled for this environment.
+
+    - Disabled (local by default): log and return. Local `.env` points at the
+      shared production DB, so a branch started locally must not migrate it.
+    - DB at a revision this code does not know (DB ahead of the branch, e.g. a
+      rollback or an older branch): warn and keep serving instead of aborting.
+    - Any other failure: abort startup (schema state is unknown).
+
+    Runs in a worker thread so env.py's asyncio.run() does not clash with the
+    already-running FastAPI event loop (would raise RuntimeError).
+    """
+    if not settings.should_run_migrations_on_startup:
+        log.info(
+            "DB migrations skipped on startup (RUN_MIGRATIONS_ON_STARTUP is off). "
+            "Run `alembic upgrade head` manually if this DB needs them."
+        )
+        return
+
+    log.info("Running DB migrations...")
+    try:
+        await asyncio.to_thread(_run_db_migrations)
+    except AlembicCommandError as exc:
+        if "Can't locate revision" not in str(exc):
+            log.exception("DB migrations FAILED — aborting startup: %s", exc)
+            raise
+        log.warning(
+            "DB migrations skipped: the database is at a revision this code does not "
+            "know (%s). The DB is probably ahead of this branch; continuing startup.",
+            exc,
+        )
+        return
+    except Exception as exc:
+        log.exception("DB migrations FAILED — aborting startup: %s", exc)
+        raise
+    log.info("DB migrations complete")
 
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────
@@ -163,16 +204,9 @@ async def _startup_weather_warmup() -> None:
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     log.info("Starting Fungus API v4 (environment: %s)", settings.environment)
 
-    # 1. Apply pending DB migrations before serving any traffic.
-    # Run in a worker thread so that env.py's asyncio.run() does not clash
-    # with the already-running FastAPI event loop (would raise RuntimeError).
-    log.info("Running DB migrations...")
-    try:
-        await asyncio.to_thread(_run_db_migrations)
-        log.info("DB migrations complete")
-    except Exception as exc:
-        log.exception("DB migrations FAILED — aborting startup: %s", exc)
-        raise
+    # 1. Apply pending DB migrations before serving any traffic (production only
+    # by default — see _startup_migrations).
+    await _startup_migrations()
 
     # Register daily cron: 05:00 UTC → 07:00 Madrid
     scheduler.add_job(

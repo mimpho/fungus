@@ -70,6 +70,7 @@ Verify in Supabase → Table Editor that the tables exist: `zones`, `species`,
 | `DATABASE_URL` | The `postgresql+asyncpg://` string from Supabase |
 | `SECRET_KEY` | Run `openssl rand -hex 32` locally and paste the result |
 | `ENVIRONMENT` | `production` |
+| `RUN_MIGRATIONS_ON_STARTUP` | `true` (optional — unset already means on when `ENVIRONMENT=production`) |
 | `CORS_ORIGINS` | `https://fungus-ashen.vercel.app` |
 
 6. Click **Deploy Web Service** — Render will build and deploy automatically.
@@ -143,15 +144,15 @@ For each new release after the initial deploy, the process is:
 cd backend
 export DATABASE_URL="postgresql+asyncpg://postgres.xxxx:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres"
 
-# 1. Apply new migrations (if any)
-alembic upgrade head
-
-# 2. Re-run the seed (idempotent — uses ON CONFLICT DO UPDATE)
+# Re-run the seed if the catalog changed (idempotent — uses ON CONFLICT DO UPDATE)
 python -m scripts.seed_catalog --mock-dir ../src/data
 ```
 
-Render auto-deploys the new code on merge to `main`. Migrations and seed must
-be run manually from local (Render free tier has no pre-deploy hook support).
+Render auto-deploys the new code on merge to `main`, and the API applies pending
+migrations on startup (`RUN_MIGRATIONS_ON_STARTUP`, on by default in production).
+Local runs do **not** migrate: the local `.env` points at the same Supabase DB, so a
+branch's migrations would reach production before its code. Run `alembic upgrade head`
+from local only on purpose (e.g. a migration that must land before the deploy).
 
 **v4.2 specifically:**
 - Migration `002` adds `description TEXT` to `zones`
