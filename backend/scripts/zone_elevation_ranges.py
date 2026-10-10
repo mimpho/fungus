@@ -52,7 +52,7 @@ OVERPASS_URLS = (
     "https://overpass.private.coffee/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 )
-OVERPASS_RETRIES = 2  # rounds over all servers; then the zone goes on without the forest mask
+OVERPASS_RETRIES = 1  # one round over all servers; then the zone goes on without the forest mask
 OVERPASS_BACKOFF_S = 5
 # Overpass answers 406 to generic client User-Agents: identify the app.
 HEADERS = {"User-Agent": "fungus-zone-elevation/1.0 (+https://github.com/mimpho/fungus)"}
