@@ -39,6 +39,8 @@ import httpx
 
 ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# Overpass answers 406 to generic client User-Agents: identify the app.
+HEADERS = {"User-Agent": "fungus-zone-elevation/1.0 (+https://github.com/mimpho/fungus)"}
 MAX_POINTS_PER_CALL = 100
 MAX_GRID_POINTS = 200  # the grid spacing grows with the radius to stay under this
 MIN_STEP_M = 500
@@ -237,7 +239,7 @@ async def main(args: argparse.Namespace) -> None:
         f"{'proposal':>11}  {'p10':>5} {'p50':>5} {'p90':>5} {'min':>5} {'max':>5}  name"
     )
     results = []
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=30, headers=HEADERS) as client:
         for z in zones:
             radius = args.radius_km or ZONE_RADIUS_KM.get(z.id, DEFAULT_RADIUS_KM)
             grid = grid_points(z.lat, z.lon, radius, grid_step_m(radius))
