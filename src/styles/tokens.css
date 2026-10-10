@@ -178,8 +178,8 @@
   --ui-accent-positive-subtle: rgba(5, 150, 105, 0.10);
 
   /* Star / follow accent — amber-700 on a pale amber tint: yellow-400 on light is unreadable */
-  --ui-star-bg:   rgba(180, 83, 9, 0.12);
-  --ui-star-text: #b45309;
+  --ui-star-bg:   rgb(199 151 55 / 12%);
+  --ui-star-text: #c89737;
 
   /* Nav active state */
   --ui-nav-active-bg:        rgb(136 133 87 / 10%);
