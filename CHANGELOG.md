@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — Soil temperature in the zone card (2026-10-07)
+
+- **Alembic `013`**: `weather_cache.soil_temp` (float, nullable). Applied on Render startup.
+- **`backend/app/services/weather_cache.py`**: stores the current hour's `soil_temperature_0cm` (falls back to the latest non-null value before now); returned by `/weather/zones/{id}` and in `GET /zones` (`ZoneWeather.soil_temp`).
+- **`src/hooks/useWeatherConditions.js`**, **`src/services/apiService.js`**: map `soil_temp` instead of the hardcoded `null` ("T. Sòl" showed "–" since the frontend moved to the backend cache). Existing cache rows fill in as they expire (TTL 3 h).
+
 ### Fixed — Daily ingest dropping zones (2026-10-07, #112)
 
 - **`backend/app/services/ingest.py`**: the 6 concurrent Open-Meteo fetches shared one `AsyncSession`, which does not allow overlapping operations, so ~10% of zones per day (mostly the first ones) failed silently. HTTP calls stay concurrent; DB writes are serialized with a lock and each zone commits on its own. Failed zones are logged in one warning line.

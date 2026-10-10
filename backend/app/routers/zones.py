@@ -37,6 +37,7 @@ def _build_zone_weather(caches: list[WeatherCache]) -> ZoneWeather | None:
             humidity=c.humidity,
             rainfall14d=c.rainfall14d,
             wind=c.wind,
+            soil_temp=c.soil_temp,
             collected_at=c.collected_at,
         )
     return None

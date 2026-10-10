@@ -42,7 +42,7 @@ export function normalizeZone(apiZone) {
  * Convierte el score + weather del API al shape de conditions del frontend.
  *
  * apiScore: { score_oi, score_detail, label, valid_until, calculated_at }
- * apiWeather (opcional): { temp_min, temp_max, humidity, rainfall14d, wind, collected_at }
+ * apiWeather (opcional): { temp_min, temp_max, humidity, rainfall14d, wind, soil_temp, collected_at }
  *   — disponible en GET /zones a partir de v4.4.2
  *   — rainfall14d del weather (14d real) tiene prioridad sobre pa21_mm (21d aprox)
  *
@@ -61,7 +61,7 @@ export function normalizeScore(apiScore, apiWeather = null) {
     overallScore: apiScore.score_oi,
     tempMin:      r1(w.temp_min),    // rango diario forecast (min °C)
     tempMax:      r1(w.temp_max),    // rango diario forecast (max °C)
-    soilTemp:     null,
+    soilTemp:     r1(w.soil_temp),   // suelo a 0 cm, hora actual (°C)
     rainfall14d:  r1(w.rainfall14d ?? d.pa21_mm ?? null),  // weather real > pa21 approx
     humidity:     r0(w.humidity),
     wind:         r0(w.wind),
