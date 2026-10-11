@@ -89,7 +89,10 @@ class OpenMeteoConnector(WeatherConnector):
             arch_end = min(end, cutoff)
             raw = await self._request(start, arch_end, archive=True)
             history.extend(self._parse(raw, start, arch_end))
-        fc_start = max(start, cutoff + timedelta(days=1)) if end > cutoff else end + timedelta(days=1)
+        if end > cutoff:
+            fc_start = max(start, cutoff + timedelta(days=1))
+        else:
+            fc_start = end + timedelta(days=1)
         raw = await self._request(fc_start, fc_end, archive=False)
         parsed = self._parse(raw, fc_start, fc_end)
         history.extend(r for r in parsed if r.date <= end)
