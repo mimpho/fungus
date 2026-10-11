@@ -34,8 +34,8 @@ async def test_daily_ingest_alerts_only_when_stale(monkeypatch):
     async def fake_zones(db):
         return []
 
-    async def fake_range(db, zones, start, end):
-        return {"upserted": 0, "errors": []}
+    async def fake_range(db, zones, start, end, forecast_days=0):
+        return {"upserted": 0, "forecast_rows": 0, "errors": []}
 
     async def fake_refresh(db, zones):
         return None

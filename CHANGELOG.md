@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — 16-day forecast stored per zone (2026-10-11, `epic/observatory`)
+
+- **New table `zone_forecast`** (migration 016, RLS on): the Open-Meteo forecast per zone and target day (temperatures, soil, rain, max rain probability, humidity, wind). Kept apart from `climate_history`, which only holds observed days. Each daily run replaces the zone's rows; days before today are deleted.
+- **No extra Open-Meteo calls**: the daily ingest already asked the forecast endpoint for the last 7 days; `OpenMeteoConnector.fetch_range_and_forecast` extends that same request to today + 15 and splits observed from forecast days. The archive API never gets the forecast variable (it rejects it) and backfills store no forecast.
+- A failing forecast write is logged and never loses the observed days. New setting `forecast_days` (default 16); the ingest summary reports `forecast_rows`.
+- **New `backend/app/services/forecast.py`**: `load_zone_forecast` and `build_forecast_days` (first 7 days as cards, the rest as a trend row) with warning codes `frost` (min < 0 °C), `heat` (max > 25 °C) and `useful_rain` (≥ 10 mm); the front builds the sentences. Used by the API branch.
+- **New `backend/scripts/forecast_qa.py`**: runs the real ingest path on a few zones and checks what was stored (16 consecutive days from today, nothing future in `climate_history`, rain probability present).
+- Also in this branch: `backend/scripts/zone_forecast.py` and `app/services/zone_projection.py` (v2 projection per zone, writes nothing) and `backend/scripts/export_zone_climate.py` (climate + forecast to JSON for the prototype).
+
 ### Changed — The zone score is now Outbreak Index v2 (2026-10-10, `epic/observatory`)
 
 - **`score_oi` is v2** everywhere it is shown (zone list and card, dashboard, map, `min_score` filter). New `scores_cache.model_version` (migration 015) says which model it is; `score_detail` keeps every version under its own key (`{"v1": …, "v2": …}`), so a future model never renames a column.

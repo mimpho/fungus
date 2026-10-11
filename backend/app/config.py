@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     ingest_max_concurrency: int = 6
     # Days re-fetched on every daily run (ending yesterday) to fill missed days
     ingest_lookback_days: int = 7
+    # Forecast days stored per zone by the daily run (today included). Open-Meteo allows 16.
+    forecast_days: int = 16
     # A zone is "stale" when its latest climate_history day is older than this
     stale_zone_days: int = 2
     # Ops alerts (stale zones after the daily ingest). Empty = no email.

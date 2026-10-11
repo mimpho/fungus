@@ -9,9 +9,11 @@ from app.models.user import User, UserFavSpecies, UserFollowedZone
 from app.models.weather_cache import WeatherCache
 from app.models.weather_station import WeatherStation
 from app.models.zone import Zone
+from app.models.zone_forecast import ZoneForecast
 
 __all__ = [
     "Zone",
+    "ZoneForecast",
     "Species",
     "ClimateHistory",
     "ScoresCache",
