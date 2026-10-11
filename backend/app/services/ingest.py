@@ -12,7 +12,7 @@ import asyncio
 import logging
 from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import func, select, text
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ from app.connectors.open_meteo import OpenMeteoConnector
 from app.models.climate_history import ClimateHistory
 from app.models.scores_cache import ScoresCache
 from app.models.zone import Zone
+from app.models.zone_forecast import ZoneForecast
 from app.services.zone_scores import V2_WINDOW_DAYS, ZoneScoreRow, build_score_row
 
 log = logging.getLogger(__name__)
@@ -41,7 +42,9 @@ async def run_daily_ingest(db: AsyncSession) -> dict:
     log.info("Starting daily ingest for %s → %s", start, yesterday)
 
     zones = await _get_active_zones(db)
-    results = await _ingest_date_range(db, zones, start=start, end=yesterday)
+    results = await _ingest_date_range(
+        db, zones, start=start, end=yesterday, forecast_days=settings.forecast_days
+    )
 
     await _refresh_scores_cache(db, zones)
 
@@ -54,6 +57,7 @@ async def run_daily_ingest(db: AsyncSession) -> dict:
         "from": start.isoformat(),
         "zones_processed": len(zones),
         "rows_upserted": results["upserted"],
+        "forecast_rows": results["forecast_rows"],
         "errors": results["errors"],
         "stale_zones": [z["zone_id"] for z in stale],
         "completed_at": datetime.now(UTC).isoformat(),
@@ -162,6 +166,7 @@ async def _ingest_date_range(
     zones: list[Zone],
     start: date,
     end: date,
+    forecast_days: int = 0,
 ) -> dict:
     """
     Fetch from the provider concurrently, then write to the DB sequentially.
@@ -170,18 +175,25 @@ async def _ingest_date_range(
     parallel (bounded by the semaphore) but every DB write goes through one task at
     a time. Each zone is committed on its own, so one failing zone never rolls back
     the others.
+
+    With `forecast_days` > 0 the same provider call also returns the forecast, which
+    replaces the zone's rows in zone_forecast (observed days only go to climate_history).
+    A forecast failure never loses the observed days: it is logged, not reported as a zone error.
     """
     sem = asyncio.Semaphore(settings.ingest_max_concurrency)
     db_lock = asyncio.Lock()
     upserted = 0
+    forecast_rows = 0
     errors = []
 
     async def ingest_zone(zone: Zone) -> None:
-        nonlocal upserted
+        nonlocal upserted, forecast_rows
         try:
             async with sem:
                 connector = _get_connector(zone)
-                rows = await connector.fetch_range(start, end)
+                rows, forecast = await connector.fetch_range_and_forecast(
+                    start, end, forecast_days=forecast_days
+                )
         except ProviderUnavailable as exc:
             log.error("Zone %s: provider unavailable — %s", zone.id, exc)
             errors.append({"zone_id": zone.id, "error": str(exc)})
@@ -202,6 +214,16 @@ async def _ingest_date_range(
                 await db.rollback()
                 log.exception("Zone %s: DB write failed — %s", zone.id, exc)
                 errors.append({"zone_id": zone.id, "error": str(exc)})
+                return
+
+            if forecast:
+                try:
+                    await _replace_forecast(db, zone.id, forecast)
+                    await db.commit()
+                    forecast_rows += len(forecast)
+                except Exception as exc:
+                    await db.rollback()
+                    log.exception("Zone %s: forecast write failed — %s", zone.id, exc)
 
     await asyncio.gather(*[ingest_zone(z) for z in zones])
     if errors:
@@ -209,7 +231,7 @@ async def _ingest_date_range(
             "Ingest %s→%s: %d/%d zones failed: %s",
             start, end, len(errors), len(zones), [e["zone_id"] for e in errors],
         )
-    return {"upserted": upserted, "errors": errors}
+    return {"upserted": upserted, "forecast_rows": forecast_rows, "errors": errors}
 
 
 async def _upsert_climate_row(db: AsyncSession, row: DailyWeatherData) -> None:
@@ -257,6 +279,35 @@ async def _upsert_climate_row(db: AsyncSession, row: DailyWeatherData) -> None:
         )
     )
     await db.execute(stmt)
+
+
+async def _replace_forecast(
+    db: AsyncSession, zone_id: str, forecast: list[DailyWeatherData]
+) -> None:
+    """Replace the zone's forecast: drop days before today and upsert the new ones."""
+    await db.execute(
+        delete(ZoneForecast).where(
+            ZoneForecast.zone_id == zone_id, ZoneForecast.date < date.today()
+        )
+    )
+    for row in forecast:
+        values = {
+            "temp_max_c": row.temp_max_c,
+            "temp_min_c": row.temp_min_c,
+            "temp_avg_c": row.temp_avg_c,
+            "soil_temp_c": row.soil_temp_c,
+            "precipitation_mm": row.precipitation_mm,
+            "precip_prob_pct": row.precip_prob_pct,
+            "humidity_pct": row.humidity_pct,
+            "wind_kmh": row.wind_kmh,
+            "source": row.source,
+            "fetched_at": datetime.now(UTC),
+        }
+        await db.execute(
+            pg_insert(ZoneForecast)
+            .values(zone_id=zone_id, date=row.date, **values)
+            .on_conflict_do_update(index_elements=["zone_id", "date"], set_=values)
+        )
 
 
 # ── Scores cache ──────────────────────────────────────────────────────────────

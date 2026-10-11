@@ -25,6 +25,7 @@ class DailyWeatherData:
     station_id: str | None = None
     station_dist_km: float | None = None
     interpolated: bool = False
+    precip_prob_pct: int | None = None  # forecast days only (max probability of the day)
 
 
 class WeatherConnector(ABC):
@@ -51,6 +52,15 @@ class WeatherConnector(ABC):
         Used during the initial backfill and failure recovery.
         """
         ...
+
+    async def fetch_range_and_forecast(
+        self, start: date, end: date, forecast_days: int = 0
+    ) -> tuple[list[DailyWeatherData], list[DailyWeatherData]]:
+        """
+        Return (history for [start, end], forecast from the day after `end` for up to
+        `forecast_days` days counting today). Providers without a forecast return [].
+        """
+        return await self.fetch_range(start, end), []
 
     async def health_check(self) -> None:
         """

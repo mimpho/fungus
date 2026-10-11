@@ -30,6 +30,8 @@ DAILY_VARS = (
     "temperature_2m_max,temperature_2m_min,temperature_2m_mean,"
     "precipitation_sum,windspeed_10m_max"
 )
+# Only the forecast endpoint has it; the archive API rejects it.
+FORECAST_DAILY_VARS = DAILY_VARS + ",precipitation_probability_max"
 HOURLY_VARS = "soil_temperature_0cm,relativehumidity_2m"
 # The archive API has no surface (0 cm) soil temperature; 0–7 cm is the closest layer.
 ARCHIVE_HOURLY_VARS = "soil_temperature_0_to_7cm,relativehumidity_2m"
@@ -69,6 +71,30 @@ class OpenMeteoConnector(WeatherConnector):
             results.extend(self._parse(raw, fc_start, end))
         return results
 
+    async def fetch_range_and_forecast(
+        self, start: date, end: date, forecast_days: int = 0
+    ) -> tuple[list[DailyWeatherData], list[DailyWeatherData]]:
+        """
+        History for [start, end] plus the forecast for the days after `end`, up to
+        today + forecast_days - 1, in the same request that already fetched the recent
+        days (the forecast API serves both), so the daily call count does not change.
+        """
+        fc_end = date.today() + timedelta(days=forecast_days - 1)
+        # A forecast only makes sense right after the observed days (end = yesterday or later).
+        if forecast_days <= 0 or fc_end <= end or end < date.today() - timedelta(days=1):
+            return await self.fetch_range(start, end), []
+        cutoff = date.today() - timedelta(days=ARCHIVE_CUTOFF_DAYS)
+        history: list[DailyWeatherData] = []
+        if start <= cutoff:
+            arch_end = min(end, cutoff)
+            raw = await self._request(start, arch_end, archive=True)
+            history.extend(self._parse(raw, start, arch_end))
+        fc_start = max(start, cutoff + timedelta(days=1)) if end > cutoff else end + timedelta(days=1)
+        raw = await self._request(fc_start, fc_end, archive=False)
+        parsed = self._parse(raw, fc_start, fc_end)
+        history.extend(r for r in parsed if r.date <= end)
+        return history, [r for r in parsed if r.date > end]
+
     # ── Internal ──────────────────────────────────────────────────────────────
 
     @retry(
@@ -81,7 +107,7 @@ class OpenMeteoConnector(WeatherConnector):
         params = {
             "latitude": self.lat,
             "longitude": self.lon,
-            "daily": DAILY_VARS,
+            "daily": DAILY_VARS if archive else FORECAST_DAILY_VARS,
             "hourly": ARCHIVE_HOURLY_VARS if archive else HOURLY_VARS,
             "start_date": start.isoformat(),
             "end_date": end.isoformat(),
@@ -118,6 +144,7 @@ class OpenMeteoConnector(WeatherConnector):
         temp_avg = daily.get("temperature_2m_mean", [])
         precip = daily.get("precipitation_sum", [])
         wind = daily.get("windspeed_10m_max", [])
+        precip_prob = daily.get("precipitation_probability_max", [])
 
         # Hourly data: aggregate to daily averages
         hourly_times = hourly.get("time", [])
@@ -155,6 +182,7 @@ class OpenMeteoConnector(WeatherConnector):
                     else None,
                     wind_kmh=round(_safe_float(wind, i) or 0),
                     source=self.SOURCE,
+                    precip_prob_pct=_safe_int(precip_prob, i),
                 )
             )
 
@@ -169,3 +197,8 @@ def _safe_float(lst: list, idx: int) -> float | None:
         return float(val) if val is not None else None
     except (IndexError, TypeError):
         return None
+
+
+def _safe_int(lst: list, idx: int) -> int | None:
+    val = _safe_float(lst, idx)
+    return None if val is None else round(val)
