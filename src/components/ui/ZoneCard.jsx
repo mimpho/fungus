@@ -1,11 +1,13 @@
 import { IC, getScoreColor } from '../../lib/helpers'
+import { rainOnTheWayText } from '../../lib/rainOnTheWay'
 import { useApp } from '../../contexts/AppContext'
 
 export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) {
-  const { t } = useApp()
+  const { t, lang } = useApp()
   const cond    = condOverride ?? null
   const loading = cond === null
   const sc      = getScoreColor(loading ? 0 : cond.overallScore)
+  const rainTxt = loading ? null : rainOnTheWayText(cond.overallScore, cond.rainOnTheWay, t, lang)
 
   return (
     <div className="glass rounded-2xl hover-lift overflow-hidden relative">
@@ -72,6 +74,9 @@ export function ZoneCard({ zone, isFollowed, onToggle, onClick, condOverride }) 
                   {cond.humidity != null ? `${cond.humidity}%` : '—'}
                 </span>
               </div>
+              {rainTxt && (
+                <p className="mt-1.5 text-xs text-cream/70">{rainTxt}</p>
+              )}
             </>
           )}
         </div>

@@ -231,7 +231,9 @@ Feature: Daily ingest makes v2 the main score   [OQ-2]
 
   Scenario: the zone card and the dashboard show v2
     Then the score, its colour and its label come from v2 and the band helper
-    And the factor block of the zone card shows the v2 factors (activation, soil moisture, temperature, season, drying) instead of pa21, thermal, ripening
+    # The card's block shows weather values (temperature, rain, humidity, wind, dry days), not
+    # v1 factor scores, so it stays as it is; the v2 factors and their reasons arrive with the
+    # Observatory snapshot ("Every condition explains itself").
     And zones are sorted by v2
 
   Scenario: a low v2 with rain on the way says so

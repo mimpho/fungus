@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — The zone score is now Outbreak Index v2 (2026-10-10, `epic/observatory`)
+
+- **`score_oi` is v2** everywhere it is shown (zone list and card, dashboard, map, `min_score` filter). New `scores_cache.model_version` (migration 015) says which model it is; `score_detail` keeps every version under its own key (`{"v1": …, "v2": …}`), so a future model never renames a column.
+- **New `backend/app/services/zone_scores.py`** (pure): v1 exactly as the ingest always computed it (parity with `scores_cache`: 58, 75, 76, 81), v2 on the last day with climate data — the archive runs 1–2 days behind, so the ingest's "today" usually has no row yet — and the cache row. Falls back to v1 only if v2 cannot be computed. The ingest reads 100 days instead of 21.
+- **Zones API**: `model_version`, `score_v1` and `v2` (factors, limiting factor, zone state, rains on the way, scored day); old rows with flat v1 fields still read.
+- **"Rain on the way"** next to a score below "Bueno" in the zone list and card: "Lluvia del 4 oct (27 mm) en camino: se notará hacia el 18 oct" (ES/CA/EN). Check of 2026-10-10: 193 of 214 zones score "Malo" right after the 3–8 Oct rains, 200 have rain on the way.
+- **New `backend/scripts/compare_v1_v2.py`**: v1 and v2 per zone and day as CSV, read-only, for calibration with the field-trip log.
+
 ### Added — Five score bands and zone altitude ranges (2026-10-10, `epic/observatory`)
 
 - **Five-band scale** everywhere a score is shown: Malo (< 30), Regular (30–54), Bueno (55–69), Muy bueno (70–84), Excelente (≥ 85). New `src/lib/scoreBands.js` is the only place with the thresholds; `getScoreColor` delegates to it, so the zone list, card, dashboard and profile follow it without changes. New `--ui-score-mid-*` tokens (orange) for Regular in both themes; the light theme gains the "good" tokens it was missing. i18n key `malo` (ES/CA/EN). Backend `score_label` returns the same five bands (adds "Fair").

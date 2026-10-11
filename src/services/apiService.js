@@ -10,6 +10,7 @@
 // =====================================================
 
 import { PROVINCE_TO_CCAA } from '../lib/constants'
+import { pickRainOnTheWay } from '../lib/rainOnTheWay'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://fungus-api.onrender.com/api/v1'
 
@@ -41,7 +42,7 @@ export function normalizeZone(apiZone) {
 /**
  * Convierte el score + weather del API al shape de conditions del frontend.
  *
- * apiScore: { score_oi, score_detail, label, valid_until, calculated_at }
+ * apiScore: { score_oi, model_version, score_detail, score_v1, v2, label, valid_until, calculated_at }
  * apiWeather (opcional): { temp_min, temp_max, humidity, rainfall14d, wind, soil_temp, collected_at }
  *   — disponible en GET /zones a partir de v4.4.2
  *   — rainfall14d del weather (14d real) tiene prioridad sobre pa21_mm (21d aprox)
@@ -73,6 +74,9 @@ export function normalizeScore(apiScore, apiWeather = null) {
       humedad:       d.humidity ?? null,
       diasSecos:     d.days_since_rain ?? null,
     },
+    rainOnTheWay:   pickRainOnTheWay(apiScore.v2),   // biggest pending rain (scoring v2)
+    limitingFactor: apiScore.v2?.limiting_factor ?? null,
+    modelVersion:   apiScore.model_version ?? null,
     _source:            'api',
     _label:             apiScore.label,
     _validUntil:        apiScore.valid_until,

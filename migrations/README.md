@@ -66,6 +66,8 @@ NNN_short_description.sql
 | `037_confusions_i18n_amanita_gemmata.sql` | i18n confusion texts for Amanita gemmata | ✅ Run 2026-03 |
 | `038_morphology_i18n.sql` | i18n morphology fields (cap, stem, flesh) for all species | ✅ Run 2026-03 |
 | `039_zones_catalonia.sql` | 14 new zones in Catalonia (zone-201…214); zone-030 moved towards Vallter and its history cleared | ✅ Run 2026-10-07 |
+| `040_deactivate_generic_zones.sql` | Deactivate 47 generic/duplicate zones (province, comarca, valley or municipality names with approximate coordinates); Font Roja and Sierra de San Pedro get their real forest type | ✅ Run 2026-10-10 |
+| `041_zones_catalonia_named_places.sql` | 17 generic Catalan zones moved onto named places (book routes) and renamed, zone-030 renamed, 23 new zones; elevation reset to NULL (run the elevation script and backfill after) | ✅ Run 2026-10-11 |
 | `audit_cond_fruct*.sql` | Read-only diagnostic queries — not migrations, do not run | 🔍 Audit only |
 
 ## Adding a new migration
