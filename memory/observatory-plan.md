@@ -1,8 +1,8 @@
 # Technical plan — Observatory, phase 1 (`epic/observatory`)
 
-> Companion of `memory/observatory-prd.md`. Scenarios are informal Gherkin: they are not run by a BDD tool. Each scenario maps 1:1 to a pytest test (backend) or to a front test / manual QA check, with the same name.
+> Companion of `memory/observatory-prd.md` and, for the free map by coordinates, `memory/observatory-free-map-prd.md`. Scenarios are informal Gherkin: they are not run by a BDD tool. Each scenario maps 1:1 to a pytest test (backend) or to a front test / manual QA check, with the same name.
 > Scenarios assume the **proposed answers** of the PRD open questions; the ones that depend on a pending answer say so (`[OQ-n]`).
-> Last updated: 2026-10-10
+> Last updated: 2026-10-14 (free map by coordinates: see «Update 2026-10-14» in the API section)
 
 ---
 
@@ -18,7 +18,7 @@
 
 ## API endpoints (`feat/observatory-api`)
 
-All under `/api/v1/observatory`, no auth required `[OQ-4]`; `species` is optional everywhere (absent = generic model).
+All under `/api/v1/observatory`; `species` is optional everywhere (absent = generic model). **Update 2026-10-14:** the Observatorio now requires login and is keyed by coordinates, so the zone-keyed table below is superseded for the Observatorio by the one in «Update 2026-10-14». The computations and most scenarios of this section still apply; only the addressing changes.
 
 | Method | Path | Returns |
 |---|---|---|
@@ -26,6 +26,104 @@ All under `/api/v1/observatory`, no auth required `[OQ-4]`; `species` is optiona
 | GET | `/zones/{zone_id}/snapshot?date=&species=` | Thermometer: v2, band, limiting factor, key facts, factors, rains on the way, v1 |
 | GET | `/zones/{zone_id}/species?date=` | Compatible species with v2, grade, conditions and best window; list for «¿Qué seta buscas?» |
 | GET | `/zones/{zone_id}/calendar?date=&species=` | Last 7 computed days + 35 estimated days, best day, days ≥ 55 |
+
+### Update 2026-10-14: free map by coordinates (supersedes the zone-keyed table above)
+
+Decisions (PRD «Observatorio: mapa libre por coordenadas, celdas y puntos marcados», 14 Oct 2026): Catalonia first; login required; the map click is the entry; coordinates only (no POIs or curated zones in the Observatorio v1; the Zonas section is untouched); Open-Meteo is the source of truth and the DB is a rebuildable cell cache; cells load lazily on the first click; the forest type is a **composition** (all species above 10 % within ~300 m) and the index is computed **per type present**.
+
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/point/forest?lat=&lon=&radius=300` | nearest toponym (ICGC reverse geocoder), elevation, macrotype (cobertes 2024), species composition (MCSC-4), `forest: false` when there is no forest |
+| GET | `/point/series?lat=&lon=&to=&days=&species=&compare_years=` | same body as the zone series, for the point's cell corrected to the point's elevation; `source: stored\|live` |
+| GET | `/point/snapshot?lat=&lon=&date=&species=` | thermometer, one entry per forest type present (see below) |
+| GET | `/point/species?lat=&lon=&date=` | compatible species for the types present |
+| GET | `/point/calendar?lat=&lon=&date=&species=` | calendar |
+
+Saved points (table `saved_points`: user, lat, lon, cell, name, notes, elevation, forest composition when saved) and their CRUD endpoints may be their own branch; decide when starting. Until the MCSC-4 grid exists (separate task, not blocking), `/point/forest` returns the macrotype from a point lookup in cobertes 2024 and `composition: null`.
+
+```gherkin
+Feature: Login required   [replaces OQ-4 for the Observatorio]
+
+  Scenario: no session
+    When I GET any /observatory/point/* endpoint without a valid token
+    Then I receive 401
+
+Feature: Cells load on demand
+
+  Scenario: the first request in an unknown cell loads its history
+    Given a point whose cell has no rows in climate_history
+    When I GET /point/series
+    Then the cell is fetched from Open-Meteo with the cell's coordinates and mean elevation
+    And days older than about 6 come from the archive and the last days from the forecast
+    And the rows are stored with source "archive" or "forecast"
+    And the response says source "live"
+
+  Scenario: the second request uses the cache
+    Given the cell is already stored
+    Then no HTTP request is made and the response says source "stored"
+
+  Scenario: two simultaneous first requests for the same cell
+    Then Open-Meteo is called once
+
+  Scenario: provisional days are replaced by the archive
+    When the daily job runs and the archive has the days that were forecast
+    Then those rows are overwritten and their source becomes "archive"
+
+  Scenario: the daily budget is reached
+    Then a point in an uncached cell answers 503 with Retry-After
+    And points in cached cells keep working
+
+  Scenario: per-user limit of new cells per day
+    Then the user above the limit gets 429 for uncached cells only
+
+Feature: Elevation correction at the point
+
+  Scenario: temperature, soil and humidity
+    Given a point 500 m above the cell mean elevation
+    Then temperature and soil are 3.25 °C lower and humidity 0.65 points lower
+    And rain and wind are not corrected
+
+Feature: Forest composition at a point
+
+  Scenario: a pure stand (Santa Fe del Montseny, 2.435 E 41.7745 N)
+    Then the composition is fageda 95 %
+
+  Scenario: a mixed stand (Riells i Montseny, zone-226 coordinates)
+    Then the composition lists alzinar and sureda with their shares, both above 10 %
+
+  Scenario: only types above 10 % are listed
+    Then each entry has species, macrotype and share, sorted by share, and the threshold is a parameter
+
+  Scenario: no forest at the point (zone-208 coordinates, on buildings)
+    Then forest is false and the composition says no forest
+    And the climate endpoints still answer
+    And /point/species returns an empty list with reason "no_forest"
+
+  Scenario: the species is contradicted by the current macrotype
+    Given cobertes 2024 says no forest where the MCSC-4 (2009) says pinar
+    Then that species is not listed
+
+  Scenario: radius limits
+    Then 100 and 1000 are accepted, and 99 or 1001 return 422
+
+  Scenario: the nearest toponym
+    Then the response has the name, or null if the ICGC geocoder fails, and never an error
+
+Feature: Index per forest type present
+
+  Scenario: two types above the threshold (zone-003 coordinates: esclerofilo 50 %, conifera 46 %)
+    When I GET /point/snapshot
+    Then I receive one entry per type, sorted by share, each with its share and its own v2 and factors
+    And the species compatible with each type are those of that type
+
+  Scenario: a single type
+    Then there is one entry and the response has the same shape
+
+  Scenario: the zone card of the Zonas section is not affected
+    Then /zones and /zones/map-scores keep returning one score per zone
+```
+
+Open points for this branch: radius and threshold are parameters to tune; saved points CRUD in this branch or its own; the preprocess of the MCSC-4 sheets to a ~25 m grid and the CREAF/ICGC licence do not block it.
 
 ## Branches
 
