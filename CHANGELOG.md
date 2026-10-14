@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added — Probes and tools for the free-map design (2026-10-14, `epic/observatory`)
 
+- **New `memory/observatory-free-map-prd.md`**: repo copy of the free-map PRD (the Claude Doc stays the source of truth). `memory/observatory-prd.md` remains the phase-1 record and now points to it.
 - **Design decisions only, no app change.** The Observatorio will work for any coordinate in Catalonia (map click, login required, cells loaded on demand, forest composition, index per forest type). The API plan is in `memory/observatory-plan.md` («Update 2026-10-14») and the backlog in `memory/pending.md`.
 - **New `backend/scripts/probe_open_meteo.py` and `audit_zone_climate.py`**: grid, altitude correction, forecast/archive seam and consistency of the stored climate against the archive. Read-only.
 - **New `backend/scripts/probe_geo.py`**: probes the ICGC reverse geocoder, the ICGC land-cover WMS (`cobertes_*`) and the MFE WMS (not usable: broken certificate chain and server error). `--cobertes-check` compares the land-cover macrotype with the stored forest type.

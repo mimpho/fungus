@@ -1,6 +1,6 @@
 # Technical plan — Observatory, phase 1 (`epic/observatory`)
 
-> Companion of `memory/observatory-prd.md`. Scenarios are informal Gherkin: they are not run by a BDD tool. Each scenario maps 1:1 to a pytest test (backend) or to a front test / manual QA check, with the same name.
+> Companion of `memory/observatory-prd.md` and, for the free map by coordinates, `memory/observatory-free-map-prd.md`. Scenarios are informal Gherkin: they are not run by a BDD tool. Each scenario maps 1:1 to a pytest test (backend) or to a front test / manual QA check, with the same name.
 > Scenarios assume the **proposed answers** of the PRD open questions; the ones that depend on a pending answer say so (`[OQ-n]`).
 > Last updated: 2026-10-14 (free map by coordinates: see «Update 2026-10-14» in the API section)
 

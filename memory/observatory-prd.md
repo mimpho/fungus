@@ -3,6 +3,7 @@
 > Product Requirements Document. Written before the first feature branch.
 > Once all Open questions are resolved and DoD is written, development can start.
 > Last updated: 2026-10-10
+> **Update 2026-10-14:** the free-map design (any Catalonia coordinate, login required, cell cache, saved points) supersedes the zone-only scope below for the Observatorio. See `memory/observatory-free-map-prd.md`. This file stays as the phase-1 record.
 
 Sources: Observatory design document (Claude Docs, source of truth), Observatory prototype (design canvas, function `v2Series` is the reference implementation), hand-off `observatorio-paso-a-desarrollo` in the Fungus project. Technical plan and scenarios: `memory/observatory-plan.md`.
 
