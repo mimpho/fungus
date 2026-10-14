@@ -2,7 +2,7 @@
 
 > Companion of `memory/observatory-prd.md` and, for the free map by coordinates, `memory/observatory-free-map-prd.md`. Scenarios are informal Gherkin: they are not run by a BDD tool. Each scenario maps 1:1 to a pytest test (backend) or to a front test / manual QA check, with the same name.
 > Scenarios assume the **proposed answers** of the PRD open questions; the ones that depend on a pending answer say so (`[OQ-n]`).
-> Last updated: 2026-10-14 (free map by coordinates: see «Update 2026-10-14» in the API section)
+> Last updated: 2026-10-15 (free map by coordinates: see «Update 2026-10-14» and «Status 2026-10-15» in the API section)
 
 ---
 
@@ -122,6 +122,20 @@ Feature: Index per forest type present
   Scenario: the zone card of the Zonas section is not affected
     Then /zones and /zones/map-scores keep returning one score per zone
 ```
+
+### Status 2026-10-15: what `feat/observatory-api` implements and how it differs
+
+Done (migration 017; `series`, `snapshot`, `species` and `calendar` under `/point`): cells and on-demand loading, altitude correction, login, events, conditions, species and calendar. Tested end to end on a local database with Santa Fe del Montseny (first request ~1.2 s, `source: live`; second ~30 ms, `stored`).
+
+Decisions taken while building, not in the scenarios above:
+- **Click to cell:** buckets of 0.005° (~500 m) in `cell_lookup`. A bucket on a cell border can map to the neighbouring cell (~5 % of buckets), accepted for v1.
+- **Window end:** a series, snapshot or calendar ends on the last complete day before today (UTC). Today's row and the forecast are not observed data.
+- **Forecast limit:** the last forecast day is `min(local, UTC) + 15` (Open-Meteo answers 400 beyond its UTC limit).
+- **Point elevation** comes from the Open-Meteo elevation API (90 m DEM), not from the weather model's grid elevation; at Santa Fe it gives 1,626 m where the earlier probes showed ~1,380 m. Large corrections (|Δ| ≥ 500 m) use a linear lapse rate and are an approximation.
+- **Species:** «excelente» means `edibility = "excellent"`; a species at the 150 m altitude margin keeps its score × 0.85 and the altitude condition is `not_met`; with the forest unknown nobody is excluded by forest and that condition is `pending`.
+- **Calendar:** forecast rows as far as they reach, then the estimate without forecast; from a date earlier than the last data it is a pure estimate that ignores later data.
+
+Not done yet: `/point/forest` (ICGC toponym, macrotype, composition) and the index per forest type; the 429 per user for new cells; `compare_years` (740 days per cell, ~50 weighted calls each); saved points (own branch); moving the daily ingest to cells; MCSC-4 preprocessing (own task).
 
 Open points for this branch: radius and threshold are parameters to tune; saved points CRUD in this branch or its own; the preprocess of the MCSC-4 sheets to a ~25 m grid and the CREAF/ICGC licence do not block it.
 
