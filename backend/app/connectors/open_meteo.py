@@ -7,7 +7,7 @@ but runs server-side, aggregates hourly data to daily, and supports full date ra
 API docs: https://open-meteo.com/en/docs
 """
 import logging
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -36,6 +36,17 @@ HOURLY_VARS = "soil_temperature_0cm,relativehumidity_2m"
 # The archive API has no surface (0 cm) soil temperature; 0–7 cm is the closest layer.
 ARCHIVE_HOURLY_VARS = "soil_temperature_0_to_7cm,relativehumidity_2m"
 SOIL_KEYS = ("soil_temperature_0cm", "soil_temperature_0_to_7cm")
+
+
+def _utc_today() -> date:
+    return datetime.now(UTC).date()
+
+
+def forecast_last_day(forecast_days: int) -> date:
+    """Last forecast day we may ask for. Open-Meteo counts the 16-day limit from the UTC date,
+    so between 00:00 and 02:00 in Madrid the local date is one day ahead of it and asking for
+    the 16th day is a 400 ("end_date is out of allowed range")."""
+    return min(date.today(), _utc_today()) + timedelta(days=forecast_days - 1)
 
 
 class OpenMeteoConnector(WeatherConnector):
@@ -101,7 +112,7 @@ class OpenMeteoConnector(WeatherConnector):
         today + forecast_days - 1, in the same request that already fetched the recent
         days (the forecast API serves both), so the daily call count does not change.
         """
-        fc_end = date.today() + timedelta(days=forecast_days - 1)
+        fc_end = forecast_last_day(forecast_days)
         # A forecast only makes sense right after the observed days (end = yesterday or later).
         if forecast_days <= 0 or fc_end <= end or end < date.today() - timedelta(days=1):
             return await self.fetch_range(start, end), []
@@ -153,8 +164,12 @@ class OpenMeteoConnector(WeatherConnector):
                     exc.response.status_code, self.zone_id,
                 )
                 raise
+            reason = exc.response.text[:200].strip()
+            log.warning(
+                "Open-Meteo HTTP %s for %s: %s", exc.response.status_code, self.zone_id, reason
+            )
             raise ProviderUnavailable(
-                f"Open-Meteo HTTP {exc.response.status_code} for zone {self.zone_id}"
+                f"Open-Meteo HTTP {exc.response.status_code} for zone {self.zone_id}: {reason}"
             ) from exc
         except httpx.HTTPError as exc:
             log.warning("Open-Meteo request failed for %s: %s", self.zone_id, exc)
