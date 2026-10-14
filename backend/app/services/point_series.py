@@ -57,7 +57,7 @@ def _v2(r: V2Result) -> dict:
     return {**v2_detail(r), "label": score_label(r.score)}
 
 
-def _prepare(
+def prepare_climate(
     rows: Sequence[Any],
     today: date,
     cell_elevation_m: float | None,
@@ -80,7 +80,7 @@ def build_series(
     days: int = DEFAULT_DAYS,
     species: SpeciesParams | None = None,
 ) -> SeriesWindow:
-    prepared = _prepare(rows, today, cell_elevation_m, point_elevation_m)
+    prepared = prepare_climate(rows, today, cell_elevation_m, point_elevation_m)
     if prepared is None:
         return SeriesWindow(None, None, False, [], [], None)
     corrected, elevation = prepared
@@ -121,7 +121,7 @@ def build_snapshot(
 ) -> dict | None:
     """Thermometer for one date (default: the last with data): v2, band, limiting factor, v1,
     every condition behind the score and the explanation code for the grey areas."""
-    prepared = _prepare(rows, today, cell_elevation_m, point_elevation_m)
+    prepared = prepare_climate(rows, today, cell_elevation_m, point_elevation_m)
     if prepared is None:
         return None
     corrected, elevation = prepared

@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime
 from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -15,6 +16,7 @@ from app.connectors.base import ProviderUnavailable
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.species import Species
+from app.models.user import User, UserFavSpecies
 from app.services.cell_provider import CellBudgetExceeded, CellProvider, CellResult, CellStore
 from app.services.cell_store import SqlCellStore
 from app.services.point_elevation import point_elevation
@@ -25,6 +27,7 @@ from app.services.point_series import (
     build_series,
     build_snapshot,
 )
+from app.services.point_species import SpeciesRecord, species_for_point
 from app.services.scoring_v2 import SpeciesParams
 
 log = logging.getLogger(__name__)
@@ -172,3 +175,33 @@ async def point_snapshot(
         "clamped": snap["clamped"],
         "entries": [{"forest_type": None, "share": None, **snap}],
     }
+
+
+@router.get("/species")
+async def point_species(
+    point: PointQuery = Depends(),
+    on: date | None = Query(None, alias="date", description="Default: last day with data"),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    store: CellStore = Depends(get_cell_store),
+    provider: CellProvider = Depends(get_cell_provider),
+) -> dict:
+    """Species that fit the point on a date (altitude, month; forest once it is known), with
+    score, grade, conditions and best window. Followed species first; the excellent edibles
+    again in their own list, by score."""
+    cell, rows = await _cell_and_rows(point, store, provider)
+    elevation = await point_elevation(point.lat, point.lon)
+    catalogue = [SpeciesRecord.from_row(r) for r in (await db.scalars(select(Species))).all()]
+    followed = set(
+        (
+            await db.scalars(
+                select(UserFavSpecies.species_id).where(UserFavSpecies.user_id == user.id)
+            )
+        ).all()
+    )
+    data = species_for_point(
+        rows, _today(), cell.cell.elevation_m, elevation, catalogue, on=on, followed=followed
+    )
+    if data is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No climate data for this point yet")
+    return {**_point_block(point, cell, elevation), "forest_known": False, **data}

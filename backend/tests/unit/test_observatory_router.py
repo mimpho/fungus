@@ -20,6 +20,9 @@ class _Db:
     async def get(self, model, key):
         return None
 
+    async def scalars(self, statement):
+        return SimpleNamespace(all=lambda: [])
+
 
 class _StoreWithHistory(FakeStore):
     async def history(self, cell_id):
@@ -167,3 +170,17 @@ class TestErrors:
             good = await c.get("/observatory/point/series", params=SANTA_FE)
         assert bad.status_code == 503 and bad.headers["Retry-After"] == "60"
         assert good.status_code == 200 and good.json()["source"] == "live"
+
+
+class TestSpecies:
+    async def test_an_empty_catalogue_answers_with_empty_lists(self, env):
+        _logged_in(env)
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/species", params=SANTA_FE)
+        body = r.json()
+        assert r.status_code == 200 and body["species"] == [] and body["excellent"] == []
+        assert body["forest_known"] is False and body["cell"]["elevation_m"] == 667
+
+    async def test_it_needs_a_login(self, env):
+        async with _client(env.app) as c:
+            assert (await c.get("/observatory/point/species", params=SANTA_FE)).status_code == 401
