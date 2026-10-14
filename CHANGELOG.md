@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Probes and tools for the free-map design (2026-10-14, `epic/observatory`)
+
+- **Design decisions only, no app change.** The Observatorio will work for any coordinate in Catalonia (map click, login required, cells loaded on demand, forest composition, index per forest type). The API plan is in `memory/observatory-plan.md` («Update 2026-10-14») and the backlog in `memory/pending.md`.
+- **New `backend/scripts/probe_open_meteo.py` and `audit_zone_climate.py`**: grid, altitude correction, forecast/archive seam and consistency of the stored climate against the archive. Read-only.
+- **New `backend/scripts/probe_geo.py`**: probes the ICGC reverse geocoder, the ICGC land-cover WMS (`cobertes_*`) and the MFE WMS (not usable: broken certificate chain and server error). `--cobertes-check` compares the land-cover macrotype with the stored forest type.
+- **New `backend/scripts/suggest_forest_points.py`**: proposes corrected coordinates for zones whose point is not in a stand of the stored forest type. Writes a CSV only.
+- **New `backend/scripts/mcsc_lookup.py` and `inspect_dbf.py`**: read the CREAF MCSC-4 shapefile sheets (stdlib only), decode the level-5 species code in `C_SIMPLE` and print the species composition around a point (`--radius`).
+
 ### Added — 16-day forecast stored per zone (2026-10-11, `epic/observatory`)
 
 - **New table `zone_forecast`** (migration 016, RLS on): the Open-Meteo forecast per zone and target day (temperatures, soil, rain, max rain probability, humidity, wind). Kept apart from `climate_history`, which only holds observed days. Each daily run replaces the zone's rows; days before today are deleted.
