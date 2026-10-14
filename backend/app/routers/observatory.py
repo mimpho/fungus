@@ -19,6 +19,7 @@ from app.models.species import Species
 from app.models.user import User, UserFavSpecies
 from app.services.cell_provider import CellBudgetExceeded, CellProvider, CellResult, CellStore
 from app.services.cell_store import SqlCellStore
+from app.services.point_calendar import build_calendar
 from app.services.point_elevation import point_elevation
 from app.services.point_series import (
     DEFAULT_DAYS,
@@ -205,3 +206,25 @@ async def point_species(
     if data is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No climate data for this point yet")
     return {**_point_block(point, cell, elevation), "forest_known": False, **data}
+
+
+@router.get("/calendar")
+async def point_calendar(
+    point: PointQuery = Depends(),
+    on: date | None = Query(None, alias="date", description="Default: last day with data"),
+    species: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    store: CellStore = Depends(get_cell_store),
+    provider: CellProvider = Depends(get_cell_provider),
+) -> dict:
+    """The last 7 real days and the next 35: the cell's forecast as far as it reaches, then an
+    estimate without forecast (no rain, last week's means). Each day says which one it is."""
+    params = await _species_params(db, species)
+    cell, rows = await _cell_and_rows(point, store, provider)
+    elevation = await point_elevation(point.lat, point.lon)
+    data = build_calendar(
+        rows, _today(), cell.cell.elevation_m, elevation, on=on, species=params
+    )
+    if data is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No climate data for this point yet")
+    return {**_point_block(point, cell, elevation), "species": species, **data}

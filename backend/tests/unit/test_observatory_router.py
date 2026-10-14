@@ -184,3 +184,20 @@ class TestSpecies:
     async def test_it_needs_a_login(self, env):
         async with _client(env.app) as c:
             assert (await c.get("/observatory/point/species", params=SANTA_FE)).status_code == 401
+
+
+class TestCalendar:
+    async def test_it_returns_7_real_days_and_35_ahead_flagged(self, env):
+        _logged_in(env)
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/calendar", params=SANTA_FE)
+        body = r.json()
+        assert r.status_code == 200 and len(body["days"]) == 42
+        assert {d["basis"] for d in body["days"]} <= {"real", "forecast", "estimate"}
+        assert all(d["estimated_without_forecast"] == (d["basis"] == "estimate")
+                   for d in body["days"])
+        assert "best_day" in body["summary"] and "good_days" in body["summary"]
+
+    async def test_it_needs_a_login(self, env):
+        async with _client(env.app) as c:
+            assert (await c.get("/observatory/point/calendar", params=SANTA_FE)).status_code == 401
