@@ -252,16 +252,16 @@ Allow users to add and save their own points on the map.
 
 ---
 
-## 🟡 Backlog — Observatorio: puntos libres y celdas (decidido 12-14 oct 2026, no bloqueante)
+## 🟡 Backlog — Observatory: free points and cells (decided 12-14 Oct 2026, non-blocking)
 
-Contexto: el PRD "Observatorio: mapa libre por coordenadas, celdas y puntos marcados" recoge las decisiones. Las zonas almacenadas siguen funcionando como hasta ahora; nada de esto bloquea `feat/observatory-api`.
+Context: the PRD "Observatorio: mapa libre por coordenadas, celdas y puntos marcados" (repo copy: `memory/observatory-free-map-prd.md`) holds the decisions. Stored zones keep working as they do now; none of this blocks `feat/observatory-api`.
 
-- **Revisar coordenadas de las 40 zonas curadas.** Resultado de `suggest_forest_points.py` (`forest_suggestions.csv`, no commitear): 17 ok, 11 con punto corregible (150-1000 m), 12 sin resolver.
-  - Sin resolver: zone-003 (el nombre sugiere pinar, guardada como robledal), 029, 035, 043, 044, 208, 217, 224, 225, 231, 235, 237. Para cada una: corregir tipo, corregir coordenadas con el libro, o dejarla fuera de los destacados.
-  - Antes de aplicar cambios: comprobar con Open-Meteo que el punto nuevo cae en la misma celda, y guardar las coordenadas antiguas (migración reversible).
-- **Desactivar las ~150 zonas activas no curadas** (reversible). Sus coordenadas son poco precisas (error mediano de altitud 229 m).
-- **Tipo de bosque en clics libres (decidido 14 oct):** composición, no especie dominante. Macrotipo y exclusión de urbano y agrícola con cobertes 2024 (ICGC, CC BY 4.0). Especies presentes (≥10 % en ~300 m) del MCSC-4 del CREAF (2009), shapefile por hojas, campo `C_SIMPLE` con código de nivel 5, y solo si el macrotipo actual no las contradice. El índice se calcula por cada tipo presente. En puntos marcados manda el tipo del autor. MFE descartado como servicio en vivo; la capa `cobertes_2009` del WMS no trae especies.
-- **Preproceso del MCSC-4:** ~500 hojas a una cuadrícula local de ~25 m con la clase de cada celda sin agregar (sirve para composición, máscara forestal y mapas de calor por especie). Tarea aparte, no bloquea `feat/observatory-api`; hasta entonces `/point/forest` devuelve macrotipo y `composition: null`.
-- **Pendiente de confirmar:** licencia del MCSC-4 (solo «de lliure utilització»: escribir al CREAF o al ICGC antes de publicar) y límites del geocodificador inverso del ICGC; un punto agrícola real para probar esa clase; códigos inferidos `bqs` (sureda) y `bqp` (roure pènol); `bfs` (fageda) confirmado en Santa Fe.
-- **Zonas curadas contrastadas con el MCSC-4 (3 hojas, 14 oct):** zone-233 fageda 95 %; zone-226 alzinar 50 % + sureda 47 %; zone-205 alzinar 50 % + roure pènol 40 %; zone-003 sin ningún roble (alzinar 50 %, pi pinyer 46 %; casi seguro tipo mal guardado, se llama «Pineda»); zone-208 coordenada sobre edificios (98 % sin bosque). Scripts sin commitear: `mcsc_lookup.py` (`--radius 300`) e `inspect_dbf.py`.
-- **Sustituye a** la entrada "Custom zones" de más arriba: los puntos libres guardados con nombre (topónimo por defecto) y notas son la forma de hacerlo.
+- **Review the coordinates of the 40 curated zones.** Result of `suggest_forest_points.py` (`forest_suggestions.csv`, do not commit): 17 ok, 11 with a fixable point (150-1000 m), 12 unresolved.
+  - Unresolved: zone-003 (the name suggests pinewood, stored as oak wood), 029, 035, 043, 044, 208, 217, 224, 225, 231, 235, 237. For each one: fix the type, fix the coordinates using the book, or leave it out of the featured zones.
+  - Before applying changes: check with Open-Meteo that the new point falls in the same cell, and keep the old coordinates (reversible migration).
+- **Deactivate the ~150 active non-curated zones** (reversible). Their coordinates are imprecise (median altitude error 229 m).
+- **Forest type on free clicks (decided 14 Oct):** composition, not dominant species. Macrotype and urban/agricultural exclusion from the 2024 land cover (ICGC, CC BY 4.0). Species present (≥10 % within ~300 m) from CREAF's MCSC-4 (2009), per-sheet shapefile, field `C_SIMPLE` with a level-5 code, and only if the current macrotype does not contradict them. The index is computed for each type present. For saved points the author's type wins. MFE discarded as a live service; the WMS layer `cobertes_2009` carries no species.
+- **MCSC-4 preprocessing:** ~500 sheets into a local ~25 m grid with the class of each cell, unaggregated (serves composition, forest mask and per-species heat maps). Separate task, does not block `feat/observatory-api`; until then `/point/forest` returns the macrotype and `composition: null`.
+- **To confirm:** MCSC-4 licence (only "de lliure utilització": write to CREAF or ICGC before publishing) and limits of the ICGC reverse geocoder; a real agricultural point to test that class; inferred codes `bqs` (sureda) and `bqp` (roure pènol); `bfs` (fageda) confirmed at Santa Fe.
+- **Curated zones checked against MCSC-4 (3 sheets, 14 Oct):** zone-233 fageda 95 %; zone-226 alzinar 50 % + sureda 47 %; zone-205 alzinar 50 % + roure pènol 40 %; zone-003 has no oak at all (alzinar 50 %, pi pinyer 46 %; almost certainly a wrongly stored type, it is called "Pineda"); zone-208 coordinate on buildings (98 % no forest). Tools: `mcsc_lookup.py` (`--radius 300`) and `inspect_dbf.py` in `backend/scripts/`.
+- **Replaces** the "Custom zones" entry above: free points saved with a name (toponym by default) and notes are the way to do it.

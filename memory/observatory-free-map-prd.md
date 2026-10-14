@@ -1,218 +1,218 @@
-# PRD — Observatorio: mapa libre por coordenadas, celdas y puntos marcados
+# PRD — Observatory: free map by coordinates, cells and saved points
 
-> Copia en el repo del documento de Claude Docs «PRD — Observatorio: mapa libre por coordenadas, celdas y puntos marcados» (fuente de verdad: el documento). Última actualización: 2026-10-14.
-> Complementa `memory/observatory-prd.md` (fase 1, zonas) y `memory/observatory-plan.md` (plan técnico; apartado «Update 2026-10-14»).
+> Repo copy of the Claude Docs document "PRD — Observatorio: mapa libre por coordenadas, celdas y puntos marcados" (the document is the source of truth). Last updated: 2026-10-14.
+> Complements `memory/observatory-prd.md` (phase 1, zones) and `memory/observatory-plan.md` (technical plan; section "Update 2026-10-14").
 
-## Resumen y visión
+## Summary and vision
 
-El Observatorio deja de estar limitado a las zonas guardadas: con un clic en el mapa de Cataluña, la persona usuaria con sesión iniciada verá los mismos widgets para cualquier punto, calculados con datos de Open-Meteo. Las zonas actuales pasan a ser puntos marcados: coordenadas con nombre y notas.
+The Observatory stops being limited to the stored zones: with one click on the map of Catalonia, a logged-in user sees the same widgets for any point, computed from Open-Meteo data. The current zones become saved points: coordinates with a name and notes.
 
-Fungus se plantea como un producto informativo y de fondo casi académico, pensado para culturizarse en micología. Esporas.io, la aplicación que ha servido de contraste, es más práctica y orientada a la recolección, con un catálogo de unas 10 setas. No se busca competir con ella sino ocupar un nicho distinto.
+Fungus is conceived as an informative, almost academic product, meant for learning about mycology. Esporas.io, the app used as a contrast, is more practical and foraging-oriented, with a catalogue of about 10 mushrooms. The goal is not to compete with it but to occupy a different niche.
 
-Este documento recoge la propuesta, las decisiones tomadas hasta el 14 de octubre de 2026, los resultados de las pruebas contra las APIs y un anexo técnico. Con estas decisiones, el desarrollo de `feat/observatory-api` puede retomarse.
+This document collects the proposal, the decisions taken up to 14 October 2026, the results of the API probes and a technical annex. With these decisions, development of `feat/observatory-api` can resume.
 
-## Decisiones tomadas
+## Decisions taken
 
-| Tema | Decisión |
+| Topic | Decision |
 | --- | --- |
-| Ámbito | Se empieza solo por Cataluña. |
-| Acceso | El Observatorio exige tener sesión iniciada. |
-| Entrada | Clic en el mapa. Un menú contextual muestra el topónimo más cercano y el botón «Observar esta zona» antes de enseñar los widgets. |
-| Datos | Open-Meteo es la fuente de verdad. La base de datos es una caché reconstruible y la celda de la rejilla es la unidad de base. |
-| Punto marcado | Coordenadas con nombre, y de momento poco más: altitud, tipo de bosque y notas. Los puntos con información rica del libro quedan para una fase futura. |
-| Zonas actuales | Las 40 zonas curadas siguen en la sección Zonas, sin cambios, y no se muestran en el Observatorio v1. Pasarán a ser puntos marcados cuando se revisen sus coordenadas. Las 150 activas no curadas se desactivan, de forma reversible. |
-| Guardar un punto | El nombre propuesto es el topónimo más cercano. Se puede cambiar al guardar y después, y hay un campo de notas. |
-| Tipo de bosque | Macrotipo (conífera, frondosa, esclerófilo) y exclusión de urbano y agrícola con las cobertes del ICGC, consultadas en el punto del clic. Las especies presentes, con su porcentaje en un radio de unos 300 m, salen del Mapa de cobertes del sòl de Catalunya (MCSC-4, CREAF, 2009), preprocesado a una cuadrícula local, y el índice se calcula por cada tipo presente por encima del 10 %. |
-| Mapa libre (v1) | El Observatorio muestra solo resultados por coordenadas. No aparecen en él los puntos de interés ni las zonas curadas. |
-| Sección Zonas | Se queda como está, con seguimientos y ranking. |
-| Celdas | En v1 se cargan bajo demanda, en el primer clic de alguien, sin enumerar la rejilla. |
-| Índice por tipo | Si hay varios tipos de bosque por encima del 10 % alrededor del punto, el índice se calcula para cada uno y se muestran todos, cada uno con su porcentaje. |
+| Scope | Catalonia only for now. |
+| Access | The Observatory requires a logged-in session. |
+| Input | Click on the map. A context menu shows the nearest toponym and the "Observe this zone" button before the widgets appear. |
+| Data | Open-Meteo is the source of truth. The database is a rebuildable cache and the grid cell is the base unit. |
+| Saved point | Coordinates with a name, and little else for now: altitude, forest type and notes. Points with rich book information are left for a future phase. |
+| Current zones | The 40 curated zones stay in the Zones section unchanged and are not shown in Observatory v1. They will become saved points once their coordinates are reviewed. The ~150 active non-curated zones are deactivated, reversibly. |
+| Saving a point | The proposed name is the nearest toponym. It can be changed when saving and afterwards, and there is a notes field. |
+| Forest type | Macrotype (conifer, broadleaf, sclerophyll) and exclusion of urban and agricultural land from the ICGC land cover, queried at the clicked point. The species present, with their percentage within ~300 m, come from CREAF's Mapa de cobertes del sòl de Catalunya (MCSC-4, 2009), preprocessed into a local grid; the index is computed for each type present above 10 %. |
+| Free map (v1) | The Observatory shows coordinate-based results only. Points of interest and curated zones do not appear in it. |
+| Zones section | Stays as it is, with follows and ranking. |
+| Cells | In v1 they are loaded on demand, on someone's first click, without enumerating the grid. |
+| Index per type | If several forest types are above 10 % around the point, the index is computed for each and all are shown, each with its percentage. |
 
-## Problema
+## Problem
 
-Hoy el Observatorio solo trabaja con las zonas registradas en la base de datos, y eso limita tanto la búsqueda como los mapas.
+Today the Observatory only works with the zones registered in the database, and that limits both search and maps.
 
-- **Buscador:** solo devuelve las zonas que se siguen. Quien quiere mirar otro lugar no puede.
-- **Mapa de calor:** se rellena únicamente con los puntos guardados, así que es poco preciso entre zona y zona.
-- **Qué se gana con la base propia:** poder trabajar con los datos sin hacer peticiones continuas. Ese beneficio se mantiene, pero no justifica que sea la única vía.
+- **Search:** it only returns the zones being followed. Someone who wants to look at another place cannot.
+- **Heat map:** it is filled only from saved points, so it is imprecise between zones.
+- **What the own database gives:** being able to work with the data without constant requests. That benefit stays, but it does not justify being the only route.
 
-Por contraste, una aplicación que acepta cualquier ubicación ofrece temperatura, precipitación acumulada y probabilidad de fructificación en tiempo real, lo que resulta mucho más rico para quien consulta.
+By contrast, an app that accepts any location offers real-time temperature, accumulated rain and fruiting probability, which is much richer for the person consulting it.
 
-## Propuesta
+## Proposal
 
-Tres piezas que conviven, cada una con un papel distinto.
+Three pieces that coexist, each with a different role.
 
-| Pieza | Qué es | De dónde salen los datos | Qué aporta |
+| Piece | What it is | Where the data comes from | What it brings |
 | --- | --- | --- | --- |
-| Clic en el mapa | Cualquier punto de Cataluña se asocia a una celda de la rejilla de Open-Meteo y muestra los widgets del Observatorio | Historial y previsión de la celda, con corrección de altitud | Mirar cualquier lugar sin límite de zonas y con histórico suficiente para el cálculo |
-| Celdas | Rejilla irregular de Open-Meteo, de unos 84 km² por celda. Unas 380 en Cataluña y entre 200 y 250 con bosque | Caché en base de datos, reconstruible desde Open-Meteo | Mapa de calor y respuesta rápida sin repetir peticiones |
-| Puntos marcados | Coordenadas guardadas con nombre y notas, propias de cada usuario o destacadas por Fungus | Metadatos en base de datos. El clima sale de su celda | Seguir un lugar, ponerle nombre y volver a él |
+| Map click | Any point in Catalonia is mapped to a cell of the Open-Meteo grid and shows the Observatory widgets | History and forecast of the cell, with altitude correction | Looking at any place with no zone limit and enough history for the calculation |
+| Cells | Irregular Open-Meteo grid, ~84 km² per cell. About 380 in Catalonia and 200-250 with forest | Cache in the database, rebuildable from Open-Meteo | Heat map and fast responses without repeating requests |
+| Saved points | Saved coordinates with a name and notes, either a user's own or featured by Fungus | Metadata in the database. The climate comes from its cell | Following a place, naming it and coming back to it |
 
-Cualquier punto tiene histórico, porque Open-Meteo lo ofrece: la celda se reconstruye con unos 280 días (180 de línea de tiempo y 100 de calentamiento del cálculo). Lo que aporta un punto marcado no es más histórico, sino nombre, notas y seguimiento.
+Any point has history, because Open-Meteo provides it: the cell is rebuilt with about 280 days (180 of timeline and 100 of calculation warm-up). What a saved point adds is not more history but a name, notes and following.
 
-## Experiencia de usuario
+## User experience
 
-La persona usuaria puede mirar cualquier lugar, no solo los que Fungus ha preparado.
+The user can look at any place, not just the ones Fungus has prepared.
 
-1. **Entrar con sesión iniciada.** El Observatorio no es público.
-2. **Hacer clic en el mapa.** Un menú contextual muestra el topónimo más cercano y el botón «Observar esta zona». También se pueden introducir coordenadas.
-3. **Ver la zona.** Temperatura, suelo, lluvia acumulada, previsión y calendario, calculados con los datos de la celda, junto con las especies de bosque presentes alrededor del punto y su porcentaje. Se avisa de que la lluvia es un dato de celda, de unos 10 km.
-4. **Guardar el punto.** El nombre propuesto es el topónimo más cercano, editable en ese momento y más tarde, con un campo de notas.
-5. **Explorar el mapa de calor.** Una vista general del territorio, solo sobre zonas forestales, que se lee de la caché de celdas. Más adelante, también por tipo de árbol, a partir de la misma cuadrícula de especies.
+1. **Log in.** The Observatory is not public.
+2. **Click on the map.** A context menu shows the nearest toponym and the "Observe this zone" button. Coordinates can also be typed in.
+3. **See the zone.** Temperature, soil, accumulated rain, forecast and calendar, computed from the cell data, together with the forest species present around the point and their percentage. The user is told that rain is a cell value, of about 10 km.
+4. **Save the point.** The proposed name is the nearest toponym, editable at that moment and later, with a notes field.
+5. **Explore the heat map.** A general view of the territory, over forest zones only, read from the cell cache. Later, also by tree type, from the same species grid.
 
-Las zonas actuales no desaparecen: la sección Zonas sigue como hasta ahora, con seguimientos y ranking. El Observatorio v1 trabaja solo con coordenadas y no muestra puntos de interés ni zonas curadas. Las 40 curadas, que proceden del libro del autor, podrán ser puntos marcados cuando se revisen sus coordenadas.
+The current zones do not disappear: the Zones section stays as it is, with follows and ranking. Observatory v1 works only with coordinates and shows no points of interest or curated zones. The 40 curated ones, which come from the author's book, may become saved points once their coordinates are reviewed.
 
-Pendiente de definir: cómo se muestran los últimos 5 a 8 días, que son provisionales. Salen de la previsión y pueden diferir en torno a 0,5 °C del archivo definitivo, que llega con unos 5 días de retraso.
+Still to define: how to show the last 5 to 8 days, which are provisional. They come from the forecast and may differ by about 0.5 °C from the final archive, which arrives with about 5 days of delay.
 
-## Principios de producto y modelo de negocio
+## Product principles and business model
 
-Fungus no nace para lucrarse y no debe costar dinero de su bolsillo a quien lo mantiene.
+Fungus is not born to make a profit and must not cost its maintainer money out of pocket.
 
-- **Sin lucro por ahora.** No se está en fase de decidir cómo monetizar. Eso vendría después, solo si el producto demuestra ser bueno.
-- **Devolver al bosque.** Si algún día hubiera un modelo de negocio, la intención de fondo es destinar las ganancias a algo relacionado con la naturaleza, con la micología o sin ella, para cerrar el círculo. No hay plan concreto y no se quiere decidir ahora.
-- **Coste controlado.** La consulta en tiempo real de cualquier punto implica gasto por petición. Si el uso no genera ingresos, ese gasto debe quedar acotado por diseño.
-- **Sin límites de origen.** No se quiere construir algo que nazca limitado, aunque hoy no se monte toda la infraestructura de escala.
+- **No profit for now.** It is not the stage to decide how to monetise. That would come later, only if the product proves good.
+- **Give back to the forest.** If a business model ever existed, the underlying intention is to put the earnings into something related to nature, mycology or not, to close the circle. There is no concrete plan and none is to be decided now.
+- **Controlled cost.** Real-time lookup of any point implies a cost per request. If usage generates no income, that cost must be bounded by design.
+- **No built-in limits.** The aim is not to build something that is born limited, even if the full scale infrastructure is not set up today.
 
-El contexto de escala es real: la página de Facebook "Bullets", creada por el autor, tiene unos 70.000 usuarios. Si el Observatorio se promociona ahí, el tráfico puede dispararse de golpe.
+The scale context is real: the Facebook page "Bullets", created by the author, has about 70,000 users. If the Observatory is promoted there, traffic can spike at once.
 
-## Riesgos y preguntas abiertas
+## Risks and open questions
 
-El riesgo principal es el coste y la caída del servicio si el tráfico se dispara; el resto son decisiones que aún no se han tomado.
+The main risk is cost and service outage if traffic spikes; the rest are decisions not yet taken.
 
-- **Tráfico y coste.** El plan gratuito de Open-Meteo es solo para uso no comercial y tiene límite diario. Con celdas en caché y sesión obligatoria, el gasto debería depender de cuántas celdas se refrescan y no de cuántas personas miran. Un pico viral sigue siendo el caso a vigilar.
-- **Lluvia a escala de celda.** La celda mide unos 8 × 11 km y la lluvia no se corrige por altitud. En terreno escarpado el dato puede alejarse mucho del punto (en Santa Fe la altitud media de la celda es 667 m y la del punto 1.380 m).
-- **Tipo de bosque.** Open-Meteo no lo da. Sin él no hay base para los widgets de especies. Las cobertes del ICGC dan el macrotipo de bosque y funcionan en la prueba. La especie sale del MCSC-4 del CREAF (shapefile por hojas, nivel 5), que distingue encinar, alcornocal, hayedo, robledales y varios pinares, pero es de 2009 y hay que cruzarlo con las cobertes de 2024 para no mostrar especies donde ya no hay bosque. El servicio WMS del MFE no es utilizable.
-- **Costura entre previsión y archivo.** Los últimos días vienen de la previsión y difieren del archivo. Hay que marcarlos como provisionales y sustituirlos con un job.
-- **Condiciones de uso.** Las cobertes del ICGC tienen licencia CC BY 4.0, con atribución. El geocodificador inverso del ICGC responde sin autenticación, pero no declara licencia ni límites. El MCSC-4 del CREAF solo dice que es de libre utilización, sin licencia concreta: hay que confirmarla con el CREAF o el ICGC antes de publicar, sobre todo para un mapa de calor visible.
-- **Rejilla.** Es irregular, así que en v1 no se enumeran las celdas: se cargan bajo demanda en el primer clic de alguien. La enumeración y la máscara forestal harán falta para el mapa de calor.
-- **Fiabilidad de las zonas antiguas.** Las coordenadas de unas 150 zonas no curadas son poco precisas (error mediano de altitud de 229 m). Por eso se desactivan.
+- **Traffic and cost.** Open-Meteo's free plan is for non-commercial use only and has a daily limit. With cached cells and mandatory login, spend should depend on how many cells are refreshed, not on how many people look. A viral spike remains the case to watch.
+- **Rain at cell scale.** The cell is about 8 × 11 km and rain is not altitude-corrected. In rugged terrain the value can be far from the point (at Santa Fe the mean altitude of the cell is 667 m and that of the point 1,380 m).
+- **Forest type.** Open-Meteo does not provide it. Without it there is no basis for the species widgets. The ICGC land cover gives the forest macrotype and works in the probe. The species comes from CREAF's MCSC-4 (per-sheet shapefile, level 5), which distinguishes holm oak, cork oak, beech, oak woods and several pine woods, but it is from 2009 and must be crossed with the 2024 land cover so that species are not shown where there is no longer forest. The MFE WMS service is not usable.
+- **Seam between forecast and archive.** The last days come from the forecast and differ from the archive. They must be flagged as provisional and replaced by a job.
+- **Terms of use.** The ICGC land cover is licensed CC BY 4.0, with attribution. The ICGC reverse geocoder answers without authentication but declares no licence or limits. The CREAF MCSC-4 only says it is free to use, with no specific licence: it must be confirmed with CREAF or ICGC before publishing, above all for a visible heat map.
+- **Grid.** It is irregular, so in v1 cells are not enumerated: they are loaded on demand on someone's first click. Enumeration and the forest mask will be needed for the heat map.
+- **Reliability of old zones.** The coordinates of about 150 non-curated zones are imprecise (median altitude error 229 m). That is why they are deactivated.
 
-## Anexo técnico
+## Technical annex
 
-Todo el cálculo puede alimentarse desde Open-Meteo con un adaptador nuevo, pero el plan de pago que haría falta para uso comercial es el Professional, no el Standard, porque solo el primero incluye la API de histórico.
+All the computation can be fed from Open-Meteo with a new adapter, but the paid plan needed for commercial use is Professional, not Standard, because only the former includes the historical API.
 
-### APIs de Open-Meteo que se usarían
+### Open-Meteo APIs that would be used
 
-| Necesidad | API | Nota |
+| Need | API | Note |
 | --- | --- | --- |
-| Nombre de lugar a coordenadas | Open-Meteo Geocoding | Solo busca por nombre y sobre todo localidades. No sirve para el clic en el mapa |
-| Topónimo más cercano a unas coordenadas | Geocodificador inverso del ICGC | Capas `topo1` (núcleos de población) y `topo2` (resto de topónimos), radio por defecto de 1 km. Solo Cataluña |
-| Ventana reciente y años anteriores | Historical Weather | Datos desde 1940, con unos 5 días de retraso. En planes de pago exige Professional |
-| Últimos días y previsión | Forecast | Hasta 16 días contando hoy. `past_days` llega a 92, pero solo unos 73 días traen datos |
+| Place name to coordinates | Open-Meteo Geocoding | Searches by name only, mostly localities. Does not serve the map click |
+| Nearest toponym to given coordinates | ICGC reverse geocoder | Layers `topo1` (population centres) and `topo2` (other toponyms), default radius 1 km. Catalonia only |
+| Recent window and earlier years | Historical Weather | Data since 1940, with about 5 days of delay. On paid plans it requires Professional |
+| Last days and forecast | Forecast | Up to 16 days counting today. `past_days` goes up to 92, but only about 73 days carry data |
 
-### Límites y coste
+### Limits and cost
 
-| | Gratis | Standard | Professional |
+| | Free | Standard | Professional |
 | --- | --- | --- | --- |
-| Uso comercial | No | Sí | Sí |
-| Límite diario | 10.000 llamadas | Sin límite | Sin límite |
-| Límite mensual | 300.000 llamadas | 1 millón | 5 millones |
-| Historical Weather API | Sí | No | Sí |
+| Commercial use | No | Yes | Yes |
+| Daily limit | 10,000 calls | Unlimited | Unlimited |
+| Monthly limit | 300,000 calls | 1 million | 5 million |
+| Historical Weather API | Yes | No | Yes |
 
-El plan gratuito también limita a 5.000 llamadas por hora y 600 por minuto. Una petición de más de 10 variables, o de más de 14 días, cuenta como varias llamadas: el peso es aproximadamente los días divididos entre 14. Con unas 380 celdas, la primera carga de 280 días pesa del orden de 7.600 llamadas, menos de un día de cuota gratuita. Con unos 740 días, para comparar con el año anterior, serían entre 13.000 y 16.000, unos dos días. Son estimaciones.
+The free plan also limits to 5,000 calls per hour and 600 per minute. A request with more than 10 variables, or more than 14 days, counts as several calls: the weight is roughly the days divided by 14. With about 380 cells, the first load of 280 days weighs on the order of 7,600 calls, less than one day of free quota. With about 740 days, to compare with the previous year, it would be 13,000 to 16,000, about two days. These are estimates.
 
-El precio del Standard es de 29 dólares al mes según una página de suscripciones de Open-Meteo. La página de precios abierta no muestra importes y el del Professional no está verificado.
+The Standard price is 29 dollars a month according to an Open-Meteo subscriptions page. The open pricing page shows no amounts and the Professional price is not verified.
 
-### Pruebas realizadas contra Open-Meteo
+### Probes run against Open-Meteo
 
-Se ejecutaron seis pruebas entre el 11 y el 12 de octubre de 2026 con scripts en `backend/scripts`.
+Six probes were run between 11 and 12 October 2026 with scripts in `backend/scripts`.
 
-| Prueba | Resultado |
+| Probe | Result |
 | --- | --- |
-| Ventana de datos | `past_days=92` solo trae unos 73 días con datos, y los más antiguos vienen vacíos. La ventana se construye con archivo más los últimos días de previsión |
-| Rejilla | Irregular, de unos 7,8 × 10,8 km. `cell_selection=land` puede elegir una celda vecina de altitud parecida |
-| Altitud | Temperatura y suelo bajan 0,65 °C por cada 100 m, exacto. La humedad baja 0,13 puntos por 100 m. Lluvia y viento no se corrigen |
-| Celda corregida frente a consulta directa | La temperatura queda bien. Lluvia y viento quedan limitados por la escala de la celda |
-| Costura previsión y archivo | La lluvia de la previsión es entre 0,24 y 2,12 veces la del archivo según el punto. La mínima sube entre 0,5 y 1 °C, el suelo baja entre 0,4 y 0,9 °C y la humedad baja unos 2 puntos. La mejor petición de previsión usa las coordenadas de la celda y la elevación media de la celda |
-| Auditoría de las 40 zonas curadas | Lo guardado coincide con el archivo de Open-Meteo, con sesgo y error de 0,00. Los fallos iniciales fueron timeouts. En los últimos 5 días, la temperatura media guardada difiere de media unos 0,5 °C (entre 0,16 y 1,12) y la del suelo unos 0,55 °C (entre 0,14 y 0,94) |
+| Data window | `past_days=92` brings only about 73 days with data, and the oldest come back empty. The window is built from the archive plus the last days of forecast |
+| Grid | Irregular, about 7.8 × 10.8 km. `cell_selection=land` may pick a neighbouring cell of similar altitude |
+| Altitude | Temperature and soil drop 0.65 °C per 100 m, exactly. Humidity drops 0.13 points per 100 m. Rain and wind are not corrected |
+| Corrected cell versus direct query | Temperature comes out right. Rain and wind are limited by the cell scale |
+| Forecast/archive seam | Forecast rain is between 0.24 and 2.12 times the archive's depending on the point. The minimum rises 0.5 to 1 °C, soil drops 0.4 to 0.9 °C and humidity drops about 2 points. The best forecast request uses the cell coordinates and the mean cell elevation |
+| Audit of the 40 curated zones | What is stored matches the Open-Meteo archive, with bias and error of 0.00. The initial failures were timeouts. In the last 5 days, the stored mean temperature differs by about 0.5 °C on average (between 0.16 and 1.12) and soil by about 0.55 °C (between 0.14 and 0.94) |
 
-La auditoría solo comprueba la coherencia de lo guardado con las mismas coordenadas, no que esas coordenadas sean las correctas.
+The audit only checks that what is stored is consistent for the same coordinates, not that those coordinates are the right ones.
 
-### Tipo de bosque y topónimo
+### Forest type and toponym
 
-Open-Meteo no da el tipo de bosque, y los widgets de especies lo necesitan. El 12 de octubre de 2026 se probaron tres servicios públicos sobre 12 puntos de Cataluña con `probe_geo.py`.
+Open-Meteo does not give the forest type, and the species widgets need it. On 12 October 2026 three public services were probed on 12 points in Catalonia with `probe_geo.py`.
 
-| Necesidad | Servicio | Resultado de la prueba |
+| Need | Service | Probe result |
 | --- | --- | --- |
-| Macrotipo de bosque y exclusión de urbano y agrícola | [Cobertes del sòl del ICGC](https://www.icgc.cat/en/Geoinformation-and-Maps/Online-services-Geoservices/WMS-Land-cover), capa `cobertes_2024`, consulta por punto | Funciona. Devuelve clases como bosque denso de aciculífolis, de caducifolis planifolis y de escleròfil·les, además de prados, roquedo, casco urbano y eixample. Distingue conífera, frondosa y esclerófilo, pero no la especie. Acertó en Montnegre, Ports, Cadí, Cap de Creus y Vic |
-| Especie dominante | [Mapa Forestal de España](https://sig.mapama.gob.es/Docs/PDFServicios/MFE.pdf) (MFE25, WMS) | No se pudo consultar. Desde Python en el Mac falló la verificación del certificado SSL de `wms.mapama.gob.es`. Dos fallos del servidor. Primero, no envía el certificado intermedio de la FNMT, algo que se resuelve añadiéndolo como confianza. Después, la dirección documentada no devuelve capas y la variante wms.aspx responde con un error interno. Se descarta como servicio en vivo. Falta confirmar si existe una descarga del mapa |
-| Topónimo más cercano | [Geocodificador inverso del ICGC](https://openicgc.github.io/geocodificador-doc_en/parametres_invers/) | Funciona. Respondió en los 12 puntos, en 0,06 a 0,15 s, con radio de 1 km. `topo1` da núcleos y barrios, y `topo2` da cimas, collados, masías y parajes de monte, como Turó de l'Home o Coll Pregon |
+| Forest macrotype and exclusion of urban and agricultural land | [ICGC land cover](https://www.icgc.cat/en/Geoinformation-and-Maps/Online-services-Geoservices/WMS-Land-cover), layer `cobertes_2024`, point query | Works. Returns classes such as dense conifer forest, dense broadleaf forest and dense sclerophyll forest, plus meadows, rock, built-up area and eixample. Distinguishes conifer, broadleaf and sclerophyll, but not the species. Right at Montnegre, Ports, Cadí, Cap de Creus and Vic |
+| Dominant species | [Mapa Forestal de España](https://sig.mapama.gob.es/Docs/PDFServicios/MFE.pdf) (MFE25, WMS) | Could not be queried. From Python on the Mac the SSL certificate check for `wms.mapama.gob.es` failed. Two server faults. First, it does not send the FNMT intermediate certificate, which is solved by adding it as trusted. Then, the documented address returns no layers and the wms.aspx variant answers with an internal error. Discarded as a live service. Whether a download of the map exists is still to be confirmed |
+| Nearest toponym | [ICGC reverse geocoder](https://openicgc.github.io/geocodificador-doc_en/parametres_invers/) | Works. It answered on all 12 points, in 0.06 to 0.15 s, with a 1 km radius. `topo1` gives centres and neighbourhoods, and `topo2` gives peaks, passes, farmhouses and mountain places, such as Turó de l'Home or Coll Pregon |
 
-Tres puntos de control no coincidieron con lo esperado, y lo más probable es que se deba a las coordenadas de prueba: la Fageda d'en Jordà salió como cultivo, Santa Fe como roquedo de cumbre y el llano de Lleida cayó dentro de la ciudad. Esto último confirma que la detección de urbano funciona, pero falta un punto agrícola de verdad. La propuesta es consultar las cobertes en el punto exacto del clic y guardar el resultado, porque una celda de 84 km² mezcla bosques distintos y el dato casi no cambia. La especie sale de otra fuente, descrita más abajo. El MFE queda descartado como servicio en vivo.
+Three control points did not match what was expected, most likely because of the test coordinates: Fageda d'en Jordà came out as cropland, Santa Fe as summit rock and the Lleida plain fell inside the city. The last one confirms that urban detection works, but a truly agricultural point is missing. The proposal is to query the land cover at the exact clicked point and store the result, because an 84 km² cell mixes different forests and the value hardly changes. The species comes from another source, described below. The MFE is discarded as a live service.
 
-Comprobación con las 40 zonas curadas (13 de octubre de 2026): se comparó el macrotipo de las cobertes con el tipo guardado, en cinco puntos de unos 150 m. En 22 zonas el punto cae en bosque y en 17 de ellas (77 %) el macrotipo coincide con el guardado. Las 5 discrepancias son zonas mixtas o dudosas, como pinar frente a encinar o robledal frente a pinar, y no se ha comprobado cuál de los dos datos acierta. En las otras 18 zonas el punto cae fuera del bosque: matorral, prados, roquedo, cultivos, casco urbano o carretera. Lo más probable es que sea un problema de las coordenadas guardadas y no del macrotipo, y obliga a revisarlas antes de usar esas zonas como puntos marcados.
+Check against the 40 curated zones (13 October 2026): the land-cover macrotype was compared with the stored type, at five points of about 150 m. In 22 zones the point falls in forest and in 17 of them (77 %) the macrotype matches the stored one. The 5 discrepancies are mixed or doubtful zones, such as pinewood versus holm oak or oak wood versus pinewood, and it has not been checked which of the two data is right. In the other 18 zones the point falls outside forest: scrub, meadows, rock, cropland, built-up area or road. Most likely it is a problem with the stored coordinates and not with the macrotype, and it forces a review of them before using those zones as saved points.
 
-Regla propuesta: si no hay bosque en el punto, los widgets de clima se muestran igual, porque dependen de la celda, y los de especies se ocultan o avisan de que no hay bosque ahí.
+Proposed rule: if there is no forest at the point, the climate widgets are shown anyway, because they depend on the cell, and the species ones are hidden or warn that there is no forest there.
 
-### Especie y composición: MCSC-4 del CREAF
+### Species and composition: CREAF's MCSC-4
 
-El 14 de octubre de 2026 se descartó la capa `cobertes_2009` del WMS del ICGC: devuelve la misma leyenda de 41 clases que la de 2024, sin especies. Lo que sí funciona es la descarga por hojas del Mapa de cobertes del sòl de Catalunya, 4.ª edición (CREAF, 2009, escala 1:5.000), en formato shapefile. El formato MiraMon (`.mmz`) es propio y sin lector libre, y se descartó.
+On 14 October 2026 the `cobertes_2009` layer of the ICGC WMS was discarded: it returns the same 41-class legend as the 2024 one, with no species. What does work is the per-sheet download of the Mapa de cobertes del sòl de Catalunya, 4th edition (CREAF, 2009, scale 1:5,000), as a shapefile. The MiraMon format (`.mmz`) is proprietary with no free reader, and was discarded.
 
-La tabla de atributos lleva en el campo `C_SIMPLE` un código de nivel 5 con la especie y la densidad de copa. Por ejemplo, `bqi20` es alzinar con copa de al menos el 20 % y `bqi5` es alzinar con copa del 5 al 20 %.
+The attribute table carries in the `C_SIMPLE` field a level-5 code with the species and the canopy density. For example, `bqi20` is holm oak wood with canopy of at least 20 % and `bqi5` is holm oak wood with canopy of 5 to 20 %.
 
-| Código | Clase | Macrotipo | Origen del significado |
+| Code | Class | Macrotype | Source of the meaning |
 | --- | --- | --- | --- |
-| `bqi` | Alzinar | esclérofilo | Leyenda oficial |
-| `bqh` | Roureda de roure martinenc | caducifolio | Leyenda oficial |
-| `bps` | Pineda de pi roig | conífera | Leyenda oficial |
-| `bpp` | Pineda de pi pinyer | conífera | Leyenda oficial |
-| `bph` | Pineda de pi blanc | conífera | Leyenda oficial |
-| `bfs` | Fageda | caducifolio | Confirmado en Santa Fe |
-| `bqs` | Sureda | esclérofilo | Inferido |
-| `bqp` | Roureda de roure pènol | caducifolio | Inferido |
-| `bcad` | Altres caducifolis | caducifolio | Leyenda oficial |
-| `bribc` | Bosc caducifoli de ribera | caducifolio | Leyenda oficial |
+| `bqi` | Alzinar (holm oak) | sclerophyll | Official legend |
+| `bqh` | Roureda de roure martinenc | broadleaf | Official legend |
+| `bps` | Pineda de pi roig | conifer | Official legend |
+| `bpp` | Pineda de pi pinyer | conifer | Official legend |
+| `bph` | Pineda de pi blanc | conifer | Official legend |
+| `bfs` | Fageda (beech) | broadleaf | Confirmed at Santa Fe |
+| `bqs` | Sureda (cork oak) | sclerophyll | Inferred |
+| `bqp` | Roureda de roure pènol | broadleaf | Inferred |
+| `bcad` | Altres caducifolis | broadleaf | Official legend |
+| `bribc` | Bosc caducifoli de ribera | broadleaf | Official legend |
 
-Comprobación con las zonas curadas que caen en tres hojas descargadas (364-2-1, 363-2-1 y 365-1-1), con la composición en un radio de 300 m:
+Check with the curated zones that fall in three downloaded sheets (364-2-1, 363-2-1 and 365-1-1), with the composition within a 300 m radius:
 
-| Zona | Tipo guardado | Composición a 300 m |
+| Zone | Stored type | Composition at 300 m |
 | --- | --- | --- |
-| 233 Fageda de Santa Fe | hayedo | Fageda 95 % |
-| 226 Riells i Montseny | encinar | Alzinar 50 %; sureda 47 % |
-| 205 Coll de Bordoriol | robledal | Alzinar 50 %; roure pènol 40 % |
-| 003 La Pineda Fosca | robledal | Alzinar 50 %; pi pinyer 46 % |
-| 208 Obagues del Moianès | pinar | Sin bosque 98 % |
+| 233 Fageda de Santa Fe | beech wood | Fageda 95 % |
+| 226 Riells i Montseny | holm oak wood | Alzinar 50 %; sureda 47 % |
+| 205 Coll de Bordoriol | oak wood | Alzinar 50 %; roure pènol 40 % |
+| 003 La Pineda Fosca | oak wood | Alzinar 50 %; pi pinyer 46 % |
+| 208 Obagues del Moianès | pinewood | No forest 98 % |
 
-El MCSC-4 distingue las especies, y mostrar solo una es una simplificación: en tres de las cuatro zonas con bosque la segunda especie pesa entre el 40 y el 50 %. La zona 003 no tiene ningún roble y se llama «Pineda», así que el tipo guardado es casi seguro un error. En la 208 la coordenada cae sobre edificios, como ya se sabía. Son cinco zonas, una muestra pequeña.
+The MCSC-4 distinguishes species, and showing only one is a simplification: in three of the four zones with forest the second species weighs 40 to 50 %. Zone 003 has no oak at all and is called "Pineda", so the stored type is almost certainly a mistake. In 208 the coordinate falls on buildings, as was already known. Five zones is a small sample.
 
-- **Composición, no especie dominante.** El widget muestra todas las especies presentes en un radio de unos 300 m del clic, con su porcentaje, por encima de un umbral del 10 %. Radio y umbral son parámetros que habrá que ajustar.
-- **Índice por tipo.** Decisión del 14 de octubre: cuando hay varios tipos por encima del umbral, el índice se calcula para cada uno y la ficha los muestra todos.
-- **Cruce con las cobertes 2024.** El MCSC-4 es de 2009. La especie solo se muestra si el macrotipo actual no la contradice, y donde ya no hay bosque no se muestra ninguna.
-- **Preproceso.** Son alrededor de 500 hojas. Se convierten a una cuadrícula local de unos 25 m que guarda la clase de cada celda, sin agregar. Con ella se resuelven la composición alrededor de un clic, la máscara forestal y, más adelante, los mapas de calor por tipo de árbol.
-- **Licencia pendiente.** La página del MCSC dice solo «de libre utilización». Hay que confirmarla antes de publicar. Las cobertes del ICGC sí son CC BY 4.0.
+- **Composition, not dominant species.** The widget shows all the species present within a radius of about 300 m of the click, with their percentage, above a 10 % threshold. Radius and threshold are parameters to tune.
+- **Index per type.** Decision of 14 October: when several types are above the threshold, the index is computed for each and the card shows them all.
+- **Crossing with the 2024 land cover.** The MCSC-4 is from 2009. The species is shown only if the current macrotype does not contradict it, and where there is no longer forest none is shown.
+- **Preprocessing.** About 500 sheets. They are converted into a local grid of about 25 m that stores the class of each cell, unaggregated. It resolves the composition around a click, the forest mask and, later, heat maps by tree type.
+- **Licence pending.** The MCSC page only says "de lliure utilització". It must be confirmed before publishing. The ICGC land cover is CC BY 4.0.
 
-### Arquitectura propuesta
+### Proposed architecture
 
-Hay una sola vía de datos. Open-Meteo alimenta la caché de celdas, un proveedor de series entrega la serie de una celda (o de una zona guardada) y todo pasa por el mismo `scoring_v2.py`. Los puntos marcados solo añaden nombre, notas y seguimiento. (El diagrama del documento original no se incluye en esta copia.)
+There is a single data path. Open-Meteo feeds the cell cache, a series provider delivers the series of a cell (or of a stored zone) and everything goes through the same `scoring_v2.py`. Saved points only add name, notes and following. (The diagram of the original document is not included in this copy.)
 
-### Jobs y caché
+### Jobs and cache
 
-- **Carga inicial.** Al menos 280 días por celda, 180 de línea de tiempo y 100 de calentamiento. Unos 740 si se quiere superponer el año anterior.
-- **Job diario.** Los días con más de unos 6 de antigüedad se piden al archivo, que es la fuente definitiva. Los últimos 5 a 8 días se piden a la previsión, como provisionales, y un job los sustituye cuando llega el archivo. El campo `source` de las filas debe distinguir ambos casos, hoy todas valen `open-meteo`.
-- **Una llamada por celda.** Open-Meteo no devuelve una región entera, solo coordenadas concretas o listas cortas.
-- **Celdas solo forestales.** El mapa de calor se limitará a celdas con bosque, con la máscara de las cobertes. En v1 las celdas se cargan bajo demanda en el primer clic, sin enumerar la rejilla. Se estiman entre 200 y 250 celdas con bosque de unas 380.
-- **Corrección de altitud.** Temperatura y suelo se ajustan con 0,65 °C por 100 m entre la celda y el punto del clic.
-- **Qué se guarda.** Solo lo que no se puede regenerar: los puntos marcados, los seguimientos, las notas, los resultados del score tal como se mostraron y la fecha de descarga. El histórico se puede reconstruir desde Open-Meteo. Los puntos guardados van en una tabla nueva: usuario, latitud, longitud, celda, nombre, notas, altitud y composición forestal en el momento de guardar.
-- **Protección de coste.** Límite de peticiones por usuario y un freno si se acerca el tope diario. El diseño pendiente de `fix/weather-cache` ya contempla presupuesto diario y circuit breaker.
+- **Initial load.** At least 280 days per cell, 180 of timeline and 100 of warm-up. About 740 if the previous year is to be overlaid.
+- **Daily job.** Days older than about 6 are requested from the archive, which is the final source. The last 5 to 8 days are requested from the forecast, as provisional, and a job replaces them when the archive arrives. The `source` field of the rows must distinguish both cases; today they all read `open-meteo`.
+- **One call per cell.** Open-Meteo does not return a whole region, only specific coordinates or short lists.
+- **Forest cells only.** The heat map will be limited to cells with forest, using the land-cover mask. In v1 cells are loaded on demand on the first click, without enumerating the grid. Between 200 and 250 forest cells out of about 380 are estimated.
+- **Altitude correction.** Temperature and soil are adjusted with 0.65 °C per 100 m between the cell and the clicked point.
+- **What is stored.** Only what cannot be regenerated: saved points, follows, notes, the score results as they were shown and the download date. The history can be rebuilt from Open-Meteo. Saved points go in a new table: user, latitude, longitude, cell, name, notes, altitude and forest composition at the time of saving.
+- **Cost protection.** Per-user request limit and a brake when the daily cap is approached. The pending design of `fix/weather-cache` already covers a daily budget and a circuit breaker.
 
-Orden de magnitud: unas 380 celdas en Cataluña, de las que entre 200 y 250 tendrían bosque. Son cifras estimadas que habrá que comprobar al enumerar la rejilla.
+Order of magnitude: about 380 cells in Catalonia, of which 200 to 250 would have forest. These are estimated figures to be checked when the grid is enumerated.
 
-### Impacto en el desarrollo actual
+### Impact on current development
 
-- **Se reutiliza tal cual.** `scoring_v2.py` y `zone_projection.py` son funciones puras y no dependen del origen de los datos.
-- **Cambia en `feat/observatory-api`.** Se introduce un proveedor de series por celda, con carga bajo demanda, y los endpoints se consultan por latitud y longitud en lugar de por zona. Las respuestas llevan `source: stored|live` y un `zone_id` que puede ser nulo.
-- **Cambia después.** La ingesta, que pasa a trabajar por celdas, la página del Observatorio, con el mapa y el menú contextual, y `feat/observatory-forecast`, que hay que revisar.
-- **Datos.** Las 150 zonas activas no curadas se desactivan. Los puntos guardados necesitan nombre, coordenadas, altitud, composición forestal y notas. El índice se calcula por cada tipo de bosque presente por encima del 10 %.
-- **Pendiente de decidir.** La licencia del MCSC-4 y el preproceso de sus hojas a una cuadrícula local, que no bloquean `feat/observatory-api`.
+- **Reused as is.** `scoring_v2.py` and `zone_projection.py` are pure functions and do not depend on where the data comes from.
+- **Changes in `feat/observatory-api`.** A per-cell series provider is introduced, with on-demand loading, and endpoints are queried by latitude and longitude instead of by zone. Responses carry `source: stored|live` and a `zone_id` that may be null.
+- **Changes later.** Ingestion, which moves to cells; the Observatory page, with the map and the context menu; and `feat/observatory-forecast`, which must be reviewed.
+- **Data.** The 150 active non-curated zones are deactivated. Saved points need a name, coordinates, altitude, forest composition and notes. The index is computed for each forest type present above 10 %.
+- **To decide.** The MCSC-4 licence and the preprocessing of its sheets into a local grid, which do not block `feat/observatory-api`.
 
-### Fuentes
+### Sources
 
-- [Pricing de Open-Meteo](https://open-meteo.com/en/pricing), abierta el 11 oct 2026
-- [Geocoding API](https://open-meteo.com/en/docs/geocoding-api), [Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) y [Forecast API](https://open-meteo.com/en/docs): solo vistas en resultados de búsqueda, sin abrir
-- [ICGC Geocoder](https://www.icgc.cat/en/Tools-and-viewers/Tools/ICGC-Geocoder) y [parámetros del geocodificador inverso](https://openicgc.github.io/geocodificador-doc_en/parametres_invers/), abiertas el 12 oct 2026
-- [WMS Land cover del ICGC](https://www.icgc.cat/en/Geoinformation-and-Maps/Online-services-Geoservices/WMS-Land-cover) y [características del MCSC-3](https://www.mcsc.creaf.cat/resu_res/CaracteristiquesResultatsMCSC3.pdf), abiertas el 12 oct 2026
-- [Mapa Forestal de España](https://sig.mapama.gob.es/Docs/PDFServicios/MFE.pdf), abierta el 12 oct 2026
-- Pruebas T1 a T6 ejecutadas por el autor entre el 11 y el 12 de octubre de 2026
-- [Mapa de cobertes del sòl de Catalunya (ICGC)](https://www.icgc.cat/en/Geoinformation-and-Maps/Maps/Land-cover-map-Catalonia), CC BY 4.0, abierta el 14 oct 2026
-- [Descarga del MCSC-4 en shapefile (CREAF)](https://www.mcsc.creaf.cat/map-mcscshp4.htm) y [leyenda MCSC-4](https://www.mcsc.creaf.cat/textos/LlegendaMCSC4_SIOSE2_CATALA.pdf), abiertas el 14 oct 2026
-- Pruebas con `mcsc_lookup.py` sobre tres hojas, el 14 de octubre de 2026
+- [Open-Meteo pricing](https://open-meteo.com/en/pricing), opened on 11 Oct 2026
+- [Geocoding API](https://open-meteo.com/en/docs/geocoding-api), [Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) and [Forecast API](https://open-meteo.com/en/docs): only seen in search results, not opened
+- [ICGC Geocoder](https://www.icgc.cat/en/Tools-and-viewers/Tools/ICGC-Geocoder) and [reverse geocoder parameters](https://openicgc.github.io/geocodificador-doc_en/parametres_invers/), opened on 12 Oct 2026
+- [ICGC Land cover WMS](https://www.icgc.cat/en/Geoinformation-and-Maps/Online-services-Geoservices/WMS-Land-cover) and [MCSC-3 characteristics](https://www.mcsc.creaf.cat/resu_res/CaracteristiquesResultatsMCSC3.pdf), opened on 12 Oct 2026
+- [Mapa Forestal de España](https://sig.mapama.gob.es/Docs/PDFServicios/MFE.pdf), opened on 12 Oct 2026
+- Probes T1 to T6 run by the author between 11 and 12 October 2026
+- [Land cover map of Catalonia (ICGC)](https://www.icgc.cat/en/Geoinformation-and-Maps/Maps/Land-cover-map-Catalonia), CC BY 4.0, opened on 14 Oct 2026
+- [MCSC-4 shapefile download (CREAF)](https://www.mcsc.creaf.cat/map-mcscshp4.htm) and [MCSC-4 legend](https://www.mcsc.creaf.cat/textos/LlegendaMCSC4_SIOSE2_CATALA.pdf), opened on 14 Oct 2026
+- Tests with `mcsc_lookup.py` on three sheets, on 14 October 2026
