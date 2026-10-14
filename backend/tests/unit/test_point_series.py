@@ -116,3 +116,25 @@ class TestSnapshot:
 
     def test_no_data_means_no_snapshot(self):
         assert build_snapshot([], TODAY, 667, 667) is None
+
+
+class TestEventsAndConditionsInTheResponse:
+    def test_the_series_lists_events_and_the_lowest_minimum(self):
+        rows = _rows()
+        rows[-3].temp_min_c = -1.0
+        rows[-6].precipitation_mm = 30.0
+        w = build_series(rows, TODAY, 667, 667)
+        assert {e["type"] for e in w.events} >= {"brake_frost", "trigger"}
+        assert [e["n"] for e in w.events] == list(range(1, len(w.events) + 1))
+        assert w.lowest_min["temp_min_c"] == -1.0
+
+    def test_events_follow_the_elevation_correction(self):
+        w = build_series(_rows(), TODAY, 667, 667 + 1500)  # ~ -9.75 C: nights below zero
+        assert any(e["type"] == "brake_frost" for e in w.events)
+
+    def test_the_snapshot_lists_conditions_and_an_explanation_field(self):
+        s = build_snapshot(_rows(), TODAY, 667, 667)
+        assert isinstance(s["conditions"], list)
+        for c in s["conditions"]:
+            assert set(c) == {"code", "sign", "values", "hint"} and c["sign"] in ("+", "-")
+        assert "explanation" in s

@@ -142,6 +142,8 @@ async def point_series(
         "to": window.to,
         "clamped": window.clamped,
         "days": window.days,
+        "events": window.events,
+        "lowest_min": window.lowest_min,
     }
 
 

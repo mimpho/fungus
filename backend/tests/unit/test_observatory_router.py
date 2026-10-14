@@ -108,6 +108,7 @@ class TestSeries:
         assert body["cell"]["elevation_m"] == 667
         assert body["elevation_delta_m"] == 500 and body["elevation_corrected"] is True
         assert len(body["days"]) == 20
+        assert isinstance(body["events"], list) and "lowest_min" in body
         assert body["last_data_date"] == (TODAY - timedelta(days=1)).isoformat()
 
     async def test_a_date_after_the_data_is_clamped(self, env):
@@ -141,6 +142,7 @@ class TestSnapshot:
         (entry,) = body["entries"]
         assert entry["forest_type"] is None and entry["share"] is None
         assert 0 <= entry["score"] <= 100 and entry["limiting_factor"]
+        assert isinstance(entry["conditions"], list) and "explanation" in entry
 
 
 class TestErrors:

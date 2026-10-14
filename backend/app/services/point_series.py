@@ -11,6 +11,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from app.services.elevation_correction import correct_days, elevation_delta_m
+from app.services.point_events import build_conditions, build_explanation, find_events
 from app.services.scoring import score_label
 from app.services.scoring_v2 import ClimateDay, SpeciesParams, V2Result, compute_v2_series
 from app.services.zone_scores import V2_WINDOW_DAYS, v1_detail, v1_from_rows, v2_detail
@@ -24,6 +25,8 @@ class SeriesWindow:
     to: date | None  # last day of the window actually returned
     clamped: bool  # the requested end was after the last data
     days: list[dict]
+    events: list[dict]  # triggers, brakes and frosts, numbered in date order
+    lowest_min: dict | None  # coldest night of the window
 
 
 def _usable(rows: Sequence[Any], today: date) -> list[ClimateDay]:
@@ -54,6 +57,20 @@ def _v2(r: V2Result) -> dict:
     return {**v2_detail(r), "label": score_label(r.score)}
 
 
+def _prepare(
+    rows: Sequence[Any],
+    today: date,
+    cell_elevation_m: float | None,
+    point_elevation_m: float | None,
+) -> tuple[list[ClimateDay], float | None] | None:
+    """Complete days shifted to the point's elevation, and the elevation the model scores at."""
+    usable = _usable(rows, today)
+    if not usable:
+        return None
+    corrected = correct_days(usable, elevation_delta_m(point_elevation_m, cell_elevation_m))
+    return corrected, point_elevation_m if point_elevation_m is not None else cell_elevation_m
+
+
 def build_series(
     rows: Sequence[Any],
     today: date,
@@ -63,15 +80,14 @@ def build_series(
     days: int = DEFAULT_DAYS,
     species: SpeciesParams | None = None,
 ) -> SeriesWindow:
-    usable = _usable(rows, today)
-    if not usable:
-        return SeriesWindow(None, None, False, [])
-    last = usable[-1].date
+    prepared = _prepare(rows, today, cell_elevation_m, point_elevation_m)
+    if prepared is None:
+        return SeriesWindow(None, None, False, [], [], None)
+    corrected, elevation = prepared
+    last = corrected[-1].date
     end = min(to, last) if to else last
     start = end - timedelta(days=days - 1)
 
-    corrected = correct_days(usable, elevation_delta_m(point_elevation_m, cell_elevation_m))
-    elevation = point_elevation_m if point_elevation_m is not None else cell_elevation_m
     by_date = {d.date: d for d in corrected}
     warm_up = start - timedelta(days=V2_WINDOW_DAYS)
     window_days = [d for d in corrected if warm_up <= d.date <= end]
@@ -91,7 +107,8 @@ def build_series(
                 "v2": _v2(v2[day]) if day in v2 else None,
             }
         )
-    return SeriesWindow(last, end, bool(to and to > last), out)
+    events, lowest_min = find_events(by_date, start, end)
+    return SeriesWindow(last, end, bool(to and to > last), out, events, lowest_min)
 
 
 def build_snapshot(
@@ -102,19 +119,22 @@ def build_snapshot(
     on: date | None = None,
     species: SpeciesParams | None = None,
 ) -> dict | None:
-    """Thermometer for one date (default: the last with data): v2, band, limiting factor, v1."""
-    usable = _usable(rows, today)
-    if not usable:
+    """Thermometer for one date (default: the last with data): v2, band, limiting factor, v1,
+    every condition behind the score and the explanation code for the grey areas."""
+    prepared = _prepare(rows, today, cell_elevation_m, point_elevation_m)
+    if prepared is None:
         return None
-    last = usable[-1].date
+    corrected, elevation = prepared
+    last = corrected[-1].date
     ref = min(on, last) if on else last
-    window = build_series(
-        rows, today, cell_elevation_m, point_elevation_m, to=ref, days=MIN_DAYS, species=species
-    )
-    today_entry = window.days[-1]
-    if today_entry["v2"] is None:
+    upto = [d for d in corrected if d.date <= ref]
+    warm_up = ref - timedelta(days=V2_WINDOW_DAYS)
+    series = compute_v2_series([d for d in upto if d.date >= warm_up], elevation, species, ref)
+    if not series or series[-1].date != ref:
         return None
-    v2, climate = today_entry["v2"], today_entry["climate"]
+    result = series[-1]
+    v2 = _v2(result)
+    day = next((d for d in reversed(upto) if d.date == ref), None)
     return {
         "date": ref.isoformat(),
         "last_data_date": last.isoformat(),
@@ -129,9 +149,11 @@ def build_snapshot(
             "soil_water_mm": v2["soil_water_mm"],
             "soil_temp_7d_c": v2["soil_temp_7d_c"],
             "air_temp_20d_c": v2["air_temp_20d_c"],
-            "last_night_min_c": climate["temp_min_c"] if climate else None,
+            "last_night_min_c": round(day.temp_min_c, 1) if day else None,
             "dry_days": v2["dry_days"],
         },
         "pending_rains": v2["pending_rains"],
-        "v1": today_entry["v1"],
+        "conditions": build_conditions(result, upto[-10:], elevation, species),
+        "explanation": build_explanation(result),
+        "v1": _v1(corrected, ref) if day else None,
     }
