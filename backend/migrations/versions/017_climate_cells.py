@@ -1,10 +1,11 @@
-"""Add cells and climate_cell_history
+"""Add cells, cell_lookup and climate_cell_history
 
 Revision ID: 017
 Revises: 016
 Create Date: 2026-10-14
 
-Open-Meteo grid cells (base unit of the free-map Observatory) and their daily climate.
+Open-Meteo grid cells (base unit of the free-map Observatory), the lookup from a clicked
+point's ~500 m bucket to its cell, and the cells' daily climate.
 A rebuildable cache loaded on demand on the first click in a cell; kept apart from
 climate_history, which is keyed by zone. source is 'archive' (final) or 'forecast'
 (provisional, overwritten by the archive when it catches up).
@@ -35,6 +36,16 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
+        "cell_lookup",
+        sa.Column("lat_key", sa.Integer(), nullable=False),
+        sa.Column("lon_key", sa.Integer(), nullable=False),
+        sa.Column(
+            "cell_id", sa.String(), sa.ForeignKey("cells.id", ondelete="CASCADE"), nullable=False
+        ),
+        sa.PrimaryKeyConstraint("lat_key", "lon_key"),
+    )
+    op.create_index("ix_cell_lookup_cell_id", "cell_lookup", ["cell_id"])
+    op.create_table(
         "climate_cell_history",
         sa.Column(
             "cell_id", sa.String(), sa.ForeignKey("cells.id", ondelete="CASCADE"), nullable=False
@@ -56,9 +67,11 @@ def upgrade() -> None:
     )
     # Same policy as the other tables (migration 012): RLS on, no public policies.
     op.execute("ALTER TABLE cells ENABLE ROW LEVEL SECURITY")
+    op.execute("ALTER TABLE cell_lookup ENABLE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE climate_cell_history ENABLE ROW LEVEL SECURITY")
 
 
 def downgrade() -> None:
     op.drop_table("climate_cell_history")
+    op.drop_table("cell_lookup")
     op.drop_table("cells")

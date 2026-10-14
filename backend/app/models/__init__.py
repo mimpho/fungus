@@ -1,7 +1,7 @@
 """
 SQLAlchemy models. Import here so Alembic detects them during autogenerate.
 """
-from app.models.climate_cell import Cell, ClimateCellHistory
+from app.models.climate_cell import Cell, CellLookup, ClimateCellHistory
 from app.models.climate_history import ClimateHistory
 from app.models.mushroom_visual_prompt import MushroomVisualPrompt
 from app.models.scores_cache import ScoresCache
@@ -18,6 +18,7 @@ __all__ = [
     "Species",
     "ClimateHistory",
     "Cell",
+    "CellLookup",
     "ClimateCellHistory",
     "ScoresCache",
     "WeatherStation",

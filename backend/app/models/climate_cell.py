@@ -26,6 +26,16 @@ from app.database import Base
 CELL_SOURCES = ("archive", "forecast")
 
 
+# A click is bucketed to ~500 m so repeated clicks near each other skip the Open-Meteo
+# call that resolves the grid cell. Cells are ~8 x 11 km, so a bucket rarely straddles two.
+LOOKUP_STEP = 0.005
+
+
+def lookup_key(lat: float, lon: float) -> tuple[int, int]:
+    """Bucket of a clicked point (integer multiples of LOOKUP_STEP)."""
+    return round(lat / LOOKUP_STEP), round(lon / LOOKUP_STEP)
+
+
 def cell_id(grid_lat: float, grid_lon: float) -> str:
     """Stable id from the grid coordinates Open-Meteo returns for a request (4 decimals)."""
     return f"{grid_lat:.4f}_{grid_lon:.4f}"
@@ -49,6 +59,18 @@ class Cell(Base):
 
     def __repr__(self) -> str:
         return f"<Cell id={self.id!r} elevation={self.elevation_m!r}>"
+
+
+class CellLookup(Base):
+    """Clicked-point bucket -> cell, so a known area never needs the resolving call."""
+
+    __tablename__ = "cell_lookup"
+
+    lat_key: Mapped[int] = mapped_column(Integer, primary_key=True)
+    lon_key: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cell_id: Mapped[str] = mapped_column(
+        String, ForeignKey("cells.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
 
 class ClimateCellHistory(Base):

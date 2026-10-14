@@ -1,5 +1,6 @@
 """Cell cache tables (T1 of feat/observatory-api). No DB."""
 import importlib.util
+from datetime import date
 from pathlib import Path
 
 from sqlalchemy import CheckConstraint
@@ -58,3 +59,26 @@ def test_migration_017_follows_016():
     m = _load_migration()
     assert (m.revision, m.down_revision) == ("017", "016")
     assert callable(m.upgrade) and callable(m.downgrade)
+
+
+def test_lookup_maps_a_bucket_to_a_cell_and_follows_its_deletion():
+    from app.models import CellLookup
+
+    pk = [c.name for c in CellLookup.__table__.primary_key.columns]
+    assert pk == ["lat_key", "lon_key"]
+    fk = next(iter(CellLookup.__table__.c.cell_id.foreign_keys))
+    assert fk.column.table.name == "cells" and fk.ondelete == "CASCADE"
+
+
+def test_the_sql_upsert_never_replaces_archive_with_forecast():
+    from sqlalchemy.dialects import postgresql
+
+    from app.services.cell_store import upsert_rows_statement
+
+    row = {"cell_id": "c", "date": date(2026, 10, 1), "precipitation_mm": 1.0, "source": "forecast"}
+    compiled = upsert_rows_statement([row]).compile(dialect=postgresql.dialect())
+    sql = str(compiled)
+    assert "ON CONFLICT (cell_id, date) DO UPDATE" in sql
+    assert "WHERE NOT (climate_cell_history.source = " in sql
+    assert "AND excluded.source = " in sql
+    assert {"archive", "forecast"} <= set(compiled.params.values())

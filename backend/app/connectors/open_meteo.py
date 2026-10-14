@@ -41,10 +41,15 @@ SOIL_KEYS = ("soil_temperature_0cm", "soil_temperature_0_to_7cm")
 class OpenMeteoConnector(WeatherConnector):
     SOURCE = "open-meteo"
 
-    def __init__(self, zone_id: str, lat: float, lon: float) -> None:
+    def __init__(
+        self, zone_id: str, lat: float, lon: float, elevation: float | str | None = None
+    ) -> None:
         self.zone_id = zone_id
         self.lat = lat
         self.lon = lon
+        # None = Open-Meteo's own DEM at the point. "nan" = the grid cell's mean elevation.
+        # A number pins it (cells use their stored mean so the series do not drift).
+        self.elevation = elevation
 
     # ── Public interface ──────────────────────────────────────────────────────
 
@@ -52,6 +57,23 @@ class OpenMeteoConnector(WeatherConnector):
         yesterday = date.today() - timedelta(days=1)
         results = await self.fetch_range(yesterday, yesterday)
         return results[0]
+
+    async def resolve_grid(self) -> tuple[float, float, float]:
+        """
+        Grid cell Open-Meteo snaps this point to: (grid_lat, grid_lon, mean elevation).
+        One cheap request (a single archive day, elevation=nan).
+        """
+        previous = self.elevation
+        self.elevation = "nan"
+        try:
+            day = date.today() - timedelta(days=ARCHIVE_CUTOFF_DAYS + 2)
+            raw = await self._request(day, day, archive=True)
+        finally:
+            self.elevation = previous
+        try:
+            return float(raw["latitude"]), float(raw["longitude"]), float(raw["elevation"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderUnavailable("Open-Meteo returned no grid cell") from exc
 
     async def fetch_range(self, start: date, end: date) -> list[DailyWeatherData]:
         """
@@ -116,6 +138,8 @@ class OpenMeteoConnector(WeatherConnector):
             "end_date": end.isoformat(),
             "timezone": "Europe/Madrid",
         }
+        if self.elevation is not None:
+            params["elevation"] = self.elevation
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(ARCHIVE_URL if archive else BASE_URL, params=params)
