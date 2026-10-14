@@ -34,7 +34,7 @@ from sqlalchemy import func, select
 from app.config import settings
 from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
-from app.routers import auth, health, me, species, weather, zones
+from app.routers import auth, health, me, observatory, species, weather, zones
 from app.services.ingest import run_backfill, run_daily_ingest
 from app.services.weather_refresh import get_outdated_weather_zones, refresh_weather_cache
 
@@ -284,6 +284,7 @@ app.include_router(species.router, prefix=API_PREFIX)
 app.include_router(weather.router, prefix=API_PREFIX)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(me.router, prefix=API_PREFIX)
+app.include_router(observatory.router, prefix=API_PREFIX)
 
 # Static assets (logo for emails, etc.) — served at /static/<filename>
 # URL in production: https://fungus-api.onrender.com/static/logoFungusPortrait.png

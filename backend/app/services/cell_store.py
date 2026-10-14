@@ -72,6 +72,15 @@ class SqlCellStore:
         for i in range(0, len(rows), _BATCH):
             await self.db.execute(upsert_rows_statement(rows[i : i + _BATCH]))
 
+    async def history(self, cell_id: str) -> list[ClimateCellHistory]:
+        """Every stored day of the cell, oldest first."""
+        rows = await self.db.scalars(
+            select(ClimateCellHistory)
+            .where(ClimateCellHistory.cell_id == cell_id)
+            .order_by(ClimateCellHistory.date)
+        )
+        return list(rows)
+
     async def mark_loaded(
         self, cell_id: str, loaded_from: date, loaded_to: date, at: datetime
     ) -> None:

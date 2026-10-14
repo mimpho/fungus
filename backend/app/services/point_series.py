@@ -1,0 +1,137 @@
+"""
+Series and snapshot for a clicked point, from its cell's climate.
+
+Pure functions: climate rows (cell) in, JSON-ready dicts out. The cell's climate is shifted
+to the point's elevation (app.services.elevation_correction) and scored with the same v1/v2
+code as the zones. Days without data come back with null climate and no score.
+"""
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import date, timedelta
+from typing import Any
+
+from app.services.elevation_correction import correct_days, elevation_delta_m
+from app.services.scoring import score_label
+from app.services.scoring_v2 import ClimateDay, SpeciesParams, V2Result, compute_v2_series
+from app.services.zone_scores import V2_WINDOW_DAYS, v1_detail, v1_from_rows, v2_detail
+
+MIN_DAYS, MAX_DAYS, DEFAULT_DAYS = 7, 180, 20
+
+
+@dataclass(frozen=True)
+class SeriesWindow:
+    last_data_date: date | None
+    to: date | None  # last day of the window actually returned
+    clamped: bool  # the requested end was after the last data
+    days: list[dict]
+
+
+def _usable(rows: Sequence[Any], today: date) -> list[ClimateDay]:
+    """Complete days before `today`. Today's own row and the forecast are not observed yet."""
+    out = [d for r in rows if r.date < today if (d := ClimateDay.from_row(r))]
+    return sorted(out, key=lambda d: d.date)
+
+
+def _climate(d: ClimateDay) -> dict:
+    return {
+        "temp_max_c": round(d.temp_max_c, 1),
+        "temp_min_c": round(d.temp_min_c, 1),
+        "temp_avg_c": round(d.temp_avg_c, 1),
+        "soil_temp_c": round(d.soil_temp_c, 1),
+        "precipitation_mm": round(d.precipitation_mm, 1),
+        "humidity_pct": round(d.humidity_pct),
+        "wind_kmh": round(d.wind_kmh),
+        "filled": d.filled,
+    }
+
+
+def _v1(days: Sequence[ClimateDay], ref: date) -> dict | None:
+    oi = v1_from_rows(days, ref)
+    return None if oi is None else {**v1_detail(oi), "label": score_label(oi.score)}
+
+
+def _v2(r: V2Result) -> dict:
+    return {**v2_detail(r), "label": score_label(r.score)}
+
+
+def build_series(
+    rows: Sequence[Any],
+    today: date,
+    cell_elevation_m: float | None,
+    point_elevation_m: float | None,
+    to: date | None = None,
+    days: int = DEFAULT_DAYS,
+    species: SpeciesParams | None = None,
+) -> SeriesWindow:
+    usable = _usable(rows, today)
+    if not usable:
+        return SeriesWindow(None, None, False, [])
+    last = usable[-1].date
+    end = min(to, last) if to else last
+    start = end - timedelta(days=days - 1)
+
+    corrected = correct_days(usable, elevation_delta_m(point_elevation_m, cell_elevation_m))
+    elevation = point_elevation_m if point_elevation_m is not None else cell_elevation_m
+    by_date = {d.date: d for d in corrected}
+    warm_up = start - timedelta(days=V2_WINDOW_DAYS)
+    window_days = [d for d in corrected if warm_up <= d.date <= end]
+    v2 = {
+        r.date: r
+        for r in compute_v2_series(window_days, elevation, species, output_from=start)
+    }
+    out = []
+    for i in range(days):
+        day = start + timedelta(days=i)
+        d = by_date.get(day)
+        out.append(
+            {
+                "date": day.isoformat(),
+                "climate": _climate(d) if d else None,
+                "v1": _v1(corrected, day) if d else None,
+                "v2": _v2(v2[day]) if day in v2 else None,
+            }
+        )
+    return SeriesWindow(last, end, bool(to and to > last), out)
+
+
+def build_snapshot(
+    rows: Sequence[Any],
+    today: date,
+    cell_elevation_m: float | None,
+    point_elevation_m: float | None,
+    on: date | None = None,
+    species: SpeciesParams | None = None,
+) -> dict | None:
+    """Thermometer for one date (default: the last with data): v2, band, limiting factor, v1."""
+    usable = _usable(rows, today)
+    if not usable:
+        return None
+    last = usable[-1].date
+    ref = min(on, last) if on else last
+    window = build_series(
+        rows, today, cell_elevation_m, point_elevation_m, to=ref, days=MIN_DAYS, species=species
+    )
+    today_entry = window.days[-1]
+    if today_entry["v2"] is None:
+        return None
+    v2, climate = today_entry["v2"], today_entry["climate"]
+    return {
+        "date": ref.isoformat(),
+        "last_data_date": last.isoformat(),
+        "clamped": bool(on and on > last),
+        "score": v2["score"],
+        "label": v2["label"],
+        "limiting_factor": v2["limiting_factor"],
+        "factors": v2["factors"],
+        "warm": v2["warm"],
+        "estimated": v2["estimated"],
+        "key_facts": {
+            "soil_water_mm": v2["soil_water_mm"],
+            "soil_temp_7d_c": v2["soil_temp_7d_c"],
+            "air_temp_20d_c": v2["air_temp_20d_c"],
+            "last_night_min_c": climate["temp_min_c"] if climate else None,
+            "dry_days": v2["dry_days"],
+        },
+        "pending_rains": v2["pending_rains"],
+        "v1": today_entry["v1"],
+    }
