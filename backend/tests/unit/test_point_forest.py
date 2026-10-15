@@ -66,12 +66,29 @@ class TestToponym:
         )
 
     def test_the_nearest_overall_wins_even_though_topo1_is_listed_first(self):
-        # Vic: the service lists the topo1 centre (0.064 km) before the topo2 town hall (0.024 km)
+        data = _collection(
+            _feat("topo1", "Vic", 0.064, "Cap de municipi", "Vic", "Osona", etiqueta="Vic"),
+            _feat("topo2", "Pla de Vic", 0.030, "Orografia", "Vic", "Osona"),
+        )
+        assert pf.parse_toponym(data).name == "Pla de Vic"
+
+    def test_buildings_and_facilities_are_skipped(self):
+        # Vic centre: the town hall (24 m) and a school are nearer than the town (64 m)
         data = _collection(
             _feat("topo1", "Vic", 0.064, "Cap de municipi", "Vic", "Osona", etiqueta="Vic"),
             _feat("topo2", "Ajuntament de Vic", 0.024, "Edificació", "Vic", "Osona"),
+            _feat("topo2", "la Llotja", 0.042, "Edificació Històrica", "Vic", "Osona"),
+            _feat("topo2", "Escola Sant Josep", 0.050, "Equipament", "Vic", "Osona"),
         )
-        assert pf.parse_toponym(data).name == "Ajuntament de Vic"
+        assert pf.parse_toponym(data).name == "Vic"
+
+    def test_only_buildings_gives_none(self):
+        data = _collection(_feat("topo2", "Casa Beuló", 0.033, "Edificació", "Vic", "Osona"))
+        assert pf.parse_toponym(data) is None
+
+    def test_a_scattered_house_is_kept(self):
+        data = _collection(_feat("topo1", "Can Robert", 0.358, "Disseminat", "Vic", "Osona"))
+        assert pf.parse_toponym(data).name == "Can Robert"
 
     @pytest.mark.parametrize("data", [_collection(), {}, None, [], "x", {"features": None}])
     def test_empty_or_odd_answers_give_none(self, data):
@@ -200,31 +217,3 @@ class TestFetchWrappers:
         assert await pf.land_cover(41.77451, 2.43501, fetch) is cover  # same ~10 m key
         assert len(calls) == 2
 
-
-class TestSnapshotEntries:
-    SNAP = {"score": 42, "date": "2026-10-13"}
-
-    def test_two_types_come_sorted_by_share_each_with_the_same_shape(self):
-        # zone-003 coordinates: esclerofilo 50 %, conifera 46 %
-        composition = [
-            {"forest_type": "conifera", "share": 46},
-            {"forest_type": "esclerofilo", "share": 50},
-        ]
-        entries = pf.snapshot_entries(self.SNAP, None, composition)
-        assert [(e["forest_type"], e["share"]) for e in entries] == [
-            ("esclerofilo", 50),
-            ("conifera", 46),
-        ]
-        assert all(e["score"] == 42 for e in entries)
-
-    def test_without_composition_the_macrotype_is_the_single_entry(self):
-        cover = LandCover(9, "x", "esclerofilo", True)
-        assert pf.snapshot_entries(self.SNAP, cover) == [
-            {"forest_type": "esclerofilo", "share": None, **self.SNAP}
-        ]
-
-    @pytest.mark.parametrize("cover", [None, LandCover(21, "Casc urbà", None, False)])
-    def test_no_or_unknown_forest_gives_one_generic_entry(self, cover):
-        assert pf.snapshot_entries(self.SNAP, cover) == [
-            {"forest_type": None, "share": None, **self.SNAP}
-        ]

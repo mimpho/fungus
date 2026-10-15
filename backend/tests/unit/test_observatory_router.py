@@ -152,14 +152,12 @@ class TestSeries:
 
 
 class TestSnapshot:
-    async def test_it_returns_one_generic_entry_until_the_forest_exists(self, env):
+    async def test_it_returns_a_single_thermometer(self, env):
         _logged_in(env)
         async with _client(env.app) as c:
             body = (await c.get("/observatory/point/snapshot", params=SANTA_FE)).json()
-        (entry,) = body["entries"]
-        assert entry["forest_type"] is None and entry["share"] is None
-        assert 0 <= entry["score"] <= 100 and entry["limiting_factor"]
-        assert isinstance(entry["conditions"], list) and "explanation" in entry
+        assert 0 <= body["score"] <= 100 and body["limiting_factor"]
+        assert isinstance(body["conditions"], list) and "explanation" in body
 
 
 class TestErrors:
@@ -272,22 +270,14 @@ class TestForestInOtherEndpoints:
             body = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
         assert body["forest_known"] is True and body["forest"] is True and body["reason"] is None
 
-    async def test_snapshot_has_one_entry_for_the_macrotype(self, env):
-        _logged_in(env)
-        env.cover = FOREST
-        async with _client(env.app) as c:
-            body = (await c.get("/observatory/point/snapshot", params=SANTA_FE)).json()
-        assert body["forest"] is True
-        assert [(e["forest_type"], e["share"]) for e in body["entries"]] == [("esclerofilo", None)]
-        assert "score" in body["entries"][0]
-
-    @pytest.mark.parametrize("cover", [None, URBAN])
-    async def test_snapshot_without_forest_keeps_one_generic_entry(self, env, cover):
+    @pytest.mark.parametrize("cover", [None, URBAN, FOREST])
+    async def test_snapshot_is_one_thermometer_whatever_the_forest(self, env, cover):
         _logged_in(env)
         env.cover = cover
         async with _client(env.app) as c:
             body = (await c.get("/observatory/point/snapshot", params=SANTA_FE)).json()
-        assert [e["forest_type"] for e in body["entries"]] == [None]
+        assert "entries" not in body and "score" in body
+        assert body["forest"] == (None if cover is None else cover.forest)
 
 
 class TestCalendar:

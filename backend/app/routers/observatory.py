@@ -29,7 +29,6 @@ from app.services.point_forest import (
     fetch_toponym,
     forest_block,
     land_cover,
-    snapshot_entries,
     species_forest_types,
 )
 from app.services.point_series import (
@@ -200,17 +199,14 @@ async def point_snapshot(
     snap = build_snapshot(rows, _today(), cell.cell.elevation_m, elevation, on=on, species=params)
     if snap is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No climate data for this point yet")
-    # One entry per forest type present. Until the species composition exists that is the land
-    # cover's macrotype; with no forest (or an unknown one) a single generic entry.
+    # One thermometer per point: the climate is the same whatever forest types surround it.
+    # The forest only changes which species are listed (/point/species).
     cover = await land_cover(point.lat, point.lon)
     return {
         **_point_block(point, cell, elevation),
         "species": species,
         "forest": None if cover is None else cover.forest,
-        "date": snap["date"],
-        "last_data_date": snap["last_data_date"],
-        "clamped": snap["clamped"],
-        "entries": snapshot_entries(snap, cover),
+        **snap,
     }
 
 

@@ -141,13 +141,13 @@ Open points for this branch: radius and threshold are parameters to tune; saved 
 
 ### Status 2026-10-15: `feat/observatory-forest` (T8)
 
-Done: `/point/forest` (toponym, elevation, macrotype from cobertes 2024, `forest`, `composition: null`, radius 100–1000), `reason: "no_forest"` in `/point/species`, species filtered by macrotype, and `/point/snapshot` entries per forest type.
+Done: `/point/forest` (toponym, elevation, macrotype from cobertes 2024, `forest`, `composition: null`, radius 100–1000), `reason: "no_forest"` in `/point/species`, species filtered by macrotype, and a flat `/point/snapshot` (one thermometer per point).
 
 Decisions taken while building:
-- **Nearest toponym** is the smallest `distancia` across `topo1` and `topo2`, not the first listed. In towns this can be a building (Vic: "Ajuntament de Vic" at 24 m beats "Vic" at 64 m); `kind` and `layer` are returned so the front can prefer a centre if it wants.
+- **Nearest toponym** is the smallest `distancia` across `topo1` and `topo2`, not the first listed, skipping buildings, historic buildings and facilities (Vic gives "Vic", not "Ajuntament de Vic"). `Disseminat` (scattered houses) is kept. `kind` and `layer` are returned.
 - **Macrotype → catalogue forest types:** `conifera` → `pinar`; `esclerofilo` → `encinar`; `caducifolio` → `robledal`, `hayedo`; `mixto` fits all. `prados`, `jardines` and `ribera` are never produced by the land cover. A `bosque_otro` forest excludes nobody.
 - **Unknown is not "no forest":** a failed call or the sea (class 0) gives `forest: null` and excludes nobody; only a non-forest class gives `forest: false`.
-- **The v2 index does not depend on the forest type**, so the snapshot entries of one point carry the same numbers; what changes per type is the species list.
+- **One thermometer per point (decided 2026-10-15, replaces "Index per forest type present" above).** The v2 index does not depend on the forest type, and the point already has a radius: where several forest types are present, the species list is what is split by type (each species fits one or more of them). When the MCSC-4 composition exists, `/point/species` will use the union of the types above the threshold and say which type each species matches.
 - `radius` is validated and echoed but not used until the MCSC-4 grid gives a composition.
 
 Open: the only agricultural class is still untested against a real crop point (the Lleida probe point fell on "Eixample"); the macrotype names for conifer and broadleaf classes come from the earlier probe's mapping, and the "bosque_otro" fallback covers any other "Bosc…" class.

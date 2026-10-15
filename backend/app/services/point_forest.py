@@ -41,6 +41,11 @@ SPECIES_FOREST_TYPES = {
 }
 
 
+# Toponym kinds that are not places a forager would name: buildings and public facilities.
+# "Disseminat" (scattered houses, farms) is kept: it often names the place ("Can Robert").
+EXCLUDED_KINDS = frozenset({"Edificació", "Edificació Històrica", "Equipament"})
+
+
 @dataclass(frozen=True)
 class Toponym:
     name: str
@@ -73,11 +78,13 @@ class LandCover:
 # ── Parsing ───────────────────────────────────────────────────────────────────
 
 def parse_toponym(data: object) -> Toponym | None:
-    """Nearest feature of a geocoder FeatureCollection, across both layers.
+    """Nearest feature of a geocoder FeatureCollection, across both layers, buildings excluded.
 
     The service lists topo1 (population centres) before topo2 (other toponyms), each sorted
-    by distance, so the nearest overall is not the first one. None for an empty answer
-    (outside Catalonia, at sea) or one that does not look like a FeatureCollection."""
+    by distance, so the nearest overall is not the first one. Buildings and facilities
+    (EXCLUDED_KINDS) are skipped, so in a town the name is the town's. None for an empty answer
+    (outside Catalonia, at sea), one with only buildings, or one that does not look like a
+    FeatureCollection."""
     if not isinstance(data, dict):
         return None
     best: tuple[float, Toponym] | None = None
@@ -88,6 +95,8 @@ def parse_toponym(data: object) -> Toponym | None:
         dist = props.get("distancia")
         dist = float(dist) if isinstance(dist, int | float) else None
         addendum = props.get("addendum") if isinstance(props.get("addendum"), dict) else {}
+        if addendum.get("tipus") in EXCLUDED_KINDS:
+            continue
         top = Toponym(
             name=props["nom"],
             label=props.get("etiqueta") or props["nom"],
@@ -236,20 +245,3 @@ def forest_block(
         "reason": "no_forest" if cover is not None and cover.forest is False else None,
     }
 
-
-def snapshot_entries(
-    snap: dict, cover: LandCover | None, composition: list[dict] | None = None
-) -> list[dict]:
-    """One thermometer entry per forest type present, sorted by share, same shape always.
-
-    `composition` items: {"forest_type": macrotype, "share": 0-100}. Without it (MCSC-4 grid
-    not built yet) the entry is the land cover's macrotype, share unknown. With no forest or an
-    unknown one there is one generic entry (forest_type None). The v2 index does not depend on
-    the forest type yet, so the entries of one point carry the same numbers; what changes per
-    type is the species list."""
-    if composition:
-        types = sorted(composition, key=lambda c: -c["share"])
-        return [{"forest_type": c["forest_type"], "share": c["share"], **snap} for c in types]
-    if cover is not None and cover.forest and cover.macrotype:
-        return [{"forest_type": cover.macrotype, "share": None, **snap}]
-    return [{"forest_type": None, "share": None, **snap}]
