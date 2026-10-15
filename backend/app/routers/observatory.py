@@ -3,6 +3,7 @@
 Login required. A point is resolved to its Open-Meteo grid cell; the cell's history is loaded
 on the first request (source "live") and served from the database afterwards ("stored").
 """
+import asyncio
 import logging
 from datetime import UTC, date, datetime
 from functools import lru_cache
@@ -21,6 +22,16 @@ from app.services.cell_provider import CellBudgetExceeded, CellProvider, CellRes
 from app.services.cell_store import SqlCellStore
 from app.services.point_calendar import build_calendar
 from app.services.point_elevation import point_elevation
+from app.services.point_forest import (
+    DEFAULT_RADIUS_M,
+    MAX_RADIUS_M,
+    MIN_RADIUS_M,
+    fetch_toponym,
+    forest_block,
+    land_cover,
+    snapshot_entries,
+    species_forest_types,
+)
 from app.services.point_series import (
     DEFAULT_DAYS,
     MAX_DAYS,
@@ -123,6 +134,29 @@ def _today() -> date:
     return datetime.now(UTC).date()
 
 
+@router.get("/forest")
+async def point_forest(
+    point: PointQuery = Depends(),
+    radius: int = Query(
+        DEFAULT_RADIUS_M, ge=MIN_RADIUS_M, le=MAX_RADIUS_M,
+        description="Metres around the point for the species composition (not available yet)",
+    ),
+) -> dict:
+    """Nearest toponym, elevation and forest at the point. `forest` comes from the 2024 land
+    cover (false for urban, crops, rock, scrub; null if the service did not answer);
+    `composition` (species within `radius`) stays null until the MCSC-4 grid exists. The
+    toponym is null if the geocoder fails: never an error."""
+    toponym, cover, elevation = await asyncio.gather(
+        fetch_toponym(point.lat, point.lon),
+        land_cover(point.lat, point.lon),
+        point_elevation(point.lat, point.lon),
+    )
+    return {
+        "point": {"lat": point.lat, "lon": point.lon, "elevation_m": elevation},
+        **forest_block(cover, toponym, radius),
+    }
+
+
 @router.get("/series")
 async def point_series(
     point: PointQuery = Depends(),
@@ -166,15 +200,17 @@ async def point_snapshot(
     snap = build_snapshot(rows, _today(), cell.cell.elevation_m, elevation, on=on, species=params)
     if snap is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No climate data for this point yet")
-    # One entry per forest type present; until the forest composition exists, a single
-    # generic entry (forest_type null) keeps the response shape the final one.
+    # One entry per forest type present. Until the species composition exists that is the land
+    # cover's macrotype; with no forest (or an unknown one) a single generic entry.
+    cover = await land_cover(point.lat, point.lon)
     return {
         **_point_block(point, cell, elevation),
         "species": species,
+        "forest": None if cover is None else cover.forest,
         "date": snap["date"],
         "last_data_date": snap["last_data_date"],
         "clamped": snap["clamped"],
-        "entries": [{"forest_type": None, "share": None, **snap}],
+        "entries": snapshot_entries(snap, cover),
     }
 
 
@@ -192,6 +228,14 @@ async def point_species(
     again in their own list, by score."""
     cell, rows = await _cell_and_rows(point, store, provider)
     elevation = await point_elevation(point.lat, point.lon)
+    cover = await land_cover(point.lat, point.lon)
+    if cover is not None and cover.forest is False:  # the climate still answers; species do not
+        return {
+            **_point_block(point, cell, elevation),
+            "forest_known": True, "forest": False, "reason": "no_forest",
+            "species": [], "excellent": [],
+        }
+    forest_types = species_forest_types(cover)
     catalogue = [SpeciesRecord.from_row(r) for r in (await db.scalars(select(Species))).all()]
     followed = set(
         (
@@ -201,11 +245,16 @@ async def point_species(
         ).all()
     )
     data = species_for_point(
-        rows, _today(), cell.cell.elevation_m, elevation, catalogue, on=on, followed=followed
+        rows, _today(), cell.cell.elevation_m, elevation, catalogue, on=on, followed=followed,
+        forest_types=forest_types,
     )
     if data is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No climate data for this point yet")
-    return {**_point_block(point, cell, elevation), "forest_known": False, **data}
+    return {
+        **_point_block(point, cell, elevation),
+        "forest_known": forest_types is not None, "forest": None if cover is None else cover.forest,
+        "reason": None, **data,
+    }
 
 
 @router.get("/calendar")

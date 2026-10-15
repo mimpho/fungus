@@ -1,0 +1,255 @@
+"""
+Forest at a clicked point: nearest toponym (ICGC reverse geocoder) and land cover (ICGC
+"cobertes del sòl" 2024, WMS point query).
+
+Both services are public and Catalonia-only. Neither may break an endpoint: a failure gives
+None and the caller carries on (the toponym is cosmetic; with the forest unknown nobody is
+excluded by forest). The species composition (CREAF MCSC-4) is not here yet: `composition`
+stays None until its grid exists.
+
+Parsing is pure and separate from the HTTP calls, so it is tested with real answers.
+"""
+import logging
+import math
+import re
+from collections import OrderedDict
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+
+import httpx
+
+log = logging.getLogger(__name__)
+
+GEOCODER_URL = "https://eines.icgc.cat/geocodificador/invers"
+COVER_URL = "https://geoserveis.icgc.cat/servei/catalunya/cobertes-sol/wms"
+COVER_LAYER = "cobertes_2024"
+TIMEOUT_S = 5.0
+GEOCODER_RADIUS_KM = 1
+
+MIN_RADIUS_M, DEFAULT_RADIUS_M, MAX_RADIUS_M = 100, 300, 1000
+
+CONIFER, SCLEROPHYLL, BROADLEAF, OTHER_FOREST = (
+    "conifera", "esclerofilo", "caducifolio", "bosque_otro",
+)
+
+# Catalogue forest types (species.forest_types) that fit each land-cover macrotype. "mixto"
+# fits any forest. "prados", "jardines" and "ribera" never come from the land cover.
+SPECIES_FOREST_TYPES = {
+    CONIFER: frozenset({"pinar", "mixto"}),
+    SCLEROPHYLL: frozenset({"encinar", "mixto"}),
+    BROADLEAF: frozenset({"robledal", "hayedo", "mixto"}),
+}
+
+
+@dataclass(frozen=True)
+class Toponym:
+    name: str
+    label: str
+    kind: str | None
+    layer: str | None
+    municipality: str | None
+    comarca: str | None
+    distance_km: float | None
+
+    def as_dict(self) -> dict:
+        return {
+            "name": self.name, "label": self.label, "kind": self.kind, "layer": self.layer,
+            "municipality": self.municipality, "comarca": self.comarca,
+            "distance_km": self.distance_km,
+        }
+
+
+@dataclass(frozen=True)
+class LandCover:
+    code: int | None
+    name: str
+    macrotype: str | None  # conifera | esclerofilo | caducifolio | bosque_otro; None = no forest
+    forest: bool | None  # None: the map has no data here (sea, outside Catalonia)
+
+    def as_dict(self) -> dict:
+        return {"code": self.code, "name": self.name}
+
+
+# ── Parsing ───────────────────────────────────────────────────────────────────
+
+def parse_toponym(data: object) -> Toponym | None:
+    """Nearest feature of a geocoder FeatureCollection, across both layers.
+
+    The service lists topo1 (population centres) before topo2 (other toponyms), each sorted
+    by distance, so the nearest overall is not the first one. None for an empty answer
+    (outside Catalonia, at sea) or one that does not look like a FeatureCollection."""
+    if not isinstance(data, dict):
+        return None
+    best: tuple[float, Toponym] | None = None
+    for feat in data.get("features") or []:
+        props = feat.get("properties") if isinstance(feat, dict) else None
+        if not isinstance(props, dict) or not props.get("nom"):
+            continue
+        dist = props.get("distancia")
+        dist = float(dist) if isinstance(dist, int | float) else None
+        addendum = props.get("addendum") if isinstance(props.get("addendum"), dict) else {}
+        top = Toponym(
+            name=props["nom"],
+            label=props.get("etiqueta") or props["nom"],
+            kind=addendum.get("tipus"),
+            layer=props.get("layer"),
+            municipality=props.get("municipi"),
+            comarca=props.get("comarca"),
+            distance_km=dist,
+        )
+        rank = math.inf if dist is None else dist
+        if best is None or rank < best[0]:
+            best = (rank, top)
+    return best[1] if best else None
+
+
+_CLASS_RE = re.compile(r"class = '(.*)'\s*$", re.MULTILINE)
+_CODE_RE = re.compile(r"^(?:(\d+)\.\s*)?\((\d+)\)\s*(.+)$")
+
+
+def macrotype_of(class_name: str) -> str | None:
+    """Forest macrotype of a land-cover class name, None when it is not forest.
+
+    Forest classes start with "Bosc" (dense forests) or are scrub/meadow/rock/urban/crop
+    classes that do not."""
+    low = class_name.lower()
+    if not low.startswith("bosc"):
+        return None
+    if "aciculifol" in low or "conifer" in low:
+        return CONIFER
+    if "esclerofil" in low:
+        return SCLEROPHYLL
+    if "caducifol" in low:
+        return BROADLEAF
+    return OTHER_FOREST
+
+
+def parse_cover(text: str) -> LandCover | None:
+    """First feature of a GetFeatureInfo `text/plain` answer.
+
+    None when the answer is not parseable or has no results (point outside the map's extent).
+    A class "0. (0) Sense dades" (sea) is a LandCover with forest None."""
+    if not isinstance(text, str):
+        return None
+    found = _CLASS_RE.search(text)
+    if not found:
+        return None
+    raw = found.group(1).strip()
+    match = _CODE_RE.match(raw)
+    code, name = (int(match.group(2)), match.group(3).strip()) if match else (None, raw)
+    if code == 0:
+        return LandCover(0, name, None, None)
+    macro = macrotype_of(name)
+    return LandCover(code, name, macro, macro is not None)
+
+
+def species_forest_types(cover: LandCover | None) -> frozenset[str] | None:
+    """Catalogue forest types that fit the land cover, or None when they are not known
+    (no data, failed call, or a forest of a type we cannot map): nobody is excluded then."""
+    if cover is None or not cover.forest or cover.macrotype is None:
+        return None
+    return SPECIES_FOREST_TYPES.get(cover.macrotype)
+
+
+# ── HTTP ──────────────────────────────────────────────────────────────────────
+
+def _bbox_3857(lat: float, lon: float, half_m: float = 50.0) -> str:
+    r = 6378137.0
+    x = math.radians(lon) * r
+    y = math.log(math.tan(math.pi / 4 + math.radians(lat) / 2)) * r
+    return f"{x - half_m:.2f},{y - half_m:.2f},{x + half_m:.2f},{y + half_m:.2f}"
+
+
+async def fetch_toponym(lat: float, lon: float) -> Toponym | None:
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT_S) as client:
+            resp = await client.get(
+                GEOCODER_URL,
+                params={"lat": lat, "lon": lon, "layers": "topo1,topo2", "size": 8,
+                        "boundary.circle.radius": GEOCODER_RADIUS_KM},
+            )
+            resp.raise_for_status()
+            return parse_toponym(resp.json())
+    except (httpx.HTTPError, ValueError) as exc:
+        log.warning("ICGC geocoder failed for %s,%s: %s", lat, lon, exc)
+        return None
+
+
+async def fetch_cover(lat: float, lon: float) -> LandCover | None:
+    params = {
+        "SERVICE": "WMS", "VERSION": "1.3.0", "REQUEST": "GetFeatureInfo",
+        "LAYERS": COVER_LAYER, "QUERY_LAYERS": COVER_LAYER, "STYLES": "",
+        "CRS": "EPSG:3857", "BBOX": _bbox_3857(lat, lon), "WIDTH": 101, "HEIGHT": 101,
+        "I": 50, "J": 50, "FORMAT": "image/png", "FEATURE_COUNT": 1,
+        # The service only answers text/plain; application/json is a ServiceException.
+        "INFO_FORMAT": "text/plain",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT_S) as client:
+            resp = await client.get(COVER_URL, params=params)
+            resp.raise_for_status()
+            return parse_cover(resp.text)
+    except httpx.HTTPError as exc:
+        log.warning("ICGC land cover failed for %s,%s: %s", lat, lon, exc)
+        return None
+
+
+# Land cover hardly changes: cache per ~10 m, failures excluded so the next click retries.
+_CACHE_SIZE = 5000
+_cover_cache: OrderedDict[tuple[float, float], LandCover] = OrderedDict()
+
+
+async def land_cover(
+    lat: float, lon: float,
+    fetch: Callable[[float, float], Awaitable[LandCover | None]] = fetch_cover,
+) -> LandCover | None:
+    key = (round(lat, 4), round(lon, 4))
+    if key in _cover_cache:
+        _cover_cache.move_to_end(key)
+        return _cover_cache[key]
+    value = await fetch(lat, lon)
+    if value is not None:
+        _cover_cache[key] = value
+        while len(_cover_cache) > _CACHE_SIZE:
+            _cover_cache.popitem(last=False)
+    return value
+
+
+def forest_block(
+    cover: LandCover | None,
+    toponym: Toponym | None,
+    radius_m: int,
+    composition: list[dict] | None = None,
+) -> dict:
+    """Body of /point/forest (without the point block).
+
+    `forest` is True/False from the land cover, None when it is unknown. `composition` is the
+    species mix within `radius_m` (MCSC-4); None until that grid exists."""
+    return {
+        "toponym": toponym.as_dict() if toponym else None,
+        "radius_m": radius_m,
+        "forest": None if cover is None else cover.forest,
+        "macrotype": None if cover is None else cover.macrotype,
+        "land_cover": None if cover is None else cover.as_dict(),
+        "composition": composition,
+        "species_forest_types": sorted(species_forest_types(cover) or []) or None,
+        "reason": "no_forest" if cover is not None and cover.forest is False else None,
+    }
+
+
+def snapshot_entries(
+    snap: dict, cover: LandCover | None, composition: list[dict] | None = None
+) -> list[dict]:
+    """One thermometer entry per forest type present, sorted by share, same shape always.
+
+    `composition` items: {"forest_type": macrotype, "share": 0-100}. Without it (MCSC-4 grid
+    not built yet) the entry is the land cover's macrotype, share unknown. With no forest or an
+    unknown one there is one generic entry (forest_type None). The v2 index does not depend on
+    the forest type yet, so the entries of one point carry the same numbers; what changes per
+    type is the species list."""
+    if composition:
+        types = sorted(composition, key=lambda c: -c["share"])
+        return [{"forest_type": c["forest_type"], "share": c["share"], **snap} for c in types]
+    if cover is not None and cover.forest and cover.macrotype:
+        return [{"forest_type": cover.macrotype, "share": None, **snap}]
+    return [{"forest_type": None, "share": None, **snap}]

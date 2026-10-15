@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.routers import observatory as obs
+from app.services.point_forest import LandCover, Toponym
 from tests.unit.test_cell_provider import TODAY, FakeStore, _provider
 
 SANTA_FE = {"lat": 41.7745, "lon": 2.4350}
@@ -44,7 +45,20 @@ def env(monkeypatch):
         return 1167.0
 
     monkeypatch.setattr(obs, "point_elevation", elevation)
-    return SimpleNamespace(app=app, provider=provider, store=store, log=log)
+
+    # ICGC services: unknown by default (a failing service); tests set env.cover / env.toponym
+    env = SimpleNamespace(app=app, provider=provider, store=store, log=log, cover=None,
+                          toponym=None)
+
+    async def cover(lat, lon):
+        return env.cover
+
+    async def toponym(lat, lon):
+        return env.toponym
+
+    monkeypatch.setattr(obs, "land_cover", cover)
+    monkeypatch.setattr(obs, "fetch_toponym", toponym)
+    return env
 
 
 def _client(app):
@@ -184,6 +198,96 @@ class TestSpecies:
     async def test_it_needs_a_login(self, env):
         async with _client(env.app) as c:
             assert (await c.get("/observatory/point/species", params=SANTA_FE)).status_code == 401
+
+
+FOREST = LandCover(9, "Boscos densos d'esclerofil·les i laurifolis", "esclerofilo", True)
+URBAN = LandCover(21, "Casc urbà", None, False)
+COLL_PREGON = Toponym("Coll Pregon", "Coll Pregon, Fogars de Montclús", "Orografia", "topo2",
+                      "Fogars de Montclús", "Vallès Oriental", 0.136)
+
+
+class TestForest:
+    async def test_it_needs_a_login(self, env):
+        async with _client(env.app) as c:
+            assert (await c.get("/observatory/point/forest", params=SANTA_FE)).status_code == 401
+
+    async def test_a_forest_point(self, env):
+        _logged_in(env)
+        env.cover, env.toponym = FOREST, COLL_PREGON
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/forest", params=SANTA_FE)
+        body = r.json()
+        assert r.status_code == 200
+        assert body["point"] == {**SANTA_FE, "elevation_m": 1167.0}
+        assert body["toponym"]["name"] == "Coll Pregon" and body["toponym"]["kind"] == "Orografia"
+        assert body["forest"] is True and body["macrotype"] == "esclerofilo"
+        assert body["composition"] is None and body["radius_m"] == 300
+        assert body["species_forest_types"] == ["encinar", "mixto"] and body["reason"] is None
+
+    async def test_no_forest_at_the_point(self, env):
+        _logged_in(env)
+        env.cover = URBAN
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/forest", params=SANTA_FE)).json()
+        assert body["forest"] is False and body["reason"] == "no_forest"
+        assert body["macrotype"] is None and body["composition"] is None
+
+    async def test_failing_services_are_never_an_error(self, env):
+        _logged_in(env)  # cover and toponym are None, as when the ICGC does not answer
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/forest", params=SANTA_FE)
+        body = r.json()
+        assert r.status_code == 200 and body["toponym"] is None and body["forest"] is None
+
+    @pytest.mark.parametrize(
+        ("radius", "status"), [(100, 200), (1000, 200), (99, 422), (1001, 422)]
+    )
+    async def test_the_radius_accepts_100_to_1000(self, env, radius, status):
+        _logged_in(env)
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/forest", params={**SANTA_FE, "radius": radius})
+        assert r.status_code == status
+
+    async def test_it_does_not_load_any_climate_cell(self, env):
+        _logged_in(env)
+        async with _client(env.app) as c:
+            await c.get("/observatory/point/forest", params=SANTA_FE)
+        assert env.log["resolve"] == [] and env.log["fetch"] == []
+
+
+class TestForestInOtherEndpoints:
+    async def test_species_with_no_forest_is_empty_with_a_reason_but_the_cell_loads(self, env):
+        _logged_in(env)
+        env.cover = URBAN
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
+        assert body["species"] == [] and body["excellent"] == []
+        assert body["reason"] == "no_forest" and body["forest"] is False
+        assert body["forest_known"] is True and body["cell"]["elevation_m"] == 667
+
+    async def test_species_in_a_forest_is_flagged_as_known(self, env):
+        _logged_in(env)
+        env.cover = FOREST
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
+        assert body["forest_known"] is True and body["forest"] is True and body["reason"] is None
+
+    async def test_snapshot_has_one_entry_for_the_macrotype(self, env):
+        _logged_in(env)
+        env.cover = FOREST
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/snapshot", params=SANTA_FE)).json()
+        assert body["forest"] is True
+        assert [(e["forest_type"], e["share"]) for e in body["entries"]] == [("esclerofilo", None)]
+        assert "score" in body["entries"][0]
+
+    @pytest.mark.parametrize("cover", [None, URBAN])
+    async def test_snapshot_without_forest_keeps_one_generic_entry(self, env, cover):
+        _logged_in(env)
+        env.cover = cover
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/snapshot", params=SANTA_FE)).json()
+        assert [e["forest_type"] for e in body["entries"]] == [None]
 
 
 class TestCalendar:
