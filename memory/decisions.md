@@ -461,3 +461,16 @@ useEffect(() => {
 **Why:** on-demand filling left most zones without weather in the list, and the live call from Render failed with no trace. The free Open-Meteo limit is shared with the ingest and backfills, so the job must never be the one that exhausts it.
 
 **Discarded:** serving `climate_history` as a stand-in (it is yesterday's data, shown as current); a persistent budget counter in the DB (a restart only resets the job's share; not worth a migration); refreshing on every startup (frequent redeploys would waste calls — startup refresh only when some zone lacks fresh weather).
+
+---
+
+## Observatory — one thermometer per point, forest splits the species list (2026-10-15)
+
+**Decision:** `/point/snapshot` returns one thermometer per point. The forest around the point (macrotype now, species composition within the radius once the MCSC-4 grid exists) only decides which species are listed in `/point/species`, not the index. Replaces the "index per forest type present" of the 14 Oct free-map PRD.
+
+**Why:** the v2 index does not depend on the forest type, so one entry per type repeated the same numbers. The point already has a radius; if it covers several forest types, the forager looks for different species in each, which is a species-list matter.
+
+**Also decided:** the nearest toponym skips buildings, historic buildings and facilities (Marcos: out of topic for a forager); an unknown forest (failed service, sea) excludes nobody, only a non-forest land-cover class gives `forest: false`.
+
+**Discarded:** one thermometer per forest type with a different score each (would need a forest-dependent model we do not have).
+
