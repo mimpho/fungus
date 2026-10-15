@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Observatory API by coordinates (2026-10-15, `feat/observatory-api`)
+
+- **New endpoints under `/api/v1/observatory/point`, login required (401 without a token), lat/lon limited to Catalonia (422 outside)**: `series` (7–180 days; climate, v1, v2 and factors per day, plus events and the coldest night), `snapshot` (thermometer, limiting factor, key facts, every active condition with code, sign, values and hint, explanation code, v1), `species` (compatible species with score, grade, conditions and best window; followed first; excellent edibles in their own list) and `calendar` (7 real days and 35 ahead, each one `real`, `forecast` or `estimate`; best day and days at 55 or more). The backend returns codes and values, the front writes the sentences.
+- **Cells are the base unit.** New tables `cells`, `cell_lookup` and `climate_cell_history` (migration 017, RLS on). A click is resolved to its Open-Meteo grid cell (memory LRU, then `cell_lookup` by ~500 m buckets, then one cheap API call); the cell's 280 days plus the 16-day forecast load on the first request (`source: live`, ~1 s) and later requests are served from the database (`source: stored`, ~30 ms). Simultaneous first requests share one load, a failed load stays retryable, an archive day is never replaced by a forecast day, and a daily budget of new cells (`OBSERVATORY_MAX_NEW_CELLS_PER_DAY`, default 60) answers 503 with `Retry-After` while cached cells keep working.
+- **Altitude correction to the point** (`services/elevation_correction.py`): temperature and soil −0.65 °C per 100 m, humidity −0.13 points per 100 m; rain and wind are the cell's regional value. The point's elevation comes from the Open-Meteo elevation API; if it fails the response says `elevation_corrected: false`.
+- New services `cell_provider`, `cell_store`, `point_series`, `point_events`, `point_species`, `point_calendar`, `point_elevation` and router `routers/observatory.py`; setting `observatory_max_new_cells_per_day`.
+- Not in this branch yet: `/point/forest` and the index per forest type (the snapshot already returns `entries`, one generic entry for now; the species forest condition is `pending`), the per-user limit of new cells (429), `compare_years`, and saved points.
+
+### Fixed — Forecast request past Open-Meteo's UTC limit (2026-10-15, `feat/observatory-api`)
+
+- Open-Meteo counts the 16-day forecast limit from the UTC date. Between 00:00 and 02:00 in Madrid the local date is a day ahead, so asking for the 16th day returned HTTP 400. `OpenMeteoConnector` now stops at `min(local, UTC) + 15` and keeps the provider's reason in the error and the log. The daily ingest (05:00) was never affected.
+
 ### Added — Probes and tools for the free-map design (2026-10-14, `epic/observatory`)
 
 - **New `memory/observatory-free-map-prd.md`**: repo copy of the free-map PRD (the Claude Doc stays the source of truth). `memory/observatory-prd.md` remains the phase-1 record and now points to it.

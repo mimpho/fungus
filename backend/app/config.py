@@ -73,6 +73,10 @@ class Settings(BaseSettings):
     # fetches). The free limit (10,000/day) is shared with the ingest and backfills.
     weather_daily_call_budget: int = 3000
 
+    # Observatory free map: max NEW cells loaded per UTC day (each costs ~7 weighted
+    # Open-Meteo calls for its first 280 days). Cached cells are never limited.
+    observatory_max_new_cells_per_day: int = 60
+
     # Versión de la API
     api_version: str = "v1"
 

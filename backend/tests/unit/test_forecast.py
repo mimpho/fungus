@@ -5,6 +5,8 @@ No database or network. Scenarios follow memory/observatory-plan.md, section 6.
 from datetime import date, timedelta
 from types import SimpleNamespace
 
+import pytest
+
 from app.config import settings
 from app.connectors.base import DailyWeatherData
 from app.connectors.open_meteo import FORECAST_DAILY_VARS, OpenMeteoConnector
@@ -32,6 +34,7 @@ class TestConnectorForecast:
             return _payload_with_prob(s, e)
 
         monkeypatch.setattr(OpenMeteoConnector, "_request", fake_request)
+        monkeypatch.setattr("app.connectors.open_meteo._utc_today", lambda: TODAY)
         out = await OpenMeteoConnector("zone-x", 42.0, 2.0).fetch_range_and_forecast(
             start, end, forecast_days=days
         )
@@ -43,6 +46,48 @@ class TestConnectorForecast:
         assert len(calls) == 1 and calls[0][2] is False  # one forecast-API call, as before
         assert history[-1].date == y and len(history) == 7
         assert [r.date for r in forecast] == [TODAY + timedelta(days=i) for i in range(16)]
+
+    async def test_between_midnight_and_2am_in_madrid_it_does_not_ask_for_day_16(
+        self, monkeypatch
+    ):
+        # Local date is already tomorrow; Open-Meteo still counts from the UTC date.
+        y = TODAY - timedelta(days=1)
+        calls = []
+
+        async def fake_request(self, s, e, archive=False):
+            calls.append((s, e))
+            return _payload_with_prob(s, e)
+
+        monkeypatch.setattr(OpenMeteoConnector, "_request", fake_request)
+        monkeypatch.setattr(
+            "app.connectors.open_meteo._utc_today", lambda: TODAY - timedelta(days=1)
+        )
+        await OpenMeteoConnector("zone-x", 42.0, 2.0).fetch_range_and_forecast(
+            y - timedelta(days=6), y, forecast_days=16
+        )
+        assert calls[0][1] == TODAY + timedelta(days=14)  # UTC today + 15, not local + 15
+
+    async def test_a_400_keeps_the_providers_reason(self, monkeypatch):
+        import httpx
+
+        from app.connectors.base import ProviderUnavailable
+
+        class _Resp:
+            status_code = 400
+            text = '{"error":true,"reason":"Parameter \'end_date\' is out of allowed range"}'
+
+            def raise_for_status(self):
+                raise httpx.HTTPStatusError("bad", request=None, response=self)
+
+        class _Client:
+            def __init__(self, *a, **k): ...
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): ...
+            async def get(self, url, params): return _Resp()
+
+        monkeypatch.setattr("app.connectors.open_meteo.httpx.AsyncClient", _Client)
+        with pytest.raises(ProviderUnavailable, match="out of allowed range"):
+            await OpenMeteoConnector("zone-x", 42.0, 2.0)._request(TODAY, TODAY)
 
     async def test_forecast_keeps_precipitation_probability(self, monkeypatch):
         y = TODAY - timedelta(days=1)
