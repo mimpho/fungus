@@ -482,3 +482,24 @@ useEffect(() => {
 **Why:** the global cap (60 new cells/day, 503) protects the shared Open-Meteo quota but lets one user spend all of it. Each new cell costs ~20 weighted calls (~50 with `compare_years`). Both caps are ours, not Open-Meteo's: with the Professional plan they are raised or removed.
 
 **Also decided:** only the creator pays (cells created by others or by jobs are free); the user's 429 is checked before the global 503; a retry after a provider outage is not a second new cell.
+
+
+## Observatory — saved points keep provenance, not raw data; the author's forest types win (2026-10-16)
+
+**Decision:** a saved point stores the user's choices (name, notes, forest types as a list) and where the derived data came from: land cover layer, class code, name and retrieval date; toponym name and label; MCSC-4 codes with their percentage and radius. Not the services' raw texts, nor the macrotype derived from the class. The server fetches all of it when saving (the client cannot send it). The author's forest types, when present, win over the land cover, even over «no forest»; without them the stored class is read again with the current mapping. `cell_id` has no foreign key. No limit of points per user by default (`OBSERVATORY_MAX_SAVED_POINTS_PER_USER`, 0 = no limit).
+
+**Why:** the raw texts only add legend colours and pixel coordinates, both derivable; keeping the code and name lets a change in the macrotype mapping or in a licence be applied to old points without asking the services again. The curated zones have coordinates that miss the forest (18 of 40 fall outside it), so the author must be able to override what the land cover says. Cells are a rebuildable cache, so a foreign key would let a purge delete a user's points. The Observatory is not born limited (free-map PRD).
+
+**Also decided:** the 40 curated zones stay out of the saved points, to avoid competing with the data obtained from coordinates; a point has several forest types, not one; coordinates cannot be edited (a moved point is a new point); the same place twice is a 409.
+
+**Discarded:** storing the services' answers whole (bytes for nothing, and a second source of truth); a JSON blob for the land cover (a mapping fix becomes a script instead of one `UPDATE`); a single `forest_type`.
+
+---
+
+## Observatory — MCSC-4 grid: 25 m tiles on private object storage (2026-10-17)
+
+**Decision:** the MCSC-4 sheets are preprocessed into a 25 m grid with the class of each cell (1 byte plus a code table), cut in tiles of 1024×1024 cells compressed with `lzma`, kept in a private Supabase Storage bucket, loaded on demand and cached in memory. Composition stored by full code, grouped by species only to display.
+
+**Why:** measured on one real sheet (131 km², 8,628 polygons, 82 codes): 41 KB `lzma`, so ~10 MB for Catalonia against ~51 MB raw; a tile decodes in ~2 ms. Loading on demand needs no disk on Render and no download at startup, and matches how cells are loaded. The bucket is private because the CREAF licence is unconfirmed.
+
+**Discarded:** 50 m (saves ~6 MB, loses small stands and leaves ~144 cells in the 600 m window around the point); collapsing the non-forest classes (saves ~2.6 MB, loses the agricultural check); row/column delta filters (they make it worse); vector polygons (heavier and slower for a radius query); committing the grid to git (licence and binary size).

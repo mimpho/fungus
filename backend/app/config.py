@@ -79,6 +79,9 @@ class Settings(BaseSettings):
     # Same, per user (cells they are the first to open). Over it: 429 until midnight UTC, for
     # new cells only. 0 = no per-user limit (the global one above still applies).
     observatory_max_new_cells_per_user_per_day: int = 10
+    # Saved points per user. Over it: 409 on creating. 0 = no limit (the default: the Observatory
+    # is not born limited); the knob exists in case the limit is wanted later.
+    observatory_max_saved_points_per_user: int = 0
 
     # Versión de la API
     api_version: str = "v1"

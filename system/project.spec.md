@@ -432,6 +432,22 @@ GET  /api/v1/auth/verify-email?token=   ← consumes single-use token, sets emai
 POST /api/v1/auth/resend-verification   ← authenticated; re-sends verification email
 ```
 
+Observatory (login required; lat/lon limited to Catalonia):
+
+```
+GET    /api/v1/observatory/point/forest        ← toponym, elevation, land cover, forest
+GET    /api/v1/observatory/point/series        ← daily climate, v1/v2 and factors, events
+GET    /api/v1/observatory/point/snapshot      ← thermometer, conditions, rains on the way
+GET    /api/v1/observatory/point/species       ← compatible species with score and window
+GET    /api/v1/observatory/point/calendar      ← 7 real days and 35 ahead
+GET    /api/v1/observatory/saved-points        ← my saved points
+POST   /api/v1/observatory/saved-points
+GET    /api/v1/observatory/saved-points/{id}
+PATCH  /api/v1/observatory/saved-points/{id}   ← name, notes, forest_types
+DELETE /api/v1/observatory/saved-points/{id}
+GET    /api/v1/observatory/saved-points/{id}/species
+```
+
 **Outbreak Index (OI)** — backend algorithm (`app/services/scoring.py`):
 ```
 OI = PA21_score    × 0.30   (accumulated precipitation 21 days)

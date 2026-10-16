@@ -39,7 +39,7 @@ Decisions (PRD «Observatorio: mapa libre por coordenadas, celdas y puntos marca
 | GET | `/point/species?lat=&lon=&date=` | compatible species for the types present |
 | GET | `/point/calendar?lat=&lon=&date=&species=` | calendar |
 
-Saved points (table `saved_points`: user, lat, lon, cell, name, notes, elevation, forest composition when saved) and their CRUD endpoints may be their own branch; decide when starting. Until the MCSC-4 grid exists (separate task, not blocking), `/point/forest` returns the macrotype from a point lookup in cobertes 2024 and `composition: null`.
+Saved points: see «Status 2026-10-16: `feat/observatory-saved-points`» below (own branch). Until the MCSC-4 grid exists (separate task, not blocking), `/point/forest` returns the macrotype from a point lookup in cobertes 2024 and `composition: null`.
 
 ```gherkin
 Feature: Login required   [replaces OQ-4 for the Observatorio]
@@ -163,6 +163,102 @@ Done: `cells.created_by` (migration 018), `OBSERVATORY_MAX_NEW_CELLS_PER_USER_PE
 - **User limit before global budget** when both are spent (429 rather than 503).
 - **Single-flight keyed by (bucket, user)** so a refusal is not shared with another user asking for the same new point at once; the creation lock keeps it to one cell.
 - **Known limit:** the check and the creation are atomic per process only (like the global budget); with several workers the limit can be passed by a few cells.
+
+### Status 2026-10-16: `feat/observatory-saved-points`
+
+Done: `/observatory/saved-points` (`GET`, `POST`, `GET|PATCH|DELETE /{id}`) and `GET /{id}/species`, table `saved_points` (migration 019), services `saved_points` (pure, with a store protocol) and `saved_point_store` (SQL), `routers/saved_points.py`. 548 unit tests pass; the SQL store has no unit test (no DB in the sessions).
+
+```gherkin
+Feature: Saved points   [login required; someone else's point is a 404]
+
+  Scenario: the server records the provenance
+    Then land cover layer, class code, name and retrieval date, toponym name and label, elevation and cell are looked up when saving
+    And a body that sends any of them is 422
+    And the services' raw texts and the derived macrotype are never stored
+
+  Scenario: a failing service never blocks the save
+    Then its fields are null and the answer is 201
+
+  Scenario: saving does not touch the cells
+    Then cell_id comes from cell_lookup (or null), no cell is loaded and the new-cell budget is untouched
+
+  Scenario: the name
+    Then it is the user's, else the nearest toponym, else the coordinates
+
+  Scenario: the same place twice, or over the limit
+    Then 409 before any service is asked; OBSERVATORY_MAX_SAVED_POINTS_PER_USER = 0 means no limit
+
+  Scenario: only name, notes and forest_types change
+    Then coordinates or provenance in a PATCH are 422, an empty PATCH is 422, null clears notes and forest_types
+
+  Scenario: the author's forest types win, and there can be several
+    Given a point saved with forest_types ["pinar", "encinar"] on a «no forest» class
+    Then /{id}/species lists the species of both types plus the «mixto» ones, with forest_source "author"
+
+  Scenario: without the author's types the stored class decides
+    Then the macrotype is derived again from the stored class and the ICGC is asked only if it had failed when saving
+
+  Scenario: the composition is stored as codes with percentage and radius, nothing else
+    # null through the API until the MCSC-4 grid exists; the service already stores one given to it
+```
+
+Decisions taken while building:
+- **Provenance is columns, not JSON** (land cover layer/code/name/retrieved_at), so a change in the mapping or a layer fix is one `UPDATE … WHERE layer = … AND code = …`. The retrieval date is the date asked, not the layer's year (that is in `layer`).
+- **`cell_id` has no foreign key**: cells are a rebuildable cache and purging them must not delete a user's points.
+- **`forest_types` is a list** (decided with Marcos: several values for one point), from the catalogue's vocabulary without `mixto`: `pinar`, `hayedo`, `robledal`, `encinar`.
+- **Duplicates are 409** (unique `(user_id, lat, lon)`, 5 decimals), also when two saves race. No limit by default, as with the cell limit; the knob exists in case it is wanted.
+- **Curated zones stay out**: the 40 curated zones are not saved points, to avoid competing with what is obtained from coordinates. `user_id` is NOT NULL; featured points would need their own migration.
+- **`/point/species` gains `forest_source`** (`author`, `land_cover`, `null`).
+
+### Design 2026-10-17: MCSC-4 grid (next branches, not started)
+
+Two branches: `feat/observatory-mcsc-grid` (preprocessing script, tile format, pure composition function) and `feat/observatory-composition` (wiring). Storage, measurements and open points are in `memory/pending.md` («MCSC-4 grid»).
+
+```gherkin
+Feature: Preprocessing the MCSC-4 sheets
+
+  Scenario: a sheet becomes grid cells of ~25 m, unaggregated
+    Then each cell holds the class of the polygon at its centre, with no mixing of neighbours
+
+  Scenario: every distinct C_SIMPLE gets a numeric id in a code table
+    Then the table is stored with the grid and keeps non-forest classes too
+    And inferred codes (bqs, bqp) carry confirmed: false
+
+  Scenario: adjacent sheets join with no seam, and a cell covered twice keeps one rule's answer
+
+  Scenario: the script is resume-safe and says which sheets are missing
+
+Feature: Composition at a point (pure function, no HTTP)
+
+  Scenario: a pure stand (Santa Fe del Montseny, 2.435 E 41.7745 N)
+    Then the composition is fageda 95 %
+
+  Scenario: a mixed stand (zone-226 coordinates)
+    Then alzinar 50 % and sureda 47 %, biggest first, both above 10 %
+
+  Scenario: no forest at the point (zone-208 coordinates)
+    Then the answer says no forest (98 %)
+
+  Scenario: only shares above the threshold are listed; threshold and radius are parameters
+    Then radius 100 and 1000 are accepted, and 99 or 1001 are 422
+
+  Scenario: a window that crosses the grid's edge
+    Then the missing part is not counted as forest or as no forest
+
+  Scenario: a point outside the grid
+    Then composition is null and nothing fails
+
+Feature: Wiring
+
+  Scenario: the species is contradicted by the 2024 land cover
+    Given cobertes 2024 says no forest where MCSC-4 says pinar
+    Then that species is not listed
+
+  Scenario: /point/species uses the union of the types above the threshold
+    Then each species says which type it matches
+
+  Scenario: a saved point stores the composition as codes with percentage and the radius used
+```
 
 ## Branches
 
