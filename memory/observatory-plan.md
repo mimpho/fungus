@@ -210,9 +210,11 @@ Decisions taken while building:
 - **Curated zones stay out**: the 40 curated zones are not saved points, to avoid competing with what is obtained from coordinates. `user_id` is NOT NULL; featured points would need their own migration.
 - **`/point/species` gains `forest_source`** (`author`, `land_cover`, `null`).
 
-### Design 2026-10-17: MCSC-4 grid (next branches, not started)
+### Design 2026-10-17: MCSC-4 grid
 
 Two branches: `feat/observatory-mcsc-grid` (preprocessing script, tile format, pure composition function) and `feat/observatory-composition` (wiring). Storage, measurements and open points are in `memory/pending.md` («MCSC-4 grid»).
+
+Status 2026-10-17: `feat/observatory-mcsc-grid` done (`app/services/mcsc_grid.py`, `scripts/mcsc_preprocess.py`, 38 tests; sheet 36321 = one tile of 43 KB). Differences from the scenarios below: the script is deterministic and rebuilds everything (no resume, no list of missing sheets; revisit if the full build is slow); the pure function takes any positive radius and returns every share, so the threshold, the 100–1000 m limits (422) and the `null` for a point outside the grid belong to the wiring (the function returns `[]`). `feat/observatory-composition` is next.
 
 ```gherkin
 Feature: Preprocessing the MCSC-4 sheets
@@ -226,7 +228,7 @@ Feature: Preprocessing the MCSC-4 sheets
 
   Scenario: adjacent sheets join with no seam, and a cell covered twice keeps one rule's answer
 
-  Scenario: the script is resume-safe and says which sheets are missing
+  Scenario: the script rebuilds deterministically and replaces an existing grid only with --overwrite
 
 Feature: Composition at a point (pure function, no HTTP)
 
@@ -241,12 +243,14 @@ Feature: Composition at a point (pure function, no HTTP)
 
   Scenario: only shares above the threshold are listed; threshold and radius are parameters
     Then radius 100 and 1000 are accepted, and 99 or 1001 are 422
+    # wiring only: the pure function takes any positive radius and returns every share
 
   Scenario: a window that crosses the grid's edge
     Then the missing part is not counted as forest or as no forest
 
   Scenario: a point outside the grid
     Then composition is null and nothing fails
+    # the pure function returns []; the wiring maps it to null
 
 Feature: Wiring
 
