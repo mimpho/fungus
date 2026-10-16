@@ -26,6 +26,7 @@ from app.services.point_forest import (
     DEFAULT_RADIUS_M,
     MAX_RADIUS_M,
     MIN_RADIUS_M,
+    cover_dict,
     fetch_toponym,
     forest_block,
     land_cover,
@@ -140,6 +141,7 @@ async def point_forest(
         DEFAULT_RADIUS_M, ge=MIN_RADIUS_M, le=MAX_RADIUS_M,
         description="Metres around the point for the species composition (not available yet)",
     ),
+    raw: bool = Query(False, description="Include the services' answers untouched (debugging)"),
 ) -> dict:
     """Nearest toponym, elevation and forest at the point. `forest` comes from the 2024 land
     cover (false for urban, crops, rock, scrub; null if the service did not answer);
@@ -152,7 +154,7 @@ async def point_forest(
     )
     return {
         "point": {"lat": point.lat, "lon": point.lon, "elevation_m": elevation},
-        **forest_block(cover, toponym, radius),
+        **forest_block(cover, toponym, radius, include_raw=raw),
     }
 
 
@@ -206,6 +208,7 @@ async def point_snapshot(
         **_point_block(point, cell, elevation),
         "species": species,
         "forest": None if cover is None else cover.forest,
+        "land_cover": cover_dict(cover),
         **snap,
     }
 
@@ -228,7 +231,8 @@ async def point_species(
     if cover is not None and cover.forest is False:  # the climate still answers; species do not
         return {
             **_point_block(point, cell, elevation),
-            "forest_known": True, "forest": False, "reason": "no_forest",
+            "forest_known": True, "forest": False, "land_cover": cover_dict(cover),
+            "reason": "no_forest",
             "species": [], "excellent": [],
         }
     forest_types = species_forest_types(cover)
@@ -248,7 +252,9 @@ async def point_species(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No climate data for this point yet")
     return {
         **_point_block(point, cell, elevation),
-        "forest_known": forest_types is not None, "forest": None if cover is None else cover.forest,
+        "forest_known": forest_types is not None,
+        "forest": None if cover is None else cover.forest,
+        "land_cover": cover_dict(cover),
         "reason": None, **data,
     }
 

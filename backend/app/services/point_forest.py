@@ -14,7 +14,8 @@ import math
 import re
 from collections import OrderedDict
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
 
 import httpx
 
@@ -23,6 +24,8 @@ log = logging.getLogger(__name__)
 GEOCODER_URL = "https://eines.icgc.cat/geocodificador/invers"
 COVER_URL = "https://geoserveis.icgc.cat/servei/catalunya/cobertes-sol/wms"
 COVER_LAYER = "cobertes_2024"
+PROVIDER = "ICGC"
+COVER_LICENCE = "CC BY 4.0"  # the geocoder declares none: reported as null
 TIMEOUT_S = 5.0
 GEOCODER_RADIUS_KM = 1
 
@@ -55,12 +58,16 @@ class Toponym:
     municipality: str | None
     comarca: str | None
     distance_km: float | None
+    raw: dict | None = field(default=None, compare=False)  # the feature as the service sent it
+    fetched_at: str | None = field(default=None, compare=False)
 
     def as_dict(self) -> dict:
         return {
             "name": self.name, "label": self.label, "kind": self.kind, "layer": self.layer,
             "municipality": self.municipality, "comarca": self.comarca,
             "distance_km": self.distance_km,
+            "provider": PROVIDER, "service": GEOCODER_URL, "licence": None,
+            "retrieved_at": self.fetched_at,
         }
 
 
@@ -70,9 +77,17 @@ class LandCover:
     name: str
     macrotype: str | None  # conifera | esclerofilo | caducifolio | bosque_otro; None = no forest
     forest: bool | None  # None: the map has no data here (sea, outside Catalonia)
+    raw: str | None = field(default=None, compare=False)  # the service's text answer, whole
+    fetched_at: str | None = field(default=None, compare=False)
 
     def as_dict(self) -> dict:
-        return {"code": self.code, "name": self.name}
+        """What the ICGC said (class code and name) and where it comes from, next to the
+        macrotype we derive, so the data can be reinterpreted later without asking again."""
+        return {
+            "provider": PROVIDER, "service": COVER_URL, "layer": COVER_LAYER,
+            "code": self.code, "name": self.name, "licence": COVER_LICENCE,
+            "retrieved_at": self.fetched_at,
+        }
 
 
 # ── Parsing ───────────────────────────────────────────────────────────────────
@@ -105,6 +120,7 @@ def parse_toponym(data: object) -> Toponym | None:
             municipality=props.get("municipi"),
             comarca=props.get("comarca"),
             distance_km=dist,
+            raw=feat,
         )
         rank = math.inf if dist is None else dist
         if best is None or rank < best[0]:
@@ -147,9 +163,9 @@ def parse_cover(text: str) -> LandCover | None:
     match = _CODE_RE.match(raw)
     code, name = (int(match.group(2)), match.group(3).strip()) if match else (None, raw)
     if code == 0:
-        return LandCover(0, name, None, None)
+        return LandCover(0, name, None, None, raw=text)
     macro = macrotype_of(name)
-    return LandCover(code, name, macro, macro is not None)
+    return LandCover(code, name, macro, macro is not None, raw=text)
 
 
 def species_forest_types(cover: LandCover | None) -> frozenset[str] | None:
@@ -169,6 +185,10 @@ def _bbox_3857(lat: float, lon: float, half_m: float = 50.0) -> str:
     return f"{x - half_m:.2f},{y - half_m:.2f},{x + half_m:.2f},{y + half_m:.2f}"
 
 
+def _now_iso() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
 async def fetch_toponym(lat: float, lon: float) -> Toponym | None:
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT_S) as client:
@@ -178,7 +198,8 @@ async def fetch_toponym(lat: float, lon: float) -> Toponym | None:
                         "boundary.circle.radius": GEOCODER_RADIUS_KM},
             )
             resp.raise_for_status()
-            return parse_toponym(resp.json())
+            top = parse_toponym(resp.json())
+            return None if top is None else replace(top, fetched_at=_now_iso())
     except (httpx.HTTPError, ValueError) as exc:
         log.warning("ICGC geocoder failed for %s,%s: %s", lat, lon, exc)
         return None
@@ -197,7 +218,8 @@ async def fetch_cover(lat: float, lon: float) -> LandCover | None:
         async with httpx.AsyncClient(timeout=TIMEOUT_S) as client:
             resp = await client.get(COVER_URL, params=params)
             resp.raise_for_status()
-            return parse_cover(resp.text)
+            cover = parse_cover(resp.text)
+            return None if cover is None else replace(cover, fetched_at=_now_iso())
     except httpx.HTTPError as exc:
         log.warning("ICGC land cover failed for %s,%s: %s", lat, lon, exc)
         return None
@@ -224,24 +246,35 @@ async def land_cover(
     return value
 
 
+def cover_dict(cover: LandCover | None) -> dict | None:
+    return None if cover is None else cover.as_dict()
+
+
 def forest_block(
     cover: LandCover | None,
     toponym: Toponym | None,
     radius_m: int,
     composition: list[dict] | None = None,
+    include_raw: bool = False,
 ) -> dict:
     """Body of /point/forest (without the point block).
 
     `forest` is True/False from the land cover, None when it is unknown. `composition` is the
     species mix within `radius_m` (MCSC-4); None until that grid exists."""
-    return {
+    block = {
         "toponym": toponym.as_dict() if toponym else None,
         "radius_m": radius_m,
         "forest": None if cover is None else cover.forest,
         "macrotype": None if cover is None else cover.macrotype,
-        "land_cover": None if cover is None else cover.as_dict(),
+        "land_cover": cover_dict(cover),
         "composition": composition,
         "species_forest_types": sorted(species_forest_types(cover) or []) or None,
         "reason": "no_forest" if cover is not None and cover.forest is False else None,
     }
+    if include_raw:  # the services' answers untouched, for debugging and audits only
+        block["raw"] = {
+            "land_cover": None if cover is None else cover.raw,
+            "toponym": None if toponym is None else toponym.raw,
+        }
+    return block
 

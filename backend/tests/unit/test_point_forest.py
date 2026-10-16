@@ -182,6 +182,36 @@ class TestSpeciesForestTypes:
         assert pf.species_forest_types(cover) is None
 
 
+class TestRawAndProvenance:
+    def test_the_whole_text_answer_is_kept(self):
+        text = _cover_text("341. (21) Casc urbà")
+        assert pf.parse_cover(text).raw == text
+
+    def test_the_whole_geocoder_feature_is_kept(self):
+        feat = _feat("topo2", "Coll Pregon", 0.136, "Orografia")
+        assert pf.parse_toponym(_collection(feat)).raw == feat
+
+    def test_raw_does_not_change_equality(self):
+        assert LandCover(21, "x", None, False, raw="a") == LandCover(21, "x", None, False, raw="b")
+
+    def test_the_provider_licence_and_time_travel_with_the_data(self):
+        cover = LandCover(9, "x", "esclerofilo", True, fetched_at="2026-10-16T19:00:00+00:00")
+        assert cover.as_dict() == {
+            "provider": "ICGC", "service": pf.COVER_URL, "layer": "cobertes_2024", "code": 9,
+            "name": "x", "licence": "CC BY 4.0", "retrieved_at": "2026-10-16T19:00:00+00:00",
+        }
+
+    def test_the_geocoder_declares_no_licence(self):
+        top = pf.parse_toponym(_collection(_feat("topo2", "Coll Pregon", 0.1)))
+        assert top.as_dict()["licence"] is None and top.as_dict()["provider"] == "ICGC"
+
+    def test_the_block_leaves_raw_out_unless_asked(self):
+        cover = LandCover(21, "Casc urbà", None, False, raw="RAW")
+        assert "raw" not in pf.forest_block(cover, None, 300)
+        block = pf.forest_block(cover, None, 300, include_raw=True)
+        assert block["raw"] == {"land_cover": "RAW", "toponym": None}
+
+
 class TestForestBlock:
     def test_a_forest_point(self):
         cover = LandCover(9, "Boscos densos d'esclerofil·les i laurifolis", "esclerofilo", True)

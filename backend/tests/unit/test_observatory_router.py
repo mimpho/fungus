@@ -246,6 +246,27 @@ class TestForest:
             r = await c.get("/observatory/point/forest", params={**SANTA_FE, "radius": radius})
         assert r.status_code == status
 
+    async def test_the_raw_answers_are_left_out_by_default(self, env):
+        _logged_in(env)
+        env.cover = LandCover(9, "x", "esclerofilo", True, raw="RAW")
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/forest", params=SANTA_FE)).json()
+        assert "raw" not in body
+
+    async def test_the_raw_answers_come_with_raw_true(self, env):
+        _logged_in(env)
+        env.cover = LandCover(9, "x", "esclerofilo", True, raw="GetFeatureInfo results: ...")
+        env.toponym = Toponym("Coll Pregon", "Coll Pregon, F", "Orografia", "topo2", "F", "V", 0.1,
+                              raw={"properties": {"nom": "Coll Pregon"}})
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/forest", params={**SANTA_FE, "raw": "true"})
+        body = r.json()
+        assert body["raw"] == {
+            "land_cover": "GetFeatureInfo results: ...",
+            "toponym": {"properties": {"nom": "Coll Pregon"}},
+        }
+        assert body["toponym"]["provider"] == "ICGC" and body["toponym"]["licence"] is None
+
     async def test_it_does_not_load_any_climate_cell(self, env):
         _logged_in(env)
         async with _client(env.app) as c:
@@ -269,6 +290,27 @@ class TestForestInOtherEndpoints:
         async with _client(env.app) as c:
             body = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
         assert body["forest_known"] is True and body["forest"] is True and body["reason"] is None
+
+    @pytest.mark.parametrize("path", ["forest", "species", "snapshot"])
+    @pytest.mark.parametrize("cover", [FOREST, URBAN])
+    async def test_the_land_cover_as_the_icgc_gave_it_travels_with_the_answer(
+        self, env, path, cover
+    ):
+        _logged_in(env)
+        env.cover = cover
+        async with _client(env.app) as c:
+            body = (await c.get(f"/observatory/point/{path}", params=SANTA_FE)).json()
+        lc = body["land_cover"]
+        assert (lc["code"], lc["name"]) == (cover.code, cover.name)
+        assert lc["provider"] == "ICGC" and lc["layer"] == "cobertes_2024"
+        assert lc["licence"] == "CC BY 4.0" and "retrieved_at" in lc
+
+    @pytest.mark.parametrize("path", ["forest", "species", "snapshot"])
+    async def test_an_unknown_land_cover_is_null(self, env, path):
+        _logged_in(env)
+        async with _client(env.app) as c:
+            body = (await c.get(f"/observatory/point/{path}", params=SANTA_FE)).json()
+        assert body["land_cover"] is None
 
     @pytest.mark.parametrize("cover", [None, URBAN, FOREST])
     async def test_snapshot_is_one_thermometer_whatever_the_forest(self, env, cover):
