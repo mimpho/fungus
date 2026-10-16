@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.routers import observatory as obs
+from app.services.point_forest import LandCover, Toponym
 from tests.unit.test_cell_provider import TODAY, FakeStore, _provider
 
 SANTA_FE = {"lat": 41.7745, "lon": 2.4350}
@@ -44,7 +45,20 @@ def env(monkeypatch):
         return 1167.0
 
     monkeypatch.setattr(obs, "point_elevation", elevation)
-    return SimpleNamespace(app=app, provider=provider, store=store, log=log)
+
+    # ICGC services: unknown by default (a failing service); tests set env.cover / env.toponym
+    env = SimpleNamespace(app=app, provider=provider, store=store, log=log, cover=None,
+                          toponym=None)
+
+    async def cover(lat, lon):
+        return env.cover
+
+    async def toponym(lat, lon):
+        return env.toponym
+
+    monkeypatch.setattr(obs, "land_cover", cover)
+    monkeypatch.setattr(obs, "fetch_toponym", toponym)
+    return env
 
 
 def _client(app):
@@ -138,14 +152,12 @@ class TestSeries:
 
 
 class TestSnapshot:
-    async def test_it_returns_one_generic_entry_until_the_forest_exists(self, env):
+    async def test_it_returns_a_single_thermometer(self, env):
         _logged_in(env)
         async with _client(env.app) as c:
             body = (await c.get("/observatory/point/snapshot", params=SANTA_FE)).json()
-        (entry,) = body["entries"]
-        assert entry["forest_type"] is None and entry["share"] is None
-        assert 0 <= entry["score"] <= 100 and entry["limiting_factor"]
-        assert isinstance(entry["conditions"], list) and "explanation" in entry
+        assert 0 <= body["score"] <= 100 and body["limiting_factor"]
+        assert isinstance(body["conditions"], list) and "explanation" in body
 
 
 class TestErrors:
@@ -184,6 +196,130 @@ class TestSpecies:
     async def test_it_needs_a_login(self, env):
         async with _client(env.app) as c:
             assert (await c.get("/observatory/point/species", params=SANTA_FE)).status_code == 401
+
+
+FOREST = LandCover(9, "Boscos densos d'esclerofil·les i laurifolis", "esclerofilo", True)
+URBAN = LandCover(21, "Casc urbà", None, False)
+COLL_PREGON = Toponym("Coll Pregon", "Coll Pregon, Fogars de Montclús", "Orografia", "topo2",
+                      "Fogars de Montclús", "Vallès Oriental", 0.136)
+
+
+class TestForest:
+    async def test_it_needs_a_login(self, env):
+        async with _client(env.app) as c:
+            assert (await c.get("/observatory/point/forest", params=SANTA_FE)).status_code == 401
+
+    async def test_a_forest_point(self, env):
+        _logged_in(env)
+        env.cover, env.toponym = FOREST, COLL_PREGON
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/forest", params=SANTA_FE)
+        body = r.json()
+        assert r.status_code == 200
+        assert body["point"] == {**SANTA_FE, "elevation_m": 1167.0}
+        assert body["toponym"]["name"] == "Coll Pregon" and body["toponym"]["kind"] == "Orografia"
+        assert body["forest"] is True and body["macrotype"] == "esclerofilo"
+        assert body["composition"] is None and body["radius_m"] == 300
+        assert body["species_forest_types"] == ["encinar", "mixto"] and body["reason"] is None
+
+    async def test_no_forest_at_the_point(self, env):
+        _logged_in(env)
+        env.cover = URBAN
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/forest", params=SANTA_FE)).json()
+        assert body["forest"] is False and body["reason"] == "no_forest"
+        assert body["macrotype"] is None and body["composition"] is None
+
+    async def test_failing_services_are_never_an_error(self, env):
+        _logged_in(env)  # cover and toponym are None, as when the ICGC does not answer
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/forest", params=SANTA_FE)
+        body = r.json()
+        assert r.status_code == 200 and body["toponym"] is None and body["forest"] is None
+
+    @pytest.mark.parametrize(
+        ("radius", "status"), [(100, 200), (1000, 200), (99, 422), (1001, 422)]
+    )
+    async def test_the_radius_accepts_100_to_1000(self, env, radius, status):
+        _logged_in(env)
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/forest", params={**SANTA_FE, "radius": radius})
+        assert r.status_code == status
+
+    async def test_the_raw_answers_are_left_out_by_default(self, env):
+        _logged_in(env)
+        env.cover = LandCover(9, "x", "esclerofilo", True, raw="RAW")
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/forest", params=SANTA_FE)).json()
+        assert "raw" not in body
+
+    async def test_the_raw_answers_come_with_raw_true(self, env):
+        _logged_in(env)
+        env.cover = LandCover(9, "x", "esclerofilo", True, raw="GetFeatureInfo results: ...")
+        env.toponym = Toponym("Coll Pregon", "Coll Pregon, F", "Orografia", "topo2", "F", "V", 0.1,
+                              raw={"properties": {"nom": "Coll Pregon"}})
+        async with _client(env.app) as c:
+            r = await c.get("/observatory/point/forest", params={**SANTA_FE, "raw": "true"})
+        body = r.json()
+        assert body["raw"] == {
+            "land_cover": "GetFeatureInfo results: ...",
+            "toponym": {"properties": {"nom": "Coll Pregon"}},
+        }
+        assert body["toponym"]["provider"] == "ICGC" and body["toponym"]["licence"] is None
+
+    async def test_it_does_not_load_any_climate_cell(self, env):
+        _logged_in(env)
+        async with _client(env.app) as c:
+            await c.get("/observatory/point/forest", params=SANTA_FE)
+        assert env.log["resolve"] == [] and env.log["fetch"] == []
+
+
+class TestForestInOtherEndpoints:
+    async def test_species_with_no_forest_is_empty_with_a_reason_but_the_cell_loads(self, env):
+        _logged_in(env)
+        env.cover = URBAN
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
+        assert body["species"] == [] and body["excellent"] == []
+        assert body["reason"] == "no_forest" and body["forest"] is False
+        assert body["forest_known"] is True and body["cell"]["elevation_m"] == 667
+
+    async def test_species_in_a_forest_is_flagged_as_known(self, env):
+        _logged_in(env)
+        env.cover = FOREST
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
+        assert body["forest_known"] is True and body["forest"] is True and body["reason"] is None
+
+    @pytest.mark.parametrize("path", ["forest", "species", "snapshot"])
+    @pytest.mark.parametrize("cover", [FOREST, URBAN])
+    async def test_the_land_cover_as_the_icgc_gave_it_travels_with_the_answer(
+        self, env, path, cover
+    ):
+        _logged_in(env)
+        env.cover = cover
+        async with _client(env.app) as c:
+            body = (await c.get(f"/observatory/point/{path}", params=SANTA_FE)).json()
+        lc = body["land_cover"]
+        assert (lc["code"], lc["name"]) == (cover.code, cover.name)
+        assert lc["provider"] == "ICGC" and lc["layer"] == "cobertes_2024"
+        assert lc["licence"] == "CC BY 4.0" and "retrieved_at" in lc
+
+    @pytest.mark.parametrize("path", ["forest", "species", "snapshot"])
+    async def test_an_unknown_land_cover_is_null(self, env, path):
+        _logged_in(env)
+        async with _client(env.app) as c:
+            body = (await c.get(f"/observatory/point/{path}", params=SANTA_FE)).json()
+        assert body["land_cover"] is None
+
+    @pytest.mark.parametrize("cover", [None, URBAN, FOREST])
+    async def test_snapshot_is_one_thermometer_whatever_the_forest(self, env, cover):
+        _logged_in(env)
+        env.cover = cover
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/snapshot", params=SANTA_FE)).json()
+        assert "entries" not in body and "score" in body
+        assert body["forest"] == (None if cover is None else cover.forest)
 
 
 class TestCalendar:

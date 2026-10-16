@@ -135,9 +135,23 @@ Decisions taken while building, not in the scenarios above:
 - **Species:** «excelente» means `edibility = "excellent"`; a species at the 150 m altitude margin keeps its score × 0.85 and the altitude condition is `not_met`; with the forest unknown nobody is excluded by forest and that condition is `pending`.
 - **Calendar:** forecast rows as far as they reach, then the estimate without forecast; from a date earlier than the last data it is a pure estimate that ignores later data.
 
-Not done yet: `/point/forest` (ICGC toponym, macrotype, composition) and the index per forest type; the 429 per user for new cells; `compare_years` (740 days per cell, ~50 weighted calls each); saved points (own branch); moving the daily ingest to cells; MCSC-4 preprocessing (own task).
+Not done yet: the 429 per user for new cells; `compare_years` (740 days per cell, ~50 weighted calls each); saved points (own branch); moving the daily ingest to cells; MCSC-4 preprocessing (own task).
 
 Open points for this branch: radius and threshold are parameters to tune; saved points CRUD in this branch or its own; the preprocess of the MCSC-4 sheets to a ~25 m grid and the CREAF/ICGC licence do not block it.
+
+### Status 2026-10-15: `feat/observatory-forest` (T8)
+
+Done: `/point/forest` (toponym, elevation, macrotype from cobertes 2024, `forest`, `composition: null`, radius 100–1000), `reason: "no_forest"` in `/point/species`, species filtered by macrotype, and a flat `/point/snapshot` (one thermometer per point).
+
+Decisions taken while building:
+- **Nearest toponym** is the smallest `distancia` across `topo1` and `topo2`, not the first listed, skipping buildings, historic buildings and facilities (Vic gives "Vic", not "Ajuntament de Vic"). `Disseminat` (scattered houses) is kept. `kind` and `layer` are returned.
+- **Macrotype → catalogue forest types:** `conifera` → `pinar`; `esclerofilo` → `encinar`; `caducifolio` → `robledal`, `hayedo`; `mixto` fits all. `prados`, `jardines` and `ribera` are never produced by the land cover. A `bosque_otro` forest excludes nobody.
+- **Unknown is not "no forest":** a failed call or the sea (class 0) gives `forest: null` and excludes nobody; only a non-forest class gives `forest: false`.
+- **One thermometer per point (decided 2026-10-15, replaces "Index per forest type present" above).** The v2 index does not depend on the forest type, and the point already has a radius: where several forest types are present, the species list is what is split by type (each species fits one or more of them). When the MCSC-4 composition exists, `/point/species` will use the union of the types above the threshold and say which type each species matches.
+- **Keep the data as received and where it comes from, within reason (Marcos, 2026-10-16).** Responses carry `land_cover` (ICGC class code and name, provider, service, layer, licence, retrieval time) beside the derived macrotype; the services' untouched answers are only returned with `/point/forest?raw=true`. What saved points must persist: for the land cover, layer, class code, class name and retrieval date (~100 bytes; the raw text adds only legend colours and pixel coordinates, both derivable); for the toponym, name and label only (it is just an editable default); for the composition, the raw MCSC-4 codes with their shares (few, and they change the reading). Not the raw texts. A change in the macrotype mapping or in a licence can then be applied to old points without asking the services again. The geocoder's licence is undeclared and must be asked before publishing.
+- `radius` is validated and echoed but not used until the MCSC-4 grid gives a composition.
+
+Open: the only agricultural class is still untested against a real crop point (the Lleida probe point fell on "Eixample"); the macrotype names for conifer and broadleaf classes come from the earlier probe's mapping, and the "bosque_otro" fallback covers any other "Bosc…" class.
 
 ## Branches
 
