@@ -26,12 +26,14 @@ from app.services.cell_provider import (
     UserCellLimitExceeded,
 )
 from app.services.cell_store import SqlCellStore
+from app.services.geo_bounds import LAT_RANGE, LON_RANGE
 from app.services.point_calendar import build_calendar
 from app.services.point_elevation import point_elevation
 from app.services.point_forest import (
     DEFAULT_RADIUS_M,
     MAX_RADIUS_M,
     MIN_RADIUS_M,
+    LandCover,
     cover_dict,
     fetch_toponym,
     forest_block,
@@ -49,10 +51,6 @@ from app.services.point_species import SpeciesRecord, species_for_point
 from app.services.scoring_v2 import SpeciesParams
 
 log = logging.getLogger(__name__)
-
-# Catalonia's bounding box. The Observatory covers only Catalonia in v1.
-LAT_RANGE = (40.5, 42.9)
-LON_RANGE = (0.15, 3.35)
 
 router = APIRouter(
     prefix="/observatory/point",
@@ -233,29 +231,41 @@ async def point_snapshot(
     }
 
 
-@router.get("/species")
-async def point_species(
-    point: PointQuery = Depends(),
-    on: date | None = Query(None, alias="date", description="Default: last day with data"),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-    store: CellStore = Depends(get_cell_store),
-    provider: CellProvider = Depends(get_cell_provider),
+async def build_species_response(
+    point: PointQuery,
+    on: date | None,
+    user: User,
+    db: AsyncSession,
+    store: CellStore,
+    provider: CellProvider,
+    *,
+    author_types: frozenset[str] | None = None,
+    stored_cover: LandCover | None = None,
+    stored_land_cover: dict | None = None,
 ) -> dict:
-    """Species that fit the point on a date (altitude, month; forest once it is known), with
-    score, grade, conditions and best window. Followed species first; the excellent edibles
-    again in their own list, by score."""
+    """Species that fit a point on a date. Shared by /point/species and a saved point's species.
+
+    Forest types come from, in this order: `author_types` (a saved point's, they win even over
+    "no forest"), the land cover (`stored_cover` of a saved point, else asked to the ICGC now).
+    `forest_source` says which one decided: "author", "land_cover" or null (unknown, nobody is
+    excluded by forest)."""
     cell, rows = await _cell_and_rows(point, store, provider, user)
     elevation = await point_elevation(point.lat, point.lon)
-    cover = await land_cover(point.lat, point.lon)
-    if cover is not None and cover.forest is False:  # the climate still answers; species do not
+    if author_types:
+        cover, forest_types, source = stored_cover, author_types, "author"
+    else:
+        cover = stored_cover or await land_cover(point.lat, point.lon)
+        forest_types = species_forest_types(cover)
+        source = "land_cover" if forest_types is not None else None
+    cover_info = stored_land_cover if stored_cover else cover_dict(cover)
+    if not author_types and cover is not None and cover.forest is False:
+        # the climate still answers; species do not
         return {
             **_point_block(point, cell, elevation),
-            "forest_known": True, "forest": False, "land_cover": cover_dict(cover),
-            "reason": "no_forest",
+            "forest_known": True, "forest": False, "land_cover": cover_info,
+            "forest_source": "land_cover", "reason": "no_forest",
             "species": [], "excellent": [],
         }
-    forest_types = species_forest_types(cover)
     catalogue = [SpeciesRecord.from_row(r) for r in (await db.scalars(select(Species))).all()]
     followed = set(
         (
@@ -274,9 +284,25 @@ async def point_species(
         **_point_block(point, cell, elevation),
         "forest_known": forest_types is not None,
         "forest": None if cover is None else cover.forest,
-        "land_cover": cover_dict(cover),
+        "land_cover": cover_info,
+        "forest_source": source,
         "reason": None, **data,
     }
+
+
+@router.get("/species")
+async def point_species(
+    point: PointQuery = Depends(),
+    on: date | None = Query(None, alias="date", description="Default: last day with data"),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    store: CellStore = Depends(get_cell_store),
+    provider: CellProvider = Depends(get_cell_provider),
+) -> dict:
+    """Species that fit the point on a date (altitude, month; forest once it is known), with
+    score, grade, conditions and best window. Followed species first; the excellent edibles
+    again in their own list, by score."""
+    return await build_species_response(point, on, user, db, store, provider)
 
 
 @router.get("/calendar")

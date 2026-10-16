@@ -347,6 +347,16 @@ class TestForestInOtherEndpoints:
             body = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
         assert body["forest_known"] is True and body["forest"] is True and body["reason"] is None
 
+    @pytest.mark.parametrize(
+        ("cover", "source"), [(FOREST, "land_cover"), (URBAN, "land_cover"), (None, None)]
+    )
+    async def test_species_says_where_the_forest_types_came_from(self, env, cover, source):
+        _logged_in(env)
+        env.cover = cover
+        async with _client(env.app) as c:
+            body = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
+        assert body["forest_source"] == source
+
     @pytest.mark.parametrize("path", ["forest", "species", "snapshot"])
     @pytest.mark.parametrize("cover", [FOREST, URBAN])
     async def test_the_land_cover_as_the_icgc_gave_it_travels_with_the_answer(

@@ -162,10 +162,19 @@ def parse_cover(text: str) -> LandCover | None:
     raw = found.group(1).strip()
     match = _CODE_RE.match(raw)
     code, name = (int(match.group(2)), match.group(3).strip()) if match else (None, raw)
+    return cover_from_class(code, name, raw=text)
+
+
+def cover_from_class(
+    code: int | None, name: str, raw: str | None = None, fetched_at: str | None = None
+) -> LandCover:
+    """LandCover from a class code and name. Used on the service's answer and to read a stored
+    class again (saved points keep code and name, not the macrotype), so a change in the
+    mapping applies to old points without asking the service again."""
     if code == 0:
-        return LandCover(0, name, None, None, raw=text)
+        return LandCover(0, name, None, None, raw=raw, fetched_at=fetched_at)
     macro = macrotype_of(name)
-    return LandCover(code, name, macro, macro is not None, raw=text)
+    return LandCover(code, name, macro, macro is not None, raw=raw, fetched_at=fetched_at)
 
 
 def species_forest_types(cover: LandCover | None) -> frozenset[str] | None:
