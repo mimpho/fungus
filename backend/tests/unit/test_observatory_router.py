@@ -172,6 +172,62 @@ class TestErrors:
         assert ok.status_code == 200 and again.status_code == 200
         assert far.status_code == 503 and int(far.headers["Retry-After"]) > 0
 
+    async def test_the_user_limit_is_429_with_retry_after_and_stored_cells_still_work(self, env):
+        provider, _ = _provider(max_per_user=1)
+        env.app.dependency_overrides[obs.get_cell_provider] = lambda: provider
+        _logged_in(env)
+        async with _client(env.app) as c:
+            ok = await c.get("/observatory/point/series", params=SANTA_FE)
+            far = await c.get("/observatory/point/series", params={"lat": 42.2, "lon": 1.8})
+            again = await c.get("/observatory/point/series", params=SANTA_FE)
+            env.app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+                id=2, role="user"
+            )
+            other_user = await c.get("/observatory/point/series", params={"lat": 42.2, "lon": 1.8})
+        assert ok.status_code == 200 and again.status_code == 200
+        assert far.status_code == 429 and int(far.headers["Retry-After"]) > 0
+        assert "limit" in far.json()["detail"].lower()
+        assert other_user.status_code == 200  # the limit is per user
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/observatory/point/series",
+            "/observatory/point/snapshot",
+            "/observatory/point/species",
+            "/observatory/point/calendar",
+        ],
+    )
+    async def test_every_climate_endpoint_applies_the_user_limit(self, env, path):
+        provider, _ = _provider(max_per_user=1)
+        env.app.dependency_overrides[obs.get_cell_provider] = lambda: provider
+        _logged_in(env)
+        async with _client(env.app) as c:
+            await c.get("/observatory/point/series", params=SANTA_FE)  # uses the one allowed
+            far = await c.get(path, params={"lat": 42.2, "lon": 1.8})
+        assert far.status_code == 429
+
+    async def test_zero_disables_the_user_limit(self, env):
+        provider, _ = _provider(max_per_user=0)
+        env.app.dependency_overrides[obs.get_cell_provider] = lambda: provider
+        _logged_in(env)
+        async with _client(env.app) as c:
+            codes = []
+            for lat, lon in ((41.7745, 2.4350), (42.2, 1.8), (41.0, 1.0)):
+                r = await c.get("/observatory/point/series", params={"lat": lat, "lon": lon})
+                codes.append(r.status_code)
+        assert codes == [200, 200, 200]
+
+    async def test_the_provider_takes_both_limits_from_the_settings(self, monkeypatch):
+        monkeypatch.setattr(obs.settings, "observatory_max_new_cells_per_day", 33)
+        monkeypatch.setattr(obs.settings, "observatory_max_new_cells_per_user_per_day", 4)
+        obs.get_cell_provider.cache_clear()
+        try:
+            provider = obs.get_cell_provider()
+            assert (provider._max_new, provider._max_new_per_user) == (33, 4)
+        finally:
+            obs.get_cell_provider.cache_clear()
+
     async def test_a_provider_outage_is_503_and_the_next_request_retries(self, env):
         down, _ = _provider(fail=True)
         env.app.dependency_overrides[obs.get_cell_provider] = lambda: down

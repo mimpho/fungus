@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — per-user daily limit of new cells (2026-10-16, `feat/observatory-user-limit`)
+
+- **A user can open at most 10 new Open-Meteo cells per UTC day.** Beyond that, a point whose cell is not stored yet answers **429** with `Retry-After` (seconds until midnight UTC); points in stored cells keep working, for that user and everybody else. Applies to `/point/series`, `/snapshot`, `/species` and `/calendar`. Configurable with `OBSERVATORY_MAX_NEW_CELLS_PER_USER_PER_DAY` (default 10, `0` disables it); the global `OBSERVATORY_MAX_NEW_CELLS_PER_DAY` (503) still applies, and when both are spent the user's 429 wins. Both caps are ours, not Open-Meteo's: with the Professional plan they are raised or removed.
+- **Migration 018** (applies on Render's startup): `cells.created_by` (nullable FK to `users.id`, `ON DELETE SET NULL`) and index `ix_cells_created_by_created_at`. Existing cells have no creator and cost nobody anything.
+- Only the user whose click creates the cell pays for it. A retry after a provider outage is not a second new cell, and one user's refusal is not shared with another user asking for the same new point at the same time. `CellProvider.get(..., user_id=None)` (jobs) is never limited per user. 476 unit tests pass.
+
 ### Added — `/point/forest`, forest-aware species and snapshot (2026-10-15, `feat/observatory-forest`)
 
 - **New `GET /api/v1/observatory/point/forest?lat=&lon=&radius=300`** (login required, Catalonia only). Returns the nearest toponym (ICGC reverse geocoder), the point's elevation, and the forest from the ICGC land cover 2024 (`cobertes_2024`, point query): `forest` true/false (null if the service did not answer), `macrotype` (`conifera`, `esclerofilo`, `caducifolio`, `bosque_otro`), the land-cover class, and `composition: null` until the MCSC-4 grid exists. `radius` accepts 100–1000 m (422 outside) and is echoed; it will size the composition. It never loads a climate cell. A failing ICGC service gives `toponym: null` / `forest: null`, never an error.

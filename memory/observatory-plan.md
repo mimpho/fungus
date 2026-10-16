@@ -74,7 +74,10 @@ Feature: Cells load on demand
     And points in cached cells keep working
 
   Scenario: per-user limit of new cells per day
-    Then the user above the limit gets 429 for uncached cells only
+    Given a user who has created 10 cells since midnight UTC
+    When they ask for a point in a cell that is not stored
+    Then they get 429 with Retry-After until midnight UTC
+    And points in stored cells still answer, and so do other users
 
 Feature: Elevation correction at the point
 
@@ -152,6 +155,14 @@ Decisions taken while building:
 - `radius` is validated and echoed but not used until the MCSC-4 grid gives a composition.
 
 Open: the only agricultural class is still untested against a real crop point (the Lleida probe point fell on "Eixample"); the macrotype names for conifer and broadleaf classes come from the earlier probe's mapping, and the "bosque_otro" fallback covers any other "Bosc…" class.
+
+### Status 2026-10-16: `feat/observatory-user-limit`
+
+Done: `cells.created_by` (migration 018), `OBSERVATORY_MAX_NEW_CELLS_PER_USER_PER_DAY` (10; 0 disables), 429 with `Retry-After` for new cells only, in the four climate endpoints. Decisions taken while building:
+- **Only the creator pays.** A cell created by someone else, or by a job (no user), costs nobody; a retry after a provider outage finds the cell already created and is not counted again (the failed attempt does use one of the creator's slots).
+- **User limit before global budget** when both are spent (429 rather than 503).
+- **Single-flight keyed by (bucket, user)** so a refusal is not shared with another user asking for the same new point at once; the creation lock keeps it to one cell.
+- **Known limit:** the check and the creation are atomic per process only (like the global budget); with several workers the limit can be passed by a few cells.
 
 ## Branches
 

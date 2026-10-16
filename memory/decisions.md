@@ -474,3 +474,11 @@ useEffect(() => {
 
 **Discarded:** one thermometer per forest type with a different score each (would need a forest-dependent model we do not have).
 
+
+## Observatory — per-user daily limit of new cells (2026-10-16)
+
+**Decision:** each user can create at most 10 new Open-Meteo cells per UTC day (`OBSERVATORY_MAX_NEW_CELLS_PER_USER_PER_DAY`, `0` disables). Over it, a point in a cell that is not stored answers 429 with `Retry-After` until midnight UTC; stored cells are never limited. The creator is recorded in `cells.created_by` (migration 018, nullable, `ON DELETE SET NULL`).
+
+**Why:** the global cap (60 new cells/day, 503) protects the shared Open-Meteo quota but lets one user spend all of it. Each new cell costs ~20 weighted calls (~50 with `compare_years`). Both caps are ours, not Open-Meteo's: with the Professional plan they are raised or removed.
+
+**Also decided:** only the creator pays (cells created by others or by jobs are free); the user's 429 is checked before the global 503; a retry after a provider outage is not a second new cell.

@@ -37,6 +37,15 @@ class CellBudgetExceeded(Exception):
         self.retry_after = retry_after
 
 
+class UserCellLimitExceeded(Exception):
+    """This user has already opened their share of new cells today; cached cells keep working."""
+
+    def __init__(self, retry_after: int, limit: int) -> None:
+        super().__init__(f"Daily limit of {limit} new cells per user reached")
+        self.retry_after = retry_after
+        self.limit = limit
+
+
 @dataclass
 class CellInfo:
     id: str
@@ -45,6 +54,7 @@ class CellInfo:
     elevation_m: float
     loaded_from: date | None = None
     loaded_to: date | None = None
+    created_by: int | None = None  # user whose click created the cell
 
 
 @dataclass
@@ -59,6 +69,7 @@ class CellStore(Protocol):
     async def get_cell(self, cell_id: str) -> CellInfo | None: ...
     async def create_cell(self, cell: CellInfo) -> None: ...
     async def count_cells_created_since(self, since: datetime) -> int: ...
+    async def count_cells_created_by_since(self, user_id: int, since: datetime) -> int: ...
     async def upsert_rows(self, rows: list[dict]) -> None: ...
     async def history(self, cell_id: str) -> list: ...
     async def mark_loaded(
@@ -123,11 +134,13 @@ class CellProvider:
         self,
         connector_factory: ConnectorFactory = _default_factory,
         max_new_cells_per_day: int = 60,
+        max_new_cells_per_user_per_day: int = 10,
         today: Callable[[], date] = date.today,
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._factory = connector_factory
         self._max_new = max_new_cells_per_day
+        self._max_new_per_user = max_new_cells_per_user_per_day  # 0 = no per-user limit
         self._today = today
         self._now = now
         self._lru: OrderedDict[tuple[int, int], str] = OrderedDict()
@@ -135,9 +148,14 @@ class CellProvider:
         self._loading: dict[str, asyncio.Future] = {}
         self._create_lock = asyncio.Lock()
 
-    async def get(self, store: CellStore, lat: float, lon: float) -> CellResult:
-        """Cell of a point, loading its history first if nobody has asked for it yet."""
-        cell_id = await self._resolve(store, lat, lon)
+    async def get(
+        self, store: CellStore, lat: float, lon: float, user_id: int | None = None
+    ) -> CellResult:
+        """Cell of a point, loading its history first if nobody has asked for it yet.
+
+        `user_id` is who pays for a cell created by this call (per-user daily limit); without
+        it (jobs) only the global budget applies. Cells that already exist are never limited."""
+        cell_id = await self._resolve(store, lat, lon, user_id)
         cell = await store.get_cell(cell_id)
         if cell is not None and cell.loaded_to is not None:
             return CellResult(cell, "stored")
@@ -158,13 +176,17 @@ class CellProvider:
 
     # ── Resolution ────────────────────────────────────────────────────────────
 
-    async def _resolve(self, store: CellStore, lat: float, lon: float) -> str:
+    async def _resolve(self, store: CellStore, lat: float, lon: float, user_id: int | None) -> str:
         key = lookup_key(lat, lon)
         if key in self._lru:
             self._lru.move_to_end(key)
             return self._lru[key]
+        # Keyed by user too: a refusal (limit) must not be shared with another user who asks
+        # for the same new point at the same time. The creation lock below keeps it to one cell.
         cell_id = await self._single_flight(
-            self._resolving, key, lambda: self._resolve_uncached(store, key, lat, lon)
+            self._resolving,
+            (key, user_id),
+            lambda: self._resolve_uncached(store, key, lat, lon, user_id),
         )
         self._lru[key] = cell_id
         while len(self._lru) > LOOKUP_CACHE_SIZE:
@@ -172,7 +194,7 @@ class CellProvider:
         return cell_id
 
     async def _resolve_uncached(
-        self, store: CellStore, key: tuple[int, int], lat: float, lon: float
+        self, store: CellStore, key: tuple[int, int], lat: float, lon: float, user_id: int | None
     ) -> str:
         known = await store.get_lookup(key)
         if known:
@@ -181,10 +203,19 @@ class CellProvider:
         cell_id = make_cell_id(glat, glon)
         async with self._create_lock:
             if await store.get_cell(cell_id) is None:
+                await self._check_user_limit(store, user_id)
                 await self._check_budget(store)
-                await store.create_cell(CellInfo(cell_id, glat, glon, elev))
+                await store.create_cell(CellInfo(cell_id, glat, glon, elev, created_by=user_id))
         await store.save_lookup(key, cell_id)
         return cell_id
+
+    async def _check_user_limit(self, store: CellStore, user_id: int | None) -> None:
+        if user_id is None or self._max_new_per_user <= 0:
+            return
+        now = self._now()
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if await store.count_cells_created_by_since(user_id, midnight) >= self._max_new_per_user:
+            raise UserCellLimitExceeded(_seconds_to_next_utc_midnight(now), self._max_new_per_user)
 
     async def _check_budget(self, store: CellStore) -> None:
         now = self._now()

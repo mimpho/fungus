@@ -13,6 +13,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -43,6 +44,8 @@ def cell_id(grid_lat: float, grid_lon: float) -> str:
 
 class Cell(Base):
     __tablename__ = "cells"
+    # Serves the per-user daily limit: "cells this user created since midnight UTC".
+    __table_args__ = (Index("ix_cells_created_by_created_at", "created_by", "created_at"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     lat: Mapped[float] = mapped_column(Float, nullable=False)
@@ -56,6 +59,11 @@ class Cell(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     refreshed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # User whose click created the cell (null: created before migration 018, or user deleted).
+    # Only the creator pays for the cell in the per-user daily limit.
+    created_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
 
     def __repr__(self) -> str:
         return f"<Cell id={self.id!r} elevation={self.elevation_m!r}>"
