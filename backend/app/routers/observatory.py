@@ -18,7 +18,13 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.species import Species
 from app.models.user import User, UserFavSpecies
-from app.services.cell_provider import CellBudgetExceeded, CellProvider, CellResult, CellStore
+from app.services.cell_provider import (
+    CellBudgetExceeded,
+    CellProvider,
+    CellResult,
+    CellStore,
+    UserCellLimitExceeded,
+)
 from app.services.cell_store import SqlCellStore
 from app.services.point_calendar import build_calendar
 from app.services.point_elevation import point_elevation
@@ -57,7 +63,10 @@ router = APIRouter(
 
 @lru_cache
 def get_cell_provider() -> CellProvider:
-    return CellProvider(max_new_cells_per_day=settings.observatory_max_new_cells_per_day)
+    return CellProvider(
+        max_new_cells_per_day=settings.observatory_max_new_cells_per_day,
+        max_new_cells_per_user_per_day=settings.observatory_max_new_cells_per_user_per_day,
+    )
 
 
 class PointQuery:
@@ -76,10 +85,19 @@ def get_cell_store(db: AsyncSession = Depends(get_db)) -> CellStore:
 
 
 async def _cell_and_rows(
-    point: PointQuery, store: CellStore, provider: CellProvider
+    point: PointQuery, store: CellStore, provider: CellProvider, user: User
 ) -> tuple[CellResult, list]:
     try:
-        result = await provider.get(store, point.lat, point.lon)
+        result = await provider.get(store, point.lat, point.lon, user_id=user.id)
+    except UserCellLimitExceeded as exc:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                f"Daily limit of {exc.limit} new areas per user reached; "
+                "areas already opened keep working. Try again after midnight UTC"
+            ),
+            headers={"Retry-After": str(exc.retry_after)},
+        ) from exc
     except CellBudgetExceeded as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -164,12 +182,13 @@ async def point_series(
     to: date | None = Query(None, description="Last day of the window (default: last with data)"),
     days: int = Query(DEFAULT_DAYS, ge=MIN_DAYS, le=MAX_DAYS),
     species: str | None = Query(None, description="Species id; absent = generic model"),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     store: CellStore = Depends(get_cell_store),
     provider: CellProvider = Depends(get_cell_provider),
 ) -> dict:
     params = await _species_params(db, species)
-    cell, rows = await _cell_and_rows(point, store, provider)
+    cell, rows = await _cell_and_rows(point, store, provider, user)
     elevation = await point_elevation(point.lat, point.lon)
     window = build_series(
         rows, _today(), cell.cell.elevation_m, elevation, to=to, days=days, species=params
@@ -191,12 +210,13 @@ async def point_snapshot(
     point: PointQuery = Depends(),
     on: date | None = Query(None, alias="date", description="Default: last day with data"),
     species: str | None = Query(None),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     store: CellStore = Depends(get_cell_store),
     provider: CellProvider = Depends(get_cell_provider),
 ) -> dict:
     params = await _species_params(db, species)
-    cell, rows = await _cell_and_rows(point, store, provider)
+    cell, rows = await _cell_and_rows(point, store, provider, user)
     elevation = await point_elevation(point.lat, point.lon)
     snap = build_snapshot(rows, _today(), cell.cell.elevation_m, elevation, on=on, species=params)
     if snap is None:
@@ -225,7 +245,7 @@ async def point_species(
     """Species that fit the point on a date (altitude, month; forest once it is known), with
     score, grade, conditions and best window. Followed species first; the excellent edibles
     again in their own list, by score."""
-    cell, rows = await _cell_and_rows(point, store, provider)
+    cell, rows = await _cell_and_rows(point, store, provider, user)
     elevation = await point_elevation(point.lat, point.lon)
     cover = await land_cover(point.lat, point.lon)
     if cover is not None and cover.forest is False:  # the climate still answers; species do not
@@ -264,6 +284,7 @@ async def point_calendar(
     point: PointQuery = Depends(),
     on: date | None = Query(None, alias="date", description="Default: last day with data"),
     species: str | None = Query(None),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     store: CellStore = Depends(get_cell_store),
     provider: CellProvider = Depends(get_cell_provider),
@@ -271,7 +292,7 @@ async def point_calendar(
     """The last 7 real days and the next 35: the cell's forecast as far as it reaches, then an
     estimate without forecast (no rain, last week's means). Each day says which one it is."""
     params = await _species_params(db, species)
-    cell, rows = await _cell_and_rows(point, store, provider)
+    cell, rows = await _cell_and_rows(point, store, provider, user)
     elevation = await point_elevation(point.lat, point.lon)
     data = build_calendar(
         rows, _today(), cell.cell.elevation_m, elevation, on=on, species=params

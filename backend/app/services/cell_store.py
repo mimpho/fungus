@@ -27,7 +27,10 @@ def upsert_rows_statement(rows: list[dict]):
 
 
 def _info(cell: Cell) -> CellInfo:
-    return CellInfo(cell.id, cell.lat, cell.lon, cell.elevation_m, cell.loaded_from, cell.loaded_to)
+    return CellInfo(
+        cell.id, cell.lat, cell.lon, cell.elevation_m, cell.loaded_from, cell.loaded_to,
+        cell.created_by,
+    )
 
 
 class SqlCellStore:
@@ -58,7 +61,10 @@ class SqlCellStore:
     async def create_cell(self, cell: CellInfo) -> None:
         await self.db.execute(
             pg_insert(Cell)
-            .values(id=cell.id, lat=cell.lat, lon=cell.lon, elevation_m=cell.elevation_m)
+            .values(
+                id=cell.id, lat=cell.lat, lon=cell.lon, elevation_m=cell.elevation_m,
+                created_by=cell.created_by,
+            )
             .on_conflict_do_nothing()
         )
         await self.db.commit()
@@ -66,6 +72,13 @@ class SqlCellStore:
     async def count_cells_created_since(self, since: datetime) -> int:
         return await self.db.scalar(
             select(func.count()).select_from(Cell).where(Cell.created_at >= since)
+        )
+
+    async def count_cells_created_by_since(self, user_id: int, since: datetime) -> int:
+        return await self.db.scalar(
+            select(func.count())
+            .select_from(Cell)
+            .where(Cell.created_by == user_id, Cell.created_at >= since)
         )
 
     async def upsert_rows(self, rows: list[dict]) -> None:

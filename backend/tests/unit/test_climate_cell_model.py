@@ -8,11 +8,12 @@ from sqlalchemy import CheckConstraint
 from app.models import Cell, ClimateCellHistory
 from app.models.climate_cell import CELL_SOURCES, cell_id
 
-MIGRATION = Path(__file__).parents[2] / "migrations" / "versions" / "017_climate_cells.py"
+VERSIONS = Path(__file__).parents[2] / "migrations" / "versions"
+MIGRATION = VERSIONS / "017_climate_cells.py"
 
 
-def _load_migration():
-    spec = importlib.util.spec_from_file_location("m017", MIGRATION)
+def _load_migration(path: Path = MIGRATION):
+    spec = importlib.util.spec_from_file_location(f"m_{path.stem}", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -82,3 +83,30 @@ def test_the_sql_upsert_never_replaces_archive_with_forecast():
     assert "WHERE NOT (climate_cell_history.source = " in sql
     assert "AND excluded.source = " in sql
     assert {"archive", "forecast"} <= set(compiled.params.values())
+
+
+def test_a_cell_remembers_the_user_who_created_it_and_survives_their_deletion():
+    col = Cell.__table__.c.created_by
+    assert col.nullable  # cells created before migration 018 have no creator
+    fk = next(iter(col.foreign_keys))
+    assert fk.column.table.name == "users" and fk.ondelete == "SET NULL"
+
+
+def test_the_per_user_count_has_an_index():
+    index = next(i for i in Cell.__table__.indexes if i.name == "ix_cells_created_by_created_at")
+    assert [c.name for c in index.columns] == ["created_by", "created_at"]
+
+
+def test_migration_018_follows_017_and_adds_the_column_with_its_index():
+    m = _load_migration(VERSIONS / "018_cells_created_by.py")
+    assert (m.revision, m.down_revision) == ("018", "017")
+    assert callable(m.upgrade) and callable(m.downgrade)
+
+
+def test_the_user_limit_defaults_to_ten_a_day():
+    from app.config import Settings
+
+    field = Settings.model_fields["observatory_max_new_cells_per_user_per_day"]
+    assert field.default == 10
+    s = Settings(_env_file=None, observatory_max_new_cells_per_user_per_day=0)
+    assert s.observatory_max_new_cells_per_user_per_day == 0  # 0 disables the limit

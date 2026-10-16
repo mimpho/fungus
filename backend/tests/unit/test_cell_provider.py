@@ -17,6 +17,7 @@ from app.services.cell_provider import (
     CellBudgetExceeded,
     CellInfo,
     CellProvider,
+    UserCellLimitExceeded,
     build_rows,
     should_overwrite,
 )
@@ -28,6 +29,7 @@ NOW = datetime(2026, 10, 14, 18, 0, tzinfo=UTC)
 SANTA_FE = (41.7745, 2.4350)
 SANTA_FE_NEAR = (41.7800, 2.4400)  # a different 500 m bucket, same cell
 FAR = (42.2000, 1.8000)
+THIRD = (41.0000, 1.0000)  # a third cell, far from both
 
 
 def _day(d: date, tag: str = "x") -> DailyWeatherData:
@@ -83,6 +85,12 @@ class FakeStore:
     async def count_cells_created_since(self, since):
         return sum(1 for t in self.created_at.values() if t >= since)
 
+    async def count_cells_created_by_since(self, user_id, since):
+        return sum(
+            1 for cid, t in self.created_at.items()
+            if t >= since and self.cells[cid].created_by == user_id
+        )
+
     async def upsert_rows(self, rows):
         for r in rows:
             key = (r["cell_id"], r["date"])
@@ -95,11 +103,12 @@ class FakeStore:
         c.loaded_from, c.loaded_to = loaded_from, loaded_to
 
 
-def _provider(log=None, fail=False, max_new=60):
+def _provider(log=None, fail=False, max_new=60, max_per_user=10):
     log = log if log is not None else {"resolve": [], "fetch": []}
     provider = CellProvider(
         connector_factory=lambda cid, lat, lon, elev: FakeConnector(log, cid, lat, lon, elev, fail),
         max_new_cells_per_day=max_new,
+        max_new_cells_per_user_per_day=max_per_user,
         today=lambda: TODAY,
         now=lambda: NOW,
     )
@@ -234,6 +243,115 @@ class TestDailyBudget:
         assert (await provider.get(store, *SANTA_FE_NEAR)).source == "stored"
 
 
+class TestPerUserLimit:
+    async def test_a_new_cell_over_the_users_limit_is_refused_with_a_retry_time(self):
+        provider, log = _provider(max_per_user=1)
+        store = FakeStore()
+        await provider.get(store, *SANTA_FE, user_id=1)
+        with pytest.raises(UserCellLimitExceeded) as exc:
+            await provider.get(store, *FAR, user_id=1)
+        assert exc.value.retry_after == 6 * 3600  # 18:00 UTC -> next midnight
+        assert exc.value.limit == 1
+        assert len(store.cells) == 1 and len(log["fetch"]) == 1  # the refused cell was not created
+
+    async def test_the_cell_remembers_who_created_it(self):
+        provider, _ = _provider()
+        store = FakeStore()
+        await provider.get(store, *SANTA_FE, user_id=7)
+        assert next(iter(store.cells.values())).created_by == 7
+
+    async def test_stored_cells_keep_working_for_a_user_over_the_limit(self):
+        provider, _ = _provider(max_per_user=1)
+        store = FakeStore()
+        await provider.get(store, *SANTA_FE, user_id=1)
+        with pytest.raises(UserCellLimitExceeded):
+            await provider.get(store, *FAR, user_id=1)
+        assert (await provider.get(store, *SANTA_FE, user_id=1)).source == "stored"
+        assert (await provider.get(store, *SANTA_FE_NEAR, user_id=1)).source == "stored"
+
+    async def test_a_cell_created_by_someone_else_is_free_for_everybody(self):
+        provider, log = _provider(max_per_user=1)
+        store = FakeStore()
+        await provider.get(store, *SANTA_FE, user_id=1)
+        result = await provider.get(store, *SANTA_FE, user_id=2)
+        assert result.source == "stored" and len(log["fetch"]) == 1
+
+    async def test_the_limit_is_per_user(self):
+        provider, _ = _provider(max_per_user=1)
+        store = FakeStore()
+        await provider.get(store, *SANTA_FE, user_id=1)
+        assert (await provider.get(store, *FAR, user_id=2)).source == "live"
+
+    async def test_zero_disables_the_limit(self):
+        provider, _ = _provider(max_per_user=0)
+        store = FakeStore()
+        for point in (SANTA_FE, FAR, THIRD):
+            assert (await provider.get(store, *point, user_id=1)).source == "live"
+        assert len(store.cells) == 3
+
+    async def test_a_call_without_a_user_is_never_limited(self):
+        provider, _ = _provider(max_per_user=1)
+        store = FakeStore()
+        for point in (SANTA_FE, FAR, THIRD):
+            await provider.get(store, *point)
+        assert len(store.cells) == 3
+
+    async def test_cells_created_before_midnight_utc_do_not_count(self):
+        provider, _ = _provider(max_per_user=1)
+        store = FakeStore()
+        await provider.get(store, *SANTA_FE, user_id=1)
+        store.created_at[next(iter(store.cells))] = NOW - timedelta(days=1)  # yesterday
+        assert (await provider.get(store, *FAR, user_id=1)).source == "live"
+
+    async def test_the_user_limit_is_checked_before_the_global_budget(self):
+        provider, _ = _provider(max_new=1, max_per_user=1)
+        store = FakeStore()
+        await provider.get(store, *SANTA_FE, user_id=1)
+        with pytest.raises(UserCellLimitExceeded):
+            await provider.get(store, *FAR, user_id=1)  # both limits are spent
+
+    async def test_the_global_budget_still_applies_to_users_under_their_limit(self):
+        provider, _ = _provider(max_new=1, max_per_user=5)
+        store = FakeStore()
+        await provider.get(store, *SANTA_FE, user_id=1)
+        with pytest.raises(CellBudgetExceeded):
+            await provider.get(store, *FAR, user_id=2)
+
+    async def test_a_retry_after_an_outage_is_not_a_second_new_cell(self):
+        down, _ = _provider(fail=True, max_per_user=1)
+        store = FakeStore()
+        with pytest.raises(ProviderUnavailable):
+            await down.get(store, *SANTA_FE, user_id=1)  # the cell exists, unloaded
+        up, _ = _provider(max_per_user=1)
+        assert (await up.get(store, *SANTA_FE, user_id=1)).source == "live"
+        assert len(store.cells) == 1
+
+    async def test_two_simultaneous_new_cells_of_one_user_respect_the_limit(self):
+        provider, _ = _provider(max_per_user=1)
+        store = FakeStore()
+        results = await asyncio.gather(
+            provider.get(store, *SANTA_FE, user_id=1),
+            provider.get(store, *FAR, user_id=1),
+            return_exceptions=True,
+        )
+        assert sum(isinstance(r, UserCellLimitExceeded) for r in results) == 1
+        assert len(store.cells) == 1
+
+    async def test_a_refused_user_does_not_refuse_another_asking_for_the_same_new_point(self):
+        provider, _ = _provider(max_per_user=1)
+        store = FakeStore()
+        await provider.get(store, *SANTA_FE, user_id=1)  # user 1 is at the limit
+        mine, theirs = await asyncio.gather(
+            provider.get(store, *FAR, user_id=1),
+            provider.get(store, *FAR, user_id=2),
+            return_exceptions=True,
+        )
+        assert isinstance(mine, UserCellLimitExceeded)
+        assert theirs.source == "live" and next(
+            c for c in store.cells.values() if c.created_by == 2
+        )
+
+
 class TestDailyRefresh:
     async def test_archive_days_replace_provisional_ones(self):
         provider, _ = _provider()
@@ -308,3 +426,7 @@ class TestConnector:
 
 def test_cellinfo_defaults_to_unloaded():
     assert CellInfo("c", 1.0, 2.0, 3.0).loaded_to is None
+
+
+def test_cellinfo_defaults_to_no_creator():
+    assert CellInfo("c", 1.0, 2.0, 3.0).created_by is None
