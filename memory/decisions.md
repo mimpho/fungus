@@ -503,3 +503,14 @@ useEffect(() => {
 **Why:** measured on one real sheet (131 km², 8,628 polygons, 82 codes): 41 KB `lzma`, so ~10 MB for Catalonia against ~51 MB raw; a tile decodes in ~2 ms. Loading on demand needs no disk on Render and no download at startup, and matches how cells are loaded. The bucket is private because the CREAF licence is unconfirmed.
 
 **Discarded:** 50 m (saves ~6 MB, loses small stands and leaves ~144 cells in the 600 m window around the point); collapsing the non-forest classes (saves ~2.6 MB, loses the agricultural check); row/column delta filters (they make it worse); vector polygons (heavier and slower for a radius query); committing the grid to git (licence and binary size).
+
+
+## Observatory — MCSC-4 grid: construction details (2026-10-17)
+
+**Decision:** one code table for all sheets, built in a first pass (index 0 = no data; 1 byte per cell, 2 bytes by itself beyond 255 codes). Tiles are addressed on a global grid anchored at the UTM 31N origin (`{tx}_{ty}.lzma`, 25,600 m per side), so adjacent sheets join with no seam. A cell takes the class of the polygon that contains its centre (even-odd rule, holes empty, the same convention as `mcsc_lookup.py`); where sheets overlap, the first in name order keeps the cell. `composition()` counts the cells with data whose centre is within the radius (inclusive) and leaves out cells without data. Python standard library only (`lzma`, no numpy), polygons filled by scanlines. The grid is built deterministically and an existing one is replaced only with `--overwrite`.
+
+**Why:** a per-sheet table would make tile bytes mean different things across sheets; a global one costs nothing (82 codes in one sheet). Anchoring tiles globally means a lookup needs no knowledge of the sheets. Not counting the cells without data keeps a window over the sea or outside Catalonia from reading as «no forest». Staying on the standard library adds no dependency to Render, and scanlines make Catalonia (~51 M cells) affordable in pure Python.
+
+**Also decided:** the pure function returns every share; the threshold, the radius limits and the `null` for a point outside the grid belong to the wiring. The raw sheets and the generated tiles are excluded with `.git/info/exclude`, not `.gitignore`, so they cannot be committed from any branch. The grid's in-memory tile cache has no bound (1 MB per tile); the loader of `feat/observatory-composition` must bound it.
+
+**Discarded:** one code table per sheet; sheet-relative tile coordinates; numpy (a new dependency for a one-off job); resume-safe preprocessing (a rebuild of one sheet takes about a second).

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — MCSC-4 grid preprocessing and pure composition (2026-10-17, `feat/observatory-mcsc-grid`)
+
+- **New `app/services/mcsc_grid.py` (pure, stdlib only)**: the tile format of the CREAF MCSC-4 land cover as a 25 m grid, a `Grid` reader over any tile loader and `composition()` / `composition_at()`. Each cell holds the class (`C_SIMPLE` code) of the polygon at its centre as an index into a code table (0 = no data), 1 byte per cell (2 bytes automatically beyond 255 codes), in tiles of 1024×1024 cells (25,600 m) anchored at the UTM 31N origin, compressed with `lzma` and named `{tx}_{ty}.lzma`, next to a `manifest.json` (cell and tile size, CRS `EPSG:25831`, bytes per cell, code table with `confirmed`, sheets). `bqs` and `bqp` carry `confirmed: false`.
+- **`composition(grid, x, y, radius_m)`** returns the share (%) of each code among the cells with data whose centre is within the radius (inclusive), biggest first and ties by code. Cells without data (outside the sheets, a missing tile) are not counted, so a window crossing the grid's edge neither invents forest nor invents «no forest»; no data at all gives `[]`. Its output feeds `composition_json` (saved points). Not wired to any endpoint yet: `/point/forest` still returns `composition: null`.
+- **New `scripts/mcsc_preprocess.py`** (`cd backend && python -m scripts.mcsc_preprocess --dirs <sheets> --out <grid>`): every `.shp` under the folders (UTM 31N required, else an error) becomes tiles with one code table shared by all sheets; where sheets overlap the first one in name order keeps the cell; null shapes and empty codes are skipped and counted. The output is deterministic and an existing grid is only replaced with `--overwrite` (stale tiles are removed). Never commit the sheets or the tiles (CREAF licence unconfirmed).
+- Measured on sheet 36321: 8,628 polygons, 82 codes, one tile of 43,472 bytes. 38 new unit tests (586 in total): synthetic sheets written on the fly run everywhere; those using the real sheet are skipped without `local-data/` (or `MCSC_FIXTURE_DIR`) and compare 300 cells and three compositions against the polygon lookup of `mcsc_lookup.py`.
+
 ### Added — saved points (2026-10-16, `feat/observatory-saved-points`)
 
 - **New endpoints under `/api/v1/observatory/saved-points`** (login required; someone else's point, or a missing one, is a 404): `GET` (mine, newest first), `POST` (201), `GET /{id}`, `PATCH /{id}` (only `name`, `notes` and `forest_types`; coordinates cannot change, a moved point is a new point; `forest_types: null` goes back to the derived types), `DELETE /{id}` (204) and `GET /{id}/species` (same answer as `/point/species` for the saved coordinates).
