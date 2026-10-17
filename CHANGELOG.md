@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Observatory page, first steps (2026-10-17, `feat/observatory-page`, steps 1–6 and 8 of 10)
+
+- **New route `/observatorio`** (lazy-loaded in `App.jsx`): the page of the Observatory over the free map. Not in the header yet (step 9). The page and the API calls need a session; a 401, a 422 outside Catalonia, a 429 with `Retry-After` and a 503 each have their own notice (`ObservatoryNotice`).
+- **Map and view state in the URL**: Leaflet map with the ICGC orthophoto and the CARTO basemap; a click picks a point. The URL holds `lat` and `lon` (5 decimals); a broken or out-of-Catalonia link falls back to the default view and rewrites the URL, and the browser's back button round-trips. While a zone is observed the map is hidden and «Volver al mapa» brings it back at the last observed position.
+- **Place search** (`geocodingService.js`): Photon (OpenStreetMap data) limited to Catalonia, because Open-Meteo's geocoder does not know passes, peaks or springs. Public instance with fair use and no SLA; the module is the one to swap for a backend endpoint if the app grows.
+- **Thermometer** driven by the backend's codes (never a score without its reason), **point panel** (toponym, forest cover, macrotype), and the standing credits of **Open-Meteo, ICGC, Photon and OpenStreetMap** (`Attribution.jsx`).
+- **Saved points**: save, edit and remove from the observed zone, with name, notes and the author's forest types; «Mis puntos» opens the list of cards under the buttons.
+- **Species list** for the observed zone (edibility filter, chosen species drives the chart's range) from `/point/species`; the list state lives in `ObservedZone`.
+- **Charts** («Qué ha pasado»): score, rain, temperature, humidity and wind over 7, 20, 60 or 120 days (the request asks for `days + 21`, capped at 180, so the 21-day accumulations are complete). Score line with a per-day gradient by band, v1 as a dashed reference, limiting-factor strip, triggers and brakes as numbered events with their list, tooltip per day, filters and legend under the chart, and a data table. Pure logic in `src/lib/chartData.js`.
+- **Design**: cards use `.obs-card` (the same shadow as the zones page), borderless `ObsSelect` and inputs like the rest of the app, custom `.obs-chk` checkboxes. About 850 new strings in ES, CA and EN.
+- **Backend**: `GET /point/species` now returns `synonyms` for each species (`routers/species.py`, `schemas/species.py`).
+- Not in this commit series: calendar (step 7), header entry and avatar menu (step 9), mobile, language and dark-theme pass (step 10). **Not yet checked against the real backend**, only against mocks. The frontend has no automated tests; checked with `npm run build`, manual review and temporary browser scripts.
+
 ### Fixed — Retry-After readable from the browser (2026-10-17, `fix/observatory-cors-retry-after`)
 
 - **CORS now lists `Retry-After` in `Access-Control-Expose-Headers`** (`app/main.py`). The 429 (daily limit of new cells) and 503 (provider down or daily budget spent) answers of the Observatory carry it, but a browser on another origin (Vercel to Render, or `localhost:5173` to `localhost:8000`) hides every header that is not exposed, so the page could not tell the user when to try again. New `tests/unit/test_cors.py` (588 unit tests in total).

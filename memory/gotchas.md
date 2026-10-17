@@ -244,3 +244,19 @@ If an epic branch has commits from an earlier phase (skeletons) and a feature br
 
 ### ℹ️ `Family.jsx` renders `<Species />` as a child → different instance from `/especies`
 When navigating from `/familia/:slug` to `/especies/:id`, React unmounts Species from Family and mounts a new independent Species. No instance reuse between routes of different tree depth.
+
+---
+
+## Observatory — local runs and styles
+
+### ⚠️ The backend reads `backend/.env` only, not `.env.local`
+`app/config.py` loads `env_file=".env"`. `.env.local` is a Vite convention for the frontend; a setting such as `OBSERVATORY_MAX_NEW_CELLS_PER_USER_PER_DAY=0` put there does nothing, and the 429 «Daily limit of 10 new areas per user» keeps coming. `uvicorn --reload` does not reread `.env` either. For a one-off run without touching `backend/.env` (which points to production), put the variable in front of the command: `OBSERVATORY_MAX_NEW_CELLS_PER_USER_PER_DAY=0 python -m uvicorn app.main:app --reload`. The per-user and the global limit show the same message; the body of the 429 or the 503 says which one it is.
+
+### ⚠️ Colour tokens are comma-format: `rgba(var(--x), a)`, never `rgb(var(--x) / a)`
+`--color-cream-rgb` and `--color-bar-rgb` hold `r, g, b` with commas. `rgba(var(--color-cream-rgb), 0.6)` works; `rgb(var(--color-cream-rgb) / .6)` is invalid and the property is dropped silently (the custom checkboxes had invisible borders in the dark theme because of it).
+
+### ⚠️ A page-local score band list is descending
+`SCORE_BANDS` runs from `high` to `low` (`min` 85/70/55/30/0). Reversing it before drawing band rectangles gives negative SVG heights.
+
+### ⚠️ Photos attached in the chat lose their EXIF
+Pictures sent to Claude through the chat arrive recompressed without EXIF (no GPS, date or phone model). For field photos keep the originals in `local-data/field/` (excluded from git) and read them from there; their GPS is the evidence, so never publish them as they are.

@@ -514,3 +514,20 @@ useEffect(() => {
 **Also decided:** the pure function returns every share; the threshold, the radius limits and the `null` for a point outside the grid belong to the wiring. The raw sheets and the generated tiles are excluded with `.git/info/exclude`, not `.gitignore`, so they cannot be committed from any branch. The grid's in-memory tile cache has no bound (1 MB per tile); the loader of `feat/observatory-composition` must bound it.
 
 **Discarded:** one code table per sheet; sheet-relative tile coordinates; numpy (a new dependency for a one-off job); resume-safe preprocessing (a rebuild of one sheet takes about a second).
+
+---
+
+## Observatory page — construction decisions (2026-10-17)
+
+**Decision:** the page is built in ten steps on `feat/observatory-page`, in this order: base, map/click/panel/URL, thermometer, search, saved points, species list, charts, calendar, header entry with the avatar menu, and a pass on phone, languages and dark theme. Steps 1–6 and 8 are done; the calendar and a zone comparator come next, before the final pass. Out of v1: heat map, downloadable reports, `compare_years`, composition, «Área de territorio» and dragging or stretching the chart window.
+
+**Details:**
+- **Place search uses Photon, not Open-Meteo's geocoder.** Open-Meteo only knows populated places; foragers look for passes, peaks and springs. Photon (OpenStreetMap data, typeahead, CORS) runs in the browser and is limited to Catalonia. Risk: a public instance with fair use and no SLA; `geocodingService.js` is the single module to replace with a backend endpoint if traffic grows. Credits for Photon and OpenStreetMap are in `Attribution.jsx`.
+- **Season texts and the thermometer follow the backend.** The page shows the backend's codes and the season table as it is; it never computes a score and never shows one without its reason. Only v1 is shown, as a reference, never as the main score.
+- **The list of species comes from `/point/species` with `synonyms`** (additive field in the species list). Its state lives in `ObservedZone`, not in the list, so the chart can use the chosen species' range.
+- **Charts ask for `days + 21` (capped at 180)** so the 21-day rain accumulation is complete from the first visible day. While a new window loads, the previous chart stays dimmed instead of blinking out.
+- **The map is hidden while a zone is observed**, and a prominent button «Volver al mapa» brings it back at the last observed position. «Mis puntos» is a button next to Guardar/Editar/Quitar with the cards under it, closed when a zone is observed.
+- **Look:** cards use `.obs-card` (the same shadow as the zones page, `.hover-lift`); a stronger dark-theme shadow was tried and rejected as too strong. Selects and inputs have no border (`ObsSelect`, like the species-type filter in the zone card); chart filters and legend sit under the chart.
+- **No automated tests for the frontend** (project strategy): checked with `npm run build`, manual review and checklists; browser scripts are temporary checks.
+
+**Discarded:** Open-Meteo's geocoder for search (no peaks, passes or springs); computing a score in the browser; a stronger dark-theme card shadow.

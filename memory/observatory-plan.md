@@ -709,6 +709,8 @@ Feature: Zone altitude as a range   [OQ-6, OQ-7]
 
 ## 5. `feat/observatory-page` (headlines; detailed when the branch starts)
 
+**Status 2026-10-17:** built as steps 1 base, 2 map/click/panel/URL, 3 thermometer, 5 search, 4 saved points, 6 species list and 8 charts; step 7 (calendar), 9 (header and avatar menu) and 10 (phone, languages, dark theme) are left. Decided with Marcos while building: the map is hidden while a zone is observed (button «Volver al mapa»), «Mis puntos» is a button next to Guardar/Editar/Quitar, the chart filters and legend go under the chart, and cards use the zones page's shadow. Out of v1: heat map, downloadable reports, `compare_years`, composition, «Área de territorio» and dragging or stretching the window (the timeline below is the original headline, not what v1 builds). A zone comparator is an idea after the calendar (`memory/product-ideas.md`).
+
 - Navigation: Observatorio in the header; Perfil becomes an avatar menu (Perfil, Generador de imágenes for admins, Salir); the Público/Admin toggle in Perfil, `isAdminView` and the admin header items go away (`/admin/gallery` already redirects); icons only between `md` and `lg`; «Ver en el Observatorio» in the zone card `[OQ-13]`.
 - Start: last observed zone; first visit → first followed zone or default zone.
 - Zone search: followed zones when empty, results when typing, the heart toggles without the list jumping, closes on pick / Esc / outside; above the title at phone width.
