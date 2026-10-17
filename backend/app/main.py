@@ -27,7 +27,8 @@ from alembic.util import CommandError as AlembicCommandError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
@@ -226,10 +227,37 @@ app = FastAPI(
     title="Fungus API",
     description="Mushroom foraging prediction for Spain — Outbreak Index engine",
     version=APP_VERSION,
-    docs_url="/docs" if not settings.is_production else None,
+    docs_url=None,  # /docs is served below, only outside production, with a dark theme
     redoc_url="/redoc" if not settings.is_production else None,
     lifespan=lifespan,
 )
+
+# ── /docs (development only) ──────────────────────────────────────────────────
+# Swagger UI has no dark theme, so the page is served here with a small stylesheet that inverts
+# it (and puts code and images back). Production exposes no docs at all.
+
+_DARK_DOCS_CSS = """<style>
+html, body { background: #1a1a1a; }
+.swagger-ui { filter: invert(0.9) hue-rotate(180deg); }
+.swagger-ui .microlight, .swagger-ui img { filter: invert(1) hue-rotate(180deg); }
+</style>"""
+
+if not settings.is_production:
+
+    @app.get("/docs", include_in_schema=False)
+    async def swagger_ui_dark() -> HTMLResponse:
+        page = get_swagger_ui_html(
+            openapi_url=app.openapi_url,
+            title=f"{app.title} - Swagger UI",
+            oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        )
+        html = page.body.decode().replace("</head>", f"{_DARK_DOCS_CSS}</head>", 1)
+        return HTMLResponse(html)
+
+    @app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+    async def swagger_ui_oauth2_redirect() -> HTMLResponse:
+        return get_swagger_ui_oauth2_redirect_html()
+
 
 # CORS — allow the Vite dev server, Vercel production URL and Vercel preview deployments
 # allow_origin_regex cubre:
