@@ -17,7 +17,7 @@ const TEMPLATE = SEGMENTS.map(s => s.width).join(' ')
 export function ThermometerSkeleton() {
   const { t } = useApp()
   return (
-    <div className="glass rounded-2xl p-5 space-y-4" aria-busy="true">
+    <div className="glass obs-card rounded-2xl p-5 space-y-4" aria-busy="true">
       <p className="text-sm text-cream/60 animate-pulse">{t.obsThLoading}</p>
       <div className="h-14 w-2/3 rounded-xl bg-white/10 animate-pulse" />
       <div className="h-5 w-full rounded-full bg-white/10 animate-pulse" />
@@ -43,7 +43,7 @@ export function Thermometer({ snap, forName = null }) {
   const forOnes = vm.conditions.filter(c => c.sign === '+')
 
   return (
-    <article aria-labelledby={headingId} className="glass rounded-2xl p-5 space-y-5">
+    <article aria-labelledby={headingId} className="glass obs-card rounded-2xl p-5 space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h3 id={headingId} className="font-display text-2xl text-cream">{t.obsThTitle}</h3>
         {vm.day && <p className="text-xs text-cream/50">{fill(t.obsThDataDate, { fecha: vm.day }, lang)}</p>}

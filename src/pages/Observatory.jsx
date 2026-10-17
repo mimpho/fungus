@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
 import { useSavedPoints } from '../hooks/useSavedPoints'
@@ -8,7 +8,7 @@ import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { Tabs } from '../components/ui/Tabs'
 import { MapSearch } from '../components/observatory/MapSearch'
 import { ObservedZone } from '../components/observatory/ObservedZone'
-import { SavedPoints } from '../components/observatory/SavedPoints'
+import { SavedPointsList, SavedPointsToggle } from '../components/observatory/SavedPoints'
 import { PointPanel } from '../components/observatory/PointPanel'
 import { ObservatoryNotice } from '../components/observatory/ObservatoryNotice'
 import { Attribution } from '../components/observatory/Attribution'
@@ -25,6 +25,10 @@ export default function Observatory() {
   const [pending, setPending] = useState(null)
   const [pickError, setPickError] = useState(null)
   const [flyTo, setFlyTo] = useState(null)
+  const [savedOpen, setSavedOpen] = useState(!observed)
+  // Where the map starts when it comes back after observing a point
+  const lastObserved = useRef(null)
+  if (observed) lastObserved.current = observed
   const [basemap, setBasemap] = useState(() => {
     try { return localStorage.getItem('fungus-obs-basemap') === 'streets' ? 'streets' : 'satellite' } catch (_e) { return 'satellite' }
   })
@@ -62,7 +66,11 @@ export default function Observatory() {
   function handleObserve(point) {
     observe(point.lat, point.lon)
     setPending(null)
+    setSavedOpen(false)
   }
+
+  const savedToggle = <SavedPointsToggle saved={saved} open={savedOpen} onToggle={() => setSavedOpen(o => !o)} />
+  const savedList = <SavedPointsList saved={saved} observed={observed} onObserve={handleObserve} open={savedOpen} />
 
   if (authLoading) {
     return (
@@ -102,6 +110,8 @@ export default function Observatory() {
         <>
           {pickError && <ObservatoryNotice error={pickError} />}
 
+          {!observed && (
+          <>
           <div className="relative rounded-2xl overflow-hidden border border-white/[0.08]">
             <ObservatoryMap
               observed={observed}
@@ -111,6 +121,7 @@ export default function Observatory() {
               label={t.obsMapLabel}
               basemap={basemap}
               flyTo={flyTo}
+              startAt={lastObserved.current}
               className="h-[62vh] min-h-[420px] md:h-[65vh]"
             />
             {!pending && !observed && (
@@ -139,9 +150,21 @@ export default function Observatory() {
             )}
           </div>
 
-          <SavedPoints saved={saved} observed={observed} onObserve={handleObserve} />
+          <div>{savedToggle}</div>
+          {savedList}
+          </>
+          )}
 
-          {observed && <ObservedZone key={`${observed.lat},${observed.lon}`} point={observed} saved={saved} onClear={clear} />}
+          {observed && (
+            <ObservedZone
+              key={`${observed.lat},${observed.lon}`}
+              point={observed}
+              saved={saved}
+              onClear={clear}
+              savedToggle={savedToggle}
+              savedList={savedList}
+            />
+          )}
         </>
       )}
 

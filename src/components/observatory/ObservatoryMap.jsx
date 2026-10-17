@@ -19,7 +19,7 @@ const OBSERVED_ZOOM = 12
  * Map of Catalonia. A click only reports the coordinates (onPick); what to do with them is the
  * page's. `observed` is the point being observed (green), `pending` the one just picked (dashed).
  */
-export function ObservatoryMap({ observed, pending, saved = [], onPick, label, basemap = 'satellite', flyTo = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], onPick, label, basemap = 'satellite', flyTo = null, startAt = null, className = '' }) {
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
   const observedRef = useRef(null)
@@ -27,7 +27,7 @@ export function ObservatoryMap({ observed, pending, saved = [], onPick, label, b
   const tilesRef    = useRef(null)
   const savedRef    = useRef(null)
   const onPickRef  = useRef(onPick)
-  const initial    = useRef(observed)
+  const initial    = useRef(observed ?? startAt)
   useEffect(() => { onPickRef.current = onPick }, [onPick])
 
   // Create the map once

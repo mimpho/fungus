@@ -1,17 +1,16 @@
 import { useId, useMemo, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
-import { usePointData } from '../../hooks/usePointData'
-import { fetchPointSpecies, fetchSavedPointSpecies } from '../../services/observatoryService'
 import { getEdibilityColor } from '../../lib/helpers'
 import {
   DEFAULT_EDIB_GROUP, EDIB_GROUPS, buildRows, countGroups, filterRows, speciesName,
 } from '../../lib/speciesList'
 import { ObservatoryNotice } from './ObservatoryNotice'
+import { ObsSelect } from './ObsSelect'
 
 const MARK = { met: '✓', pending: '…', not_met: '✗' }
 const ALL = 'all'
-const FIELD = 'rounded-xl bg-cream/[0.06] border border-cream/30 px-3 py-2 text-base md:text-sm text-cream placeholder:text-cream/40 focus:outline-none focus:border-cream/50'
+const FIELD = 'rounded-xl bg-cream/[0.08] px-3 py-2 text-base md:text-sm text-cream placeholder:text-cream/40 outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
 
 function Row({ row, selected, onSelect }) {
   const { t } = useApp()
@@ -76,20 +75,16 @@ function Row({ row, selected, onSelect }) {
  * species' own temperature range; choosing it again (or the ✕) goes back to the general model.
  * On desktop the panel takes the height of the thermometer beside it (see ObservedZone) and the
  * list scrolls inside; on a phone the list is at most 350 px high.
- * A saved point asks through its own endpoint so that the forest types the author gave decide.
+ * `state` is the answer of /point/species (or of the saved point's endpoint, so that the forest
+ * types the author gave decide): ObservedZone asks it, because the chart needs the selected
+ * species' thermal range too.
  */
-export function SpeciesPanel({ point, savedId, selected, onSelect }) {
+export function SpeciesPanel({ state, selected, onSelect }) {
   const { t, lang } = useApp()
   const uid = useId()
   const { species: catalog } = useSpecies()
   const [group, setGroup] = useState(DEFAULT_EDIB_GROUP)
   const [query, setQuery] = useState('')
-
-  const fetcher = useMemo(
-    () => (savedId ? (_lat, _lon, opts) => fetchSavedPointSpecies(savedId, opts) : fetchPointSpecies),
-    [savedId],
-  )
-  const state = usePointData(fetcher, point)
 
   const byId = useMemo(() => new Map((catalog ?? []).map(s => [s.id, s])), [catalog])
   const rows = useMemo(() => buildRows(state.data, byId, t, lang), [state.data, byId, t, lang])
@@ -105,7 +100,7 @@ export function SpeciesPanel({ point, savedId, selected, onSelect }) {
   const groups = EDIB_GROUPS.filter(g => counts[g] > 0 || g === group)
 
   return (
-    <aside aria-labelledby="obs-sp-title" className="glass rounded-2xl p-4 flex flex-col gap-3 lg:absolute lg:inset-0">
+    <aside aria-labelledby="obs-sp-title" className="glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:absolute lg:inset-0">
       <h3 id="obs-sp-title" className="font-display text-2xl text-cream">{t.obsSpTitle}</h3>
 
       <div aria-live="polite" className="flex items-center gap-2 rounded-xl glass-olive px-3 py-2">
@@ -145,15 +140,10 @@ export function SpeciesPanel({ point, savedId, selected, onSelect }) {
             />
             <div className="flex items-center gap-2">
               <label htmlFor={`${uid}-edib`} className="text-xs text-cream/60 shrink-0">{t.obsSpEdib}</label>
-              <select
-                id={`${uid}-edib`}
-                value={group}
-                onChange={e => setGroup(e.target.value)}
-                className={`${FIELD} flex-1 min-w-0 py-1.5`}
-              >
+              <ObsSelect id={`${uid}-edib`} value={group} onChange={e => setGroup(e.target.value)} className="flex-1 min-w-0">
                 <option value={ALL}>{t.obsSpAll} ({rows.length})</option>
                 {groups.map(g => <option key={g} value={g}>{t[g]} ({counts[g]})</option>)}
-              </select>
+              </ObsSelect>
             </div>
           </div>
           {source && <p className="text-xs text-cream/50">{source}</p>}

@@ -24,7 +24,7 @@ function Item({ sp, observed, saved, onObserve }) {
   }
 
   return (
-    <li data-testid="saved-item" className="glass rounded-2xl p-4 space-y-2">
+    <li data-testid="saved-item" className="glass obs-card rounded-2xl p-4 space-y-2">
       {mode === 'form' ? (
         <SavePointForm
           initial={formFromSaved(sp)}
@@ -69,42 +69,46 @@ function Item({ sp, observed, saved, onObserve }) {
   )
 }
 
-/** «Mis puntos»: the user's saved points, collapsible. Open at first only if nothing is observed. */
-export function SavedPoints({ saved, observed, onObserve }) {
+/** Button that shows or hides the list of saved points. It sits beside the point's own actions. */
+export function SavedPointsToggle({ saved, open, onToggle }) {
+  const { t } = useApp()
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      aria-controls="obs-saved-list"
+      className={`${BTN_SECONDARY} inline-flex items-center gap-2`}
+    >
+      <span aria-hidden="true">★</span>
+      <span>
+        {t.obsSavedListTitle}
+        {saved.status === 'ready' && <span data-testid="saved-count" className="text-cream/60"> ({saved.points.length})</span>}
+      </span>
+      <span aria-hidden="true" className="text-cream/60">{open ? '▾' : '▸'}</span>
+    </button>
+  )
+}
+
+/** «Mis puntos»: the user's saved points as cards, shown below the toggle when it is open. */
+export function SavedPointsList({ saved, observed, onObserve, open }) {
   const { t, lang } = useApp()
-  const [open, setOpen] = useState(!observed)
   const points = sortSaved(saved.points, lang)
 
   return (
-    <section aria-label={t.obsSavedListTitle} className="space-y-3">
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-        aria-controls="obs-saved-list"
-        className="w-full glass rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left hover:[background-color:var(--ui-surface-hover)] transition-all"
-      >
-        <span className="font-display text-xl text-cream">
-          {t.obsSavedListTitle}
-          {saved.status === 'ready' && <span data-testid="saved-count" className="text-cream/50 text-base"> ({points.length})</span>}
-        </span>
-        <span aria-hidden="true" className="text-cream/60">{open ? '▾' : '▸'}</span>
-      </button>
-
-      <div id="obs-saved-list" hidden={!open} className="space-y-3">
-        {saved.status === 'loading' && <p className="text-sm text-cream/60 animate-pulse px-1">{t.obsSavedLoading}</p>}
-        {saved.status === 'error' && <ObservatoryNotice error={saved.error} onRetry={saved.reload} />}
-        {saved.status === 'ready' && points.length === 0 && (
-          <p className="text-sm text-cream/60 px-1">{t.obsSavedEmpty}</p>
-        )}
-        {points.length > 0 && (
-          <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {points.map(sp => (
-              <Item key={sp.id} sp={sp} observed={observed} saved={saved} onObserve={onObserve} />
-            ))}
-          </ul>
-        )}
-      </div>
-    </section>
+    <div id="obs-saved-list" hidden={!open} role="region" aria-label={t.obsSavedListTitle} className="space-y-3">
+      {saved.status === 'loading' && <p className="text-sm text-cream/60 animate-pulse px-1">{t.obsSavedLoading}</p>}
+      {saved.status === 'error' && <ObservatoryNotice error={saved.error} onRetry={saved.reload} />}
+      {saved.status === 'ready' && points.length === 0 && (
+        <p className="text-sm text-cream/60 px-1">{t.obsSavedEmpty}</p>
+      )}
+      {points.length > 0 && (
+        <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {points.map(sp => (
+            <Item key={sp.id} sp={sp} observed={observed} saved={saved} onObserve={onObserve} />
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }

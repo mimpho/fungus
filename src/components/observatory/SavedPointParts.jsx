@@ -12,7 +12,7 @@ const TYPE_KEY = {
 
 const BTN_PRIMARY = 'px-4 py-2 rounded-xl bg-bar hover:bg-[#a0834d] disabled:opacity-60 disabled:hover:bg-bar text-white text-sm font-medium transition-all'
 export const BTN_SECONDARY = 'px-4 py-2 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] disabled:opacity-60 transition-all'
-const FIELD = 'w-full rounded-xl bg-cream/[0.06] border border-cream/30 px-3 py-2 text-base md:text-sm text-cream placeholder:text-cream/40 focus:outline-none focus:border-cream/50'
+const FIELD = 'w-full rounded-xl bg-cream/[0.08] px-3 py-2 text-base md:text-sm text-cream placeholder:text-cream/40 outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
 
 /** Why a save, change or removal failed: 409 has two meanings, the rest is the common notice. */
 export function SaveError({ error }) {

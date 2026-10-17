@@ -9,7 +9,7 @@ const EMPTY = { name: '', notes: '', forestTypes: [] }
  * Save / edit / remove for one point, wherever it is shown (map panel, observed zone).
  * Not saved: «Guardar este punto» opens the form. Saved: its name, with «Editar» and «Quitar».
  */
-export function SavePointControls({ point, suggestedName, saved }) {
+export function SavePointControls({ point, suggestedName, saved, extra = null }) {
   const { t } = useApp()
   const [mode, setMode] = useState('idle') // idle | form | confirm
   const existing = saved.find(point)
@@ -42,11 +42,12 @@ export function SavePointControls({ point, suggestedName, saved }) {
         />
       )
     }
-    return (
-      <button type="button" onClick={() => setMode('form')} className={`${BTN_SECONDARY} w-full`}>
+    const save = (
+      <button type="button" onClick={() => setMode('form')} className={`${BTN_SECONDARY}${extra ? '' : ' w-full'}`}>
         {t.obsSaveButton}
       </button>
     )
+    return extra ? <div className="flex flex-wrap gap-2">{save}{extra}</div> : save
   }
 
   if (mode === 'form') {
@@ -72,6 +73,7 @@ export function SavePointControls({ point, suggestedName, saved }) {
       <div className="flex gap-2">
         <button type="button" onClick={() => setMode('form')} className={BTN_SECONDARY}>{t.obsSavedEdit}</button>
         <button type="button" onClick={() => setMode('confirm')} className={BTN_SECONDARY}>{t.obsSavedRemove}</button>
+        {extra}
       </div>
     </div>
   )

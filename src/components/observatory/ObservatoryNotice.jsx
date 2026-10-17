@@ -41,7 +41,7 @@ export function ObservatoryNotice({ error, onRetry }) {
   if (kind === 'unavailable' && wait) message = `${message} ${t.obsRetryAt.replace('{tiempo}', wait)}`
 
   return (
-    <div role="alert" className="glass rounded-2xl p-5 flex flex-wrap items-center gap-3 justify-between">
+    <div role="alert" className="glass obs-card rounded-2xl p-5 flex flex-wrap items-center gap-3 justify-between">
       <p className="text-sm text-cream/80 flex-1 min-w-[16rem]">{message}</p>
       {kind === 'auth' && (
         <button
