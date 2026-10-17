@@ -242,6 +242,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],  # PATCH for profile update
     allow_headers=["*"],
+    # Without this the browser hides Retry-After (429/503 of the Observatory) from the page
+    expose_headers=["Retry-After"],
 )
 
 # Catch-all exception handler — ensures CORS headers are present even on

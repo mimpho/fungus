@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — Retry-After readable from the browser (2026-10-17, `fix/observatory-cors-retry-after`)
+
+- **CORS now lists `Retry-After` in `Access-Control-Expose-Headers`** (`app/main.py`). The 429 (daily limit of new cells) and 503 (provider down or daily budget spent) answers of the Observatory carry it, but a browser on another origin (Vercel to Render, or `localhost:5173` to `localhost:8000`) hides every header that is not exposed, so the page could not tell the user when to try again. New `tests/unit/test_cors.py` (588 unit tests in total).
+
 ### Fixed — UTC date in the climate export script (2026-10-17, `fix/observatory-export-climate-utc-date`)
 
 - **`backend/scripts/export_zone_climate.py` computes "today" in UTC** (`datetime.now(UTC).date()`) instead of the local date. Open-Meteo counts days in UTC: between 00:00 and 02:00 in Madrid the local date is a day ahead and its forecast limit rejected the requested range.
