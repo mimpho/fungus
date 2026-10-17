@@ -33,7 +33,7 @@ export function ThermometerSkeleton() {
  * the facts behind it, the rains still on their way, what weighs for and against, and «Ver por
  * qué» with each factor and the formula. `snap` is the /point/snapshot answer.
  */
-export function Thermometer({ snap }) {
+export function Thermometer({ snap, forName = null }) {
   const { t, lang } = useApp()
   const [open, setOpen] = useState(false)
   const headingId = useId()
@@ -48,6 +48,9 @@ export function Thermometer({ snap }) {
         <h3 id={headingId} className="font-display text-2xl text-cream">{t.obsThTitle}</h3>
         {vm.day && <p className="text-xs text-cream/50">{fill(t.obsThDataDate, { fecha: vm.day }, lang)}</p>}
       </div>
+      {forName && (
+        <p data-testid="species-for" className="text-sm text-cream/80 -mt-3">{t.obsSpFor.replace('{name}', forName)}</p>
+      )}
 
       <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
         <div className="flex items-end gap-3">

@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
+import { useSpecies } from '../../hooks/useSpecies'
+import { speciesName } from '../../lib/speciesList'
 import { usePointData } from '../../hooks/usePointData'
 import { fetchPointForest, fetchPointSnapshot } from '../../services/observatoryService'
 import { formatCoords } from '../../lib/observatoryView'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { SavePointControls } from './SavePointControls'
 import { Thermometer, ThermometerSkeleton } from './Thermometer'
+import { SpeciesPanel } from './SpeciesPanel'
 
 const MACRO_KEY = {
   conifera: 'obsMacroConifera',
@@ -21,7 +25,9 @@ const MACRO_KEY = {
  */
 export function ObservedZone({ point, saved, onClear }) {
   const { t } = useApp()
-  const snap = usePointData(fetchPointSnapshot, point)
+  const [speciesId, setSpeciesId] = useState(null)
+  const { species: catalog } = useSpecies()
+  const snap = usePointData(fetchPointSnapshot, point, { species: speciesId })
   const forest = usePointData(fetchPointForest, point)
 
   const d = forest.data
@@ -62,9 +68,22 @@ export function ObservedZone({ point, saved, onClear }) {
         <p role="note" className="rounded-xl glass-warm px-4 py-3 text-sm text-cream/90">{t.obsForestNo}</p>
       )}
 
-      {snap.status === 'loading' && <ThermometerSkeleton />}
-      {snap.status === 'error' && <ObservatoryNotice error={snap.error} onRetry={snap.retry} />}
-      {snap.status === 'ready' && <Thermometer snap={snap.data} />}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] items-start">
+        <div className="space-y-3 min-w-0">
+          {snap.status === 'loading' && <ThermometerSkeleton />}
+          {snap.status === 'error' && <ObservatoryNotice error={snap.error} onRetry={snap.retry} />}
+          {snap.status === 'ready' && (
+            <Thermometer
+              snap={snap.data}
+              forName={speciesId ? speciesName(speciesId, null, new Map((catalog ?? []).map(s => [s.id, s]))) : null}
+            />
+          )}
+        </div>
+        {/* On desktop the panel is laid out absolutely inside this box: its height is the thermometer's */}
+        <div className="relative lg:self-stretch lg:min-h-[30rem]">
+          <SpeciesPanel point={point} savedId={saved.find(point)?.id ?? null} selected={speciesId} onSelect={setSpeciesId} />
+        </div>
+      </div>
     </section>
   )
 }
