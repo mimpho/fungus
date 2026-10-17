@@ -3,6 +3,7 @@ import { usePointData } from '../../hooks/usePointData'
 import { fetchPointForest, fetchPointSnapshot } from '../../services/observatoryService'
 import { formatCoords } from '../../lib/observatoryView'
 import { ObservatoryNotice } from './ObservatoryNotice'
+import { SavePointControls } from './SavePointControls'
 import { Thermometer, ThermometerSkeleton } from './Thermometer'
 
 const MACRO_KEY = {
@@ -18,7 +19,7 @@ const MACRO_KEY = {
  * says that the species will not be listed. The place name is context: if it fails, coordinates
  * stand in and nothing is reported. Only the thermometer failing is an error to show.
  */
-export function ObservedZone({ point, onClear }) {
+export function ObservedZone({ point, saved, onClear }) {
   const { t } = useApp()
   const snap = usePointData(fetchPointSnapshot, point)
   const forest = usePointData(fetchPointForest, point)
@@ -31,7 +32,8 @@ export function ObservedZone({ point, onClear }) {
 
   return (
     <section aria-label={t.obsObservedTitle} className="space-y-4">
-      <div className="glass rounded-2xl p-4 flex items-start justify-between gap-3">
+      <div className="glass rounded-2xl p-4 space-y-3">
+       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs text-cream/50">{t.obsObservedTitle}</p>
           <p data-testid="zone-title" className="font-display text-2xl text-cream leading-tight break-words">{title}</p>
@@ -50,6 +52,10 @@ export function ObservedZone({ point, onClear }) {
         >
           {t.obsClear}
         </button>
+       </div>
+        <div className="max-w-md">
+          <SavePointControls point={point} suggestedName={d?.toponym?.label} saved={saved} />
+        </div>
       </div>
 
       {hasForest === false && (

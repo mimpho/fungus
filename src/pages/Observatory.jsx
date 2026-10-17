@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
+import { useSavedPoints } from '../hooks/useSavedPoints'
 import { isInCatalonia } from '../lib/catalonia'
 import { ObservatoryError } from '../services/observatoryService'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { Tabs } from '../components/ui/Tabs'
 import { MapSearch } from '../components/observatory/MapSearch'
 import { ObservedZone } from '../components/observatory/ObservedZone'
+import { SavedPoints } from '../components/observatory/SavedPoints'
 import { PointPanel } from '../components/observatory/PointPanel'
 import { ObservatoryNotice } from '../components/observatory/ObservatoryNotice'
 import { Attribution } from '../components/observatory/Attribution'
@@ -19,6 +21,7 @@ import { Attribution } from '../components/observatory/Attribution'
 export default function Observatory() {
   const { t, isAuthenticated, authLoading, setAuthModal } = useApp()
   const { point: observed, observe, clear } = useObservatoryView()
+  const saved = useSavedPoints(isAuthenticated)
   const [pending, setPending] = useState(null)
   const [pickError, setPickError] = useState(null)
   const [flyTo, setFlyTo] = useState(null)
@@ -103,6 +106,7 @@ export default function Observatory() {
             <ObservatoryMap
               observed={observed}
               pending={pending}
+              saved={saved.points}
               onPick={handlePick}
               label={t.obsMapLabel}
               basemap={basemap}
@@ -131,11 +135,13 @@ export default function Observatory() {
               <MapSearch onSelect={handleSearchSelect} className="pointer-events-auto w-full md:w-[30rem]" />
             </div>
             {pending && (
-              <PointPanel point={pending} observed={observed} onObserve={handleObserve} onClose={() => setPending(null)} />
+              <PointPanel point={pending} observed={observed} saved={saved} onObserve={handleObserve} onClose={() => setPending(null)} />
             )}
           </div>
 
-          {observed && <ObservedZone key={`${observed.lat},${observed.lon}`} point={observed} onClear={clear} />}
+          <SavedPoints saved={saved} observed={observed} onObserve={handleObserve} />
+
+          {observed && <ObservedZone key={`${observed.lat},${observed.lon}`} point={observed} saved={saved} onClear={clear} />}
         </>
       )}
 

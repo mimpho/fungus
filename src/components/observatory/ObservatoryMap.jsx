@@ -6,6 +6,7 @@ import { CATALONIA_BOUNDS } from '../../lib/catalonia'
 // Leaflet draws SVG outside React's DOM: colours are literal hex, never CSS vars
 // (see the Leaflet entry in memory/gotchas.md).
 const OBSERVED_STYLE = { radius: 10, color: '#f4ebe1', weight: 2, fillColor: '#4a7c59', fillOpacity: 0.95 }
+const SAVED_STYLE    = { radius: 7, color: '#4a7c59', weight: 2, fillColor: '#f0d9a8', fillOpacity: 0.95, bubblingMouseEvents: false }
 const PENDING_STYLE  = { radius: 9, color: '#f0d9a8', weight: 3, dashArray: '3 3', fillColor: '#c4a06b', fillOpacity: 0.45 }
 
 const BOUNDS = L.latLngBounds(
@@ -18,12 +19,13 @@ const OBSERVED_ZOOM = 12
  * Map of Catalonia. A click only reports the coordinates (onPick); what to do with them is the
  * page's. `observed` is the point being observed (green), `pending` the one just picked (dashed).
  */
-export function ObservatoryMap({ observed, pending, onPick, label, basemap = 'satellite', flyTo = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], onPick, label, basemap = 'satellite', flyTo = null, className = '' }) {
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
   const observedRef = useRef(null)
   const pendingRef  = useRef(null)
   const tilesRef    = useRef(null)
+  const savedRef    = useRef(null)
   const onPickRef  = useRef(onPick)
   const initial    = useRef(observed)
   useEffect(() => { onPickRef.current = onPick }, [onPick])
@@ -50,7 +52,7 @@ export function ObservatoryMap({ observed, pending, onPick, label, basemap = 'sa
     return () => {
       ro.disconnect()
       try { map.remove() } catch (_e) { /* partial state: ignore */ }
-      mapRef.current = observedRef.current = pendingRef.current = tilesRef.current = null
+      mapRef.current = observedRef.current = pendingRef.current = tilesRef.current = savedRef.current = null
     }
   }, [])
 
@@ -64,6 +66,24 @@ export function ObservatoryMap({ observed, pending, onPick, label, basemap = 'sa
       : L.tileLayer(ICGC_HYBRID_TILES_URL, { attribution: ICGC_ATTRIBUTION, maxZoom: 19 })
     tilesRef.current.addTo(map).bringToBack()
   }, [basemap])
+
+  // Saved points: a marker with its name; clicking one picks it like a click on that spot
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    savedRef.current?.remove()
+    const group = L.layerGroup()
+    for (const sp of saved) {
+      const marker = L.circleMarker([sp.lat, sp.lon], SAVED_STYLE)
+      const name = document.createElement('span')
+      name.textContent = sp.name // textContent: the name is user text, never HTML
+      marker.bindTooltip(name, { direction: 'top', offset: [0, -6] })
+      marker.on('click', () => onPickRef.current?.(sp.lat, sp.lon))
+      marker.addTo(group)
+    }
+    group.addTo(map)
+    savedRef.current = group
+  }, [saved])
 
   // Observed point: marker, and the view goes to it (also when it comes from the URL)
   useEffect(() => {
