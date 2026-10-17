@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — UTC date in the climate export script (2026-10-17, `fix/observatory-export-climate-utc-date`)
+
+- **`backend/scripts/export_zone_climate.py` computes "today" in UTC** (`datetime.now(UTC).date()`) instead of the local date. Open-Meteo counts days in UTC: between 00:00 and 02:00 in Madrid the local date is a day ahead and its forecast limit rejected the requested range.
+
 ### Added — MCSC-4 grid preprocessing and pure composition (2026-10-17, `feat/observatory-mcsc-grid`)
 
 - **New `app/services/mcsc_grid.py` (pure, stdlib only)**: the tile format of the CREAF MCSC-4 land cover as a 25 m grid, a `Grid` reader over any tile loader and `composition()` / `composition_at()`. Each cell holds the class (`C_SIMPLE` code) of the polygon at its centre as an index into a code table (0 = no data), 1 byte per cell (2 bytes automatically beyond 255 codes), in tiles of 1024×1024 cells (25,600 m) anchored at the UTM 31N origin, compressed with `lzma` and named `{tx}_{ty}.lzma`, next to a `manifest.json` (cell and tile size, CRS `EPSG:25831`, bytes per cell, code table with `confirmed`, sheets). `bqs` and `bqp` carry `confirmed: false`.

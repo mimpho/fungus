@@ -14,7 +14,7 @@ import argparse
 import asyncio
 import json
 import sys
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
@@ -36,7 +36,9 @@ def pack(r) -> dict:
 
 
 async def main(args: argparse.Namespace) -> None:
-    today = date.today()
+    # Open-Meteo counts days in UTC: the local date can be a day ahead (00:00-02:00 in Madrid)
+    # and its forecast limit would reject the range.
+    today = datetime.now(UTC).date()
     ids = [z.strip() for z in args.zones.split(",") if z.strip()]
     async with AsyncSessionLocal() as db:
         zones = {z.id: z for z in (await db.execute(select(Zone).where(Zone.id.in_(ids)))).scalars()}
