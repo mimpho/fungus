@@ -29,7 +29,7 @@ def upsert_rows_statement(rows: list[dict]):
 def _info(cell: Cell) -> CellInfo:
     return CellInfo(
         cell.id, cell.lat, cell.lon, cell.elevation_m, cell.loaded_from, cell.loaded_to,
-        cell.created_by,
+        cell.created_by, cell.refreshed_at,
     )
 
 
@@ -51,6 +51,23 @@ class SqlCellStore:
             .on_conflict_do_nothing()
         )
         await self.db.commit()
+
+    async def known_lookup_keys(self, keys: list[tuple[int, int]]) -> set[tuple[int, int]]:
+        """Which of these 500 m buckets already point to a cell (so they are not probed again)."""
+        if not keys:
+            return set()
+        lat_keys = [k[0] for k in keys]
+        rows = await self.db.execute(
+            select(CellLookup.lat_key, CellLookup.lon_key).where(
+                CellLookup.lat_key.between(min(lat_keys), max(lat_keys))
+            )
+        )
+        return set(keys) & {(r[0], r[1]) for r in rows}
+
+    async def list_cells(self) -> list[CellInfo]:
+        """Every cell, loaded or not."""
+        rows = await self.db.scalars(select(Cell).order_by(Cell.id))
+        return [_info(c) for c in rows]
 
     async def get_cell(self, cell_id: str) -> CellInfo | None:
         cell = await self.db.get(Cell, cell_id)

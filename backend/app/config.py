@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     # Saved points per user. Over it: 409 on creating. 0 = no limit (the default: the Observatory
     # is not born limited); the knob exists in case the limit is wanted later.
     observatory_max_saved_points_per_user: int = 0
+    # Daily job that refreshes the last days and the forecast of EVERY stored cell (weighted
+    # Open-Meteo calls it may spend; ~3 per cell). 0 = job off. Shares the 10,000/day free quota
+    # with the zone ingest and the weather cache.
+    observatory_cell_refresh_budget: int = 1500
 
     # Versión de la API
     api_version: str = "v1"
