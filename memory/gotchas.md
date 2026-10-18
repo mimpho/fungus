@@ -262,13 +262,13 @@ When navigating from `/familia/:slug` to `/especies/:id`, React unmounts Species
 Pictures sent to Claude through the chat arrive recompressed without EXIF (no GPS, date or phone model). For field photos keep the originals in `local-data/field/` (excluded from git) and read them from there; their GPS is the evidence, so never publish them as they are.
 
 ### ⚠️ `/observatory/point` is the prefix of the Observatory router
-`routers/observatory.py` has `prefix="/observatory/point"`. A route added there for something that is not a point lands under `/observatory/point/...` and the front gets a plain `{"detail": "Not Found"}`, which `observatoryService` shows as «Todavía no hay datos de clima para este punto» (every 404 reads like that). The territory rain has its own `territory_router` (`/observatory/territory`), included in `main.py`. Check `/docs` after adding an endpoint.
+`routers/observatory.py` has `prefix="/observatory/point"`. A route added there for something that is not a point lands under `/observatory/point/...` and the front gets a plain `{"detail": "Not Found"}`, which `observatoryService` shows as «Todavía no hay datos de clima para este punto» (every 404 reads like that). Anything that is not a point needs its own router (the territory one existed briefly and was removed on 2026-10-18), included in `main.py`. Check `/docs` after adding an endpoint.
 
 ### ⚠️ Local runs do not migrate, so a new table does not exist locally
-`backend/.env` points at the production database and migrations are skipped locally (`RUN_MIGRATIONS_ON_STARTUP`). Code that needs a new table must keep working without it: `territory_rain_store` falls back to process memory (each restart pulls the full 26 weeks again). Do not run `alembic upgrade head` from local just to test.
+`backend/.env` points at the production database and migrations are skipped locally (`RUN_MIGRATIONS_ON_STARTUP`). Code that needs a new table must keep working without it: a store can fall back to process memory, as the removed territory rain store did. Do not run `alembic upgrade head` from local just to test.
 
 ### ⚠️ Open-Meteo counts calls by range: a big first pull is not free
-Requests over 2 weeks count as several calls (4 weeks = 3.0 in their example) and the page does not say how locations count. The territory rain asks for 55 locations; a full pull is estimated at ~770 calls (the project measured ~7 weighted calls for 280 days of one cell, which would give ~250). Free limit: 600/min, 5,000/hour, 10,000/day.
+Requests over 2 weeks count as several calls (4 weeks = 3.0 in their example) and the page does not say how locations count. The removed territory rain asked for 55 locations and was estimated at ~770 calls for a full pull (the project measured ~7 weighted calls for 280 days of one cell, which would give ~250); that is why it was not shipped. Keep the same caution for the server-side cell ingestion of 7a. Free limit: 600/min, 5,000/hour, 10,000/day.
 
 ### ⚠️ Sessions on the linked device run Python 3.10
 The project needs 3.11+ (`datetime.UTC`). For tests in a session: `uv venv /tmp/vv --python 3.12`, install the project there (outside the repo) and delete it afterwards.
