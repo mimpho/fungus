@@ -33,3 +33,8 @@
 - **2026-10-17, Coll de Bordoriol → Taradell (Osona):** the Observatory gave about 90 % for cep; none found after searching in Bordoriol, plenty of parasol (*Macrolepiota procera*). Toward Taradell, at about 850 m, an *Amanita caesarea* and a pink-capped bolete (identified by Marcos as *Boletus pseudoregius*), photographed within two minutes at the same spot.
 - **Hypotheses, unchecked:** real soil moisture or canopy shade the model does not see; slope aspect; the cep needing more days after the rain than the model assumes; the model being optimistic with soil moisture (already noted on 2026-10-11 for Bordoriol and Els Munts).
 - **To do:** pull the series and factor breakdown for that point and date from the API (needs access) and compare. The photos with GPS and an index of finds live in `local-data/field/`.
+
+## 5. Territory area follow-ups (Marcos, 2026-10-18)
+
+- «Área de territorio» ships with a rain heat map over a 55-point grid and a zone ranking by catalogue score (`/zones`). **Idea, not decided:** rank grid areas by score, not only by rain, so «where to go this weekend» uses the model and not just where it rained. It needs scoring v2 per grid point: a full 280-day history of each point (~55 cells, about 385 weighted calls once, then incremental) and the point's elevation; the grid points could become real cells of the Observatory.
+- The ranking's «Cerca» uses the observed zone as centre; a variant could use the user's followed zones' centroid or their location.
