@@ -25,7 +25,9 @@ class SpeciesListItem(BaseModel):
     # From extra_data — exposed at top level for frontend convenience
     common_names: list[str] | None = None
     photo_url: str | None = None
-    # description, synonyms, confusions NOT here — only in SpeciesDetail
+    # Latin synonyms: the Observatory's species search matches them without one request per species
+    synonyms: list[str] | None = None
+    # description, confusions NOT here — only in SpeciesDetail
 
 
 class SpeciesOIParams(BaseModel):
@@ -42,7 +44,6 @@ class SpeciesDetail(SpeciesListItem):
     """Full species detail for GET /species/{id} — replaces ZoneModal species data."""
     oi_params: SpeciesOIParams
     description: str | None = None
-    synonyms: list[str] | None = None
     confusions: list[SpeciesConfusion] | None = None
     # Fruiting conditions — language-resolved by _extra_str (cond_*_es/ca/en in extra_data)
     cond_temp: str | None = None

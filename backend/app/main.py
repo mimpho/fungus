@@ -17,7 +17,7 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
@@ -37,6 +37,7 @@ from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
 from app.routers import auth, health, me, observatory, saved_points, species, weather, zones
 from app.services.ingest import run_backfill, run_daily_ingest
+from app.services.territory_rain_store import get_territory_rain
 from app.services.weather_refresh import get_outdated_weather_zones, refresh_weather_cache
 
 # Single source of truth for version — reads from pyproject.toml at runtime
@@ -120,6 +121,16 @@ async def _scheduled_ingest() -> None:
             log.exception("Scheduled ingest failed: %s", exc)
 
 
+async def _scheduled_territory_rain() -> None:
+    """Rebuild the territory rain map (one batched Open-Meteo pull) after the daily ingest."""
+    async with AsyncSessionLocal() as db:
+        try:
+            await get_territory_rain(db, datetime.now(UTC).date(), force=True)
+            log.info("Territory rain map rebuilt")
+        except Exception as exc:
+            log.exception("Territory rain rebuild failed: %s", exc)
+
+
 async def _startup_ingest_if_empty() -> None:
     """
     On startup, run the ingest if scores_cache is empty.
@@ -192,6 +203,16 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         minute=0,
         id="daily_ingest",
         replace_existing=True,
+    )
+    scheduler.add_job(
+        _scheduled_territory_rain,
+        trigger="cron",
+        hour=settings.ingest_cron_hour,
+        minute=30,
+        id="territory_rain",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
     scheduler.add_job(
         _scheduled_weather_refresh,
@@ -315,6 +336,7 @@ app.include_router(weather.router, prefix=API_PREFIX)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(me.router, prefix=API_PREFIX)
 app.include_router(observatory.router, prefix=API_PREFIX)
+app.include_router(observatory.territory_router, prefix=API_PREFIX)
 app.include_router(saved_points.router, prefix=API_PREFIX)
 
 # Static assets (logo for emails, etc.) — served at /static/<filename>

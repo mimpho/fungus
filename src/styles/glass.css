@@ -86,3 +86,32 @@
   pointer-events: none;
   border-radius: inherit;
 }
+
+/* Observatory cards: same shadow as the zone cards (.hover-lift in components.css) */
+.obs-card {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Observatory chart layer checkbox (prototype look): square with a white tick when on */
+.obs-chk {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 4px;
+  border: 1.5px solid rgba(var(--color-cream-rgb), 0.6);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 12px;
+  cursor: pointer;
+}
+.obs-chk:checked {
+  background-color: rgb(var(--color-bar-rgb));
+  border-color: rgb(var(--color-bar-rgb));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2l2.3 2.3 4.7-4.9' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.obs-chk:focus-visible {
+  outline: 2px solid rgb(var(--color-cream-rgb));
+  outline-offset: 2px;
+}
