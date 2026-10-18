@@ -3,7 +3,6 @@ import { useApp } from '../../contexts/AppContext'
 import { fetchPointForest } from '../../services/observatoryService'
 import { formatCoords, samePoint } from '../../lib/observatoryView'
 import { ObservatoryNotice } from './ObservatoryNotice'
-import { SavePointControls } from './SavePointControls'
 
 const MACRO_KEY = {
   conifera: 'obsMacroConifera',
@@ -17,7 +16,7 @@ const MACRO_KEY = {
  * «Observar esta zona» button. Asking this costs no climate data (no new cell), so every click
  * can ask; the answer is context, and the button works even while it loads or if it fails.
  */
-export function PointPanel({ point, observed, saved, onObserve, onClose }) {
+export function PointPanel({ point, observed, onObserve, onClose }) {
   const { t } = useApp()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [attempt, setAttempt] = useState(0)
@@ -91,7 +90,6 @@ export function PointPanel({ point, observed, saved, onObserve, onClose }) {
         {isObserved ? t.obsPointObserving : t.obsPointObserve}
       </button>
 
-      <SavePointControls key={`${point.lat},${point.lon}`} point={point} suggestedName={d?.toponym?.label} saved={saved} />
     </div>
   )
 }

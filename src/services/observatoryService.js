@@ -128,6 +128,13 @@ export const fetchPointSpecies = (lat, lon, { date, signal } = {}) =>
 export const fetchPointCalendar = (lat, lon, { date, species, signal } = {}) =>
   request('/point/calendar', { signal, params: { ...pt(lat, lon), date, species } })
 
+/** The weather the cell's stored forecast announces: up to 16 days from today. */
+export const fetchPointForecast = (lat, lon, { signal } = {}) =>
+  request('/point/forecast', { signal, params: { ...pt(lat, lon) } })
+
+/** Weekly rain of every catalogue zone, last 26 weeks. Not tied to a point. */
+export const fetchTerritoryRain = ({ signal } = {}) => request('/territory/rain', { signal })
+
 // ── Saved points ─────────────────────────────────────────────────────────────
 
 export const fetchSavedPoints = ({ signal } = {}) => request('/saved-points', { signal })

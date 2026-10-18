@@ -1,9 +1,12 @@
-import { useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
+import { IC } from '../../lib/helpers'
+import { usePointData } from '../../hooks/usePointData'
+import { fetchPointSnapshot } from '../../services/observatoryService'
+import { formatNumber } from '../../lib/thermometer'
+import { getScoreBand } from '../../lib/scoreBands'
 import { formatCoords, samePoint } from '../../lib/observatoryView'
-import { buildChanges, formFromSaved, sortSaved } from '../../lib/savedPoints'
+import { sortSaved } from '../../lib/savedPoints'
 import { ObservatoryNotice } from './ObservatoryNotice'
-import { BTN_SECONDARY, RemoveConfirm, SavePointForm } from './SavedPointParts'
 
 const TYPE_KEY = {
   pinar: 'obsFtPinar',
@@ -12,102 +15,164 @@ const TYPE_KEY = {
   encinar: 'obsFtEncinar',
 }
 
-function Item({ sp, observed, saved, onObserve }) {
-  const { t } = useApp()
-  const [mode, setMode] = useState('idle') // idle | form | confirm
-  const isObserved = samePoint(observed, sp)
+/** The card's score bar: the same look as the zone card's, from the point's own snapshot. */
+function CardMeter({ point }) {
+  const { t, lang } = useApp()
+  const snap = usePointData(fetchPointSnapshot, point)
 
-  async function edit(form) {
-    const changes = buildChanges(sp, form)
-    if (Object.keys(changes).length) await saved.update(sp.id, changes)
-    setMode('idle')
+  if (snap.status === 'loading') {
+    return (
+      <div aria-hidden="true" className="space-y-2 animate-pulse">
+        <div className="flex justify-between items-center">
+          <div className="h-3 w-28 bg-white/10 rounded" />
+          <div className="h-3 w-14 bg-white/10 rounded" />
+        </div>
+        <div className="progress-bar"><div className="progress-fill bg-white/10" style={{ width: '0%' }} /></div>
+        <div className="h-3 w-40 bg-white/10 rounded" />
+      </div>
+    )
+  }
+  // The card is still useful without its score: say so quietly instead of an error box per card
+  if (snap.status === 'error' || !Number.isFinite(snap.data?.score)) {
+    return <p className="text-xs text-cream/60">{t.obsSavedNoScore}</p>
   }
 
+  const score = snap.data.score
+  const band = getScoreBand(score)
+  const k = snap.data.key_facts ?? {}
   return (
-    <li data-testid="saved-item" className="glass obs-card rounded-2xl p-4 space-y-2">
-      {mode === 'form' ? (
-        <SavePointForm
-          initial={formFromSaved(sp)}
-          nameRequired
-          submitLabel={t.obsSavedUpdate}
-          onSubmit={edit}
-          onCancel={() => setMode('idle')}
-        />
-      ) : (
-        <>
-          <div>
-            <p className="font-display text-lg text-cream leading-tight break-words">{sp.name}</p>
-            <p className="text-xs text-cream/60 mt-0.5">
-              {[
-                Number.isFinite(sp.elevation_m) ? `${Math.round(sp.elevation_m)} m` : null,
-                formatCoords(sp),
-              ].filter(Boolean).join(' · ')}
-            </p>
+    <>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-cream/70 text-xs">{t.condRecoleccion}</span>
+        <span data-testid="saved-score" className={`text-xs font-semibold ${band.text}`}>{score} · {t[band.tKey]}</span>
+      </div>
+      <div className="progress-bar" aria-hidden="true">
+        <div className={`progress-fill ${band.bar}`} style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
+      </div>
+      <div className="flex gap-1.5 mt-1.5 text-cream/60 text-xs flex-wrap">
+        {k.last_night_min_c != null && (
+          <span className="flex items-center gap-1" title={t.obsSavedNightMin}>
+            <img src="/assets/images/icons/temperature.png" alt="" height="16" width="16" />
+            {formatNumber(k.last_night_min_c, lang)} °C
+          </span>
+        )}
+        {k.last_night_min_c != null && k.soil_water_mm != null && <span aria-hidden="true">·</span>}
+        {k.soil_water_mm != null && (
+          <span className="flex items-center gap-1" title={t.obsSavedSoilWater}>
+            <img src="/assets/images/icons/soil-moisture.png" alt="" height="16" width="16" />
+            {formatNumber(k.soil_water_mm, lang, 0)} mm
+          </span>
+        )}
+      </div>
+    </>
+  )
+}
+
+/**
+ * One saved point as a card like the zones page's: name, forest type with its icon and background
+ * picture, altitude and the score bar. The whole card observes the point (the name is the button,
+ * stretched over the card). Editing and removing happen once the point is observed.
+ */
+function Card({ sp, observed, onObserve }) {
+  const { t } = useApp()
+  const isObserved = samePoint(observed, sp)
+  const types = (sp.forest_types ?? []).filter(type => TYPE_KEY[type])
+  const first = types[0] ?? null
+  const label = sp.toponym?.label && sp.toponym.label !== sp.name ? sp.toponym.label : formatCoords(sp)
+
+  return (
+    <li
+      data-testid="saved-item"
+      className={`glass rounded-2xl hover-lift overflow-hidden relative focus-within:ring-2 focus-within:ring-cream/50 ${isObserved ? 'ring-2 ring-bar' : ''}`}
+    >
+      <div className="p-5">
+        <div className="mb-3">
+          <h3 className="font-display text-xl font-semibold text-cream truncate">
+            <button
+              type="button"
+              onClick={() => onObserve(sp)}
+              aria-current={isObserved ? 'true' : undefined}
+              className="max-w-full truncate text-left outline-none after:absolute after:inset-0 after:content-[''] cursor-pointer"
+            >
+              {sp.name}
+            </button>
+          </h3>
+          <p className="text-muted text-xs mt-0.5 truncate">{isObserved ? t.obsPointObserving : label}</p>
+        </div>
+
+        <div className="relative z-[1] pointer-events-none">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-cream/70 mb-4">
+            {first && (
+              <span className="flex items-center gap-1.5">
+                <img src={`/assets/images/icons/forest-type-${first}.png`} alt="" height="16" width="16" />
+                {types.map(type => t[TYPE_KEY[type]]).join(' · ')}
+              </span>
+            )}
+            {Number.isFinite(sp.elevation_m) && (
+              <span className="flex items-center gap-1.5">
+                <img src="/assets/images/icons/mountain.png" alt="" height="16" width="16" />
+                {Math.round(sp.elevation_m)} m
+              </span>
+            )}
           </div>
-          {sp.forest_types?.length > 0 && (
-            <ul className="flex flex-wrap gap-1.5" aria-label={t.obsSaveForest}>
-              {sp.forest_types.map(type => (
-                <li key={type} className="px-2.5 py-0.5 rounded-full text-xs bg-white/10 text-cream/80">{t[TYPE_KEY[type]] ?? type}</li>
-              ))}
-            </ul>
-          )}
-          {sp.notes && <p className="text-sm text-cream/70 whitespace-pre-line break-words">{sp.notes}</p>}
-          {mode === 'confirm' ? (
-            <RemoveConfirm name={sp.name} onConfirm={() => saved.remove(sp.id)} onCancel={() => setMode('idle')} />
-          ) : (
-            <div className="flex flex-wrap gap-2 pt-1">
-              <button type="button" onClick={() => onObserve(sp)} disabled={isObserved} className={BTN_SECONDARY}>
-                {isObserved ? t.obsPointObserving : t.obsSavedObserve}
-              </button>
-              <button type="button" onClick={() => setMode('form')} className={BTN_SECONDARY}>{t.obsSavedEdit}</button>
-              <button type="button" onClick={() => setMode('confirm')} className={BTN_SECONDARY}>{t.obsSavedRemove}</button>
-            </div>
-          )}
-        </>
-      )}
+          <CardMeter point={sp} />
+          {sp.notes && <p className="mt-2 text-xs text-cream/60 line-clamp-2 break-words">{sp.notes}</p>}
+        </div>
+
+        {first && (
+          <img
+            className="absolute bottom-0 right-1 opacity-20 pointer-events-none"
+            src={`/assets/images/forest-type/${first}.webp`}
+            alt="" height="125" width="125"
+          />
+        )}
+      </div>
     </li>
   )
 }
 
-/** Button that shows or hides the list of saved points. It sits beside the point's own actions. */
-export function SavedPointsToggle({ saved, open, onToggle }) {
+/** «Zonas observadas»: the button stuck at the top right of the page that shows or hides the saved cards. */
+export function SavedPointsToggle({ saved, onToggle }) {
   const { t } = useApp()
   return (
     <button
       type="button"
       onClick={onToggle}
-      aria-expanded={open}
-      aria-controls="obs-saved-list"
-      className={`${BTN_SECONDARY} inline-flex items-center gap-2`}
+      aria-haspopup="dialog"
+      className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl glass text-cream text-base font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
     >
-      <span aria-hidden="true">★</span>
-      <span>
-        {t.obsSavedListTitle}
-        {saved.status === 'ready' && <span data-testid="saved-count" className="text-cream/60"> ({saved.points.length})</span>}
-      </span>
-      <span aria-hidden="true" className="text-cream/60">{open ? '▾' : '▸'}</span>
+      <span aria-hidden="true" className="[&>svg]:w-[18px] [&>svg]:h-[18px]">{IC.heart(true)}</span>
+      <span>{t.obsSavedListTitle}</span>
+      {saved.status === 'ready' && (
+        <span data-testid="saved-count" className="px-2 py-1 bg-bar text-white rounded-full text-xs font-bold leading-none">{saved.points.length}</span>
+      )}
     </button>
   )
 }
 
-/** «Mis puntos»: the user's saved points as cards, shown below the toggle when it is open. */
+/**
+ * The saved points as cards, in a panel over the map or the observed zone when «Zonas observadas» is open.
+ * The cards (and their snapshots) are only mounted while it is open.
+ */
 export function SavedPointsList({ saved, observed, onObserve, open }) {
   const { t, lang } = useApp()
   const points = sortSaved(saved.points, lang)
 
   return (
     <div id="obs-saved-list" hidden={!open} role="region" aria-label={t.obsSavedListTitle} className="space-y-3">
-      {saved.status === 'loading' && <p className="text-sm text-cream/60 animate-pulse px-1">{t.obsSavedLoading}</p>}
-      {saved.status === 'error' && <ObservatoryNotice error={saved.error} onRetry={saved.reload} />}
-      {saved.status === 'ready' && points.length === 0 && (
-        <p className="text-sm text-cream/60 px-1">{t.obsSavedEmpty}</p>
-      )}
-      {points.length > 0 && (
-        <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {points.map(sp => (
-            <Item key={sp.id} sp={sp} observed={observed} saved={saved} onObserve={onObserve} />
-          ))}
-        </ul>
+      {open && (
+        <>
+          {saved.status === 'loading' && <p className="text-sm text-cream/60 animate-pulse px-1">{t.obsSavedLoading}</p>}
+          {saved.status === 'error' && <ObservatoryNotice error={saved.error} onRetry={saved.reload} />}
+          {saved.status === 'ready' && points.length === 0 && (
+            <p className="text-sm text-cream/60 px-1">{t.obsSavedEmpty}</p>
+          )}
+          {points.length > 0 && (
+            <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {points.map(sp => <Card key={sp.id} sp={sp} observed={observed} onObserve={onObserve} />)}
+            </ul>
+          )}
+        </>
       )}
     </div>
   )

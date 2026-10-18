@@ -8,7 +8,9 @@ import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { Tabs } from '../components/ui/Tabs'
 import { MapSearch } from '../components/observatory/MapSearch'
 import { ObservedZone } from '../components/observatory/ObservedZone'
+import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList, SavedPointsToggle } from '../components/observatory/SavedPoints'
+import { ObsModal } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
 import { ObservatoryNotice } from '../components/observatory/ObservatoryNotice'
 import { Attribution } from '../components/observatory/Attribution'
@@ -20,12 +22,18 @@ import { Attribution } from '../components/observatory/Attribution'
  */
 export default function Observatory() {
   const { t, isAuthenticated, authLoading, setAuthModal } = useApp()
-  const { point: observed, observe, clear } = useObservatoryView()
+  const { point: observed, until, days, observe, clear, setWindow } = useObservatoryView()
   const saved = useSavedPoints(isAuthenticated)
   const [pending, setPending] = useState(null)
   const [pickError, setPickError] = useState(null)
   const [flyTo, setFlyTo] = useState(null)
-  const [savedOpen, setSavedOpen] = useState(!observed)
+  const [savedOpen, setSavedOpen] = useState(false)
+  // The map stays on the page when a zone is observed: the page scrolls down to the zone and only
+  // a strip of the map stays above it (peeking). Clicking the strip scrolls back up to the map.
+  const mapBoxRef = useRef(null)
+  const zoneRef = useRef(null)
+  const firstScroll = useRef(true)
+  const [peeking, setPeeking] = useState(false)
   // Where the map starts when it comes back after observing a point
   const lastObserved = useRef(null)
   if (observed) lastObserved.current = observed
@@ -45,6 +53,31 @@ export default function Observatory() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [pending])
+
+  // Scroll to the observed zone: smooth when the person chooses it, at once when the page opens on it
+  const hasObserved = Boolean(observed) && isAuthenticated
+  useEffect(() => {
+    if (!hasObserved) { firstScroll.current = false; return }
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const behavior = firstScroll.current || reduce ? 'instant' : 'smooth'
+    firstScroll.current = false
+    const id = requestAnimationFrame(() => zoneRef.current?.scrollIntoView({ behavior, block: 'start' }))
+    return () => cancelAnimationFrame(id)
+  }, [hasObserved, observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // «Peeking»: most of the map is out of view because a zone is being read below it
+  useEffect(() => {
+    const el = mapBoxRef.current
+    if (!hasObserved || !el || typeof IntersectionObserver === 'undefined') { setPeeking(false); return }
+    const io = new IntersectionObserver(([entry]) => setPeeking(entry.intersectionRatio < 0.4), { threshold: [0, 0.2, 0.4, 0.6, 1] })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasObserved])
+
+  function backToMap() {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reduce ? 'instant' : 'smooth' })
+  }
 
   function handlePick(lat, lon) {
     if (!isInCatalonia(lat, lon)) {
@@ -69,7 +102,7 @@ export default function Observatory() {
     setSavedOpen(false)
   }
 
-  const savedToggle = <SavedPointsToggle saved={saved} open={savedOpen} onToggle={() => setSavedOpen(o => !o)} />
+  const savedToggle = <SavedPointsToggle saved={saved} onToggle={() => setSavedOpen(o => !o)} />
   const savedList = <SavedPointsList saved={saved} observed={observed} onObserve={handleObserve} open={savedOpen} />
 
   if (authLoading) {
@@ -82,9 +115,12 @@ export default function Observatory() {
 
   return (
     <div className="space-y-6 anim-up pb-20">
-      <div>
-        <h2 className="font-display text-4xl font-semibold text-cream">{t.obsTitle}</h2>
-        <p className="text-muted text-sm mt-1">{t.obsSubtitle}</p>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h2 className="font-display text-4xl font-semibold text-cream">{t.obsTitle}</h2>
+          <p className="text-muted text-sm mt-1">{t.obsSubtitle}</p>
+        </div>
+        {isAuthenticated && savedToggle}
       </div>
 
       {!isAuthenticated ? (
@@ -110,9 +146,7 @@ export default function Observatory() {
         <>
           {pickError && <ObservatoryNotice error={pickError} />}
 
-          {!observed && (
-          <>
-          <div className="relative rounded-2xl overflow-hidden border border-white/[0.08]">
+          <div ref={mapBoxRef} className="relative isolate rounded-2xl overflow-hidden border border-white/[0.08]">
             <ObservatoryMap
               observed={observed}
               pending={pending}
@@ -133,39 +167,58 @@ export default function Observatory() {
             <div
               role="group"
               aria-label={t.obsBasemapLabel}
-              className="absolute z-[1100] top-[4.75rem] right-3 md:top-3 backdrop-blur-sm bg-modal/80 rounded-xl p-1"
+              className="absolute z-[1100] top-[4.75rem] right-3 md:top-3 backdrop-blur-sm bg-modal/80 rounded-xl p-1.5"
             >
               <Tabs
                 options={[{ id: 'satellite', label: t.obsBasemapSatellite }, { id: 'streets', label: t.obsBasemapStreets }]}
                 selected={basemap}
                 onChange={chooseBasemap}
-                size="sm"
+                size="md"
                 variant="compact" />
             </div>
             <div className="absolute z-[1100] top-3 left-3 right-3 md:right-auto pointer-events-none">
               <MapSearch onSelect={handleSearchSelect} className="pointer-events-auto w-full md:w-[30rem]" />
             </div>
             {pending && (
-              <PointPanel point={pending} observed={observed} saved={saved} onObserve={handleObserve} onClose={() => setPending(null)} />
+              <PointPanel point={pending} observed={observed} onObserve={handleObserve} onClose={() => setPending(null)} />
+            )}
+            {/* Only a strip of the map shows: the whole strip takes the person back up to it */}
+            {hasObserved && peeking && (
+              <button
+                type="button"
+                onClick={backToMap}
+                aria-label={t.obsBackToMap}
+                className="absolute inset-0 z-[1300] flex cursor-pointer items-end justify-center bg-gradient-to-t from-black/55 via-black/25 to-black/10 pb-4"
+              >
+                <span className="inline-flex items-center gap-2 rounded-xl bg-bar px-4 py-2 text-sm font-medium text-white shadow-md">
+                  <span aria-hidden="true">↑</span>{t.obsBackToMap}
+                </span>
+              </button>
             )}
           </div>
-
-          <div>{savedToggle}</div>
-          {savedList}
-          </>
-          )}
-
-          {observed && (
-            <ObservedZone
-              key={`${observed.lat},${observed.lon}`}
-              point={observed}
-              saved={saved}
-              onClear={clear}
-              savedToggle={savedToggle}
-              savedList={savedList}
-            />
-          )}
         </>
+      )}
+
+      {isAuthenticated && observed && (
+            <div ref={zoneRef} className="scroll-mt-[9.5rem] min-h-[calc(100vh-9.5rem)]">
+              <ObservedZone
+                key={`${observed.lat},${observed.lon}`}
+                point={observed}
+                saved={saved}
+                until={until}
+                days={days}
+                onWindow={setWindow}
+                onRemoved={() => { clear(); backToMap() }}
+              />
+            </div>
+      )}
+
+      {isAuthenticated && <TerritorySection active={observed} onObserve={handleObserve} />}
+
+      {savedOpen && (
+        <ObsModal title={t.obsSavedListTitle} onClose={() => setSavedOpen(false)} wide>
+          {savedList}
+        </ObsModal>
       )}
 
       <Attribution />

@@ -140,7 +140,7 @@ function seasonWhy(snap, t) {
   return t.obsThWhySeasonLow
 }
 
-/** The five factors of v2 with their value 0–100 and the reason, for «Ver por qué». */
+/** The five factors of the score with their value 0–100 and the reason, for «Ver por qué». */
 export function buildFactors(snap, t, lang) {
   const f = snap.factors, k = snap.key_facts ?? {}
   const optimum = (snap.conditions ?? []).find(c => c.values?.optimum_c != null)?.values.optimum_c ?? GENERIC_OPTIMUM_C
@@ -158,15 +158,14 @@ export function buildFactors(snap, t, lang) {
   ].filter(row => Number.isFinite(row.score))
 }
 
-/** v2 = A × (0,5 + 0,5·H) × T × (0,4 + 0,6·S) × D·C [× F] [× 1,1] = score, with the real numbers. */
+/** Score = A × (0,5 + 0,5·H) × T × (0,4 + 0,6·S) × D·C [× F] [× 1,1] = score, with the real numbers. */
 export function buildFormula(snap, t, lang) {
   const f = snap.factors
   const n = x => formatNumber(x, lang, 2)
   const parts = [f.activation, n(0.5 + (0.5 * f.moisture) / 100), n(f.temperature / 100), n(0.4 + 0.6 * f.season), n(f.drying * f.heat)]
   if (f.frost < 1) parts.push(n(f.frost))
   if (f.shock > 1) parts.push(n(f.shock))
-  const v1 = snap.v1?.score
-  return `v2 = ${parts.join(' × ')} = ${snap.score}.${v1 != null ? ` ${fill(t.obsThFormulaV1, { v1 }, lang)}` : ''}`
+  return `${t.obsThFormulaName} = ${parts.join(' × ')} = ${snap.score}.`
 }
 
 /** Everything the thermometer card shows, from one snapshot. */
@@ -183,7 +182,6 @@ export function buildThermometer(snap, t, lang) {
     conditions: buildConditions(snap, t, lang),
     factors: buildFactors(snap, t, lang),
     formula: buildFormula(snap, t, lang),
-    v1: snap.v1?.score ?? null,
     day: formatDay(snap.date, lang),
     estimated: !!snap.estimated,
   }

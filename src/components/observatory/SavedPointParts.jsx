@@ -66,7 +66,7 @@ export function SavePointForm({ initial, suggestedName, submitLabel, nameRequire
   }
 
   return (
-    <form ref={formRef} onSubmit={submit} className="space-y-3" aria-label={t.obsSaveTitle}>
+    <form ref={formRef} onSubmit={submit} className="space-y-3" aria-label={t.obsSaveZoneTitle}>
       <div>
         <label htmlFor={`${uid}-name`} className="block text-xs text-cream/60 mb-1">{t.obsSaveName}</label>
         <input
@@ -119,7 +119,7 @@ export function SavePointForm({ initial, suggestedName, submitLabel, nameRequire
   )
 }
 
-/** «¿Quitar “X” de tus puntos?» with its two answers. */
+/** «¿Eliminar “X” de Zonas guardadas?» with its two answers, centred. */
 export function RemoveConfirm({ name, onConfirm, onCancel }) {
   const { t } = useApp()
   const [busy, setBusy] = useState(false)
@@ -137,12 +137,12 @@ export function RemoveConfirm({ name, onConfirm, onCancel }) {
   }
 
   return (
-    <div role="alertdialog" aria-label={t.obsSavedRemove} className="space-y-2">
-      <p className="text-sm text-cream/90">{t.obsSavedRemoveConfirm.replace('{name}', name)}</p>
+    <div role="alertdialog" aria-label={t.obsSavedRemove} className="space-y-6">
+      <p className="text-base text-cream/90">{t.obsSavedRemoveConfirm.replace('{name}', name)}</p>
       <SaveError error={error} />
-      <div className="flex gap-2">
-        <button type="button" onClick={confirm} disabled={busy} className={BTN_PRIMARY}>{busy ? t.obsSaving : t.obsSavedRemoveYes}</button>
-        <button type="button" onClick={onCancel} disabled={busy} className={BTN_SECONDARY}>{t.obsSavedKeep}</button>
+      <div className="flex flex-wrap justify-center gap-4 pt-2">
+        <button type="button" onClick={confirm} disabled={busy} className={`${BTN_PRIMARY} !px-7 !py-3 !text-base`}>{busy ? t.obsSaving : t.obsSavedRemoveYes}</button>
+        <button type="button" onClick={onCancel} disabled={busy} className={`${BTN_SECONDARY} !px-7 !py-3 !text-base`}>{t.obsSavedKeep}</button>
       </div>
     </div>
   )

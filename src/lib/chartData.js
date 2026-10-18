@@ -1,18 +1,19 @@
 // =====================================================
 // Chart view model — turns a /point/series answer into what the charts and tables draw
 //
-// The backend sends days (climate + v1 + v2) and events as numbers and dates; the sentences are
+// The backend sends days (climate + score) and events as numbers and dates; the sentences are
 // written here from i18n keys. Pure functions: no React, no network.
 //
-// The 21-day rain accumulation needs 21 days before the first day shown, so the page asks the API
-// for `requestDays(n)` days and `prepareSeries` shows only the last n.
+// The page asks the API once for the whole series (MAX_API_DAYS days) and `prepareSeries` shows the
+// window {a, b} of it (see timeline.js); the 21-day rain accumulation is counted over the whole
+// series, so it is complete from the 22nd day on.
 // =====================================================
 import { fill, formatDay, formatNumber } from './thermometer'
 
-export const WINDOWS = [7, 20, 60, 120]
-export const DEFAULT_WINDOW = 20
 export const ACC_DAYS = 21
 export const MAX_API_DAYS = 180
+/** Days after the last real one that the score chart looks ahead (forecast, then estimate). */
+export const FUTURE_DAYS = 21
 export const TABS = ['score', 'rain', 'temp', 'hum', 'wind']
 
 const EXTREME_RAIN_MM = 120
@@ -20,8 +21,6 @@ const TRIGGER_LAG_DAYS = 21
 const BRAKE_DRY_PCT = 55
 const HOT_C = 25
 const USEFUL_RAIN_MM = 10
-
-export const requestDays = n => Math.min(MAX_API_DAYS, n + ACC_DAYS)
 
 const isoAdd = (iso, days) => {
   const d = new Date(`${iso}T12:00:00Z`)
@@ -39,10 +38,10 @@ export function accumulate(days) {
   })
 }
 
-/** Events that reach the shown window, renumbered 1, 2, 3… in date order (the API numbers the whole answer). */
-export function windowEvents(events, firstDate) {
+/** Events that reach the shown window (from `firstDate` to `lastDate`), renumbered 1, 2, 3… in date order (the API numbers the whole answer). */
+export function windowEvents(events, firstDate, lastDate = null) {
   return (events ?? [])
-    .filter(e => e.end >= firstDate)
+    .filter(e => e.end >= firstDate && (!lastDate || e.start <= lastDate))
     .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
     .map((e, i) => ({ ...e, n: i + 1 }))
 }
@@ -57,22 +56,35 @@ export function lowestMin(days) {
 }
 
 /**
- * What the charts need: the last n days, their 21-day rain, the events inside, the coldest night.
- * `series` is the API answer (possibly with up to 21 days of warm-up before the window).
+ * What the charts need: the days of the window `win` = { a, b } (indices into the series, both
+ * included; default: the last 20), their 21-day rain, the events inside, the coldest night.
+ * `series` is the API answer.
  */
-export function prepareSeries(series, n) {
+export function prepareSeries(series, win = null) {
   const all = series?.days ?? []
   const acc = accumulate(all)
-  const from = Math.max(0, all.length - n)
-  const days = all.slice(from).map((d, i) => ({ ...d, acc: acc[from + i], i }))
+  const from = win ? win.a : Math.max(0, all.length - 20)
+  const to = win ? win.b : all.length - 1
+  const days = all.slice(from, to + 1).map((d, i) => ({ ...d, acc: acc[from + i], i }))
   const first = days[0]?.date ?? null
+  const last = days[days.length - 1]?.date ?? null
   return {
     days,
-    events: first ? windowEvents(series.events, first) : [],
+    events: first ? windowEvents(series.events, first, last) : [],
     lowest: lowestMin(days),
     hasData: days.some(d => d.climate),
     species: series?.species ?? null,
   }
+}
+
+/**
+ * The days ahead of the score chart, from a /point/calendar answer: the forecast days first, then
+ * the estimate without forecast, at most `max`. Empty unless the calendar counts from the same last
+ * real day as the series (`lastDate`), so a calendar for another species or date never leaks in.
+ */
+export function futureDays(cal, lastDate, max = FUTURE_DAYS) {
+  if (!cal || !lastDate || cal.last_data_date !== lastDate || cal.date !== lastDate) return []
+  return (cal.days ?? []).filter(d => d.basis !== 'real' && d.date > lastDate && Number.isFinite(d.score)).slice(0, max)
 }
 
 /** Thermal range of the species being looked at, from its row in /point/species, or null. */
@@ -172,7 +184,7 @@ export function tableRow(d, lang) {
   const tag = !c ? null : c.temp_min_c < 0 ? 'frost' : c.temp_max_c > HOT_C ? 'heat' : c.precipitation_mm >= USEFUL_RAIN_MM ? 'rain' : null
   return {
     date: d.date, day: formatDay(d.date, lang), tag,
-    score: d.v2?.score ?? null, v1: d.v1?.score ?? null,
+    score: d.v2?.score ?? null,
     rain: c?.precipitation_mm ?? null, max: c?.temp_max_c ?? null, min: c?.temp_min_c ?? null, avg: c?.temp_avg_c ?? null,
     soil: c?.soil_temp_c ?? null, hum: c?.humidity_pct ?? null, wind: c?.wind_kmh ?? null,
   }

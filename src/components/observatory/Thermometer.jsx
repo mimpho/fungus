@@ -33,7 +33,7 @@ export function ThermometerSkeleton() {
  * the facts behind it, the rains still on their way, what weighs for and against, and «Ver por
  * qué» with each factor and the formula. `snap` is the /point/snapshot answer.
  */
-export function Thermometer({ snap, forName = null }) {
+export function Thermometer({ snap }) {
   const { t, lang } = useApp()
   const [open, setOpen] = useState(false)
   const headingId = useId()
@@ -48,9 +48,6 @@ export function Thermometer({ snap, forName = null }) {
         <h3 id={headingId} className="font-display text-2xl text-cream">{t.obsThTitle}</h3>
         {vm.day && <p className="text-xs text-cream/50">{fill(t.obsThDataDate, { fecha: vm.day }, lang)}</p>}
       </div>
-      {forName && (
-        <p data-testid="species-for" className="text-sm text-cream/80 -mt-3">{t.obsSpFor.replace('{name}', forName)}</p>
-      )}
 
       <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
         <div className="flex items-end gap-3">
@@ -59,7 +56,6 @@ export function Thermometer({ snap, forName = null }) {
             <span data-testid="thermo-band" className="block font-display text-2xl font-bold leading-none text-cream">{vm.bandLabel}</span>
             <span className="block text-xs text-cream/50 mt-1">
               {t.obsThOutOf}
-              {vm.v1 != null && ` · ${fill(t.obsThV1Short, { v1: vm.v1 }, lang)}`}
             </span>
           </span>
         </div>
@@ -93,7 +89,7 @@ export function Thermometer({ snap, forName = null }) {
       {vm.tiles.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))] gap-3">
           {vm.tiles.map(tile => (
-            <div key={tile.key} className="rounded-xl glass-olive p-3">
+            <div key={tile.key} className="rounded-xl bg-cream/[0.05] p-3">
               <p className="text-xs text-cream/60">{tile.label}</p>
               <p className="font-display text-3xl font-bold leading-tight text-cream">{tile.value}</p>
               {tile.sub && <p className="text-xs text-cream/60">{tile.sub}</p>}

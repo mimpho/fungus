@@ -1,9 +1,9 @@
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
 import { getEdibilityColor } from '../../lib/helpers'
 import {
-  DEFAULT_EDIB_GROUP, EDIB_GROUPS, buildRows, countGroups, filterRows, speciesName,
+  DEFAULT_EDIB_GROUP, EDIB_GROUPS, buildRows, countGroups, filterRows,
 } from '../../lib/speciesList'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { ObsSelect } from './ObsSelect'
@@ -85,6 +85,16 @@ export function SpeciesPanel({ state, selected, onSelect }) {
   const { species: catalog } = useSpecies()
   const [group, setGroup] = useState(DEFAULT_EDIB_GROUP)
   const [query, setQuery] = useState('')
+  const [infoOpen, setInfoOpen] = useState(false)   // pinned by a click (touch screens)
+  const [infoHover, setInfoHover] = useState(false) // while the pointer or focus is on the button
+
+  // Esc closes the explanation
+  useEffect(() => {
+    if (!infoOpen) return undefined
+    const onKey = e => { if (e.key === 'Escape') setInfoOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [infoOpen])
 
   const byId = useMemo(() => new Map((catalog ?? []).map(s => [s.id, s])), [catalog])
   const rows = useMemo(() => buildRows(state.data, byId, t, lang), [state.data, byId, t, lang])
@@ -93,35 +103,46 @@ export function SpeciesPanel({ state, selected, onSelect }) {
     () => filterRows(rows, { group: group === ALL ? null : group, query }),
     [rows, group, query],
   )
-  const current = selected ? rows.find(r => r.id === selected) : null
-  const currentName = selected ? (current?.name ?? speciesName(selected, null, byId)) : t.obsSpAny
-  const source = state.data?.forest_source === 'author' ? t.obsSpSrcAuthor : state.data?.forest_source === 'land_cover' ? t.obsSpSrcCover : null
   // Groups with nothing to show are left out, except the one chosen
   const groups = EDIB_GROUPS.filter(g => counts[g] > 0 || g === group)
 
   return (
-    <aside aria-labelledby="obs-sp-title" className="glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:absolute lg:inset-0">
-      <h3 id="obs-sp-title" className="font-display text-2xl text-cream">{t.obsSpTitle}</h3>
-
-      <div aria-live="polite" className="flex items-center gap-2 rounded-xl glass-olive px-3 py-2">
-        <span className="min-w-0 flex-1">
-          <span className="block text-[11px] uppercase tracking-wide text-cream/60">{t.obsSpLooking}</span>
-          <span data-testid="species-looking" className="block font-display text-xl text-cream leading-tight truncate">{currentName}</span>
-          {!selected && <span className="block text-xs text-cream/60">{t.obsSpAnySub}</span>}
-        </span>
-        {selected && (
+    <aside aria-labelledby="obs-sp-title" className={`glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:absolute lg:inset-0 transition-opacity ${state.stale ? 'opacity-70' : ''}`}>
+      <div className="flex items-center justify-between gap-2">
+        <h3 id="obs-sp-title" className="font-display text-2xl text-cream">{t.obsSpTitle}</h3>
+        <div
+          className="relative"
+          onMouseEnter={() => setInfoHover(true)}
+          onMouseLeave={() => setInfoHover(false)}
+        >
           <button
             type="button"
-            onClick={() => onSelect(null)}
-            aria-label={t.obsSpClear.replace('{name}', currentName)}
-            className="shrink-0 w-9 h-9 rounded-lg text-cream/70 hover:text-cream hover:bg-cream/10 transition-colors"
+            onClick={() => setInfoOpen(o => !o)}
+            onFocus={() => setInfoHover(true)}
+            onBlur={() => { setInfoHover(false); setInfoOpen(false) }}
+            aria-expanded={infoOpen}
+            aria-describedby="obs-sp-info"
+            aria-label={t.obsSpInfoLabel}
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-cream/80 hover:text-cream hover:bg-cream/10 transition-colors"
           >
-            ✕
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5" />
+              <path d="M12 7.5v.5" />
+            </svg>
           </button>
-        )}
+          <p
+            id="obs-sp-info"
+            role="tooltip"
+            hidden={!(infoOpen || infoHover)}
+            className="absolute right-0 top-full mt-1 z-30 w-64 max-w-[80vw] rounded-xl px-3 py-2.5 text-xs text-cream bg-modal/95 backdrop-blur-sm border border-cream/20 shadow-lg"
+          >
+            {t.obsSpInfo}
+          </p>
+        </div>
       </div>
 
-      {state.status === 'loading' && <p className="text-sm text-cream/60 animate-pulse">{t.obsSpLoading}</p>}
+      {state.status === 'loading' && !state.data && <p className="text-sm text-cream/60 animate-pulse">{t.obsSpLoading}</p>}
       {state.status === 'error' && <ObservatoryNotice error={state.error} onRetry={state.retry} />}
       {state.status === 'ready' && rows.length === 0 && (
         <p className="text-sm text-cream/70">{state.data?.reason === 'no_forest' ? t.obsSpNoForest : t.obsSpEmpty}</p>
@@ -146,10 +167,6 @@ export function SpeciesPanel({ state, selected, onSelect }) {
               </ObsSelect>
             </div>
           </div>
-          {source && <p className="text-xs text-cream/50">{source}</p>}
-          <p data-testid="species-count" className="text-xs text-cream/60" aria-live="polite">
-            {t.obsSpCount.replace('{n}', shown.length)}
-          </p>
           {shown.length === 0 ? (
             <p className="text-sm text-cream/70">{t.obsSpNoMatch}</p>
           ) : (
