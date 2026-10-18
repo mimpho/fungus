@@ -1,9 +1,9 @@
 import { useApp } from '../../contexts/AppContext'
-import { RainHeatMap } from './RainHeatMap'
 import { ZoneRanking } from './ZoneRanking'
 
 /**
- * «Área de territorio»: where to go this weekend. It runs on its own — it does not depend on the
+ * «Área de territorio»: where to go this weekend (today only the zone ranking; the map with data
+ * layers will join it, see memory/product-ideas.md). It runs on its own — it does not depend on the
  * map search — and centres on the active (observed) zone when there is one.
  */
 export function TerritorySection({ active, onObserve }) {
@@ -17,7 +17,6 @@ export function TerritorySection({ active, onObserve }) {
         <h2 id="obs-terr-title" className="font-display text-[34px] leading-tight text-cream">{t.obsTerTitle}</h2>
         <p className="text-[13px] text-cream/60">{t.obsTerSub}</p>
       </div>
-      <RainHeatMap here={here} />
       <ZoneRanking here={here} onObserve={onObserve} />
     </section>
   )

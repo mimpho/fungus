@@ -8,7 +8,6 @@ import logging
 from datetime import UTC, date, datetime
 from functools import lru_cache
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,19 +50,11 @@ from app.services.point_series import (
 )
 from app.services.point_species import SpeciesRecord, species_for_point
 from app.services.scoring_v2 import SpeciesParams
-from app.services.territory_rain_store import get_territory_rain
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/observatory/point",
-    tags=["Observatory"],
-    dependencies=[Depends(get_current_user)],
-)
-
-# Not tied to a point: the territory area (heat map and ranking of catalogue zones)
-territory_router = APIRouter(
-    prefix="/observatory/territory",
     tags=["Observatory"],
     dependencies=[Depends(get_current_user)],
 )
@@ -351,19 +342,3 @@ async def point_forecast(
     elevation = await point_elevation(point.lat, point.lon)
     data = build_forecast(rows, _today(), cell.cell.elevation_m, elevation)
     return {**_point_block(point, cell, elevation), **data}
-
-
-@territory_router.get("/rain")
-async def territory_rain(db: AsyncSession = Depends(get_db)) -> dict:
-    """Weekly rain of the last 26 weeks over a regular grid of Catalonia, for the territory heat
-    map. Not tied to a point or to the catalogue zones; cached for 20 hours (see
-    services/territory_rain.py)."""
-    try:
-        return await get_territory_rain(db, _today())
-    except (ProviderUnavailable, httpx.HTTPError) as exc:
-        log.warning("Territory rain unavailable: %s", exc)
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="The weather provider is not available; try again in a few minutes",
-            headers={"Retry-After": "60"},
-        ) from exc
