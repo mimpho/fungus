@@ -549,3 +549,15 @@ useEffect(() => {
 
 **Discarded:** heat map over the catalogue zones (not representative); a full 26-week pull every day (cost); a per-day table for the grid (a single cached JSON row is enough, rebuildable); calling Open-Meteo from the browser.
 
+## 7a — server-side cell ingestion (2026-10-18)
+
+**Decision:** the cells that touch Catalonia are discovered by probing Open-Meteo, stored once (`created_by` NULL), loaded in budgeted batches from Marcos' machine and kept fresh by a daily job.
+
+**Details:**
+- **Why probing:** the grid is irregular and its size is not documented. Measured: a cell is about 0.0703° of latitude by 0.1272° of longitude near 41.6° N (7.8 × 10.8 km). Its width in degrees changes with the latitude (Open-Meteo keeps it close to constant in kilometres) and each row has its own offset, so the footprint is estimated **per row**, never from all the longitudes at once. A first version did it globally and reported 1,224 false holes on a 443-cell grid.
+- **Result on a disposable database:** 647 probe calls → 444 cells stored, 423 touch Catalonia (the PRD estimated ~380; the count includes cells that only touch the border of a hand-drawn outline), 0 holes after one `discover --holes` call.
+- **Budget:** estimated 21 calls per cell to load (280 days of history + 16 of forecast, weighted by ceil(days/14)) → ~8,900 for 423 cells, i.e. close to one day of quota; a project measurement of ~7 would give ~3,000. To be settled with `load --limit 10`. The daily refresh is ~3 calls per cell (~1,300 a day), capped by `OBSERVATORY_CELL_REFRESH_BUDGET`.
+- **Interplay to remember:** `discover` creates ~400 cells in one day with `created_by` NULL, and they count in the global `observatory_max_new_cells_per_day` (60) for users that day; discovered but unloaded cells still load on click without a budget check; cells outside Catalonia are stored but ignored by `load`.
+- **Who runs it:** Marcos, from his machine, against the real database only after Render has applied migrations 017–019 (project rule: migrations are applied by him; auto-migrate only in production).
+- **Discarded:** an arithmetic grid (the grid is irregular); one lattice step for both axes (0.08° skipped rows because a cell is 0.0703° tall); loading cells in the web process.
+- **Not decided yet (7b):** varying the map resolution with relief (per-cell scoring at a few elevation bands and a per-pixel DEM elevation lookup). Rain and wind would not be refined, to avoid false precision.

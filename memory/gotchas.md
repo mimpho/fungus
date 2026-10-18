@@ -273,3 +273,11 @@ Requests over 2 weeks count as several calls (4 weeks = 3.0 in their example) an
 ### ⚠️ Sessions on the linked device run Python 3.10
 The project needs 3.11+ (`datetime.UTC`). For tests in a session: `uv venv /tmp/vv --python 3.12`, install the project there (outside the repo) and delete it afterwards.
 
+### ⚠️ Open-Meteo `elevation` needs one value per coordinate
+A batched request with several locations and `elevation=nan` once returned HTTP 400 (count mismatch). Send one `nan` per coordinate (`",".join(["nan"] * len(points))`), as `resolve_grid_batch` does; the answer says which grid cell and elevation each point falls in.
+
+### ⚠️ The Open-Meteo cell grid is not 0.1° and its rows do not line up
+A cell is ~0.0703° × 0.1272° near 41.6° N, the width in degrees changes with the latitude and every row has its own offset. Never infer the cell size from all the stored longitudes together, and never assume the cell below is at the same longitude. Use `build_grid` (per-row estimate) in `cell_discovery.py`.
+
+### ⚠️ Discovery fills the daily new-cell allowance
+`ingest_cells.py discover` creates ~400 cells with `created_by` NULL in one day; they count in `observatory_max_new_cells_per_day` (global, 60) so users may be refused new cells that day. Run it when that does not matter, or after raising the limit for the day.
