@@ -17,7 +17,7 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
@@ -27,7 +27,8 @@ from alembic.util import CommandError as AlembicCommandError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
@@ -36,6 +37,7 @@ from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
 from app.routers import auth, health, me, observatory, saved_points, species, weather, zones
 from app.services.ingest import run_backfill, run_daily_ingest
+from app.services.territory_rain_store import get_territory_rain
 from app.services.weather_refresh import get_outdated_weather_zones, refresh_weather_cache
 
 # Single source of truth for version — reads from pyproject.toml at runtime
@@ -119,6 +121,16 @@ async def _scheduled_ingest() -> None:
             log.exception("Scheduled ingest failed: %s", exc)
 
 
+async def _scheduled_territory_rain() -> None:
+    """Rebuild the territory rain map (one batched Open-Meteo pull) after the daily ingest."""
+    async with AsyncSessionLocal() as db:
+        try:
+            await get_territory_rain(db, datetime.now(UTC).date(), force=True)
+            log.info("Territory rain map rebuilt")
+        except Exception as exc:
+            log.exception("Territory rain rebuild failed: %s", exc)
+
+
 async def _startup_ingest_if_empty() -> None:
     """
     On startup, run the ingest if scores_cache is empty.
@@ -193,6 +205,16 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         replace_existing=True,
     )
     scheduler.add_job(
+        _scheduled_territory_rain,
+        trigger="cron",
+        hour=settings.ingest_cron_hour,
+        minute=30,
+        id="territory_rain",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
         _scheduled_weather_refresh,
         trigger="cron",
         **WEATHER_REFRESH_CRON,
@@ -226,10 +248,37 @@ app = FastAPI(
     title="Fungus API",
     description="Mushroom foraging prediction for Spain — Outbreak Index engine",
     version=APP_VERSION,
-    docs_url="/docs" if not settings.is_production else None,
+    docs_url=None,  # /docs is served below, only outside production, with a dark theme
     redoc_url="/redoc" if not settings.is_production else None,
     lifespan=lifespan,
 )
+
+# ── /docs (development only) ──────────────────────────────────────────────────
+# Swagger UI has no dark theme, so the page is served here with a small stylesheet that inverts
+# it (and puts code and images back). Production exposes no docs at all.
+
+_DARK_DOCS_CSS = """<style>
+html, body { background: #1a1a1a; }
+.swagger-ui { filter: invert(0.9) hue-rotate(180deg); }
+.swagger-ui .microlight, .swagger-ui img { filter: invert(1) hue-rotate(180deg); }
+</style>"""
+
+if not settings.is_production:
+
+    @app.get("/docs", include_in_schema=False)
+    async def swagger_ui_dark() -> HTMLResponse:
+        page = get_swagger_ui_html(
+            openapi_url=app.openapi_url,
+            title=f"{app.title} - Swagger UI",
+            oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        )
+        html = page.body.decode().replace("</head>", f"{_DARK_DOCS_CSS}</head>", 1)
+        return HTMLResponse(html)
+
+    @app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+    async def swagger_ui_oauth2_redirect() -> HTMLResponse:
+        return get_swagger_ui_oauth2_redirect_html()
+
 
 # CORS — allow the Vite dev server, Vercel production URL and Vercel preview deployments
 # allow_origin_regex cubre:
@@ -242,6 +291,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],  # PATCH for profile update
     allow_headers=["*"],
+    # Without this the browser hides Retry-After (429/503 of the Observatory) from the page
+    expose_headers=["Retry-After"],
 )
 
 # Catch-all exception handler — ensures CORS headers are present even on
@@ -285,6 +336,7 @@ app.include_router(weather.router, prefix=API_PREFIX)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(me.router, prefix=API_PREFIX)
 app.include_router(observatory.router, prefix=API_PREFIX)
+app.include_router(observatory.territory_router, prefix=API_PREFIX)
 app.include_router(saved_points.router, prefix=API_PREFIX)
 
 # Static assets (logo for emails, etc.) — served at /static/<filename>

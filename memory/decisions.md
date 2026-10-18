@@ -514,3 +514,37 @@ useEffect(() => {
 **Also decided:** the pure function returns every share; the threshold, the radius limits and the `null` for a point outside the grid belong to the wiring. The raw sheets and the generated tiles are excluded with `.git/info/exclude`, not `.gitignore`, so they cannot be committed from any branch. The grid's in-memory tile cache has no bound (1 MB per tile); the loader of `feat/observatory-composition` must bound it.
 
 **Discarded:** one code table per sheet; sheet-relative tile coordinates; numpy (a new dependency for a one-off job); resume-safe preprocessing (a rebuild of one sheet takes about a second).
+
+---
+
+## Observatory page — construction decisions (2026-10-17)
+
+**Decision:** the page is built in ten steps on `feat/observatory-page`, in this order: base, map/click/panel/URL, thermometer, search, saved points, species list, charts, calendar, header entry with the avatar menu, and a pass on phone, languages and dark theme. Steps 1–6 and 8 are done; the calendar and a zone comparator come next, before the final pass. Out of v1: heat map, downloadable reports, `compare_years`, composition, «Área de territorio» and dragging or stretching the chart window.
+
+**Details:**
+- **Place search uses Photon, not Open-Meteo's geocoder.** Open-Meteo only knows populated places; foragers look for passes, peaks and springs. Photon (OpenStreetMap data, typeahead, CORS) runs in the browser and is limited to Catalonia. Risk: a public instance with fair use and no SLA; `geocodingService.js` is the single module to replace with a backend endpoint if traffic grows. Credits for Photon and OpenStreetMap are in `Attribution.jsx`.
+- **Season texts and the thermometer follow the backend.** The page shows the backend's codes and the season table as it is; it never computes a score and never shows one without its reason. Only v1 is shown, as a reference, never as the main score.
+- **The list of species comes from `/point/species` with `synonyms`** (additive field in the species list). Its state lives in `ObservedZone`, not in the list, so the chart can use the chosen species' range.
+- **Charts ask for `days + 21` (capped at 180)** so the 21-day rain accumulation is complete from the first visible day. While a new window loads, the previous chart stays dimmed instead of blinking out.
+- **The map is hidden while a zone is observed** (superseded on 2026-10-18: see «Observatory page — second block»), and a prominent button «Volver al mapa» brings it back at the last observed position. «Mis puntos» is a button next to Guardar/Editar/Quitar with the cards under it, closed when a zone is observed.
+- **Look:** cards use `.obs-card` (the same shadow as the zones page, `.hover-lift`); a stronger dark-theme shadow was tried and rejected as too strong. Selects and inputs have no border (`ObsSelect`, like the species-type filter in the zone card); chart filters and legend sit under the chart.
+- **No automated tests for the frontend** (project strategy): checked with `npm run build`, manual review and checklists; browser scripts are temporary checks.
+
+**Discarded:** Open-Meteo's geocoder for search (no peaks, passes or springs); computing a score in the browser; a stronger dark-theme card shadow.
+
+
+## Observatory page — second block (2026-10-18)
+
+**Decision:** after the calendar, the page takes on the forecast block, the chart's look ahead, dragging, the persistent map and the «Área de territorio» section (rain heat map and zone ranking). The territory rain does **not** come from the catalogue zones but from a regular grid of 55 points over Catalonia, cached for 20 hours and refreshed daily, incrementally.
+
+**Details:**
+- **Persistent map (a test of Marcos, kept):** observing a zone no longer hides the map; the page scrolls down to the zone (smooth, instant on first load or with reduced motion) and a strip of map stays above as «Volver al mapa». «Zonas guardadas» is a normal button with a coloured count bullet that opens a wide modal. Vocabulary: «Guardar esta zona», «Eliminar zona»; removing the observed zone stops showing it and scrolls to the map.
+- **Look ahead on the chart is told apart:** days with a stored forecast and days estimated without one have different strokes, as in the calendar, so an estimate is never read as a forecast (the prototype did not distinguish them). Only the «Momento» tab looks ahead.
+- **No layout jumps:** `usePointData` with `keepPrevious` keeps the last answer dimmed while a new window loads (the thermometer and the species list depend on the window's end date). Dragging the chart fixes the pixels per day at the start.
+- **Territory rain over a grid, not the catalogue:** the catalogue zones are places picked for other reasons (some outside Catalonia, with short histories), so they do not show where it has rained. 55 points (0.2° × 0.3°, inside the outline), 26 weeks Monday–Sunday, batches of 20 locations. Names: the comarca of the nearest catalogue zone within 30 km; the top list shows one point per comarca. Cache: process memory plus one row (`territory_rain_cache`, migration 020); if the table is missing, memory alone.
+- **Incremental refresh:** the old weeks never change, so after the first full pull only the last 3 weeks are asked again (the forecast days get revised by ERA5): ~100 Open-Meteo calls a day against ~770 for a full pull (limit 10,000/day, [pricing page](https://open-meteo.com/en/pricing)). A full pull is repeated when the grid changes or the stored answer is older than the weeks being kept.
+- **Zone ranking** («Cerca (20)» = the 20 zones closest to the observed zone or to the middle of Catalonia; «Seguidas» = followed zones) reuses `/zones` scores; the reason names the limiting factor of scoring v2.
+- **`/point/snapshot` scores the nearest earlier day** when the requested one has no row; before the cell's first day it is still a 404.
+
+**Discarded:** heat map over the catalogue zones (not representative); a full 26-week pull every day (cost); a per-day table for the grid (a single cached JSON row is enough, rebuildable); calling Open-Meteo from the browser.
+

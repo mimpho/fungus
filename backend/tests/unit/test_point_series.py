@@ -117,6 +117,14 @@ class TestSnapshot:
     def test_no_data_means_no_snapshot(self):
         assert build_snapshot([], TODAY, 667, 667) is None
 
+    def test_a_missing_day_scores_as_the_nearest_one_before_it(self):
+        gap = TODAY - timedelta(days=10)
+        s = build_snapshot(_rows(skip={gap}), TODAY, 667, 667, on=gap)
+        assert s is not None and s["date"] == (gap - timedelta(days=1)).isoformat()
+
+    def test_a_date_before_the_first_day_has_no_snapshot(self):
+        assert build_snapshot(_rows(n=30), TODAY, 667, 667, on=TODAY - timedelta(days=90)) is None
+
 
 class TestEventsAndConditionsInTheResponse:
     def test_the_series_lists_events_and_the_lowest_minimum(self):

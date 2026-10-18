@@ -113,7 +113,8 @@ def _to_list_item(s: Species, lang: str = "es") -> SpeciesListItem:
         elevation_max_m=s.elevation_max_m,
         common_names=_extra_list(s, "commonNames", lang),
         photo_url=_photo_url(s),
-        # description, synonyms, confusions excluded from list — see _to_detail()
+        synonyms=_synonyms(s),
+        # description, confusions excluded from list — see _to_detail()
     )
 
 

@@ -128,6 +128,9 @@ def build_snapshot(
     last = corrected[-1].date
     ref = min(on, last) if on else last
     upto = [d for d in corrected if d.date <= ref]
+    if not upto:
+        return None  # the date is before the first day the cell has
+    ref = upto[-1].date  # a day missing from the cell scores as the nearest one before it
     warm_up = ref - timedelta(days=V2_WINDOW_DAYS)
     series = compute_v2_series([d for d in upto if d.date >= warm_up], elevation, species, ref)
     if not series or series[-1].date != ref:

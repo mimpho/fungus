@@ -188,7 +188,7 @@ export function normalizeSpeciesListItem(s) {
     stem:             null,
     flesh:            null,
     sporePrint:       null,
-    synonyms:         [],
+    synonyms:         s.synonyms ?? [],
     distributionZones: null,
     _partial:         true,  // flag: indica que falta el detalle completo
   }
