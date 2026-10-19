@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Subcommands:** `plan` (offline), `discover [--max-calls]`, `load [--max-calls --limit]`, `status`. Resumable: each cell is saved when done, a rerun continues with what is left. Paced at 70 calls/min, stops on budget, on a 429 or after 5 failures in a row. A friendly message (exit 2) when the tables do not exist.
 - **Daily refresh job** `cell_refresh` at `ingest_cron_hour`:45 UTC in `main.py`, least recently refreshed first, within `OBSERVATORY_CELL_REFRESH_BUDGET` (default 1500 calls, 0 = off). `refresh_recent` has a caller for the first time.
 - **New connector call** `OpenMeteoConnector.resolve_grid_batch`, `CellProvider.load` made public, `CellInfo.refreshed_at`, `SqlCellStore.known_lookup_keys` / `list_cells`.
-- Tests: discovery geometry on a fake grid that keeps the cell width in kilometres and has an offset per row, ingestion with fake store and loader, and `resolve_grid_batch`. Not checked yet: `load` against the real database and the daily job.
+- Tests: discovery geometry on a fake grid that keeps the cell width in kilometres and has an offset per row, ingestion with fake store and loader, and `resolve_grid_batch`. Checked on a disposable Postgres against real Open-Meteo: 444 cells stored, 423 touch Catalonia, all 423 loaded in three runs (cells that failed with a transient 503 loaded on the rerun). Not checked yet: the real cost per cell (the script's `calls~` is an estimate, 21 per cell) and the daily job in `main.py`.
 
 ### Removed — fixed-grid territory rain map (2026-10-18, `chore/observatory-remove-territory-rain`)
 
