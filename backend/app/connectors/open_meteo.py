@@ -7,6 +7,7 @@ but runs server-side, aggregates hourly data to daily, and supports full date ra
 API docs: https://open-meteo.com/en/docs
 """
 import logging
+from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
 
 import httpx
@@ -244,3 +245,56 @@ def _safe_float(lst: list, idx: int) -> float | None:
 def _safe_int(lst: list, idx: int) -> int | None:
     val = _safe_float(lst, idx)
     return None if val is None else round(val)
+
+
+@retry(
+    retry=retry_if_exception_type(httpx.HTTPError),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True,
+)
+async def resolve_grid_batch(
+    points: Sequence[tuple[float, float]],
+) -> list[tuple[float, float, float]]:
+    """Grid cell of each (lat, lon): [(grid_lat, grid_lon, mean elevation), ...], in order.
+
+    One request for all the points (one archive day, elevation=nan), so it costs one call per
+    point. Used to discover which cells exist; see app.services.cell_ingest."""
+    if not points:
+        return []
+    day = date.today() - timedelta(days=ARCHIVE_CUTOFF_DAYS + 2)
+    params = {
+        "latitude": ",".join(f"{lat:.4f}" for lat, _ in points),
+        "longitude": ",".join(f"{lon:.4f}" for _, lon in points),
+        "daily": "temperature_2m_max",
+        "start_date": day.isoformat(),
+        "end_date": day.isoformat(),
+        "timezone": "UTC",
+        # One value per coordinate: with several locations a single "nan" is a 400.
+        "elevation": ",".join(["nan"] * len(points)),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(ARCHIVE_URL, params=params)
+            resp.raise_for_status()
+            raw = resp.json()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code in RETRYABLE_STATUS:
+            log.warning("Open-Meteo HTTP %s resolving %d points: retrying",
+                        exc.response.status_code, len(points))
+            raise
+        raise ProviderUnavailable(
+            f"Open-Meteo HTTP {exc.response.status_code}: {exc.response.text[:200].strip()}"
+        ) from exc
+    answers = raw if isinstance(raw, list) else [raw]  # one location comes back as an object
+    if len(answers) != len(points):
+        raise ProviderUnavailable(
+            f"Open-Meteo answered {len(answers)} locations for {len(points)} points"
+        )
+    try:
+        return [
+            (float(a["latitude"]), float(a["longitude"]), float(a["elevation"]))
+            for a in answers
+        ]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ProviderUnavailable("Open-Meteo returned an answer with no grid cell") from exc

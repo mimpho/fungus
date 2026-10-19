@@ -55,6 +55,7 @@ class CellInfo:
     loaded_from: date | None = None
     loaded_to: date | None = None
     created_by: int | None = None  # user whose click created the cell
+    refreshed_at: datetime | None = None  # last time the daily job (or the load) fetched it
 
 
 @dataclass
@@ -161,6 +162,11 @@ class CellProvider:
             return CellResult(cell, "stored")
         await self._single_flight(self._loading, cell_id, lambda: self._load(store, cell_id))
         return CellResult(await store.get_cell(cell_id), "live")
+
+    async def load(self, store: CellStore, cell_id: str) -> None:
+        """Loads the full history of a cell that already exists (the initial ingest of the
+        server uses it; clicks go through `get`). Concurrent callers share one load."""
+        await self._single_flight(self._loading, cell_id, lambda: self._load(store, cell_id))
 
     async def refresh_recent(self, store: CellStore, cell_id: str) -> None:
         """Daily job: re-fetch the last days and the forecast. Archive days replace provisional

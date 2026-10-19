@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — server-side ingestion of the Open-Meteo cells (2026-10-18, `feat/observatory-map-ingest`, 7a, in progress)
+
+- **Discovery by probing** (`services/cell_discovery.py`, `cell_ingest.py`, `scripts/ingest_cells.py`): the model grid is not known by arithmetic, so a lattice of 655 probe points finer than a cell (0.06° × 0.10°) is sent to the archive API in batches of 50 locations, each answer names the cell the point falls in, and the distinct answers are the cells. Cells that touch Catalonia are picked with a rectangle-against-outline test (`catalonia_outline.py`, a drawing, not a survey). `holes` / `discover --holes` find neighbours expected but not found and probe only those.
+- **Subcommands:** `plan` (offline), `discover [--max-calls]`, `load [--max-calls --limit]`, `status`. Resumable: each cell is saved when done, a rerun continues with what is left. Paced at 70 calls/min, stops on budget, on a 429 or after 5 failures in a row. A friendly message (exit 2) when the tables do not exist.
+- **Daily refresh job** `cell_refresh` at `ingest_cron_hour`:45 UTC in `main.py`, least recently refreshed first, within `OBSERVATORY_CELL_REFRESH_BUDGET` (default 1500 calls, 0 = off). `refresh_recent` has a caller for the first time.
+- **New connector call** `OpenMeteoConnector.resolve_grid_batch`, `CellProvider.load` made public, `CellInfo.refreshed_at`, `SqlCellStore.known_lookup_keys` / `list_cells`.
+- Tests: discovery geometry on a fake grid that keeps the cell width in kilometres and has an offset per row, ingestion with fake store and loader, and `resolve_grid_batch`. Checked on a disposable Postgres against real Open-Meteo: 444 cells stored, 423 touch Catalonia, all 423 loaded in three runs (cells that failed with a transient 503 loaded on the rerun). Not checked yet: the real cost per cell (the script's `calls~` is an estimate, 21 per cell) and the daily job in `main.py`.
+
 ### Removed — fixed-grid territory rain map (2026-10-18, `chore/observatory-remove-territory-rain`)
 
 - **The rain heat map of «Área de territorio» is taken out before any deploy.** It is superseded by the interactive map with data layers (backlog item 7; the rain layer is 7c). Removed: `GET /observatory/territory/rain` and its router, `services/territory_rain.py`, `territory_rain_store.py`, `territory_grid.py`, the `TerritoryRainCache` model, **migration 020** (`territory_rain_cache`; it never reached `main` or Render, so migrations end at 019), the 05:30 UTC rebuild job and its 20 unit tests; in the front `RainHeatMap`, `RainTimeline`, `cataloniaOutline.js`, `fetchTerritoryRain`, the `obsHeat*` strings (ES/CA/EN) and the rain helpers of `territoryData.js`. The zone ranking stays until the Top 10 layer (7f). Avoids ~770 Open-Meteo calls on the first load.

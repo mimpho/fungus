@@ -36,6 +36,8 @@ from app.config import settings
 from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
 from app.routers import auth, health, me, observatory, saved_points, species, weather, zones
+from app.services.cell_ingest import refresh_all
+from app.services.cell_store import SqlCellStore
 from app.services.ingest import run_backfill, run_daily_ingest
 from app.services.weather_refresh import get_outdated_weather_zones, refresh_weather_cache
 
@@ -120,6 +122,20 @@ async def _scheduled_ingest() -> None:
             log.exception("Scheduled ingest failed: %s", exc)
 
 
+async def _scheduled_cell_refresh() -> None:
+    """Refresh the last days and the forecast of every stored Observatory cell, within the
+    daily call budget (the cells load at first click or with scripts/ingest_cells.py)."""
+    budget = settings.observatory_cell_refresh_budget
+    if budget <= 0:
+        return
+    async with AsyncSessionLocal() as db:
+        try:
+            stats = await refresh_all(SqlCellStore(db), observatory.get_cell_provider(), budget)
+            log.info("Cell refresh finished: %s", stats.summary())
+        except Exception as exc:
+            log.exception("Cell refresh failed: %s", exc)
+
+
 async def _startup_ingest_if_empty() -> None:
     """
     On startup, run the ingest if scores_cache is empty.
@@ -192,6 +208,16 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         minute=0,
         id="daily_ingest",
         replace_existing=True,
+    )
+    scheduler.add_job(
+        _scheduled_cell_refresh,
+        trigger="cron",
+        hour=settings.ingest_cron_hour,
+        minute=45,
+        id="cell_refresh",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
     scheduler.add_job(
         _scheduled_weather_refresh,
