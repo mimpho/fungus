@@ -1,7 +1,5 @@
 import { samePoint } from './observatoryView'
 
-// Forest types an author can give a saved point (the backend's vocabulary, without «mixto»).
-export const FOREST_TYPES = ['pinar', 'hayedo', 'robledal', 'encinar']
 export const NAME_MAX = 80
 export const NOTES_MAX = 2000
 
@@ -18,26 +16,21 @@ export function sortSaved(points, lang = 'es') {
 }
 
 export function formFromSaved(sp) {
-  return { name: sp?.name ?? '', notes: sp?.notes ?? '', forestTypes: sp?.forest_types ?? [] }
+  return { name: sp?.name ?? '', notes: sp?.notes ?? '' }
 }
 
-const cleanTypes = list => FOREST_TYPES.filter(type => list.includes(type))
-const sameList = (a, b) => a.length === b.length && a.every((v, i) => v === b[i])
-
-/** Body for POST: empty name/notes/types are left out (the server fills the name in). */
+/** Body for POST: empty name/notes are left out (the server fills the name in). */
 export function buildCreate(point, form) {
   return {
     lat: point.lat,
     lon: point.lon,
     name: form.name.trim(),
     notes: form.notes.trim(),
-    forestTypes: cleanTypes(form.forestTypes),
   }
 }
 
 /**
- * Body for PATCH with only what changed, using the API names. An emptied note or forest list
- * becomes null (back to nothing / to the derived forest type). A blank name changes nothing:
+ * Body for PATCH with only what changed, using the API names. An emptied note becomes null. A blank name changes nothing:
  * a saved point always has one.
  */
 export function buildChanges(original, form) {
@@ -46,9 +39,6 @@ export function buildChanges(original, form) {
   if (name && name !== original.name) changes.name = name
   const notes = form.notes.trim() || null
   if (notes !== (original.notes ?? null)) changes.notes = notes
-  const types = cleanTypes(form.forestTypes)
-  const before = cleanTypes(original.forest_types ?? [])
-  if (!sameList(types, before)) changes.forest_types = types.length ? types : null
   return changes
 }
 

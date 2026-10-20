@@ -561,3 +561,26 @@ useEffect(() => {
 - **Who runs it:** Marcos, from his machine, against the real database only after Render has applied migrations 017–019 (project rule: migrations are applied by him; auto-migrate only in production).
 - **Discarded:** an arithmetic grid (the grid is irregular); one lattice step for both axes (0.08° skipped rows because a cell is 0.0703° tall); loading cells in the web process.
 - **Not decided yet (7b):** varying the map resolution with relief (per-cell scoring at a few elevation bands and a per-pixel DEM elevation lookup). Rain and wind would not be refined, to avoid false precision.
+
+---
+
+## Conditions layer: an index, not a probability (2026-10-20)
+
+**Decision:** The map layer and the thermometer show an **index of favourable conditions** (weather, altitude, forest, soil), never a probability of finding mushrooms. Abundance and mycorrhiza are not modelled.
+
+**Details:**
+- With no species chosen, the score is the **mean of the excellent species present** at that pixel (in altitude range, habitat factor ≥ `MIN_FACTOR` 0.05, in season). All species weigh equally; weighting by frequency (GBIF audit) is a future idea.
+- The thermometer without species uses the same ensemble (`species=excellent`), so map and thermometer agree. Out of season or no members → 0.
+- Rendering: cells scored at relief bands (300 m), client paints per pixel from the DEM with a kernel blend. Server cache keyed by `data_signature()` and the species record.
+
+**Discarded:** best-of species (overstates conditions); the label "probability"; a grey altitude guide line (added nothing).
+
+## Forest judged around the point (2026-10-20)
+
+**Decision:** Forest cover is the CREAF raster mean within 500 m of the point; soil comes from the exact pixel. ICGC land cover is informative only. Author forest types of saved points stop deciding anything (removed from the save form; the backend field remains until a migration decides otherwise).
+
+**Details:** The client smooths the forest raster on load (radius 2 px) to match the server; small differences (a few points) between map and point are expected.
+
+**Discarded:** exact-pixel forest (a point in a field next to a forest read "no forest"); municipality radius for now.
+
+**Update (2026-10-20):** species the forest cannot judge (meadow, garden, riparian, no forest type) are left out of the excellent mean, on the map and in the thermometer. Single-species layers and the species list are unchanged.

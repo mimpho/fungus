@@ -3,11 +3,14 @@ import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { speciesName } from '../../lib/speciesList'
+import { fill } from '../../lib/thermometer'
 import { usePointData } from '../../hooks/usePointData'
 import { fetchPointCalendar, fetchPointForest, fetchPointSnapshot, fetchPointSpecies, fetchSavedPointSpecies } from '../../services/observatoryService'
 import { speciesRange } from '../../lib/chartData'
+import { ENSEMBLE } from '../../lib/speciesList'
 import { formatCoords } from '../../lib/observatoryView'
 import { ObservatoryNotice } from './ObservatoryNotice'
+import { PointHabitat } from './PointHabitat'
 import { SavePointControls } from './SavePointControls'
 import { Thermometer, ThermometerSkeleton } from './Thermometer'
 import { SpeciesPanel } from './SpeciesPanel'
@@ -30,14 +33,14 @@ const MACRO_KEY = {
  * says that the species will not be listed. The place name is context: if it fails, coordinates
  * stand in and nothing is reported. Only the thermometer failing is an error to show.
  */
-export function ObservedZone({ point, saved, until = null, days, onWindow, onRemoved }) {
-  const { t } = useApp()
-  const [speciesId, setSpeciesId] = useState(null)
+export function ObservedZone({ point, saved, until = null, days, onWindow, onRemoved, initialSpecies = null }) {
+  const { t, lang } = useApp()
+  // Starts on the species the map layer shows, so the thermometer and the map speak of the same one
+  const [speciesId, setSpeciesId] = useState(initialSpecies)
   const { species: catalog } = useSpecies()
   // The thermometer and the species list are those of the window's last day (null = the last day
   // with data). Held back a moment so that stepping with the keyboard does not ask for every day.
   const date = useDebouncedValue(until, 250)
-  const snap = usePointData(fetchPointSnapshot, point, { species: speciesId, date }, { keepPrevious: true })
   const savedId = saved.find(point)?.id ?? null
   // A saved point asks through its own endpoint: its forest types win over the land cover
   const speciesFetcher = useMemo(
@@ -46,20 +49,39 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
   )
   const speciesList = usePointData(speciesFetcher, point, { date }, { keepPrevious: true })
   const byId = useMemo(() => new Map((catalog ?? []).map(s => [s.id, s])), [catalog])
+  // Without a chosen species the thermometer, the chart and the calendar are those of the excellent
+  // edibles together: the mean of the ones that grow at this point (altitude, forest and soil
+  // judged for each) and are in season on the date, the same number the map paints before a
+  // species is chosen. The server calls it `species=excellent`.
+  const activeId = speciesId ?? ENSEMBLE
+  const activeName = speciesId ? speciesName(speciesId, null, byId) : t.obsThEnsembleName
   const chosenName = speciesId ? speciesName(speciesId, null, byId) : null
   const chosenRange = useMemo(
-    () => speciesRange(speciesList.data?.species?.find(s => s.id === speciesId)),
-    [speciesList.data, speciesId],
+    () => speciesRange(speciesList.data?.species?.find(s => s.id === activeId)),
+    [speciesList.data, activeId],
   )
+  const snap = usePointData(fetchPointSnapshot, point, { species: activeId, date }, { keepPrevious: true })
   const forest = usePointData(fetchPointForest, point)
   // The calendar is asked once: its days ahead are also the end of the score chart
-  const calendar = usePointData(fetchPointCalendar, point, { species: speciesId })
+  const calendar = usePointData(fetchPointCalendar, point, { species: activeId })
 
   const d = forest.data
+  const habitat = d?.habitat ?? speciesList.data?.habitat ?? null
   const title = d?.toponym?.label ?? formatCoords(point)
   const elevation = snap.data?.point?.elevation_m ?? d?.point?.elevation_m
   const hasForest = d?.forest ?? snap.data?.forest ?? null
-  const macro = hasForest && d?.macrotype ? t[MACRO_KEY[d.macrotype]] : null
+  // What the thermometer is made of when no species is chosen: a tooltip next to the score. With
+  // no forest the note about the forest already says why there are no species.
+  const ens = snap.data?.ensemble
+  const thermoNote = speciesId || snap.data == null || (ens?.climate_only && hasForest === false) ? null
+    : ens?.count === 1 ? t.obsThAutoOne
+    : ens?.count ? fill(t.obsThAuto, { n: ens.count }, lang)
+    : ens?.climate_only ? t.obsThAutoClimate : t.obsThAutoNone
+  // The 2024 land cover (ICGC) only says forest or not. The kind of forest is the CREAF's (habitat
+  // block below): finer, and the one every score uses. The ICGC's broad type is only a stand-in
+  // where the server has no CREAF raster.
+  const hasCreaf = Object.values(habitat?.forest ?? {}).some(share => share >= 0.05)
+  const macro = hasForest && d?.macrotype && !hasCreaf ? `${t[MACRO_KEY[d.macrotype]]} (ICGC 2024)` : null
 
   return (
     <section aria-label={t.obsObservedTitle} className="space-y-4">
@@ -88,6 +110,8 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
         <p role="note" className="rounded-xl glass-warm px-4 py-3 text-sm text-cream/90">{t.obsForestNo}</p>
       )}
 
+      <PointHabitat habitat={habitat} />
+
       <FilterPills
         speciesName={chosenName}
         onClearSpecies={() => setSpeciesId(null)}
@@ -103,7 +127,7 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
           {snap.status === 'error' && <ObservatoryNotice error={snap.error} onRetry={snap.retry} />}
           {snap.data != null && (
             <div className={`transition-opacity ${snap.stale ? 'opacity-60' : ''}`}>
-              <Thermometer snap={snap.data} />
+              <Thermometer snap={snap.data} note={thermoNote} />
             </div>
           )}
         </div>
@@ -113,11 +137,11 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
         </div>
       </div>
 
-      <ChartSection point={point} species={speciesId} speciesName={chosenName} range={chosenRange} until={until} days={days} onWindow={onWindow} calendar={calendar} />
+      <ChartSection point={point} species={activeId} speciesName={activeName} range={chosenRange} until={until} days={days} onWindow={onWindow} calendar={calendar} />
 
       <ForecastSection point={point} zoneName={title} />
 
-      <CalendarSection cal={calendar} speciesName={chosenName} />
+      <CalendarSection cal={calendar} speciesName={activeName} />
     </section>
   )
 }

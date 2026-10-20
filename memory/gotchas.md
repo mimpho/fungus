@@ -281,3 +281,26 @@ A cell is ~0.0703° × 0.1272° near 41.6° N, the width in degrees changes with
 
 ### ⚠️ Discovery fills the daily new-cell allowance
 `ingest_cells.py discover` creates ~400 cells with `created_by` NULL in one day; they count in `observatory_max_new_cells_per_day` (global, 60) so users may be refused new cells that day. Run it when that does not matter, or after raising the limit for the day.
+
+## Observatory — conditions layer
+
+### ⚠️ Rasters are raw `.bin` files built by scripts, not committed (except elevation)
+Forest and substrate rasters live in `local-data/` (out of git) and are built with `scripts/build_forest_raster.py` / `build_substrate_raster.py`; the elevation raster is in `frontend/public/data/`. Their endpoints are private (login) because the MCSC-4 and relief licences are unconfirmed. Production needs a private bucket. Tests redirect the raster dirs to tmp (`conftest.py`).
+
+### ⚠️ Layer cache is per process
+`layer_cache.py` is an in-memory LRU; it invalidates through `SqlCellStore.data_signature()`, so a cell refresh changes the key. Several workers do not share it.
+
+### ⚠️ Cache-Control middleware keeps a route's own header
+`main.py` only sets its default when the response has no `cache-control`; routes that set their own (layer endpoints) rely on this.
+
+### ⚠️ Edibility `excelente`
+`/point/species` once ignored `excelente`; the ensemble depends on `EXCELLENT` in `point_species.py`.
+
+### ⚠️ v2 `needs` / `fit_parts` / `compute_v2_multi`
+The ensemble counts a species only if altitude fit ≠ 0 and the product of `fit_parts` ≥ 0.05. Change `scoring_v2.py` and `layer_probability.py` together.
+
+### ⚠️ Map vs point differences
+Map forest is smoothed client-side per pixel; the server judges the 500 m mean at the point. Expect a few points of difference and float rounding at exact colour thresholds (float32 vs float64).
+
+### ⚠️ Local DB port
+The local database answers on 5433 or 55432 depending on the setup; check before running `check_layer_probability.py`.

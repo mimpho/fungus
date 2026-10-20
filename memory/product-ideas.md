@@ -66,3 +66,10 @@
 - **Suggested build order, one layer at a time, each with its timeline:** (0) server-side ingestion of the Open-Meteo cells (the real cost, whatever the order); (1) probability with the single-point timeline; (2) rain with the window; (3) temperature; (4) wind; (5) the Top 10 layer, last. Temperature and wind should come almost free once the single-point timeline and the on-the-fly pipeline exist.
 - **Open:** licensing of the relief WMS and of the DEM (ICGC/Copernicus) before production; the fixed rain-grid code (`territory_rain_cache`, migration 020) was **removed unshipped** on 2026-10-18 (`chore/observatory-remove-territory-rain`; recoverable from PR #135).
 - **Map resolution by relief (idea for 7b, 2026-10-18).** The fixed cell (~8 km) gives 400 cells for Catalonia, little for a mountain region. Option: score each cell at a few elevation bands (for example every 300 m) and pick per pixel from the DEM elevation, so the map gains detail where the relief changes. Only for the temperature-driven part; rain and wind stay at cell resolution to avoid false precision. Open: DEM licence (ICGC/Copernicus), cost of the per-band scoring.
+
+- **Follow-ups of 7b (2026-10-20):**
+  - Layers box under the view switch, so it never overlaps the clicked-point panel; "coming soon" layers (rain, temperature, wind) listed there.
+  - Weight the mean of excellent species by observed frequency (GBIF audit) instead of equal weight.
+  - Municipality radius for the place search (instead of a fixed 500 m around the point).
+  - Clip the layer to Catalonia using `catalonia_outline.py`; the substrate raster also covers Andorra, Aragon and Perpinyà.
+  - Forecast slider up to +7 days (branch `feat/observatory-layer-forecast`).

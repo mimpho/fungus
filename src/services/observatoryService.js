@@ -80,7 +80,7 @@ function buildUrl(path, params) {
   return `${API_BASE}/observatory${path}${query ? `?${query}` : ''}`
 }
 
-async function request(path, { method = 'GET', params, body, signal } = {}) {
+async function request(path, { method = 'GET', params, body, signal, parse = 'json' } = {}) {
   const url = buildUrl(path, params)
   const attempt = async () => {
     try {
@@ -101,7 +101,8 @@ async function request(path, { method = 'GET', params, body, signal } = {}) {
   let res = await attempt()
   if (res.status === 401 && (await apiRefresh())) res = await attempt()
   if (!res.ok) throw await toError(res)
-  return res.status === 204 ? null : res.json()
+  if (res.status === 204) return null
+  return parse === 'buffer' ? res.arrayBuffer() : res.json()
 }
 
 // ── Point by coordinates ─────────────────────────────────────────────────────
@@ -132,16 +133,36 @@ export const fetchPointCalendar = (lat, lon, { date, species, signal } = {}) =>
 export const fetchPointForecast = (lat, lon, { signal } = {}) =>
   request('/point/forecast', { signal, params: { ...pt(lat, lon) } })
 
+// ── Map layers ───────────────────────────────────────────────────────────────
+
+/** Probability of one species in every stored cell of Catalonia. Never spends the new-cell budget. */
+export const fetchProbabilityLayer = (species, { date, signal } = {}) =>
+  request('/layer/probability', { signal, params: { species, date } })
+
+/** The excellent edibles together, one score each per cell (what the map shows before a species is chosen). */
+export const fetchExcellentLayer = ({ date, signal } = {}) =>
+  request('/layer/probability-excellent', { signal, params: { date } })
+
+/**
+ * A class raster ('forest' or 'substrate'): its description (classes, bounds, size) and its bytes,
+ * share*255 of each class, class after class. 404 = not built on this server.
+ */
+export const fetchClassRaster = (kind, { signal } = {}) =>
+  Promise.all([
+    request(`/layer/${kind}-raster/meta`, { signal }),
+    request(`/layer/${kind}-raster`, { signal, parse: 'buffer' }),
+  ])
+
 // ── Saved points ─────────────────────────────────────────────────────────────
 
 export const fetchSavedPoints = ({ signal } = {}) => request('/saved-points', { signal })
-export const createSavedPoint = ({ lat, lon, name, notes, forestTypes }) =>
+export const createSavedPoint = ({ lat, lon, name, notes }) =>
   request('/saved-points', {
     method: 'POST',
-    body: { lat, lon, ...(name ? { name } : {}), ...(notes ? { notes } : {}), ...(forestTypes?.length ? { forest_types: forestTypes } : {}) },
+    body: { lat, lon, ...(name ? { name } : {}), ...(notes ? { notes } : {}) },
   })
 export const fetchSavedPoint = (id, { signal } = {}) => request(`/saved-points/${id}`, { signal })
-/** `changes` uses the API names: { name, notes, forest_types } (forest_types: null = back to derived). */
+/** `changes` uses the API names: { name, notes } (notes: null = remove them). */
 export const updateSavedPoint = (id, changes) => request(`/saved-points/${id}`, { method: 'PATCH', body: changes })
 export const deleteSavedPoint = id => request(`/saved-points/${id}`, { method: 'DELETE' })
 export const fetchSavedPointSpecies = (id, { date, signal } = {}) =>

@@ -11,9 +11,10 @@ from datetime import date, timedelta
 from typing import Any
 
 from app.services.elevation_correction import correct_days, elevation_delta_m
+from app.services.point_ensemble import Ensemble, score_series
 from app.services.point_events import build_conditions, build_explanation, find_events
 from app.services.scoring import score_label
-from app.services.scoring_v2 import ClimateDay, SpeciesParams, V2Result, compute_v2_series
+from app.services.scoring_v2 import ClimateDay, SpeciesParams, V2Result
 from app.services.zone_scores import V2_WINDOW_DAYS, v1_detail, v1_from_rows, v2_detail
 
 MIN_DAYS, MAX_DAYS, DEFAULT_DAYS = 7, 180, 20
@@ -78,7 +79,7 @@ def build_series(
     point_elevation_m: float | None,
     to: date | None = None,
     days: int = DEFAULT_DAYS,
-    species: SpeciesParams | None = None,
+    species: SpeciesParams | Ensemble | None = None,
 ) -> SeriesWindow:
     prepared = prepare_climate(rows, today, cell_elevation_m, point_elevation_m)
     if prepared is None:
@@ -93,7 +94,7 @@ def build_series(
     window_days = [d for d in corrected if warm_up <= d.date <= end]
     v2 = {
         r.date: r
-        for r in compute_v2_series(window_days, elevation, species, output_from=start)
+        for r in score_series(window_days, elevation, species, output_from=start)
     }
     out = []
     for i in range(days):
@@ -117,7 +118,7 @@ def build_snapshot(
     cell_elevation_m: float | None,
     point_elevation_m: float | None,
     on: date | None = None,
-    species: SpeciesParams | None = None,
+    species: SpeciesParams | Ensemble | None = None,
 ) -> dict | None:
     """Thermometer for one date (default: the last with data): v2, band, limiting factor, v1,
     every condition behind the score and the explanation code for the grey areas."""
@@ -132,7 +133,7 @@ def build_snapshot(
         return None  # the date is before the first day the cell has
     ref = upto[-1].date  # a day missing from the cell scores as the nearest one before it
     warm_up = ref - timedelta(days=V2_WINDOW_DAYS)
-    series = compute_v2_series([d for d in upto if d.date >= warm_up], elevation, species, ref)
+    series = score_series([d for d in upto if d.date >= warm_up], elevation, species, ref)
     if not series or series[-1].date != ref:
         return None
     result = series[-1]
@@ -156,7 +157,9 @@ def build_snapshot(
             "dry_days": v2["dry_days"],
         },
         "pending_rains": v2["pending_rains"],
-        "conditions": build_conditions(result, upto[-10:], elevation, species),
+        # an ensemble has no thresholds of its own to list: the conditions are each species'
+        "conditions": ([] if isinstance(species, Ensemble)
+                       else build_conditions(result, upto[-10:], elevation, species)),
         "explanation": build_explanation(result),
         "v1": _v1(corrected, ref) if day else None,
     }

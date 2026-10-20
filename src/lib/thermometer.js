@@ -155,16 +155,22 @@ export function buildFactors(snap, t, lang) {
       why: seasonWhy(snap, t) },
     { key: 'heatdry', name: t.obsThFHeatDry, weight: t.obsThWTimes, score: Math.round(f.heat * f.drying * 100),
       why: fill(t.obsThWhyRowHeatDry, { dry_days: k.dry_days }, lang) + (f.frost < 1 ? ` ${fill(t.obsThWhyRowFrost, { frost: formatNumber(f.frost, lang, 2) }, lang)}` : '') },
+    ...((f.needs ?? 1) < 1 ? [{ key: 'needs', name: t.obsThFNeeds, weight: t.obsThWTimes, score: Math.round(f.needs * 100), why: t.obsThWhyRowNeeds }] : []),
+    ...((f.fit ?? 1) < 1 ? [{ key: 'fit', name: t.obsThFFit, weight: t.obsThWTimes, score: Math.round(f.fit * 100), why: t.obsThWhyRowFit }] : []),
   ].filter(row => Number.isFinite(row.score))
 }
 
 /** Score = A × (0,5 + 0,5·H) × T × (0,4 + 0,6·S) × D·C [× F] [× 1,1] = score, with the real numbers. */
 export function buildFormula(snap, t, lang) {
+  // The mean of several species has no single product: each one has its own
+  if (snap.ensemble?.count > 0) return fill(t.obsThFormulaMean, { n: snap.ensemble.count, score: snap.score }, lang)
   const f = snap.factors
   const n = x => formatNumber(x, lang, 2)
   const parts = [f.activation, n(0.5 + (0.5 * f.moisture) / 100), n(f.temperature / 100), n(0.4 + 0.6 * f.season), n(f.drying * f.heat)]
   if (f.frost < 1) parts.push(n(f.frost))
   if (f.shock > 1) parts.push(n(f.shock))
+  if ((f.needs ?? 1) < 1) parts.push(n(f.needs))
+  if ((f.fit ?? 1) < 1) parts.push(n(f.fit))
   return `${t.obsThFormulaName} = ${parts.join(' × ')} = ${snap.score}.`
 }
 
@@ -174,7 +180,7 @@ export function buildThermometer(snap, t, lang) {
   return {
     score: snap.score,
     band,
-    bandLabel: t[band.tKey],
+    bandLabel: t[band.obsKey],
     phrase: buildPhrase(snap, t, lang),
     explanation: buildExplanation(snap, t),
     tiles: buildTiles(snap, t, lang),

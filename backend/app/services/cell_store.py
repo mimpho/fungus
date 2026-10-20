@@ -111,6 +111,37 @@ class SqlCellStore:
         )
         return list(rows)
 
+    async def data_signature(self) -> tuple:
+        """Cheap fingerprint of what the layers read: it changes when a cell is loaded or
+        refreshed or climate rows are written, so cached layer answers can be told apart."""
+        cells = (
+            await self.db.execute(
+                select(func.count(), func.max(Cell.refreshed_at), func.max(Cell.loaded_to))
+                .where(Cell.loaded_to.is_not(None))
+            )
+        ).one()
+        fetched = await self.db.scalar(select(func.max(ClimateCellHistory.fetched_at)))
+        return (*cells, fetched)
+
+    async def loaded_cells_climate(self, since: date) -> list[tuple[CellInfo, list]]:
+        """Every loaded cell with its days from `since` on (oldest first): one query for the
+        cells and one for all the rows, for the layers that read the whole map at once."""
+        cells = [c for c in await self.list_cells() if c.loaded_to is not None]
+        if not cells:
+            return []
+        rows = await self.db.execute(
+            select(
+                ClimateCellHistory.cell_id, ClimateCellHistory.date,
+                *(getattr(ClimateCellHistory, m) for m in _METRICS if m != "source"),
+            )
+            .where(ClimateCellHistory.date >= since)
+            .order_by(ClimateCellHistory.cell_id, ClimateCellHistory.date)
+        )
+        by_cell: dict[str, list] = {}
+        for row in rows:
+            by_cell.setdefault(row.cell_id, []).append(row)
+        return [(c, by_cell.get(c.id, [])) for c in cells]
+
     async def mark_loaded(
         self, cell_id: str, loaded_from: date, loaded_to: date, at: datetime
     ) -> None:

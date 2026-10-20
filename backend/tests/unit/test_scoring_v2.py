@@ -423,3 +423,83 @@ def test_cep_in_setcases_frost_with_cold_soil_in_2025(ref, v2):
     """Falls progressively and never drops to 0."""
     r = v2_at("zone-030", ref, since=date(2025, 4, 1), species=CEP)
     assert abs(r.score - v2) <= 1
+
+
+# ── What the species asks of the weather (catalogue extras) ──────────────────
+
+BASE = SpeciesParams(8, 14, 20)
+
+
+def _frosty(n=60, frost_on=-5):
+    """A rain 15 days before the last day, then calm; a frost on day `frost_on` (index) if given."""
+    days = make_days(n, precipitation_mm=0.0)
+    days = with_values(days, n - 16, precipitation_mm=30.0)  # 15 days before the last
+    if frost_on is not None:
+        days = with_values(days, frost_on, temp_min_c=-3.0)
+    return days
+
+
+def test_species_extras_default_to_the_plain_species_model():
+    days = _frosty()
+    plain = last(days, species=BASE)
+    explicit = last(days, species=SpeciesParams(8, 14, 20, (), None, None, False, False))
+    assert plain.score == explicit.score and plain.factors.needs == 1.0
+
+
+def test_a_species_that_needs_frost_ignores_the_frost_penalty():
+    days = _frosty(frost_on=-2)  # frost two days before the end
+    penalised = last(days, species=BASE)
+    needy = last(days, species=SpeciesParams(8, 14, 20, needs_frost=True))
+    assert penalised.factors.frost < 1.0
+    assert needy.factors.frost == 1.0 and needy.factors.needs == 1.0 and needy.frost_30d
+
+
+def test_a_species_that_needs_frost_loses_without_one():
+    days = _frosty(frost_on=None)
+    needy = last(days, species=SpeciesParams(8, 14, 20, needs_frost=True))
+    assert needy.factors.needs == pytest.approx(0.75) and not needy.frost_30d
+
+
+def test_a_species_that_needs_a_temperature_drop_loses_without_one():
+    days = _frosty(frost_on=None)  # rain without a drop after it
+    needy = last(days, species=SpeciesParams(8, 14, 20, needs_shock=True))
+    assert needy.factors.needs == pytest.approx(0.85) and not needy.shock_recent
+    assert last(days, species=BASE).factors.needs == 1.0
+
+
+def test_a_drop_after_rain_satisfies_it():
+    days = _frosty(frost_on=None)
+    days = with_values(days, 60 - 15, temp_max_c=10.0)  # 8 degrees colder the day after the rain
+    needy = last(days, species=SpeciesParams(8, 14, 20, needs_shock=True))
+    assert needy.shock_recent and needy.factors.needs == 1.0
+
+
+def test_the_species_humidity_sets_what_a_dry_day_is():
+    days = make_days(60, humidity_pct=62.0)
+    generic = last(days, species=BASE)  # 62 % is not dry for the default 55
+    picky = last(days, species=SpeciesParams(8, 14, 20, humidity_min_pct=65.0))
+    assert generic.dry_days == 0 and picky.dry_days == 5
+    assert picky.factors.drying < generic.factors.drying
+
+
+def test_air_humidity_under_the_optimum_costs_at_most_10_percent():
+    days = make_days(60, humidity_pct=60.0)
+    r = last(days, species=SpeciesParams(8, 14, 20, humidity_min_pct=50.0, humidity_opt_pct=80.0))
+    assert r.factors.needs == pytest.approx(1 - 0.1 * (1 - (60 - 50) / 30))
+    wet = last(make_days(60, humidity_pct=90.0),
+               species=SpeciesParams(8, 14, 20, humidity_min_pct=50.0, humidity_opt_pct=80.0))
+    assert wet.factors.needs == 1.0
+
+
+# ── How well the point suits the species (fit_parts) ─────────────────────────
+
+def test_fit_parts_multiply_the_score_and_the_default_is_the_climate_alone():
+    days = make_days(60, precipitation_mm=0.0)
+    days = with_values(days, 30, precipitation_mm=30.0)
+    plain = last(days, species=BASE)
+    fitted = last(days, species=SpeciesParams(8, 14, 20, fit_parts=(("altitude", 1.0),
+                  ("forest", 0.5), ("soil", 0.5))))
+    assert plain.score > 0
+    assert fitted.score == pytest.approx(plain.score * 0.25, abs=1)
+    assert SpeciesParams(8, 14, 20).fit_factor == 1.0
+    assert fitted.factors.fit == pytest.approx(0.25) and plain.factors.fit == 1.0

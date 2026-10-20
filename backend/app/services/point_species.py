@@ -13,8 +13,10 @@ from datetime import date, timedelta
 from typing import Any
 
 from app.services.altitude_fit import Fit, altitude_fit, zone_band
+from app.services.point_habitat import MIN_FACTOR, Habitat, forest_fit, soil_fit
 from app.services.point_series import prepare_climate
 from app.services.scoring_v2 import (
+    FROST_NEED_DAYS,
     ClimateDay,
     PendingRain,
     SpeciesParams,
@@ -29,6 +31,9 @@ SIGNIFICANT_RAIN_MM = 10.0
 RAIN_LOOKBACK_DAYS = 21
 CYCLE_LOOKBACK_DAYS = 60
 TEMP_DAYS = 7
+# The catalogue says «excelente» (its tests and older code «excellent»)
+EXCELLENT = frozenset({"excelente", "excellent"})
+SOIL_OK = 0.5  # soil factor from which the soil counts as one the species fits
 
 
 @dataclass(frozen=True)
@@ -48,12 +53,29 @@ class SpeciesRecord:
     fruiting_months: tuple[int, ...]
     elevation_min_m: int | None
     elevation_max_m: int | None
+    # Soil pH range of the catalogue (extra_data.ph_suelo_min / _max); None = not known
+    ph_min: float | None = None
+    ph_max: float | None = None
+    # What the species asks of the weather besides temperature (extra_data); see scoring_v2
+    humidity_min_pct: float | None = None
+    humidity_opt_pct: float | None = None
+    needs_frost: bool = False
+    needs_shock: bool = False
 
     @classmethod
     def from_row(cls, row: Any) -> "SpeciesRecord":
         def num(name):
             v = getattr(row, name, None)
             return None if v is None else float(v)
+
+        extra = getattr(row, "extra_data", None) or {}
+
+        def flag(key):
+            return isinstance(extra, dict) and extra.get(key) is True
+
+        def ph(key):
+            v = extra.get(key) if isinstance(extra, dict) else None
+            return float(v) if isinstance(v, int | float) else None
 
         return cls(
             id=row.id,
@@ -69,6 +91,12 @@ class SpeciesRecord:
             fruiting_months=tuple(getattr(row, "fruiting_months", None) or ()),
             elevation_min_m=getattr(row, "elevation_min_m", None),
             elevation_max_m=getattr(row, "elevation_max_m", None),
+            ph_min=ph("ph_suelo_min"),
+            ph_max=ph("ph_suelo_max"),
+            humidity_min_pct=ph("humedad_min"),
+            humidity_opt_pct=ph("humedad_optima"),
+            needs_frost=flag("requiere_helada"),
+            needs_shock=flag("requiere_choque_termico"),
         )
 
     @property
@@ -77,12 +105,29 @@ class SpeciesRecord:
         if None in (self.temp_min_c, self.temp_opt_c, self.temp_max_c):
             return None
         return SpeciesParams(
-            self.temp_min_c, self.temp_opt_c, self.temp_max_c, self.fruiting_months
+            self.temp_min_c, self.temp_opt_c, self.temp_max_c, self.fruiting_months,
+            self.humidity_min_pct, self.humidity_opt_pct, self.needs_frost, self.needs_shock,
         )
 
 
 def grade(score: int) -> str:
     return next(name for floor, name in GRADES if score >= floor)
+
+
+def fit_parts(
+    sp: SpeciesRecord, elevation_m: float | None, habitat: Habitat | None
+) -> tuple[tuple[str, float], ...]:
+    """How well one point suits the species: altitude, forest and soil, each 0-1 (1 = no
+    objection or not known). Their product is what species_for_point multiplies the score by."""
+    band = zone_band(None if elevation_m is None else round(elevation_m), None, None)
+    alt = altitude_fit(band, sp.elevation_min_m, sp.elevation_max_m)
+    forest = forest_fit(sp.forest_types, habitat.forest if habitat else None)
+    soil = soil_fit(sp.ph_min, sp.ph_max, habitat.soil if habitat else None)
+    return (
+        ("altitude", round(alt.score_factor, 3) if alt.compatible else 0.0),
+        ("forest", forest["factor"] if forest else 1.0),
+        ("soil", soil["factor"] if soil else 1.0),
+    )
 
 
 # ── Conditions ────────────────────────────────────────────────────────────────
@@ -97,6 +142,40 @@ def _forest(sp: SpeciesRecord, forest_types: Collection[str] | None) -> dict:
     if not sp.forest_types or set(sp.forest_types) & set(forest_types):
         return _cond("met", species=list(sp.forest_types), point=sorted(forest_types))
     return _cond("not_met", species=list(sp.forest_types), point=sorted(forest_types))
+
+
+def _forest_shares(fit: dict, sp: SpeciesRecord, shares: dict[str, float]) -> dict:
+    """Forest condition from the shares of the MCSC-4 raster: met while some of the forest fits."""
+    return _cond(
+        "met" if fit["factor"] > 0 else "not_met",
+        species=list(sp.forest_types), classes=fit["classes"], share=fit["share"],
+        factor=fit["factor"], shares=shares,
+    )
+
+
+def _soil(fit: dict | None, shares: dict[str, float] | None) -> dict:
+    if fit is None:
+        return _cond("pending", shares=shares)
+    return _cond(
+        "met" if fit["factor"] >= SOIL_OK else "not_met",
+        ph_min=fit["ph_min"], ph_max=fit["ph_max"], factor=fit["factor"], shares=shares,
+    )
+
+
+def _weather_needs(sp: SpeciesRecord, result) -> dict:
+    """Conditions the species asks of the weather beyond temperature and rain; only those it has."""
+    out = {}
+    if sp.needs_frost:
+        out["frost"] = _cond("met" if result.frost_30d else "not_met", days=FROST_NEED_DAYS)
+    if sp.needs_shock:
+        out["shock"] = _cond("met" if result.shock_recent else "not_met")
+    if sp.humidity_min_pct is not None:
+        mean = round(result.humidity_7d_pct, 1)
+        out["humidity"] = _cond(
+            "met" if mean >= sp.humidity_min_pct else "not_met",
+            mean_7d_pct=mean, min_pct=sp.humidity_min_pct, opt_pct=sp.humidity_opt_pct,
+        )
+    return out
 
 
 def _temperature(sp: SpeciesRecord, days: Sequence[ClimateDay]) -> dict:
@@ -168,11 +247,16 @@ def species_for_point(
     on: date | None = None,
     forest_types: Collection[str] | None = None,
     followed: Collection[str] = frozenset(),
+    habitat: Habitat | None = None,
 ) -> dict | None:
     """Compatible species on a date with score, grade, conditions and best window.
 
     `forest_types`: forest types around the point, or None while they are not known (the forest
-    condition is then "pending" and nobody is excluded by forest)."""
+    condition is then "pending" and nobody is excluded by forest).
+    `habitat`: the forest and soil shares around the point (see point_habitat). With forest shares
+    the forest condition is judged on them instead of `forest_types` (which then only judges the
+    species the forest cannot: meadow, garden, riparian); with soil shares the soil is a condition
+    too. Both multiply the score, as in the probability layer."""
     prepared = prepare_climate(rows, today, cell_elevation_m, point_elevation_m)
     if prepared is None:
         return None
@@ -186,8 +270,14 @@ def species_for_point(
     items = []
     for sp in catalogue:
         fit = altitude_fit(band, sp.elevation_min_m, sp.elevation_max_m)
-        forest = _forest(sp, forest_types)
-        if not fit.compatible or forest["status"] == "not_met":
+        forest_hit = forest_fit(sp.forest_types, habitat.forest if habitat else None)
+        forest = (_forest_shares(forest_hit, sp, habitat.forest) if forest_hit
+                  else _forest(sp, forest_types))
+        soil_hit = soil_fit(sp.ph_min, sp.ph_max, habitat.soil if habitat else None)
+        forest_factor = forest_hit["factor"] if forest_hit else 1.0
+        soil_factor = soil_hit["factor"] if soil_hit else 1.0
+        if (not fit.compatible or forest["status"] == "not_met"
+                or forest_factor * soil_factor < MIN_FACTOR):
             continue
         if sp.fruiting_months and ref.month not in sp.fruiting_months:
             continue
@@ -195,7 +285,8 @@ def species_for_point(
         if not series or series[-1].date != ref:
             continue
         result = series[-1]
-        score = min(100, round_half_up(result.score * fit.score_factor))
+        score = min(100, round_half_up(
+            result.score * fit.score_factor * forest_factor * soil_factor))
         items.append(
             {
                 "id": sp.id,
@@ -209,21 +300,24 @@ def species_for_point(
                 "altitude": {"fit": fit.fit.value, "look_from_m": fit.look_from_m,
                              "look_to_m": fit.look_to_m, "species_min_m": sp.elevation_min_m,
                              "species_max_m": sp.elevation_max_m},
+                "habitat": {"forest_factor": forest_factor, "soil_factor": soil_factor},
                 "conditions": {
                     "forest": forest,
+                    "soil": _soil(soil_hit, habitat.soil if habitat else None),
                     "altitude": _cond("not_met" if fit.fit is Fit.LIMIT else "met",
                                       fit=fit.fit.value),
                     "season": _cond("met", months=list(sp.fruiting_months)),
                     "temperature": _temperature(sp, upto),
                     "rain": _rain(sp, upto, result.pending_rains),
                     "cycle": _cycle(sp, upto, ref),
+                    **_weather_needs(sp, result),
                 },
                 "window": best_window(result.pending_rains, sp.fruiting_months),
             }
         )
 
     items.sort(key=lambda i: (not i["followed"], -i["score"], i["scientific_name"]))
-    excellent = sorted((i for i in items if i["edibility"] == "excellent"),
+    excellent = sorted((i for i in items if i["edibility"] in EXCELLENT),
                        key=lambda i: (-i["score"], i["scientific_name"]))
     return {
         "date": ref.isoformat(),

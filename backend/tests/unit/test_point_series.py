@@ -42,6 +42,7 @@ class TestSeries:
         assert 0 <= day["v2"]["score"] <= 100
         assert set(day["v2"]["factors"]) == {
             "activation", "moisture", "temperature", "season", "drying", "heat", "frost", "shock",
+            "needs", "fit",
         }
 
     def test_defaults_end_on_the_last_day_with_data_and_have_20_days(self):

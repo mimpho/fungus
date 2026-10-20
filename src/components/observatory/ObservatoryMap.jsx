@@ -1,7 +1,12 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
-import { CARTO_TILES_URL, BASEMAP_ATTRIBUTION, ICGC_HYBRID_TILES_URL, ICGC_ATTRIBUTION } from '../../lib/basemap'
+import {
+  CARTO_TILES_URL, CARTO_LABELS_URL, CARTO_NOLABELS_URL, BASEMAP_ATTRIBUTION, ICGC_HYBRID_TILES_URL,
+  ICGC_RELIEF_TILES_URL, ICGC_RELIEF_BOUNDS, ICGC_ATTRIBUTION,
+} from '../../lib/basemap'
 import { CATALONIA_BOUNDS } from '../../lib/catalonia'
+import { cellFill } from '../../lib/layerColors'
+import { reliefOverlay } from '../../lib/reliefLayer'
 
 // Leaflet draws SVG outside React's DOM: colours are literal hex, never CSS vars
 // (see the Leaflet entry in memory/gotchas.md).
@@ -14,18 +19,30 @@ const BOUNDS = L.latLngBounds(
   [CATALONIA_BOUNDS.lat[1], CATALONIA_BOUNDS.lon[1]],
 )
 const OBSERVED_ZOOM = 12
+// A cell's score: one number, or (excellent edibles together) one per species
+const meanScore = s => {
+  if (!Array.isArray(s)) return s
+  const v = s.filter(x => x != null)
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
+}
+const LAYER_PANE = 'obsLayer' // between the tiles (200) and the markers (400): the layer never covers a point
 
 /**
  * Map of Catalonia. A click only reports the coordinates (onPick); what to do with them is the
  * page's. `observed` is the point being observed (green), `pending` the one just picked (dashed).
+ * `layer` is the answer of /layer/probability. With the elevation raster (`elevation`) every pixel
+ * is coloured by the score of its own elevation; without it every scored cell is a rectangle
+ * coloured by its score. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
+ * the forest is not one the species fits or the soil pH is not its own. Neither takes clicks, so picking a point works over the layer.
  */
-export function ObservatoryMap({ observed, pending, saved = [], onPick, label, basemap = 'satellite', flyTo = null, startAt = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], layer = null, elevation = null, habitat = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, className = '' }) {
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
   const observedRef = useRef(null)
   const pendingRef  = useRef(null)
   const tilesRef    = useRef(null)
   const savedRef    = useRef(null)
+  const layerRef    = useRef(null)
   const onPickRef  = useRef(onPick)
   const initial    = useRef(observed ?? startAt)
   useEffect(() => { onPickRef.current = onPick }, [onPick])
@@ -39,6 +56,7 @@ export function ObservatoryMap({ observed, pending, saved = [], onPick, label, b
       maxBounds: BOUNDS.pad(0.25),
       maxBoundsViscosity: 0.8,
     })
+    map.createPane(LAYER_PANE).style.zIndex = 350
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     if (initial.current) map.setView([initial.current.lat, initial.current.lon], OBSERVED_ZOOM)
     else map.fitBounds(BOUNDS)
@@ -52,20 +70,62 @@ export function ObservatoryMap({ observed, pending, saved = [], onPick, label, b
     return () => {
       ro.disconnect()
       try { map.remove() } catch (_e) { /* partial state: ignore */ }
-      mapRef.current = observedRef.current = pendingRef.current = tilesRef.current = savedRef.current = null
+      mapRef.current = observedRef.current = pendingRef.current = tilesRef.current = savedRef.current = layerRef.current = null
     }
   }, [])
 
-  // Basemap: satellite (default) or streets. Swapped without touching the view or the markers.
+  // Basemap: satellite (default), streets or shaded relief. Swapped without touching the view or the markers.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
     tilesRef.current?.remove()
+    if (basemap === 'relief') {
+      // The shading only covers Catalonia and has no place names: CARTO's dark map goes under it
+      // (so nothing outside is empty) and CARTO's labels over it
+      const carto = { attribution: BASEMAP_ATTRIBUTION, subdomains: 'abcd', maxZoom: 19 }
+      const ground = L.tileLayer(CARTO_NOLABELS_URL, carto)
+      const relief = L.tileLayer(ICGC_RELIEF_TILES_URL, { attribution: ICGC_ATTRIBUTION, maxZoom: 19, maxNativeZoom: 15, bounds: ICGC_RELIEF_BOUNDS })
+      const labels = L.tileLayer(CARTO_LABELS_URL, { ...carto, attribution: '' })
+      tilesRef.current = L.layerGroup([ground, relief, labels]).addTo(map)
+      ground.bringToBack()
+      return
+    }
     tilesRef.current = basemap === 'streets'
       ? L.tileLayer(CARTO_TILES_URL, { attribution: BASEMAP_ATTRIBUTION, subdomains: 'abcd', maxZoom: 19 })
       : L.tileLayer(ICGC_HYBRID_TILES_URL, { attribution: ICGC_ATTRIBUTION, maxZoom: 19 })
     tilesRef.current.addTo(map).bringToBack()
   }, [basemap])
+
+  // Probability layer: a picture blending the cells (with relief when the elevation raster is
+  // loaded); if drawing it fails, one rectangle per scored cell, sized by the grid the backend measured
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    layerRef.current?.remove()
+    layerRef.current = null
+    if (!layer?.cells?.length) return
+    const options = { pane: LAYER_PANE, interactive: false }
+    try {
+      const overlay = reliefOverlay(elevation, layer, habitat ?? {}) // elevation null: blended by cell, without relief
+      if (overlay) {
+        layerRef.current = L.imageOverlay(overlay.url, overlay.bounds, options).addTo(map)
+        return
+      }
+    } catch (err) {
+      console.warn('Probability layer: picture failed, drawing cells', err)
+    }
+    const cells = layer.cells.filter(c => c.status === 'scored' && c.half_lat && c.half_lon)
+    if (!cells.length) return
+    const group = L.layerGroup()
+    for (const c of cells) {
+      L.rectangle(
+        [[c.lat - c.half_lat, c.lon - c.half_lon], [c.lat + c.half_lat, c.lon + c.half_lon]],
+        { ...options, stroke: false, ...cellFill(meanScore(c.score)) },
+      ).addTo(group)
+    }
+    group.addTo(map)
+    layerRef.current = group
+  }, [layer, elevation, habitat])
 
   // Saved points: a marker with its name; clicking one picks it like a click on that spot
   useEffect(() => {

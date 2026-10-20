@@ -19,9 +19,9 @@ function Skeleton() {
  * pointer (`draft`) and the page's window is only changed on release. `species` is the id being
  * looked at (or null) and `range` its thermal range, drawn as a band on the temperature tab.
  */
-export function ChartSection({ point, species, speciesName, range, until, days, onWindow, calendar = null }) {
+export function ChartSection({ point, species, speciesName, range, until, days, onWindow, calendar = null, enabled = true }) {
   const { t } = useApp()
-  const series = usePointData(fetchPointSeries, point, { days: MAX_API_DAYS, species })
+  const series = usePointData(fetchPointSeries, point, { days: MAX_API_DAYS, species }, { enabled })
   const all = series.status === 'ready' ? series.data.days ?? [] : null
   const committed = useMemo(() => (all ? resolveWindow(all, until, days) : null), [all, until, days])
   const [draft, setDraft] = useState(null)

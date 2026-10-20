@@ -180,6 +180,10 @@ def build_conditions(
     if result.soil_temp_7d_c < COLD_SOIL_C:
         out.append(_cond("cold_soil", "-", {"soil_temp_7d_c": round(result.soil_temp_7d_c, 1)},
                          "south_and_lower"))
+    for name, factor in (species.fit_parts if species else ()):
+        if factor < 1:
+            values = {"factor": factor, "pct": round(factor * 100)}
+            out.append(_cond(f"habitat_{name}", "-", values))
     if f.frost < 1:
         frosts = [d for d in days[-FROST_LOOKBACK_DAYS:] if d.temp_min_c < 0]
         values = {"factor": round(f.frost, 2)}

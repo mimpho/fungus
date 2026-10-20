@@ -1,14 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
-import { FOREST_TYPES, NAME_MAX, NOTES_MAX, conflictKind } from '../../lib/savedPoints'
+import { NAME_MAX, NOTES_MAX, conflictKind } from '../../lib/savedPoints'
 import { ObservatoryNotice } from './ObservatoryNotice'
-
-const TYPE_KEY = {
-  pinar: 'obsFtPinar',
-  hayedo: 'obsFtHayedo',
-  robledal: 'obsFtRobledal',
-  encinar: 'obsFtEncinar',
-}
 
 const BTN_PRIMARY = 'px-4 py-2 rounded-xl bg-bar hover:bg-[#a0834d] disabled:opacity-60 disabled:hover:bg-bar text-white text-sm font-medium transition-all'
 export const BTN_SECONDARY = 'px-4 py-2 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] disabled:opacity-60 transition-all'
@@ -29,7 +22,7 @@ export function SaveError({ error }) {
 }
 
 /**
- * Name, notes and forest types of a saved point. Used to create (name optional: the server uses
+ * Name and notes of a saved point. Used to create (name optional: the server uses
  * the place name) and to edit. `onSubmit(form)` returns a promise; if it throws, the error is
  * shown here and the form stays as it was.
  */
@@ -46,11 +39,6 @@ export function SavePointForm({ initial, suggestedName, submitLabel, nameRequire
     formRef.current?.scrollIntoView?.({ block: 'nearest' })
     formRef.current?.querySelector('input[type=text]')?.focus({ preventScroll: true })
   }, [])
-
-  const toggleType = type => setForm(f => ({
-    ...f,
-    forestTypes: f.forestTypes.includes(type) ? f.forestTypes.filter(x => x !== type) : [...f.forestTypes, type],
-  }))
 
   async function submit(e) {
     e.preventDefault()
@@ -92,24 +80,6 @@ export function SavePointForm({ initial, suggestedName, submitLabel, nameRequire
           className={`${FIELD} resize-y`}
         />
       </div>
-      <fieldset>
-        <legend className="text-xs text-cream/60 mb-1">{t.obsSaveForest}</legend>
-        <div className="flex flex-wrap gap-2">
-          {FOREST_TYPES.map(type => {
-            const on = form.forestTypes.includes(type)
-            return (
-              <label
-                key={type}
-                className={`cursor-pointer select-none px-3 py-1.5 rounded-full text-xs border transition-colors focus-within:ring-2 focus-within:ring-cream/50 ${on ? 'bg-bar/80 border-bar text-white' : 'border-cream/30 text-cream/80 hover:bg-cream/10'}`}
-              >
-                <input type="checkbox" checked={on} onChange={() => toggleType(type)} className="sr-only" />
-                {t[TYPE_KEY[type]]}
-              </label>
-            )
-          })}
-        </div>
-        <p className="text-xs text-cream/50 mt-1.5">{t.obsSaveForestHelp}</p>
-      </fieldset>
       <SaveError error={error} />
       <div className="flex gap-2 justify-end">
         <button type="button" onClick={onCancel} disabled={busy} className={BTN_SECONDARY}>{t.obsSaveCancel}</button>

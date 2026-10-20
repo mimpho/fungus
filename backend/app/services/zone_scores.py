@@ -112,6 +112,8 @@ def v2_detail(r: V2Result) -> dict:
             "heat": round(f.heat, 3),
             "frost": round(f.frost, 3),
             "shock": f.shock,
+            "needs": round(f.needs, 3),
+            "fit": round(f.fit, 3),
         },
         "limiting_factor": r.limiting_factor,
         "warm": r.warm,

@@ -78,6 +78,14 @@ SHOCK_BONUS = 1.1
 
 OUT_OF_MONTHS_SEASON = 0.3  # species outside its fruiting months
 
+# What a species asks of the weather beyond its temperature range (catalogue fields). All are
+# optional: without them the model is the generic one, number for number.
+FROST_NEED_DAYS = 30  # a species that needs frost looks for one in this many days
+MISSING_FROST_FACTOR = 0.75  # no frost in them: it has not been triggered
+MISSING_SHOCK_FACTOR = 0.85  # a species that needs a temperature drop and has not had one
+HUMIDITY_DAYS = 7
+HUMIDITY_OPT_WEIGHT = 0.1  # air humidity under the species' optimum costs up to 10 %
+
 RAIN_RUN_DAY_MM = 2.0  # a "rain on the way" run: consecutive days ≥ 2 mm…
 RAIN_RUN_TOTAL_MM = 5.0  # …adding up to ≥ 5 mm
 PENDING_COLD = (12, 14, 21)  # (still pending if ended < N days ago, starts +N, peak +N)
@@ -146,6 +154,21 @@ class SpeciesParams:
     temp_opt_c: float
     temp_max_c: float
     months: tuple[int, ...] = ()  # fruiting months; empty = no season restriction
+    humidity_min_pct: float | None = None  # a day drier than this is a dry day (default 55)
+    humidity_opt_pct: float | None = None  # air humidity it prefers (7-day mean)
+    needs_frost: bool = False  # fruits after a frost: frost does not penalise it, its absence does
+    needs_shock: bool = False  # fruits after a temperature drop: without one it loses
+    # How well the point itself suits the species, as ((name, factor 0-1), ...): altitude, forest,
+    # soil. Their product multiplies the score, so the thermometer, the chart and the calendar of
+    # a species say what the species list and the map say. Empty = the climate alone.
+    fit_parts: tuple[tuple[str, float], ...] = ()
+
+    @property
+    def fit_factor(self) -> float:
+        out = 1.0
+        for _, factor in self.fit_parts:
+            out *= factor
+        return out
 
 
 @dataclass(frozen=True)
@@ -169,6 +192,8 @@ class V2Factors:
     heat: float  # C, 0.6–1
     frost: float  # F, 0.6–1
     shock: float  # B, 1 or 1.1
+    needs: float = 1.0  # what the species asks of frost, drop and humidity (1 = nothing missing)
+    fit: float = 1.0  # how well the point suits the species (altitude × forest × soil, 0–1)
 
 
 @dataclass(frozen=True)
@@ -183,6 +208,9 @@ class V2Result:
     dry_days: int  # of the last 5
     frost_recent: bool  # a frost in the last 3 days
     pending_rains: list[PendingRain] = field(default_factory=list)
+    frost_30d: bool = False  # a frost in the last FROST_NEED_DAYS
+    shock_recent: bool = False  # a rain with a temperature drop 7-28 days ago
+    humidity_7d_pct: float = 0.0
     estimated: bool = False
     model_version: str = MODEL_VERSION
 
@@ -410,25 +438,38 @@ def _mean_back(values: Sequence[float], k: int, days: int) -> float:
     return sum(window) / len(window)
 
 
-def compute_v2_series(
-    days: Iterable[ClimateDay],
-    elevation_m: float | None,
-    species: SpeciesParams | None = None,
-    output_from: date | None = None,
-) -> list[V2Result]:
-    """v2 for every day from `output_from` (default: every day) to the last row.
+@dataclass(frozen=True)
+class _Prepared:
+    """What the model computes from the climate alone, whatever the species: the same for every
+    species asked about one place, so it is done once (the activation is the costly part)."""
 
-    `days` should start well before `output_from`: the buckets and the warm state need
-    history (see MIN_HISTORY_DAYS). Days with less history are marked `estimated`.
-    """
+    rows: list[ClimateDay]
+    act: list[float]
+    warm: list[bool]
+    sun: list[float]
+    shade: list[float]
+    runs: list[tuple[int, int]]
+
+
+def _prepare(days: Iterable[ClimateDay]) -> _Prepared | None:
     rows = fill_gaps(days)
-    n = len(rows)
-    if not n:
-        return []
-
+    if not rows:
+        return None
     sun, shade = _buckets(rows)
     act, warm = _activation(rows, shade)
-    runs = _rain_runs(rows)
+    return _Prepared(rows, act, warm, sun, shade, _rain_runs(rows))
+
+
+def _series(
+    prep: _Prepared,
+    elevation_m: float | None,
+    species: SpeciesParams | None,
+    output_from: date | None,
+) -> list[V2Result]:
+    rows, act, warm, sun, shade, runs = (
+        prep.rows, prep.act, prep.warm, prep.sun, prep.shade, prep.runs,
+    )
+    n = len(rows)
 
     if species is not None:
         t_opt = species.temp_opt_c
@@ -439,6 +480,12 @@ def compute_v2_series(
 
     tmax = [r.temp_max_c for r in rows]
     tavg = [r.temp_avg_c for r in rows]
+    humidity = [r.humidity_pct for r in rows]
+    dry_below = (
+        species.humidity_min_pct
+        if species is not None and species.humidity_min_pct is not None
+        else DRY_HUMIDITY_PCT
+    )
     soil = [r.soil_temp_c for r in rows]
     filled_prefix = [0] * (n + 1)
     for i, r in enumerate(rows):
@@ -467,7 +514,7 @@ def compute_v2_series(
         dry = 0
         for x in range(max(0, k - DRY_DAYS + 1), k + 1):
             h, w = rows[x].humidity_pct, rows[x].wind_kmh
-            if h < DRY_HUMIDITY_PCT or (w >= WINDY_KMH and h < WINDY_HUMIDITY_PCT):
+            if h < dry_below or (w >= WINDY_KMH and h < WINDY_HUMIDITY_PCT):
                 dry += 1
         f_dry = max(FACTOR_FLOOR, 1 - DRY_PER_DAY * dry)
 
@@ -490,6 +537,21 @@ def compute_v2_series(
                 break
         f_shock = SHOCK_BONUS if shock else 1.0
 
+        frost_30d = any(rows[k - i].temp_min_c < 0 for i in range(min(FROST_NEED_DAYS, k + 1)))
+        humidity_7d = _mean_back(humidity, k, HUMIDITY_DAYS)
+        needs = 1.0
+        if species is not None:
+            if species.needs_frost:
+                f_frost = 1.0  # frost is what it waits for, not a setback
+                if not frost_30d:
+                    needs *= MISSING_FROST_FACTOR
+            if species.needs_shock and not shock:
+                needs *= MISSING_SHOCK_FACTOR
+            low, opt = species.humidity_min_pct, species.humidity_opt_pct
+            if low is not None and opt is not None and opt > low:
+                fit = min(1.0, max(0.0, (humidity_7d - low) / (opt - low)))
+                needs *= 1 - HUMIDITY_OPT_WEIGHT * (1 - fit)
+
         season = season_factor(r.date, elevation_m)
         if species is not None and species.months and r.date.month not in species.months:
             season *= OUT_OF_MONTHS_SEASON
@@ -504,6 +566,8 @@ def compute_v2_series(
             * f_frost
             * f_heat
             * f_shock
+            * needs
+            * (species.fit_factor if species is not None else 1.0)
         )
         score = min(100, round_half_up(raw))
 
@@ -525,6 +589,8 @@ def compute_v2_series(
                     heat=f_heat,
                     frost=f_frost,
                     shock=f_shock,
+                    needs=needs,
+                    fit=species.fit_factor if species is not None else 1.0,
                 ),
                 warm=warm[k],
                 soil_water_mm=water,
@@ -533,10 +599,45 @@ def compute_v2_series(
                 dry_days=dry,
                 frost_recent=frost_recent,
                 pending_rains=_pending_rains(rows, runs, k, warm[k]),
+                frost_30d=frost_30d,
+                shock_recent=shock,
+                humidity_7d_pct=humidity_7d,
                 estimated=estimated,
             )
         )
     return results
+
+
+
+
+def compute_v2_series(
+    days: Iterable[ClimateDay],
+    elevation_m: float | None,
+    species: SpeciesParams | None = None,
+    output_from: date | None = None,
+) -> list[V2Result]:
+    """v2 for every day from `output_from` (default: every day) to the last row.
+
+    `days` should start well before `output_from`: the buckets and the warm state need
+    history (see MIN_HISTORY_DAYS). Days with less history are marked `estimated`.
+    """
+    prep = _prepare(days)
+    return [] if prep is None else _series(prep, elevation_m, species, output_from)
+
+
+def compute_v2_multi(
+    days: Iterable[ClimateDay],
+    elevation_m: float | None,
+    species_list: Sequence[SpeciesParams | None],
+    output_from: date | None = None,
+) -> list[list[V2Result]]:
+    """compute_v2_series for several species on the same days: the part that does not depend on
+    the species (soil buckets, activation, rain runs) is computed once. One list per species,
+    in order."""
+    prep = _prepare(days)
+    return [
+        [] if prep is None else _series(prep, elevation_m, sp, output_from) for sp in species_list
+    ]
 
 
 def compute_oi_v2(
