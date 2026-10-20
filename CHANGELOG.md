@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — conditions layer on the interactive map (2026-10-20, `feat/observatory-layer-probability`, 7b)
+
+- **Conditions layer** (`GET /observatory/layer/probability`, `routers/observatory_layer.py`, `services/layer_probability.py`): cells are scored at relief bands (every 300 m, spread 900 m) with the species' v2 model; the client paints every pixel from the elevation raster (`lib/reliefLayer.js`, kernel blend of neighbouring cells) so the map gains detail where the relief changes. Species selector over the full catalogue (`SpeciesLayerPicker.jsx`); species range ±150 m around its altitude window.
+- **Mean of excellent species** (`GET /observatory/layer/probability-excellent`, `excellent_layer` + `compute_v2_multi`): with no species chosen the layer shows the mean score of the excellent species present at each pixel (in range, habitat factor ≥ 0.05, in season). Shared computation: 37 species ≈ 3 s on the real database.
+- **Habitat factors per pixel:** forest ramp (0 below 10 % cover, 1 at 40 %) × soil pH factor, from two private rasters (`/observatory/layer/forest-raster[/meta]`, `/substrate-raster[/meta]`) built by `scripts/build_forest_raster.py`, `build_substrate_raster.py`, `build_elevation_raster.py` (raw `.bin` + `.json` in `frontend/public/data/` for elevation; forest and substrate stay in `local-data/`).
+- **Layers box** (`MapLayersBox.jsx`) under the view switch, relief basemap (ICGC), day control (`LayerDayControl.jsx`), value of the clicked point as a big coloured score in the point panel, attributions (Copernicus DEM GLO-30, ICGC lithology CC BY 4.0, CREAF MCSC-4).
+- **Layer cache** (`services/layer_cache.py`, LRU 24): key = kind, day, `SqlCellStore.data_signature()` (cell count, max refreshed/loaded/climate timestamps) and the species record(s). Own `Cache-Control` of a route is now kept by the middleware.
+- **Check script** `scripts/check_layer_probability.py` for the real database (history query 145–263 ms, one species ≈ 1.5 s, 37 excellent ≈ 3 s).
+- `species=excellent` accepted by `/point/snapshot`, `/point/series` and `/point/calendar` (`services/point_ensemble.py`).
+
+### Changed — conditions layer (2026-10-20, 7b)
+
+- **Wording:** the score is an *index of favourable conditions* (weather, altitude, forest, soil), **not** a probability of finding mushrooms; abundance and mycorrhiza are not modelled. UI texts say "conditions".
+- **Forest is judged around the point:** CREAF raster mean within 500 m (`HABITAT_RADIUS_M`), soil from the exact pixel; the ICGC land cover is informative only ("Bajo el punto"). Author forest types of saved points no longer decide anything and were removed from the save form.
+- **Thermometer without species = ensemble:** per-day mean of v2 scores of the excellent species present, the same number the map shows; out of season → 0, conditions list empty; snapshot returns `ensemble:{count}`.
+- Saved points use the same sources as the interactive map, not the points of interest of the zones section.
+- **Thermometer with no excellent species fitting the place** (no forest, altitude or soil out of range): reads the general climate score instead of 0 (`ensemble.climate_only`); the count in the note only includes species in season that day.
+- **The mean of excellent species only includes forest species** (`counts_in_ensemble`): meadow, garden, riparian or untyped species count nothing, so a town lawn does not paint a place green. Applies to the map layer, the thermometer, the chart and the calendar.
+- The point panel stays on the map after «Observe this zone» and when the page opens on a point's URL; it shows the height from the relief raster when the elevation service gives none, and hides the score caption when the layer paints nothing.
+- **Thermometer breakdown now explains the score:** the factors `needs` (what the species asks of frost, drop and humidity) and `fit` (altitude × forest × soil) are returned and shown as rows and in the formula; with no species the formula says it is the mean of N species.
+- Explanations moved into ⓘ tooltips (`InfoTip`): thermometer note, layers box, point panel. Point panel shows a dots loader while the score is calculated and the caption reads «Índice de condiciones» (not «favorables»). Display font uses lining figures; thermometer shows «/ 100».
+- Without a forest around, the species list shows the species the forest cannot judge (meadow, garden, riparian); the thermometer starts on the species chosen on the map.
+- Observatory score bands read as conditions in es/ca («Muy buena», «Mala», «Condiciones excelentes»…); chart tab «Momento» is now «Condición». Zones keep their own labels.
+
+### Fixed — `/point/species` (2026-10-20, 7b)
+
+- The `excelente` edibility value was not recognised when listing compatible species.
+
+---
+
 ### Added — server-side ingestion of the Open-Meteo cells (2026-10-18, `feat/observatory-map-ingest`, 7a, in progress)
 
 - **Discovery by probing** (`services/cell_discovery.py`, `cell_ingest.py`, `scripts/ingest_cells.py`): the model grid is not known by arithmetic, so a lattice of 655 probe points finer than a cell (0.06° × 0.10°) is sent to the archive API in batches of 50 locations, each answer names the cell the point falls in, and the distinct answers are the cells. Cells that touch Catalonia are picked with a rectangle-against-outline test (`catalonia_outline.py`, a drawing, not a survey). `holes` / `discover --holes` find neighbours expected but not found and probe only those.
