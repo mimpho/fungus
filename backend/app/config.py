@@ -87,6 +87,14 @@ class Settings(BaseSettings):
     # with the zone ingest and the weather cache.
     observatory_cell_refresh_budget: int = 1500
 
+    # Forest raster of the probability layer (build_forest_raster.py): folder with
+    # forest-catalonia.bin/.json. Derived from CREAF MCSC-4 (licence unconfirmed): never in
+    # public/ or git; the API serves it behind login. Missing folder = layer without forest.
+    forest_raster_dir: str = "../local-data/forest"
+    # Substrate (soil acidity) raster, from the ICGC lithological groups (CC BY 4.0), same layout
+    # (build_substrate_raster.py). Missing folder = layer without soil.
+    substrate_raster_dir: str = "../local-data/substrate"
+
     # Versión de la API
     api_version: str = "v1"
 
