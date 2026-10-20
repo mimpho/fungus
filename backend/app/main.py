@@ -35,7 +35,17 @@ from sqlalchemy import func, select
 from app.config import settings
 from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
-from app.routers import auth, health, me, observatory, saved_points, species, weather, zones
+from app.routers import (
+    auth,
+    health,
+    me,
+    observatory,
+    observatory_layer,
+    saved_points,
+    species,
+    weather,
+    zones,
+)
 from app.services.cell_ingest import refresh_all
 from app.services.cell_store import SqlCellStore
 from app.services.ingest import run_backfill, run_daily_ingest
@@ -321,7 +331,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 @app.middleware("http")
 async def add_cache_control(request, call_next):
     response = await call_next(request)
-    if request.method == "GET" and response.status_code == 200:
+    ok = request.method == "GET" and response.status_code == 200
+    if ok and "cache-control" not in response.headers:  # a route that sets its own keeps it
         # Species data changes after admin edits — never cache in browser or CDN
         if "/species" in request.url.path:
             response.headers["Cache-Control"] = "no-store"
@@ -341,6 +352,7 @@ app.include_router(weather.router, prefix=API_PREFIX)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(me.router, prefix=API_PREFIX)
 app.include_router(observatory.router, prefix=API_PREFIX)
+app.include_router(observatory_layer.router, prefix=API_PREFIX)
 app.include_router(saved_points.router, prefix=API_PREFIX)
 
 # Static assets (logo for emails, etc.) — served at /static/<filename>

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.services.point_habitat import Habitat
 from app.services.point_species import (
     SpeciesRecord,
     best_window,
@@ -149,7 +150,7 @@ class TestConditions:
 
     def test_altitude_season_and_forest_are_listed_too(self):
         assert set(_item(_run([_sp()]))["conditions"]) == {
-            "forest", "altitude", "season", "temperature", "rain", "cycle"}
+            "forest", "soil", "altitude", "season", "temperature", "rain", "cycle"}
 
 
 # ── Best window ───────────────────────────────────────────────────────────────
@@ -208,6 +209,10 @@ class TestOrder:
         assert [i["id"] for i in res["excellent"]] == ["esp-a", "esp-b"]  # by score, not followed
         assert "esp-c" in _ids(res) and "esp-c" not in [i["id"] for i in res["excellent"]]
 
+    def test_the_catalogues_spanish_value_counts_as_excellent(self):
+        res = _run([_sp(id="esp-e", edibility="excelente"), _sp(id="esp-g", edibility="bueno")])
+        assert [i["id"] for i in res["excellent"]] == ["esp-e"]
+
     def test_an_empty_catalogue_gives_empty_lists(self):
         res = _run([])
         assert res["species"] == [] and res["excellent"] == []
@@ -229,3 +234,114 @@ class TestOrder:
         rec = SpeciesRecord.from_row(row)
         assert rec.temp_opt_c == 14.0 and rec.fruiting_months == (9, 10)
         assert _ids(_run([rec])) == ["esp-9"]
+
+
+# ── Habitat: forest shares and soil ───────────────────────────────────────────
+
+def _habitat(forest=None, soil=None):
+    return Habitat(forest=forest, soil=soil)
+
+
+class TestHabitat:
+    def test_without_habitat_nothing_changes(self):
+        plain = _item(_run([_sp()]))
+        assert plain["habitat"] == {"forest_factor": 1.0, "soil_factor": 1.0}
+        assert plain["conditions"]["soil"]["status"] == "pending"
+
+    def test_forest_shares_replace_the_land_cover_types(self):
+        sp = _sp(forest_types=("pinar",))
+        # the land cover says pinar, the MCSC raster says almost no pinar here
+        res = _run([sp], forest_types={"pinar"},
+                   habitat=_habitat(forest={"pinar": 0.05, "encinar": 0.9}))
+        assert res["species"] == []
+
+    def test_a_partial_forest_lowers_the_score_in_proportion(self):
+        base = _item(_run([_sp()]))["score"]
+        half = _run([_sp()], habitat=_habitat(forest={"pinar": 0.25}))  # factor 0.5
+        item = _item(half)
+        assert item["conditions"]["forest"]["values"]["share"] == 0.25
+        assert item["habitat"]["forest_factor"] == 0.5
+        assert item["score"] == pytest.approx(base * 0.5, abs=1)
+
+    def test_soil_ph_multiplies_the_score_and_is_a_condition(self):
+        calcareous = _habitat(soil={"acid": 0.0, "mixed": 0.0, "calcareous": 1.0})
+        acid = _habitat(soil={"acid": 1.0, "mixed": 0.0, "calcareous": 0.0})
+        sp = _sp(ph_min=4.5, ph_max=7.2)  # tolerates lime a little
+        on_lime = _item(_run([sp], habitat=calcareous))
+        on_acid = _item(_run([sp], habitat=acid))
+        assert on_lime["score"] < on_acid["score"]
+        assert on_lime["conditions"]["soil"]["status"] == "not_met"
+        assert on_acid["conditions"]["soil"]["status"] == "met"
+        assert on_acid["conditions"]["soil"]["values"]["factor"] == 1.0
+
+    def test_a_soil_that_does_not_fit_at_all_leaves_the_species_out(self):
+        lime = _habitat(soil={"acid": 0.0, "mixed": 0.0, "calcareous": 1.0})
+        assert _run([_sp(ph_min=4.0, ph_max=5.0)], habitat=lime)["species"] == []
+
+    def test_unknown_ph_or_no_soil_data_do_not_punish(self):
+        nothing = _habitat(soil=dict.fromkeys(("acid", "mixed", "calcareous"), 0.0))
+        item = _item(_run([_sp()], habitat=nothing))
+        assert item["habitat"]["soil_factor"] == 1.0
+        item = _item(_run([_sp(ph_min=None, ph_max=None)],
+                          habitat=_habitat(soil={"acid": 1.0, "mixed": 0.0, "calcareous": 0.0})))
+        assert item["conditions"]["soil"]["status"] == "pending"
+
+    def test_species_the_forest_cannot_judge_keep_the_land_cover_logic(self):
+        sp = _sp(forest_types=("pradera",))
+        res = _run([sp], forest_types={"pinar"}, habitat=_habitat(forest={"pinar": 1.0}))
+        assert res["species"] == []  # land cover pinar vs meadow species, as before
+
+
+class TestWeatherNeeds:
+    def test_only_the_needs_a_species_has_are_conditions(self):
+        plain = _item(_run([_sp()]))["conditions"]
+        assert not {"frost", "shock", "humidity"} & set(plain)
+        sp = _sp(needs_frost=True, needs_shock=True, humidity_min_pct=60.0, humidity_opt_pct=78.0)
+        c = _item(_run([sp]))["conditions"]
+        assert {"frost", "shock", "humidity"} <= set(c)
+        assert c["humidity"]["values"]["min_pct"] == 60.0
+
+    def test_the_catalogue_extras_become_species_fields(self):
+        row = SimpleNamespace(
+            id="x", scientific_name="X", edibility="good", temp_min_c=5, temp_opt_c=14,
+            temp_max_c=22, rain_min_mm=30, rain_opt_mm=80, cycle_days=10, forest_types=[],
+            fruiting_months=[10], elevation_min_m=0, elevation_max_m=2000,
+            extra_data={"humedad_min": 60, "humedad_optima": 78, "requiere_helada": True,
+                        "requiere_choque_termico": False},
+        )
+        rec = SpeciesRecord.from_row(row)
+        assert (rec.humidity_min_pct, rec.humidity_opt_pct) == (60.0, 78.0)
+        assert rec.needs_frost is True and rec.needs_shock is False
+        assert rec.params.needs_frost is True and rec.params.humidity_min_pct == 60.0
+
+
+class TestFitParts:
+    def test_parts_are_altitude_forest_and_soil_each_0_to_1(self):
+        from app.services.point_species import fit_parts
+
+        sp = _sp(forest_types=("pinar",), ph_min=4.5, ph_max=7.2)
+        habitat = _habitat(forest={"pinar": 0.25},
+                           soil={"acid": 0.0, "mixed": 0.0, "calcareous": 1.0})
+        parts = dict(fit_parts(sp, 667, habitat))
+        assert parts["altitude"] == 1.0 and parts["forest"] == 0.5 and 0 < parts["soil"] < 0.5
+
+    def test_outside_its_altitude_the_factor_is_zero_and_unknowns_do_not_punish(self):
+        from app.services.point_species import fit_parts
+
+        assert dict(fit_parts(_sp(), 100, None))["altitude"] == 0.0
+        assert dict(fit_parts(_sp(), 667, None)) == {"altitude": 1.0, "forest": 1.0, "soil": 1.0}
+
+    def test_the_point_score_of_a_species_matches_its_list_score(self):
+        from dataclasses import replace
+
+        from app.services.point_series import build_snapshot
+        from app.services.point_species import fit_parts
+
+        sp = _sp()
+        habitat = _habitat(forest={"pinar": 0.25})
+        listed = _item(_run([sp], habitat=habitat))["score"]
+        params = replace(sp.params, fit_parts=fit_parts(sp, 667, habitat))
+        snap = build_snapshot(_rows(), TODAY, 667, 667, species=params)
+        assert abs(snap["score"] - listed) <= 1
+        codes = [c["code"] for c in snap["conditions"]]
+        assert "habitat_forest" in codes

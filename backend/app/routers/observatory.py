@@ -5,6 +5,7 @@ on the first request (source "live") and served from the database afterwards ("s
 """
 import asyncio
 import logging
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from functools import lru_cache
 
@@ -29,6 +30,7 @@ from app.services.cell_store import SqlCellStore
 from app.services.geo_bounds import LAT_RANGE, LON_RANGE
 from app.services.point_calendar import build_calendar
 from app.services.point_elevation import point_elevation
+from app.services.point_ensemble import ENSEMBLE_SPECIES, Ensemble, Member, counts_in_ensemble
 from app.services.point_forecast import build_forecast
 from app.services.point_forest import (
     DEFAULT_RADIUS_M,
@@ -41,6 +43,7 @@ from app.services.point_forest import (
     land_cover,
     species_forest_types,
 )
+from app.services.point_habitat import MIN_FACTOR, Habitat, habitat_at
 from app.services.point_series import (
     DEFAULT_DAYS,
     MAX_DAYS,
@@ -48,7 +51,7 @@ from app.services.point_series import (
     build_series,
     build_snapshot,
 )
-from app.services.point_species import SpeciesRecord, species_for_point
+from app.services.point_species import EXCELLENT, SpeciesRecord, fit_parts, species_for_point
 from app.services.scoring_v2 import SpeciesParams
 
 log = logging.getLogger(__name__)
@@ -113,7 +116,7 @@ async def _cell_and_rows(
     return result, await store.history(result.cell.id)
 
 
-async def _species_params(db: AsyncSession, species_id: str | None) -> SpeciesParams | None:
+async def _species_record(db: AsyncSession, species_id: str | None) -> SpeciesRecord | None:
     if species_id is None:
         return None
     sp = await db.get(Species, species_id)
@@ -123,12 +126,64 @@ async def _species_params(db: AsyncSession, species_id: str | None) -> SpeciesPa
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Species has no temperature range"
         )
-    return SpeciesParams(
-        float(sp.temp_min_c),
-        float(sp.temp_opt_c),
-        float(sp.temp_max_c),
-        tuple(sp.fruiting_months or ()),
-    )
+    return SpeciesRecord.from_row(sp)
+
+
+def _species_params(
+    record: SpeciesRecord | None, point: PointQuery, elevation: float | None, cell_elevation: float
+) -> SpeciesParams | None:
+    """The species' thermal range and what it asks of the weather, plus how well this point
+    suits it (altitude, forest, soil), so every score of the point is the species' own."""
+    if record is None:
+        return None
+    where = elevation if elevation is not None else cell_elevation
+    parts = fit_parts(record, where, _habitat(point))
+    return replace(record.params, fit_parts=parts)
+
+
+async def _scored_species(
+    db: AsyncSession,
+    species_id: str | None,
+    point: PointQuery,
+    elevation: float | None,
+    cell_elevation: float,
+) -> SpeciesParams | Ensemble | None:
+    """What a point is scored as: one species, the generic model (None) or, for
+    `species=excellent`, the ensemble of the excellent edibles that grow here: the same set and
+    the same mean the map paints before a species is chosen."""
+    if species_id != ENSEMBLE_SPECIES:
+        record = await _species_record(db, species_id)
+        return _species_params(record, point, elevation, cell_elevation)
+    rows = (await db.scalars(select(Species).where(Species.edibility.in_(sorted(EXCELLENT))))).all()
+    where = elevation if elevation is not None else cell_elevation
+    habitat = _habitat(point)
+    members = []
+    for row in rows:
+        if row.temp_min_c is None or row.temp_opt_c is None or row.temp_max_c is None:
+            continue
+        record = SpeciesRecord.from_row(row)
+        if not counts_in_ensemble(record.forest_types):
+            continue
+        parts = fit_parts(record, where, habitat)
+        if any(f == 0 for name, f in parts if name == "altitude"):
+            continue
+        product = 1.0
+        for _, f in parts:
+            product *= f
+        if product < MIN_FACTOR:
+            continue
+        members.append(Member(replace(record.params, fit_parts=parts), record.fruiting_months))
+    return Ensemble(tuple(members))
+
+
+def _ensemble_block(ensemble: Ensemble, day: str) -> dict:
+    """How many members the day's mean is made of: those in their fruiting months that day
+    (the same ones the map counts), not every excellent species that fits the point.
+    `climate_only`: no excellent species fits the place (altitude, forest, soil), so the
+    thermometer reads the general climate."""
+    month = date.fromisoformat(day).month
+    count = sum(1 for m in ensemble.members if not m.fruiting_months or month in m.fruiting_months)
+    return {"count": count, "climate_only": not ensemble.members}
 
 
 def _point_block(point: PointQuery, cell: CellResult, elevation: float | None) -> dict:
@@ -151,6 +206,15 @@ def _today() -> date:
     return datetime.now(UTC).date()
 
 
+def _habitat(point: PointQuery, *, author_forest: bool = False) -> Habitat:
+    """Forest and soil shares at the point from the class rasters (empty where they are not
+    built). A saved point's own forest types win: its forest shares are then left out."""
+    h = habitat_at(point.lat, point.lon, settings.forest_raster_dir, settings.substrate_raster_dir)
+    return Habitat(
+        forest=None if author_forest else h.forest, soil=h.soil, forest_radius_m=h.forest_radius_m
+    )
+
+
 @router.get("/forest")
 async def point_forest(
     point: PointQuery = Depends(),
@@ -169,9 +233,19 @@ async def point_forest(
         land_cover(point.lat, point.lon),
         point_elevation(point.lat, point.lon),
     )
+    habitat = _habitat(point)
+    block = forest_block(cover, toponym, radius, include_raw=raw)
+    around = habitat.forest_around()
+    if around is not None:
+        # Forest is judged around the point (the CREAF raster), not on the exact spot: a field
+        # beside a wood has forest. What is under the pin stays in `land_cover`.
+        block["forest_under_point"] = block["forest"]
+        block["forest"] = around
+        block["reason"] = None if around else "no_forest"
     return {
         "point": {"lat": point.lat, "lon": point.lon, "elevation_m": elevation},
-        **forest_block(cover, toponym, radius, include_raw=raw),
+        **block,
+        "habitat": habitat.as_dict(),
     }
 
 
@@ -186,9 +260,11 @@ async def point_series(
     store: CellStore = Depends(get_cell_store),
     provider: CellProvider = Depends(get_cell_provider),
 ) -> dict:
-    params = await _species_params(db, species)
+    if species not in (None, ENSEMBLE_SPECIES):
+        await _species_record(db, species)  # unknown species: 404 before the cell is loaded
     cell, rows = await _cell_and_rows(point, store, provider, user)
     elevation = await point_elevation(point.lat, point.lon)
+    params = await _scored_species(db, species, point, elevation, cell.cell.elevation_m)
     window = build_series(
         rows, _today(), cell.cell.elevation_m, elevation, to=to, days=days, species=params
     )
@@ -214,19 +290,23 @@ async def point_snapshot(
     store: CellStore = Depends(get_cell_store),
     provider: CellProvider = Depends(get_cell_provider),
 ) -> dict:
-    params = await _species_params(db, species)
+    if species not in (None, ENSEMBLE_SPECIES):
+        await _species_record(db, species)  # unknown species: 404 before the cell is loaded
     cell, rows = await _cell_and_rows(point, store, provider, user)
     elevation = await point_elevation(point.lat, point.lon)
+    params = await _scored_species(db, species, point, elevation, cell.cell.elevation_m)
     snap = build_snapshot(rows, _today(), cell.cell.elevation_m, elevation, on=on, species=params)
     if snap is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No climate data for this point yet")
     # One thermometer per point: the climate is the same whatever forest types surround it.
     # The forest only changes which species are listed (/point/species).
     cover = await land_cover(point.lat, point.lon)
+    around = _habitat(point).forest_around()
     return {
         **_point_block(point, cell, elevation),
         "species": species,
-        "forest": None if cover is None else cover.forest,
+        "ensemble": _ensemble_block(params, snap["date"]) if isinstance(params, Ensemble) else None,
+        "forest": around if around is not None else (None if cover is None else cover.forest),
         "land_cover": cover_dict(cover),
         **snap,
     }
@@ -259,8 +339,17 @@ async def build_species_response(
         forest_types = species_forest_types(cover)
         source = "land_cover" if forest_types is not None else None
     cover_info = stored_land_cover if stored_cover else cover_dict(cover)
-    if not author_types and cover is not None and cover.forest is False:
-        # the climate still answers; species do not
+    habitat = _habitat(point, author_forest=bool(author_types))
+    around = habitat.forest_around()
+    # Forest is judged around the point when the CREAF raster covers it, else on the exact spot
+    if around is not None:
+        no_forest = not around
+    else:
+        no_forest = cover is not None and cover.forest is False
+    if not author_types and no_forest and around is None:
+        # no CREAF raster here and the land cover says no forest: the climate still answers;
+        # species do not. With the raster, no forest around still lists the species the forest
+        # cannot judge (meadow, garden, riparian): they are not in the mean, but can be picked.
         return {
             **_point_block(point, cell, elevation),
             "forest_known": True, "forest": False, "land_cover": cover_info,
@@ -277,17 +366,19 @@ async def build_species_response(
     )
     data = species_for_point(
         rows, _today(), cell.cell.elevation_m, elevation, catalogue, on=on, followed=followed,
-        forest_types=forest_types,
+        forest_types=forest_types, habitat=habitat,
     )
     if data is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No climate data for this point yet")
     return {
         **_point_block(point, cell, elevation),
         "forest_known": forest_types is not None,
-        "forest": None if cover is None else cover.forest,
+        "forest": around if around is not None else (None if cover is None else cover.forest),
+        "forest_under_point": None if cover is None else cover.forest,
         "land_cover": cover_info,
         "forest_source": source,
-        "reason": None, **data,
+        "habitat": habitat.as_dict(),
+        "reason": "no_forest" if no_forest and not data["species"] else None, **data,
     }
 
 
@@ -318,9 +409,11 @@ async def point_calendar(
 ) -> dict:
     """The last 7 real days and the next 35: the cell's forecast as far as it reaches, then an
     estimate without forecast (no rain, last week's means). Each day says which one it is."""
-    params = await _species_params(db, species)
+    if species not in (None, ENSEMBLE_SPECIES):
+        await _species_record(db, species)  # unknown species: 404 before the cell is loaded
     cell, rows = await _cell_and_rows(point, store, provider, user)
     elevation = await point_elevation(point.lat, point.lon)
+    params = await _scored_species(db, species, point, elevation, cell.cell.elevation_m)
     data = build_calendar(
         rows, _today(), cell.cell.elevation_m, elevation, on=on, species=params
     )

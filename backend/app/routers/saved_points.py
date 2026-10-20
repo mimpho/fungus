@@ -28,7 +28,6 @@ from app.services.saved_points import (
     SavedPointLimitExceeded,
     SavedPointRecord,
     SavedPointStore,
-    author_forest_types,
     create_saved_point,
     stored_cover,
 )
@@ -143,9 +142,10 @@ async def saved_point_species(
     cells: CellStore = Depends(obs.get_cell_store),
     provider: CellProvider = Depends(obs.get_cell_provider),
 ) -> dict:
-    """Same as /observatory/point/species, for the saved coordinates. The author's forest
-    types win over the land cover (even over "no forest"); without them, the land cover stored
-    when saving decides, read again, so the ICGC is asked only if it had failed then."""
+    """Same as /observatory/point/species, for the saved coordinates, judged by the same map
+    sources as any other point (forest and soil rasters, ICGC land cover). The author's forest
+    types are notes about the point and do not decide. The land cover stored when saving is
+    read again, so the ICGC is asked only if it had failed then."""
     record = await _found(points, user, point_id)
     cover = stored_cover(record)
     stored_info = None if cover is None else {
@@ -155,6 +155,5 @@ async def saved_point_species(
     }
     return await obs.build_species_response(
         obs.PointQuery(lat=record.lat, lon=record.lon), on, user, db, cells, provider,
-        author_types=author_forest_types(record.forest_types) if record.forest_types else None,
         stored_cover=cover, stored_land_cover=stored_info,
     )

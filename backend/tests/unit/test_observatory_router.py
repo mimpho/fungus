@@ -1,4 +1,5 @@
 """/observatory/point/*: login, validation, cache source, errors. No DB, no network."""
+import json
 from datetime import timedelta
 from types import SimpleNamespace
 
@@ -6,6 +7,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.routers import observatory as obs
@@ -330,6 +332,101 @@ class TestForest:
         assert env.log["resolve"] == [] and env.log["fetch"] == []
 
 
+def _forest_raster(folder, pinar):
+    """One big pixel around Santa Fe whose forest is `pinar` (share 0-255) of pine, rest none."""
+    folder.mkdir(parents=True, exist_ok=True)
+    meta = {"classes": ["pinar", "otro"], "width": 1, "height": 1,
+            "bounds": {"north": 42.0, "south": 41.5, "west": 2.0, "east": 3.0}}
+    (folder / "forest-catalonia.json").write_text(json.dumps(meta))
+    (folder / "forest-catalonia.bin").write_bytes(bytes([pinar, 0]))
+
+
+class TestForestAroundThePoint:
+    """With the CREAF raster the forest is judged around the point, not on the exact spot."""
+
+    async def test_a_field_beside_a_wood_has_forest(self, env, tmp_path, monkeypatch):
+        _logged_in(env)
+        _forest_raster(tmp_path / "forest", 200)
+        monkeypatch.setattr(settings, "forest_raster_dir", str(tmp_path / "forest"))
+        env.cover = URBAN  # the exact spot is not forest
+        async with _client(env.app) as c:
+            info = (await c.get("/observatory/point/forest", params=SANTA_FE)).json()
+            species = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
+        assert info["forest"] is True and info["forest_under_point"] is False
+        assert info["reason"] is None and info["land_cover"]["code"] == URBAN.code
+        assert info["habitat"]["forest_radius_m"] == 500
+        assert species["reason"] is None and species["forest"] is True
+        assert species["forest_under_point"] is False
+
+    async def test_no_forest_around_is_no_forest_even_if_the_spot_is_one(
+        self, env, tmp_path, monkeypatch
+    ):
+        _logged_in(env)
+        _forest_raster(tmp_path / "forest", 0)
+        monkeypatch.setattr(settings, "forest_raster_dir", str(tmp_path / "forest"))
+        env.cover = FOREST
+        async with _client(env.app) as c:
+            info = (await c.get("/observatory/point/forest", params=SANTA_FE)).json()
+            species = (await c.get("/observatory/point/species", params=SANTA_FE)).json()
+        assert info["forest"] is False and info["reason"] == "no_forest"
+        assert species["species"] == [] and species["reason"] == "no_forest"
+
+    async def test_the_snapshot_agrees_with_the_species(self, env, tmp_path, monkeypatch):
+        _logged_in(env)
+        _forest_raster(tmp_path / "forest", 200)
+        monkeypatch.setattr(settings, "forest_raster_dir", str(tmp_path / "forest"))
+        env.cover = URBAN
+        async with _client(env.app) as c:
+            snap = (await c.get("/observatory/point/snapshot", params=SANTA_FE)).json()
+        assert snap["forest"] is True
+
+
+def _excellent(id, lo, hi, forest_types=("pinar",)):
+    return SimpleNamespace(
+        id=id, scientific_name=id, edibility="excelente",
+        temp_min_c=8, temp_opt_c=14, temp_max_c=20,
+        rain_min_mm=None, rain_opt_mm=None, cycle_days=None, forest_types=list(forest_types),
+        fruiting_months=[], elevation_min_m=lo, elevation_max_m=hi,
+    )
+
+
+class _DbWith(_Db):
+    def __init__(self, rows):
+        self.rows = rows
+
+    async def scalars(self, statement):
+        return SimpleNamespace(all=lambda: self.rows)
+
+
+class TestTheExcellentEnsemble:
+    """`species=excellent`: the point is scored as the mean of the excellent edibles that grow
+    there, the same number the map shows before a species is chosen."""
+
+    async def _get(self, env, path, **params):
+        env.app.dependency_overrides[get_db] = lambda: _DbWith(
+            [
+                _excellent("here", 500, 1800),
+                _excellent("too-high", 2500, 3000),
+                _excellent("lawn", 0, 3000, forest_types=("prado",)),
+            ]
+        )
+        async with _client(env.app) as c:
+            return await c.get(f"/observatory/point/{path}", params={**SANTA_FE, **params})
+
+    async def test_only_the_species_that_grow_at_the_point_count(self, env):
+        _logged_in(env)
+        body = (await self._get(env, "snapshot", species="excellent")).json()
+        assert body["species"] == "excellent"
+        assert body["ensemble"] == {"count": 1, "climate_only": False}
+        assert body["conditions"] == []
+
+    async def test_series_and_calendar_answer_too(self, env):
+        _logged_in(env)
+        for path in ("series", "calendar"):
+            r = await self._get(env, path, species="excellent")
+            assert r.status_code == 200 and r.json()["species"] == "excellent"
+
+
 class TestForestInOtherEndpoints:
     async def test_species_with_no_forest_is_empty_with_a_reason_but_the_cell_loads(self, env):
         _logged_in(env)
@@ -403,3 +500,15 @@ class TestCalendar:
     async def test_it_needs_a_login(self, env):
         async with _client(env.app) as c:
             assert (await c.get("/observatory/point/calendar", params=SANTA_FE)).status_code == 401
+
+
+class TestEnsembleBlock:
+    def test_counts_only_members_in_season_that_day(self):
+        from app.routers.observatory import _ensemble_block
+        from app.services.point_ensemble import Ensemble, Member
+        from app.services.scoring_v2 import SpeciesParams
+
+        p = SpeciesParams(temp_min_c=5, temp_opt_c=15, temp_max_c=25)
+        ens = Ensemble((Member(p, (9, 10)), Member(p, (3, 4)), Member(p, ())))
+        assert _ensemble_block(ens, "2026-10-19") == {"count": 2, "climate_only": False}
+        assert _ensemble_block(Ensemble(()), "2026-10-19") == {"count": 0, "climate_only": True}

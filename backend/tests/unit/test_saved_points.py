@@ -455,20 +455,19 @@ class TestSpeciesOfASavedPoint:
     def test_the_authors_types_also_admit_the_mixed_forest_species(self):
         assert author_forest_types(["pinar", "encinar"]) == {"pinar", "encinar", "mixto"}
 
-    async def test_the_authors_types_win_over_no_forest(self, env):
+    async def test_the_authors_types_do_not_override_no_forest(self, env):
         env.cover = URBAN
         pid = (await _save(env, forest_types=["pinar", "encinar"])).json()["id"]
-        r = await self._species(env, pid)
-        body = r.json()
-        assert r.status_code == 200
-        assert self._ids(r) == ["any-sp", "encinar-sp", "pinar-sp"]
-        assert body["forest_source"] == "author" and body["forest_known"] is True
-        assert body["reason"] is None
+        body = (await self._species(env, pid)).json()
+        assert body["species"] == [] and body["reason"] == "no_forest"
+        assert body["forest_source"] == "land_cover"
 
-    async def test_the_authors_types_win_over_the_macrotype(self, env):
+    async def test_the_authors_types_do_not_override_the_map_sources(self, env):
         env.cover = FOREST  # conifer: pinar
         pid = (await _save(env, forest_types=["encinar"])).json()["id"]
-        assert self._ids(await self._species(env, pid)) == ["any-sp", "encinar-sp"]
+        r = await self._species(env, pid)
+        assert self._ids(r) == ["any-sp", "pinar-sp"]
+        assert r.json()["forest_source"] == "land_cover"
 
     async def test_without_authors_types_the_stored_cover_decides_and_the_icgc_is_not_asked(
         self, env

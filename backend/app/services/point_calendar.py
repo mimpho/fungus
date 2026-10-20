@@ -11,9 +11,10 @@ from datetime import date, timedelta
 from typing import Any
 
 from app.services.elevation_correction import correct_day, elevation_delta_m
+from app.services.point_ensemble import Ensemble, score_series
 from app.services.point_series import prepare_climate
 from app.services.scoring import score_label
-from app.services.scoring_v2 import ClimateDay, SpeciesParams, V2Result, compute_v2_series
+from app.services.scoring_v2 import ClimateDay, SpeciesParams, V2Result
 from app.services.zone_scores import V2_WINDOW_DAYS
 
 REAL_DAYS = 7
@@ -61,7 +62,7 @@ def build_calendar(
     cell_elevation_m: float | None,
     point_elevation_m: float | None,
     on: date | None = None,
-    species: SpeciesParams | None = None,
+    species: SpeciesParams | Ensemble | None = None,
 ) -> dict | None:
     prepared = prepare_climate(rows, today, cell_elevation_m, point_elevation_m)
     if prepared is None:
@@ -94,7 +95,7 @@ def build_calendar(
     first = ref - timedelta(days=REAL_DAYS - 1)
     scored = {
         r.date: r
-        for r in compute_v2_series(
+        for r in score_series(
             [*window, *(d for d, _ in ahead)], elevation, species, output_from=first
         )
     }
