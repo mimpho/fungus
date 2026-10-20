@@ -5,7 +5,7 @@ import { BTN_SECONDARY, RemoveConfirm, SavePointForm } from './SavedPointParts'
 import { ObsModal } from './ObsModal'
 import { IC } from '../../lib/helpers'
 
-const EMPTY = { name: '', notes: '', forestTypes: [] }
+const EMPTY = { name: '', notes: '' }
 // The zone header's actions: bigger than the usual secondary button, icon on the left
 const ACTION_BTN = `${BTN_SECONDARY} !px-6 !py-3 !text-base inline-flex items-center gap-2.5`
 

@@ -38,7 +38,7 @@ function useWidth(ref, fallback = 640) {
 /** Lines of the tooltip of a day ahead (score tab): its score, where it comes from, and the weather. */
 function futureTipLines(f, t, lang) {
   return [
-    [t.obsChScore, `${f.score} · ${t[getScoreBand(f.score).tKey]}`],
+    [t.obsChScore, `${f.score} · ${t[getScoreBand(f.score).obsKey]}`],
     [f.basis === 'forecast' ? t.obsChBasisForecast : t.obsChBasisEstimate, ''],
     [t.obsChMax, `${fmt(f.temp_max_c, lang)} °C`],
     [t.obsChMin, `${fmt(f.temp_min_c, lang)} °C`],
@@ -51,7 +51,7 @@ function tipLines(tab, d, t, lang) {
   const c = d.climate
   if (!c) return [[t.obsChNoData, '']]
   if (tab === 'score') {
-    const out = [[t.obsChScore, d.v2 ? `${d.v2.score} · ${t[getScoreBand(d.v2.score).tKey]}` : '–']]
+    const out = [[t.obsChScore, d.v2 ? `${d.v2.score} · ${t[getScoreBand(d.v2.score).obsKey]}` : '–']]
     if (d.v2?.limiting_factor) out.push([t.obsChLimits, t[LIMIT_NAME[d.v2.limiting_factor]] ?? ''])
     return out
   }
@@ -256,7 +256,7 @@ function Chart({ vm, tab, layers, range, width, future, pan }) {
           return (
             <g key={b.key}>
               <rect x={LEFT} y={y(hi)} width={plotW} height={y(lo) - y(hi)} style={{ fill: `var(--ui-score-${b.key}-bar)` }} fillOpacity="0.1" />
-              <text x={LEFT + 8} y={y(hi) + 14} fontSize="10.5" fontWeight="600" letterSpacing="0.4" style={{ fill: `var(--ui-score-${b.key}-text)` }}>{t[b.tKey]}</text>
+              <text x={LEFT + 8} y={y(hi) + 14} fontSize="10.5" fontWeight="600" letterSpacing="0.4" style={{ fill: `var(--ui-score-${b.key}-text)` }}>{t[b.obsKey]}</text>
             </g>
           )
         })}

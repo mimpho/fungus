@@ -2,14 +2,15 @@ import { useId, useMemo, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { getScoreBand } from '../../lib/scoreBands'
 import { buildThermometer, fill } from '../../lib/thermometer'
+import { InfoTip } from './InfoTip'
 
 // Same five bands and proportions as the score scale everywhere else (30/25/15/15/15)
 const SEGMENTS = [
-  { key: 'low', width: '30fr', tKey: 'malo' },
-  { key: 'mid', width: '25fr', tKey: 'regular' },
-  { key: 'ok', width: '15fr', tKey: 'bueno' },
-  { key: 'good', width: '15fr', tKey: 'muyBueno' },
-  { key: 'high', width: '15fr', tKey: 'excelente' },
+  { key: 'low', width: '30fr', tKey: 'obsBandLow' },
+  { key: 'mid', width: '25fr', tKey: 'obsBandMid' },
+  { key: 'ok', width: '15fr', tKey: 'obsBandOk' },
+  { key: 'good', width: '15fr', tKey: 'obsBandGood' },
+  { key: 'high', width: '15fr', tKey: 'obsBandHigh' },
 ]
 const TEMPLATE = SEGMENTS.map(s => s.width).join(' ')
 
@@ -33,7 +34,7 @@ export function ThermometerSkeleton() {
  * the facts behind it, the rains still on their way, what weighs for and against, and «Ver por
  * qué» with each factor and the formula. `snap` is the /point/snapshot answer.
  */
-export function Thermometer({ snap }) {
+export function Thermometer({ snap, note = null }) {
   const { t, lang } = useApp()
   const [open, setOpen] = useState(false)
   const headingId = useId()
@@ -50,12 +51,13 @@ export function Thermometer({ snap }) {
       </div>
 
       <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
-        <div className="flex items-end gap-3">
+        <div className="flex items-end gap-2">
           <span data-testid="thermo-score" className={`font-display text-6xl font-bold leading-[0.8] ${vm.band.text}`}>{vm.score}</span>
           <span>
-            <span data-testid="thermo-band" className="block font-display text-2xl font-bold leading-none text-cream">{vm.bandLabel}</span>
-            <span className="block text-xs text-cream/50 mt-1">
+            <span data-testid="thermo-band" className="block font-display text-2xl font-bold leading-[0.75] text-cream">{vm.bandLabel}</span>
+            <span className="flex items-center gap-1 text-xs text-cream/50 mt-1">
               {t.obsThOutOf}
+              {note && <InfoTip label={t.obsThNoteLabel}>{note}</InfoTip>}
             </span>
           </span>
         </div>

@@ -1,12 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
 import { useSavedPoints } from '../hooks/useSavedPoints'
+import { ALL_EXCELLENT, useProbabilityLayer } from '../hooks/useProbabilityLayer'
+import { pixelElevation, pixelScore, reliefGrid } from '../lib/reliefLayer'
+import { useElevationRaster } from '../hooks/useElevationRaster'
+import { useClassRaster } from '../hooks/useClassRaster'
+import { useSpecies } from '../hooks/useSpecies'
 import { isInCatalonia } from '../lib/catalonia'
 import { ObservatoryError } from '../services/observatoryService'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { Tabs } from '../components/ui/Tabs'
 import { MapSearch } from '../components/observatory/MapSearch'
+import { MapLayersBox } from '../components/observatory/MapLayersBox'
+import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
 import { ObservedZone } from '../components/observatory/ObservedZone'
 import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList, SavedPointsToggle } from '../components/observatory/SavedPoints'
@@ -14,6 +21,8 @@ import { ObsModal } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
 import { ObservatoryNotice } from '../components/observatory/ObservatoryNotice'
 import { Attribution } from '../components/observatory/Attribution'
+
+const BASEMAPS = ['satellite', 'streets', 'relief']
 
 /**
  * /observatorio — the Observatory of any point in Catalonia (login required).
@@ -24,10 +33,46 @@ export default function Observatory() {
   const { t, isAuthenticated, authLoading, setAuthModal } = useApp()
   const { point: observed, until, days, observe, clear, setWindow } = useObservatoryView()
   const saved = useSavedPoints(isAuthenticated)
-  const [pending, setPending] = useState(null)
+  // A page opened on a point (URL) starts with that point's panel on the map
+  const [pending, setPending] = useState(() => (observed ? { lat: observed.lat, lon: observed.lon } : null))
   const [pickError, setPickError] = useState(null)
   const [flyTo, setFlyTo] = useState(null)
   const [savedOpen, setSavedOpen] = useState(false)
+  // Probability layer: switched on in the layers box, one species at a time (null = none yet).
+  // Switching it off hides it but remembers the species and the day.
+  const [probabilityOn, setProbabilityOn] = useState(false)
+  const [layerSpecies, setLayerSpecies] = useState(null)
+  const [layerDate, setLayerDate] = useState(null) // null = last day with data
+  const shownSpecies = probabilityOn ? layerSpecies : null
+  const { species: catalog } = useSpecies()
+  const speciesLabel = id => {
+    const s = (catalog ?? []).find(x => x.id === id)
+    return s?.commonNames?.[0] || s?.scientificName || ''
+  }
+  // Switched on without a species: the mean of the excellent edibles that grow at each point
+  // The layer's data is also loaded (not drawn) while a point is picked with the layer off: the
+  // point's summary always shows the probability, the mean of the excellent edibles if no species is chosen
+  const layerId = probabilityOn ? (layerSpecies ?? ALL_EXCELLENT) : pending ? ALL_EXCELLENT : null
+  const layer = useProbabilityLayer(isAuthenticated ? layerId : null, { date: layerDate ?? undefined })
+  const chooseLayerSpecies = id => { setLayerSpecies(id); setLayerDate(null) }
+  const elevation = useElevationRaster(Boolean(layerId) && isAuthenticated)
+  const forest = useClassRaster('forest', Boolean(layerId) && isAuthenticated)
+  const substrate = useClassRaster('substrate', Boolean(layerId) && isAuthenticated)
+  const habitat = useMemo(() => ({ forest, substrate }), [forest, substrate])
+  // What the layer paints at the spot picked on the map ({ score, count }; null = nothing there)
+  const layerValue = useMemo(() => {
+    const data = layer.data
+    // wait for the relief: without it the value would be the flat mean of the cells, then jump
+    if (!pending || !elevation || !data?.cells?.length || layer.status === 'loading') return undefined
+    try {
+      return pixelScore(reliefGrid(elevation, data.cells), data, habitat, pending.lat, pending.lon)
+    } catch (_e) { return undefined }
+  }, [pending, layer.data, layer.status, elevation, habitat])
+  // The point's height from the map's own relief, for when the elevation service gives none
+  const pendingElevation = useMemo(() => {
+    if (!pending || !elevation || !layer.data?.cells?.length) return null
+    try { return pixelElevation(reliefGrid(elevation, layer.data.cells), pending.lat, pending.lon) } catch (_e) { return null }
+  }, [pending, elevation, layer.data])
   // The map stays on the page when a zone is observed: the page scrolls down to the zone and only
   // a strip of the map stays above it (peeking). Clicking the strip scrolls back up to the map.
   const mapBoxRef = useRef(null)
@@ -38,7 +83,10 @@ export default function Observatory() {
   const lastObserved = useRef(null)
   if (observed) lastObserved.current = observed
   const [basemap, setBasemap] = useState(() => {
-    try { return localStorage.getItem('fungus-obs-basemap') === 'streets' ? 'streets' : 'satellite' } catch (_e) { return 'satellite' }
+    try {
+      const saved = localStorage.getItem('fungus-obs-basemap')
+      return BASEMAPS.includes(saved) ? saved : 'satellite'
+    } catch (_e) { return 'satellite' }
   })
 
   function chooseBasemap(value) {
@@ -98,7 +146,8 @@ export default function Observatory() {
 
   function handleObserve(point) {
     observe(point.lat, point.lon)
-    setPending(null)
+    // The point's panel stays on the map (it then reads «Observing»), with its score and habitat
+    setPending({ lat: point.lat, lon: point.lon })
     setSavedOpen(false)
   }
 
@@ -151,6 +200,9 @@ export default function Observatory() {
               observed={observed}
               pending={pending}
               saved={saved.points}
+              layer={probabilityOn ? layer.data : null}
+              elevation={elevation}
+              habitat={habitat}
               onPick={handlePick}
               label={t.obsMapLabel}
               basemap={basemap}
@@ -170,17 +222,33 @@ export default function Observatory() {
               className="absolute z-[1100] top-[4.75rem] right-3 md:top-3 backdrop-blur-sm bg-modal/80 rounded-xl p-1.5"
             >
               <Tabs
-                options={[{ id: 'satellite', label: t.obsBasemapSatellite }, { id: 'streets', label: t.obsBasemapStreets }]}
+                options={[{ id: 'satellite', label: t.obsBasemapSatellite }, { id: 'streets', label: t.obsBasemapStreets }, { id: 'relief', label: t.obsBasemapRelief }]}
                 selected={basemap}
                 onChange={chooseBasemap}
                 size="md"
                 variant="compact" />
             </div>
+            {/* Under the basemap tabs on the right, so it never covers the clicked point's panel (bottom left). Before the search in the DOM so the search list opens over it on mobile */}
+            <MapLayersBox
+              probability={probabilityOn}
+              onProbability={setProbabilityOn}
+              className="absolute z-[1100] top-[8rem] left-3 right-3 md:left-auto md:top-[4.75rem] md:right-3 md:w-[22rem]"
+            >
+              <SpeciesLayerPicker
+                speciesId={layerSpecies}
+                onChange={chooseLayerSpecies}
+                layer={layer}
+                date={layerDate}
+                forestApplied={Boolean(forest && elevation && (layerSpecies ? layer.data?.species?.forest_classes : layer.data))}
+                soilApplied={Boolean(substrate && elevation && (layerSpecies ? layer.data?.species?.substrate_factors : layer.data))}
+                onDateChange={setLayerDate}
+              />
+            </MapLayersBox>
             <div className="absolute z-[1100] top-3 left-3 right-3 md:right-auto pointer-events-none">
               <MapSearch onSelect={handleSearchSelect} className="pointer-events-auto w-full md:w-[30rem]" />
             </div>
             {pending && (
-              <PointPanel point={pending} observed={observed} onObserve={handleObserve} onClose={() => setPending(null)} />
+              <PointPanel point={pending} observed={observed} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={() => setPending(null)} />
             )}
             {/* Only a strip of the map shows: the whole strip takes the person back up to it */}
             {hasObserved && peeking && (
@@ -208,6 +276,7 @@ export default function Observatory() {
                 until={until}
                 days={days}
                 onWindow={setWindow}
+                initialSpecies={shownSpecies}
                 onRemoved={() => { clear(); backToMap() }}
               />
             </div>

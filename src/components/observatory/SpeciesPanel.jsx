@@ -135,7 +135,7 @@ export function SpeciesPanel({ state, selected, onSelect }) {
             id="obs-sp-info"
             role="tooltip"
             hidden={!(infoOpen || infoHover)}
-            className="absolute right-0 top-full mt-1 z-30 w-64 max-w-[80vw] rounded-xl px-3 py-2.5 text-xs text-cream bg-modal/95 backdrop-blur-sm border border-cream/20 shadow-lg"
+            className="absolute right-0 top-full mt-1 z-30 w-72 max-w-[80vw] rounded-xl px-3 py-2.5 text-[13px] leading-relaxed text-cream bg-modal/95 backdrop-blur-sm border border-cream/20 shadow-lg"
           >
             {t.obsSpInfo}
           </p>

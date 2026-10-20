@@ -110,3 +110,10 @@ input[list]::-webkit-calendar-picker-indicator {
   opacity: 0 !important;
   width: 0 !important;
 }
+
+/* Cormorant Garamond draws old-style figures by default (4, 9, 3… hang below the baseline):
+   in the display font the numbers are lining, all on the same line and the same height. */
+.font-display {
+  font-variant-numeric: lining-nums;
+  font-feature-settings: "lnum" 1;
+}

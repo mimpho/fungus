@@ -8,13 +8,6 @@ import { formatCoords, samePoint } from '../../lib/observatoryView'
 import { sortSaved } from '../../lib/savedPoints'
 import { ObservatoryNotice } from './ObservatoryNotice'
 
-const TYPE_KEY = {
-  pinar: 'obsFtPinar',
-  hayedo: 'obsFtHayedo',
-  robledal: 'obsFtRobledal',
-  encinar: 'obsFtEncinar',
-}
-
 /** The card's score bar: the same look as the zone card's, from the point's own snapshot. */
 function CardMeter({ point }) {
   const { t, lang } = useApp()
@@ -44,7 +37,7 @@ function CardMeter({ point }) {
     <>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-cream/70 text-xs">{t.condRecoleccion}</span>
-        <span data-testid="saved-score" className={`text-xs font-semibold ${band.text}`}>{score} · {t[band.tKey]}</span>
+        <span data-testid="saved-score" className={`text-xs font-semibold ${band.text}`}>{score} · {t[band.obsKey]}</span>
       </div>
       <div className="progress-bar" aria-hidden="true">
         <div className={`progress-fill ${band.bar}`} style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
@@ -69,15 +62,12 @@ function CardMeter({ point }) {
 }
 
 /**
- * One saved point as a card like the zones page's: name, forest type with its icon and background
- * picture, altitude and the score bar. The whole card observes the point (the name is the button,
- * stretched over the card). Editing and removing happen once the point is observed.
+ * One saved point as a card like the zones page's: name, altitude and the score bar. The whole
+ * card observes the point (the name is the button, stretched over the card). Editing and removing happen once the point is observed.
  */
 function Card({ sp, observed, onObserve }) {
   const { t } = useApp()
   const isObserved = samePoint(observed, sp)
-  const types = (sp.forest_types ?? []).filter(type => TYPE_KEY[type])
-  const first = types[0] ?? null
   const label = sp.toponym?.label && sp.toponym.label !== sp.name ? sp.toponym.label : formatCoords(sp)
 
   return (
@@ -102,12 +92,6 @@ function Card({ sp, observed, onObserve }) {
 
         <div className="relative z-[1] pointer-events-none">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-cream/70 mb-4">
-            {first && (
-              <span className="flex items-center gap-1.5">
-                <img src={`/assets/images/icons/forest-type-${first}.png`} alt="" height="16" width="16" />
-                {types.map(type => t[TYPE_KEY[type]]).join(' · ')}
-              </span>
-            )}
             {Number.isFinite(sp.elevation_m) && (
               <span className="flex items-center gap-1.5">
                 <img src="/assets/images/icons/mountain.png" alt="" height="16" width="16" />
@@ -119,13 +103,6 @@ function Card({ sp, observed, onObserve }) {
           {sp.notes && <p className="mt-2 text-xs text-cream/60 line-clamp-2 break-words">{sp.notes}</p>}
         </div>
 
-        {first && (
-          <img
-            className="absolute bottom-0 right-1 opacity-20 pointer-events-none"
-            src={`/assets/images/forest-type/${first}.webp`}
-            alt="" height="125" width="125"
-          />
-        )}
       </div>
     </li>
   )

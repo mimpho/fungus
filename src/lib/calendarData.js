@@ -62,7 +62,7 @@ function buildCell(iso, entry, { todayIso, firstInGrid, t, lang }) {
     : ''
   let aria = longDay(iso, lang)
   if (hasScore) {
-    aria += `: ${entry.score} · ${t[band.tKey]}`
+    aria += `: ${entry.score} · ${t[band.obsKey]}`
     const basis = t[BASIS_ARIA[entry.basis]]
     if (basis) aria += ` (${basis})`
   } else {
@@ -123,7 +123,7 @@ export function buildCalendar(data, t, lang, todayIso = localIso()) {
     summary: buildSummary(data, t, lang),
     forecastDays,
     hasForecast: forecastDays > 0,
-    legend: [...SCORE_BANDS].reverse().map(b => ({ key: b.key, label: t[b.tKey], fill: fillPercent(b.min + 5) })),
+    legend: [...SCORE_BANDS].reverse().map(b => ({ key: b.key, label: t[b.obsKey], fill: fillPercent(b.min + 5) })),
     note: forecastDays > 0 ? fill(t.obsCalNoteForecast, { n: forecastDays }, lang) : t.obsCalNoteNoForecast,
   }
 }

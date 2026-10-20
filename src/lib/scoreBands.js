@@ -10,14 +10,14 @@
 // =====================================================
 
 export const SCORE_BANDS = [
-  { key: 'high', min: 85, tKey: 'excelente' },
-  { key: 'good', min: 70, tKey: 'muyBueno' },
-  { key: 'ok',   min: 55, tKey: 'bueno' },
-  { key: 'mid',  min: 30, tKey: 'regular' },
-  { key: 'low',  min: 0,  tKey: 'malo' },
+  { key: 'high', min: 85, tKey: 'excelente', obsKey: 'obsBandHigh' },
+  { key: 'good', min: 70, tKey: 'muyBueno', obsKey: 'obsBandGood' },
+  { key: 'ok',   min: 55, tKey: 'bueno', obsKey: 'obsBandOk' },
+  { key: 'mid',  min: 30, tKey: 'regular', obsKey: 'obsBandMid' },
+  { key: 'low',  min: 0,  tKey: 'malo', obsKey: 'obsBandLow' },
 ]
 
-/** Band of a score: { key, min, tKey, bar, text } — bar/text are the CSS classes. */
+/** Band of a score: { key, min, tKey, obsKey, bar, text } — bar/text are the CSS classes. */
 export function getScoreBand(score) {
   const s = Number.isFinite(score) ? score : 0
   const band = SCORE_BANDS.find(b => s >= b.min) ?? SCORE_BANDS[SCORE_BANDS.length - 1]
