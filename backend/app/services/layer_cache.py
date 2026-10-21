@@ -10,7 +10,7 @@ reloaded cell or an edited species make a new key and the old answers simply age
 from collections import OrderedDict
 from collections.abc import Hashable
 
-MAX_ENTRIES = 24
+MAX_ENTRIES = 64  # a day slider of ~40 positions per species fills 24 at once
 
 
 class LayerCache:

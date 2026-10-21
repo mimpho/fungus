@@ -172,7 +172,13 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
         {(speciesId || layer.status !== 'idle') && (
           <div className="px-1 pb-0.5 space-y-2" aria-live="polite">
             {data?.last_data_date && onDateChange && (
-              <LayerDayControl lastDate={data.last_data_date} date={date} onChange={onDateChange} />
+              <LayerDayControl
+                lastDate={data.last_data_date}
+                maxDate={data.max_date}
+                forecastFrom={data.forecast_from}
+                date={date}
+                onChange={onDateChange}
+              />
             )}
             {layer.status === 'loading' && !data && (
               // Placeholder with the height of the loaded box (day control, legend, notes) so it does not jump

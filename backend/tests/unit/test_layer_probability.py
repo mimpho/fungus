@@ -414,3 +414,38 @@ class TestAnswersAreRemembered:
         for k in "abc":
             cache.put(k, {"k": k})
         assert cache.get("a") is None and cache.get("c") == {"k": "c"}
+
+
+class TestForecastEndpoint:
+    """The date can be a day of the stored forecast (see test_layer_forecast.py for the model)."""
+
+    async def _ask(self, env, path, **params):
+        async with _client(env.app) as c:
+            return (await c.get(f"/observatory/layer/{path}", params=params)).json()
+
+    def _with_forecast(self, env, fetched):
+        from tests.unit.test_layer_forecast import _forecast
+
+        rows = [*_rows(), *_forecast(fetched=fetched)]
+        env.store.cells = [_cell(f"c{i}", 41.6, 2.0 + 0.127 * i, rows=rows) for i in range(3)]
+
+    async def test_a_day_ahead_is_answered_from_the_forecast(self, env):
+        from tests.unit.test_layer_forecast import FRESH
+
+        _logged_in(env)
+        self._with_forecast(env, FRESH)
+        on = TODAY + timedelta(days=3)
+        for path, params in (("probability", {"species": "esp-1"}), ("probability-excellent", {})):
+            body = await self._ask(env, path, date=on.isoformat(), **params)
+            assert body["date"] == on.isoformat() and body["basis"] == "forecast"
+            assert body["max_date"] == (TODAY + timedelta(days=7)).isoformat()
+
+    async def test_a_forecast_older_than_two_days_is_not_shown(self, env):
+        from tests.unit.test_layer_forecast import FRESH
+
+        _logged_in(env)
+        self._with_forecast(env, FRESH - timedelta(days=4))
+        body = await self._ask(
+            env, "probability", species="esp-1", date=(TODAY + timedelta(days=3)).isoformat()
+        )
+        assert body["date"] == REF.isoformat() and body["clamped"] is True

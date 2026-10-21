@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import {
-  CARTO_TILES_URL, CARTO_LABELS_URL, CARTO_NOLABELS_URL, BASEMAP_ATTRIBUTION, ICGC_HYBRID_TILES_URL,
+  CARTO_LABELS_URL, CARTO_NOLABELS_URL, BASEMAP_ATTRIBUTION, ICGC_HYBRID_TILES_URL,
   ICGC_RELIEF_TILES_URL, ICGC_RELIEF_BOUNDS, ICGC_ATTRIBUTION,
 } from '../../lib/basemap'
 import { CATALONIA_BOUNDS } from '../../lib/catalonia'
-import { cellFill } from '../../lib/layerColors'
+import { cellFill, ALPHA_SCALE_BY_BASEMAP } from '../../lib/layerColors'
 import { reliefOverlay } from '../../lib/reliefLayer'
 
 // Leaflet draws SVG outside React's DOM: colours are literal hex, never CSS vars
@@ -26,6 +26,7 @@ const meanScore = s => {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
 }
 const LAYER_PANE = 'obsLayer' // between the tiles (200) and the markers (400): the layer never covers a point
+const LABELS_PANE = 'obsLabels' // place names of the dark maps: over the layer (350), under the markers
 
 /**
  * Map of Catalonia. A click only reports the coordinates (onPick); what to do with them is the
@@ -57,6 +58,7 @@ export function ObservatoryMap({ observed, pending, saved = [], layer = null, el
       maxBoundsViscosity: 0.8,
     })
     map.createPane(LAYER_PANE).style.zIndex = 350
+    map.createPane(LABELS_PANE).style.zIndex = 360
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     if (initial.current) map.setView([initial.current.lat, initial.current.lon], OBSERVED_ZOOM)
     else map.fitBounds(BOUNDS)
@@ -79,21 +81,33 @@ export function ObservatoryMap({ observed, pending, saved = [], layer = null, el
     const map = mapRef.current
     if (!map) return
     tilesRef.current?.remove()
+    // The dark maps (relief, streets) are drawn without names and the names go in a pane of their
+    // own above the conditions layer, so the colour never covers them. The satellite image is
+    // ICGC's "hybrid" tile, with the names printed in it: they cannot be separated.
+    const carto = { attribution: BASEMAP_ATTRIBUTION, subdomains: 'abcd', maxZoom: 19 }
+    const labels = () => L.tileLayer(CARTO_LABELS_URL, { ...carto, attribution: '', pane: LABELS_PANE })
     if (basemap === 'relief') {
       // The shading only covers Catalonia and has no place names: CARTO's dark map goes under it
-      // (so nothing outside is empty) and CARTO's labels over it
-      const carto = { attribution: BASEMAP_ATTRIBUTION, subdomains: 'abcd', maxZoom: 19 }
+      // (so nothing outside is empty)
       const ground = L.tileLayer(CARTO_NOLABELS_URL, carto)
       const relief = L.tileLayer(ICGC_RELIEF_TILES_URL, { attribution: ICGC_ATTRIBUTION, maxZoom: 19, maxNativeZoom: 15, bounds: ICGC_RELIEF_BOUNDS })
-      const labels = L.tileLayer(CARTO_LABELS_URL, { ...carto, attribution: '' })
-      tilesRef.current = L.layerGroup([ground, relief, labels]).addTo(map)
+      tilesRef.current = L.layerGroup([ground, relief, labels()]).addTo(map)
       ground.bringToBack()
       return
     }
-    tilesRef.current = basemap === 'streets'
-      ? L.tileLayer(CARTO_TILES_URL, { attribution: BASEMAP_ATTRIBUTION, subdomains: 'abcd', maxZoom: 19 })
-      : L.tileLayer(ICGC_HYBRID_TILES_URL, { attribution: ICGC_ATTRIBUTION, maxZoom: 19 })
+    if (basemap === 'streets') {
+      tilesRef.current = L.layerGroup([L.tileLayer(CARTO_NOLABELS_URL, carto), labels()]).addTo(map)
+      return
+    }
+    tilesRef.current = L.tileLayer(ICGC_HYBRID_TILES_URL, { attribution: ICGC_ATTRIBUTION, maxZoom: 19 })
     tilesRef.current.addTo(map).bringToBack()
+  }, [basemap])
+
+  // On the shaded relief the layer multiplies the grey shading instead of covering it: the pane is
+  // blended with the tiles under it (the pane is a sibling of the tile pane, so it sees them)
+  useEffect(() => {
+    const pane = mapRef.current?.getPane(LAYER_PANE)
+    if (pane) pane.style.mixBlendMode = basemap === 'relief' ? 'multiply' : ''
   }, [basemap])
 
   // Probability layer: a picture blending the cells (with relief when the elevation raster is
@@ -106,7 +120,7 @@ export function ObservatoryMap({ observed, pending, saved = [], layer = null, el
     if (!layer?.cells?.length) return
     const options = { pane: LAYER_PANE, interactive: false }
     try {
-      const overlay = reliefOverlay(elevation, layer, habitat ?? {}) // elevation null: blended by cell, without relief
+      const overlay = reliefOverlay(elevation, layer, habitat ?? {}, { alphaScale: ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1 }) // elevation null: blended by cell, without relief
       if (overlay) {
         layerRef.current = L.imageOverlay(overlay.url, overlay.bounds, options).addTo(map)
         return
@@ -125,7 +139,7 @@ export function ObservatoryMap({ observed, pending, saved = [], layer = null, el
     }
     group.addTo(map)
     layerRef.current = group
-  }, [layer, elevation, habitat])
+  }, [layer, elevation, habitat, basemap])
 
   // Saved points: a marker with its name; clicking one picks it like a click on that spot
   useEffect(() => {

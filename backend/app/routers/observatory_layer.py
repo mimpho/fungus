@@ -20,6 +20,7 @@ from app.services.cell_store import SqlCellStore
 from app.services.layer_probability import (
     CellClimate,
     excellent_layer,
+    forecast_fresh_since,
     history_start,
     species_layer,
 )
@@ -57,10 +58,13 @@ async def probability_layer(
     store: SqlCellStore = Depends(get_layer_store),
 ) -> dict:
     """Probability (0-100) of one species in every stored cell on a date: the v2 index with the
-    species' thermal range, times the altitude factor at the cell's mean elevation. Cells the
-    species does not reach by altitude come without score; out of its fruiting months nothing is
-    scored (`in_season` false). `species.forest_classes` says which forest classes the species
-    fits (null = no forest filter); the forest itself is the raster of `/forest-raster`."""
+    species' thermal range, times the altitude factor at the cell's mean elevation. The date can
+    be up to a week after today: from today on the days come from the stored forecast (`basis`
+    says "forecast"; `max_date` is the last day that can be asked, `clamped` that the one asked
+    was beyond it). Cells the species does not reach by altitude come without score; out of its
+    fruiting months nothing is scored (`in_season` false). `species.forest_classes` says which
+    forest classes the species fits (null = no forest filter); the forest itself is the raster
+    of `/forest-raster`."""
     row = await db.get(Species, species)
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Unknown species {species!r}")
@@ -73,7 +77,10 @@ async def probability_layer(
     cells = [CellClimate(c.id, c.lat, c.lon, c.elevation_m, rows) for c, rows in stored]
     # ~420 cells of pure arithmetic: off the event loop so other requests keep answering
     return layer_cache.answers.put(
-        key, await asyncio.to_thread(species_layer, cells, today, record, on)
+        key,
+        await asyncio.to_thread(
+            species_layer, cells, today, record, on, forecast_fresh_since(today)
+        ),
     )
 
 
@@ -98,7 +105,10 @@ async def probability_excellent_layer(
     stored = await store.loaded_cells_climate(history_start(today, on))
     cells = [CellClimate(c.id, c.lat, c.lon, c.elevation_m, r) for c, r in stored]
     return layer_cache.answers.put(
-        key, await asyncio.to_thread(excellent_layer, cells, today, species, on)
+        key,
+        await asyncio.to_thread(
+            excellent_layer, cells, today, species, on, forecast_fresh_since(today)
+        ),
     )
 
 

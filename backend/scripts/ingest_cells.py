@@ -17,6 +17,12 @@ Steps, in order:
     python -m scripts.ingest_cells load --limit 10            # 10 cells first: measure the cost
     python -m scripts.ingest_cells load --max-calls 4000      # then the rest, in as many days
                                                               # as the budget needs
+    python -m scripts.ingest_cells refresh --max-calls 1500   # last days + forecast of every
+                                                              # loaded cell (what the server's
+                                                              # daily job does; ~3 per cell)
+
+`status` also says when the stored forecast was downloaded, cell by cell, and which cells the
+layers would not show for a day ahead (the forecast must be from the last two UTC days).
 
 Costs are estimates (days / 14 per request); check your real use against the Open-Meteo
 account page after the first 10 cells before raising the budget.
@@ -25,11 +31,14 @@ import argparse
 import asyncio
 import logging
 import sys
+from datetime import UTC, datetime
 
+from sqlalchemy import distinct, func, select
 from sqlalchemy.exc import ProgrammingError
 
 from app.connectors.open_meteo import resolve_grid_batch
 from app.database import AsyncSessionLocal, dispose_engine
+from app.models.climate_cell import ClimateCellHistory
 from app.services.cell_discovery import DEFAULT_STEP_LAT, DEFAULT_STEP_LON, probe_lattice
 from app.services.cell_ingest import (
     LOAD_COST,
@@ -39,9 +48,11 @@ from app.services.cell_ingest import (
     discover,
     holes,
     load_pending,
+    refresh_all,
 )
 from app.services.cell_provider import CellProvider
 from app.services.cell_store import SqlCellStore
+from app.services.layer_probability import forecast_fresh_since
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
 log = logging.getLogger("ingest_cells")
@@ -73,6 +84,37 @@ async def cmd_load(max_calls: int, limit: int | None) -> None:
     print("load:", stats.summary())
 
 
+async def cmd_refresh(max_calls: int) -> None:
+    async with AsyncSessionLocal() as db:
+        store = SqlCellStore(db)
+        stats = await refresh_all(store, CellProvider(), max_calls)
+    print("refresh:", stats.summary())
+
+
+async def _print_forecast_coverage(db) -> None:
+    """When the forecast rows from today on were downloaded, and how many cells each day holds."""
+    today = datetime.now(UTC).date()
+    fetched_day = func.date(func.timezone("UTC", ClimateCellHistory.fetched_at))
+    rows = (
+        await db.execute(
+            select(fetched_day, func.count(distinct(ClimateCellHistory.cell_id)),
+                   func.max(ClimateCellHistory.date))
+            .where(ClimateCellHistory.source == "forecast", ClimateCellHistory.date >= today)
+            .group_by(fetched_day)
+            .order_by(fetched_day)
+        )
+    ).all()
+    if not rows:
+        print("forecast: no rows from today on")
+        return
+    limit = forecast_fresh_since(today).date()
+    print(f"forecast rows from {today} on, by the UTC day they were downloaded "
+          f"(the layers use those from {limit} on):")
+    for day, cells, last in rows:
+        print(f"  downloaded {day}: {cells} cells, up to {last}"
+              f"{'' if day >= limit else '  <- too old for the layers'}")
+
+
 async def cmd_status() -> None:
     async with AsyncSessionLocal() as db:
         cells = await SqlCellStore(db).list_cells()
@@ -83,6 +125,8 @@ async def cmd_status() -> None:
     print(f"holes (neighbours expected but not found): {len(holes(cells))}")
     if inside:
         print(f"first cells: {', '.join(c.id for c in inside[:3])} ...")
+    async with AsyncSessionLocal() as db:
+        await _print_forecast_coverage(db)
 
 
 async def main(args: argparse.Namespace) -> None:
@@ -91,6 +135,8 @@ async def main(args: argparse.Namespace) -> None:
             await cmd_discover(args.step_lat, args.step_lon, args.max_calls, args.holes)
         elif args.command == "load":
             await cmd_load(args.max_calls, args.limit)
+        elif args.command == "refresh":
+            await cmd_refresh(args.max_calls)
         elif args.command == "status":
             await cmd_status()
     except ProgrammingError as exc:
@@ -126,6 +172,8 @@ if __name__ == "__main__":
     p = sub.add_parser("load")
     p.add_argument("--max-calls", type=int, default=4000)
     p.add_argument("--limit", type=int, default=None, help="max cells this run")
+    p = sub.add_parser("refresh")
+    p.add_argument("--max-calls", type=int, default=1500)
     sub.add_parser("status")
     ns = parser.parse_args()
     if ns.command == "plan":

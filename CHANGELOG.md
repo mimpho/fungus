@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — forecast on the conditions layer (2026-10-21, `feat/observatory-layer-forecast`, 7b-bis)
+
+- **Reference day up to today + 7** (`FORECAST_LAYER_DAYS`) in `GET /observatory/layer/probability` and `/probability-excellent`. From today on the days are the cell's stored forecast, scored with the same v2 model and the same relief bands as the observed days. **No new table and no migration:** the 16 forecast days were already stored per cell in `climate_cell_history` (`source='forecast'`) by the cell load and the daily refresh (7a), in the same Open-Meteo request, so the call budget does not change.
+- **`prepare_climate(..., forecast_until, fresh_since)`** (`services/point_series.py`): continues the observed days with the forecast from today, only if yesterday is observed. The forecast must be continuous: a missing or incomplete day ends it (never filled, the model would invent that day's rain) and the cell has no score for later days. A forecast row fetched before `forecast_fresh_since(today)` (UTC midnight, `FORECAST_MAX_AGE_DAYS` = 2 days before today) does not count.
+- **New answer fields:** `max_date` (last day that can be asked), `forecast_from` (today) and `basis` (`real` | `forecast`; today already counts as forecast). `clamped` now means the date asked is beyond `max_date`. `last_data_date` is still the last observed day.
+- **Slider** (`LayerDayControl.jsx`): reaches `max_date`, a strip under it marks the forecast stretch and the label says «previsión».
+- **Cache signature** (`SqlCellStore.data_signature()`) adds the latest download of forecast rows (`forecast_signature_statement`); `layer_cache` LRU goes from 24 to 64 entries (a day slider fills 24 for one species).
+- **`scripts/ingest_cells.py`:** new `refresh --max-calls` (what the server's daily job does, ~3 weighted calls per cell) and `status` now prints the forecast rows by the UTC day they were downloaded, marking the cells too old for the layer.
+- Tests: `tests/unit/test_layer_forecast.py` (reference day, week limit, holes, freshness, closeness to the calendar, same model over its own window, signature) and two endpoint tests in `test_layer_probability.py`.
+
+### Changed — map look on the dark basemaps (2026-10-21, 7b-bis)
+
+- **Relief basemap:** the conditions layer pane is blended with `mix-blend-mode: multiply`, so the black-and-white shading shows through the colour.
+- **Opacity per basemap** (`ALPHA_SCALE_BY_BASEMAP` in `lib/layerColors.js`, applied in `reliefOverlay`): satellite ×0.8, streets ×1.5, relief ×2 over the band alphas (a pixel's alpha tops out at 1).
+- **Place names above the layer:** streets and relief draw CARTO without labels and the labels in their own pane (`obsLabels`, z-index 360, over the layer at 350 and under the markers). Satellite keeps ICGC's hybrid tile, with the names printed in it. Streets now makes two tile requests per view (relief already did).
+
 ### Added — conditions layer on the interactive map (2026-10-20, `feat/observatory-layer-probability`, 7b)
 
 - **Conditions layer** (`GET /observatory/layer/probability`, `routers/observatory_layer.py`, `services/layer_probability.py`): cells are scored at relief bands (every 300 m, spread 900 m) with the species' v2 model; the client paints every pixel from the elevation raster (`lib/reliefLayer.js`, kernel blend of neighbouring cells) so the map gains detail where the relief changes. Species selector over the full catalogue (`SpeciesLayerPicker.jsx`); species range ±150 m around its altitude window.

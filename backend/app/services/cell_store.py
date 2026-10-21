@@ -26,6 +26,14 @@ def upsert_rows_statement(rows: list[dict]):
     )
 
 
+def forecast_signature_statement():
+    """Latest download of forecast rows: the forecast changes the layers (future days) even when
+    no cell is reloaded."""
+    return select(func.max(ClimateCellHistory.fetched_at)).where(
+        ClimateCellHistory.source == "forecast"
+    )
+
+
 def _info(cell: Cell) -> CellInfo:
     return CellInfo(
         cell.id, cell.lat, cell.lon, cell.elevation_m, cell.loaded_from, cell.loaded_to,
@@ -113,7 +121,8 @@ class SqlCellStore:
 
     async def data_signature(self) -> tuple:
         """Cheap fingerprint of what the layers read: it changes when a cell is loaded or
-        refreshed or climate rows are written, so cached layer answers can be told apart."""
+        refreshed or climate rows are written (the last download of the forecast included, which
+        the layers show up to a week ahead), so cached layer answers can be told apart."""
         cells = (
             await self.db.execute(
                 select(func.count(), func.max(Cell.refreshed_at), func.max(Cell.loaded_to))
@@ -121,11 +130,13 @@ class SqlCellStore:
             )
         ).one()
         fetched = await self.db.scalar(select(func.max(ClimateCellHistory.fetched_at)))
-        return (*cells, fetched)
+        forecast_fetched = await self.db.scalar(forecast_signature_statement())
+        return (*cells, fetched, forecast_fetched)
 
     async def loaded_cells_climate(self, since: date) -> list[tuple[CellInfo, list]]:
-        """Every loaded cell with its days from `since` on (oldest first): one query for the
-        cells and one for all the rows, for the layers that read the whole map at once."""
+        """Every loaded cell with its days from `since` on (oldest first, the stored forecast
+        included, with its `source` and `fetched_at`): one query for the cells and one for all
+        the rows, for the layers that read the whole map at once."""
         cells = [c for c in await self.list_cells() if c.loaded_to is not None]
         if not cells:
             return []
@@ -133,6 +144,7 @@ class SqlCellStore:
             select(
                 ClimateCellHistory.cell_id, ClimateCellHistory.date,
                 *(getattr(ClimateCellHistory, m) for m in _METRICS if m != "source"),
+                ClimateCellHistory.source, ClimateCellHistory.fetched_at,
             )
             .where(ClimateCellHistory.date >= since)
             .order_by(ClimateCellHistory.cell_id, ClimateCellHistory.date)

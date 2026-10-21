@@ -473,8 +473,11 @@ function matchClasses(names, factors, rasterClasses) {
   })
 }
 
-/** Picture of the layer for Leaflet, or null if there is nothing to draw: { url, bounds: [[south, west], [north, east]] }. */
-export function reliefOverlay(raster, layer, rasters = {}) {
+/**
+ * Picture of the layer for Leaflet, or null if there is nothing to draw: { url, bounds: [[south, west], [north, east]] }.
+ * `alphaScale` multiplies every pixel's opacity (1 = as the bands define it).
+ */
+export function reliefOverlay(raster, layer, rasters = {}, { alphaScale = 1 } = {}) {
   const cells = layer.cells
   const grid = reliefGrid(raster, cells)
   if (!grid) return null
@@ -489,6 +492,7 @@ export function reliefOverlay(raster, layer, rasters = {}) {
       : null,
   }
   const rgba = multi ? paintReliefMany(grid, layer, rasters) : paintRelief(grid, cells, layer.band_step_m, range, habitat)
+  if (alphaScale !== 1) for (let i = 3; i < rgba.length; i += 4) rgba[i] *= alphaScale // clamped to 255
   const canvas = document.createElement('canvas')
   canvas.width = grid.width
   canvas.height = grid.height
