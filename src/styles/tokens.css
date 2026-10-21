@@ -31,6 +31,7 @@
   --glass-warm-border: rgba(139, 111, 71, 0.20);
   --glass-olive: rgba(63, 73, 59, 0.50);
   --glass-olive-80: rgba(63, 73, 59, 0.80);
+  --glass-olive-92: rgba(63, 73, 59, 0.92);
   --modal-overlay: #232522d9;
   --border-default: rgba(255, 255, 255, 0.08);
   --border-accent: rgba(196, 160, 107, 0.15);
@@ -161,6 +162,7 @@
   --glass-warm-border: rgba(139, 111, 71, 0.25);
   --glass-olive: rgba(255, 255, 255, 0.70);
   --glass-olive-80: rgba(255, 255, 255, 0.85);
+  --glass-olive-92: rgba(255, 255, 255, 0.95);
   --modal-overlay: rgba(200, 195, 180, 0.75);
   --border-default: rgba(0, 0, 0, 0.10);
   --border-accent: rgba(139, 111, 71, 0.20);

@@ -632,7 +632,7 @@ export const i18n = {
     continuarConGoogle: 'Continuar con Google', conectando: 'Conectando...',
     cookieInfo: 'Al iniciar sesión guardamos una cookie segura para mantener tu sesión activa.',
     sinZonasSeguidas: 'Aún no sigues ninguna zona.', sinEspeciesFavoritas: 'Aún no tienes especies favoritas.', mas: 'más',
-    adminGenerator: 'Generador', adminGallery: 'Galería', adminMode: 'Modo admin', modoPublico: 'Público', modoAdmin: 'Admin',
+    imageGenerator: 'Generador de imágenes', adminGallery: 'Galería', userMenu: 'Menú de usuario', menuOpen: 'Abrir menú', menuClose: 'Cerrar menú',
 
     // ── Micología — página ────────────────────────────────────────────────────
     micologiaDesc: 'Artículos para entender el reino fungi: ecología, identificación, historia y ciencia.',
@@ -1389,7 +1389,7 @@ export const i18n = {
     continuarConGoogle: 'Continua amb Google', conectando: 'Connectant...',
     cookieInfo: 'En iniciar sessió guardem una galeta segura per mantenir la teva sessió activa.',
     sinZonasSeguidas: 'Encara no segueixes cap zona.', sinEspeciesFavoritas: 'Encara no tens espècies favorites.', mas: 'més',
-    adminGenerator: 'Generador', adminGallery: 'Galeria', adminMode: 'Mode admin', modoPublico: 'Públic', modoAdmin: 'Admin',
+    imageGenerator: "Generador d'imatges", adminGallery: 'Galeria', userMenu: "Menú d'usuari", menuOpen: 'Obre el menú', menuClose: 'Tanca el menú',
 
     // ── Micologia — pàgina ────────────────────────────────────────────────────
     micologiaDesc: "Articles per entendre el regne fungi: ecologia, identificació, història i ciència.",
@@ -2146,7 +2146,7 @@ export const i18n = {
     continuarConGoogle: 'Continue with Google', conectando: 'Connecting...',
     cookieInfo: 'When you sign in, we store a secure cookie to keep your session active.',
     sinZonasSeguidas: "You're not following any zones yet.", sinEspeciesFavoritas: 'You have no favourite species yet.', mas: 'more',
-    adminGenerator: 'Generator', adminGallery: 'Gallery', adminMode: 'Admin mode', modoPublico: 'Public', modoAdmin: 'Admin',
+    imageGenerator: 'Image generator', adminGallery: 'Gallery', userMenu: 'User menu', menuOpen: 'Open menu', menuClose: 'Close menu',
 
     // ── Mycology — page ───────────────────────────────────────────────────────
     micologiaDesc: 'Articles to understand the fungi kingdom: ecology, identification, history and science.',
