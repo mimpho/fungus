@@ -7,7 +7,7 @@ code as the zones. Days without data come back with null climate and no score.
 """
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from app.services.elevation_correction import correct_days, elevation_delta_m
@@ -30,10 +30,43 @@ class SeriesWindow:
     lowest_min: dict | None  # coldest night of the window
 
 
-def _usable(rows: Sequence[Any], today: date) -> list[ClimateDay]:
-    """Complete days before `today`. Today's own row and the forecast are not observed yet."""
+def _usable(
+    rows: Sequence[Any],
+    today: date,
+    forecast_until: date | None = None,
+    fresh_since: datetime | None = None,
+) -> list[ClimateDay]:
+    """Complete days before `today`. Today's own row and the forecast are not observed yet, so
+    they are left out unless the caller asks for the forecast (`forecast_until`, see
+    `_forecast_chain`)."""
     out = [d for r in rows if r.date < today if (d := ClimateDay.from_row(r))]
-    return sorted(out, key=lambda d: d.date)
+    out.sort(key=lambda d: d.date)
+    if forecast_until is not None and out and out[-1].date == today - timedelta(days=1):
+        out.extend(_forecast_chain(rows, today, forecast_until, fresh_since))
+    return out
+
+
+def _forecast_chain(
+    rows: Sequence[Any], today: date, until: date, fresh_since: datetime | None
+) -> list[ClimateDay]:
+    """The forecast days from `today` to `until`, up to the first one that is missing, incomplete
+    or stale (fetched before `fresh_since`). A hole is never filled: the model would invent the
+    rain of that day, and a forecast with a gap says nothing about the days after it."""
+    by_date: dict[date, ClimateDay] = {}
+    for r in rows:
+        if not today <= r.date <= until:
+            continue
+        fetched = getattr(r, "fetched_at", None)
+        if fresh_since is not None and fetched is not None and fetched < fresh_since:
+            continue
+        if (d := ClimateDay.from_row(r)) is not None:
+            by_date[d.date] = d
+    chain: list[ClimateDay] = []
+    day = today
+    while day <= until and day in by_date:
+        chain.append(by_date[day])
+        day += timedelta(days=1)
+    return chain
 
 
 def _climate(d: ClimateDay) -> dict:
@@ -63,9 +96,14 @@ def prepare_climate(
     today: date,
     cell_elevation_m: float | None,
     point_elevation_m: float | None,
+    forecast_until: date | None = None,
+    fresh_since: datetime | None = None,
 ) -> tuple[list[ClimateDay], float | None] | None:
-    """Complete days shifted to the point's elevation, and the elevation the model scores at."""
-    usable = _usable(rows, today)
+    """Complete days shifted to the point's elevation, and the elevation the model scores at.
+    With `forecast_until` the list goes on with the stored forecast from `today` (continuous
+    days only, and only fresh ones if `fresh_since` is given); the callers that do not pass it
+    get observed days only."""
+    usable = _usable(rows, today, forecast_until, fresh_since)
     if not usable:
         return None
     corrected = correct_days(usable, elevation_delta_m(point_elevation_m, cell_elevation_m))
