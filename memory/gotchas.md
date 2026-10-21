@@ -313,3 +313,7 @@ For the disposable database put the URL in front of the command: `DATABASE_URL="
 
 ### ⚠️ `multiply` on the relief only blends because the layer pane is a sibling of the tile pane
 `mix-blend-mode` on the `obsLayer` pane blends with what is under it in the same stacking context (Leaflet's map pane). Moving the pane inside another stacking context (or giving it `isolation`) makes the blend do nothing. Place names of the dark maps live in their own pane (`obsLabels`) above the layer so they are not tinted.
+
+
+### ⚠️ The user menu shows the generator only to `role = 'admin'`, and it opens the gallery
+`/admin/generator` is the hub: it shows the gallery, and the generator loads only with `?especie=…&generar=1` (a species picked in the gallery). A local user is not an admin until `users.role` is set: `UPDATE users SET role = 'admin' WHERE email = '…';` on the disposable database (`docker exec -it fungus-ingest-test psql -U postgres -d fungus -c "…"`), then reload so `/me` returns the role.

@@ -95,7 +95,8 @@ src/
 │   ├── Micologia.jsx
 │   └── Profile.jsx
 ├── components/
-│   ├── Layout.jsx           ← Desktop sidebar nav + mobile hamburger
+│   ├── Layout.jsx           ← Header: five sections (Inicio, Zonas, Observatorio, Catálogo, Micología) + mobile hamburger
+│   ├── UserMenu.jsx         ← Avatar dropdown: Perfil, Generador de imágenes (admins), Cerrar sesión / Iniciar sesión
 │   ├── admin/
 │   │   ├── AdminGeneratorHub.jsx   ← Admin hub: gallery + AI generator
 │   │   ├── SpeciesAdminModal.jsx
@@ -193,7 +194,7 @@ backend/
 | `/micologia` | `Micologia` | Article listing |
 | `/micologia/:slug` | `Micologia` | Article open |
 | `/perfil` | `Profile` | User profile |
-| `/admin/generator` | `AdminGeneratorHub` | Admin hub: gallery + AI generator |
+| `/admin/generator` | `AdminGeneratorHub` | Admin hub: gallery + AI generator (opened from the user menu; the generator itself needs `?especie=…&generar=1`) |
 
 `slugify()` in `helpers.jsx` converts names to URL-safe slugs (NFD + lowercase + hyphens).
 `resolveUrl()` in `helpers.jsx` ensures a leading `/` in asset URLs (critical in nested routes).

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Observatory in the header and user menu (2026-10-21, `feat/observatory-header-menu`, step 9 of `feat/observatory-page`)
+
+- **Header with five sections:** Inicio, Zonas, Observatorio (`/observatorio`), Catálogo, Micología. Between `md` and `lg` the items are icons only, with `aria-label` and `title`; from `lg` they show icon and text.
+- **`UserMenu.jsx`:** avatar button on the right (initials, or the user icon) with a dropdown. Signed in: Perfil, Generador de imágenes (admins only, `/admin/generator`) and Cerrar sesión (goes to `/` when it is called from `/perfil` or `/admin/*`). Guest: Perfil and Iniciar sesión (opens `AuthModal`). Closes on Esc, outside press and navigation; arrow keys move between items. On phones the avatar sits next to the hamburger, which now lists only the five sections (with `aria-label`).
+- **`glass-olive-92`** (`glass.css`, `--glass-olive-92` in `tokens.css`): near-opaque variant for the dropdown (0.92 dark, 0.95 light).
+- Icons `IC.observatory`, `IC.logout`, `IC.login`; i18n keys `imageGenerator`, `userMenu`, `menuOpen`, `menuClose` (es, ca, en).
+
+### Removed — Público/Admin toggle (2026-10-21)
+
+- `isAdminView` / `setIsAdminView` (`AppContext`), the toggle in `Profile.jsx`, the `useEffect` in `ImageGenerator.jsx` that forced it, and the admin items of the header (Generador, Galería). Admins reach the generator from the user menu; `AdminGuard` stays.
+- i18n keys `modoPublico`, `modoAdmin`, `adminMode` and `adminGenerator` (replaced by `imageGenerator`). `adminGallery` stays: `AdminGallery.jsx` uses it as its title.
+
 ### Added — forecast on the conditions layer (2026-10-21, `feat/observatory-layer-forecast`, 7b-bis)
 
 - **Reference day up to today + 7** (`FORECAST_LAYER_DAYS`) in `GET /observatory/layer/probability` and `/probability-excellent`. From today on the days are the cell's stored forecast, scored with the same v2 model and the same relief bands as the observed days. **No new table and no migration:** the 16 forecast days were already stored per cell in `climate_cell_history` (`source='forecast'`) by the cell load and the daily refresh (7a), in the same Open-Meteo request, so the call budget does not change.

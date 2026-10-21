@@ -599,3 +599,19 @@ useEffect(() => {
 - **Map look (dark basemaps):** `multiply` on the layer pane over the relief; opacity per basemap (satellite ×0.8, streets ×1.5, relief ×2); place names in their own pane above the layer for streets and relief (CARTO `dark_nolabels` + `dark_only_labels`). Satellite stays as it was: ICGC's hybrid tile has the names printed in it.
 
 **Discarded:** a `cell_forecast` table; a notice for cells without forecast for now (to be decided once the daily refresh is seen at work); estimating the days after the forecast (the calendar does it, the layer stops at +7 where the forecast still says something).
+
+
+## Observatory in the header and user menu (2026-10-21)
+
+**Decision:** The header has five sections (Inicio, Zonas, Observatorio, Catálogo, Micología). Perfil leaves the row and becomes an avatar button on the right with a dropdown (Perfil, Generador de imágenes for admins, Cerrar sesión). The Público/Admin toggle, `isAdminView` and the admin header items are removed. Implements OQ-13 (2026-10-10).
+
+**Details:**
+- **Guests:** the avatar opens a menu with Perfil and Iniciar sesión (opens `AuthModal`) instead of going straight to `/perfil`. The Observatorio entry is visible without a session; the page shows its own sign-in notice.
+- **Phones (< `md`):** avatar next to the hamburger; the hamburger lists only the five sections.
+- **`md`–`lg`:** icons only, with `aria-label` and the native `title` as tooltip (the project has no tooltip component).
+- **The generator entry opens the gallery:** `/admin/generator` is the hub (v5.4). The generator itself loads only with `?especie=…&generar=1`, from a species in the gallery. The menu has no separate Galería item; `/admin/gallery` still redirects to the hub.
+- **Logout** from the menu goes to `/` when called from `/perfil` or `/admin/*`; the button in `Profile` stays for the delete-account flow.
+- **Unused i18n keys** (`modoPublico`, `modoAdmin`, `adminMode`, `adminGenerator`) were deleted; `adminGallery` is kept because `AdminGallery.jsx` uses it.
+- **Out of this branch:** «Ver en el Observatorio» in the zone card (the Observatory goes by coordinates since 14 Oct and `?zona=` no longer exists) and the pass on phone, languages and dark/light themes (step 10), both separate tasks.
+
+**Discarded:** a separate Galería item in the menu (same route as the generator); hiding the Observatorio entry from guests.
