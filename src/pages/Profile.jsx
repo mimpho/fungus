@@ -15,7 +15,6 @@ export default function Profile() {
     setSelectedZone, setSelectedSpecies,
     user, isAuthenticated, authLoading, logout, deleteAccount,
     setAuthModal,
-    isAdminView, setIsAdminView,
   } = useApp()
 
   const [form, setForm] = useState(profile)
@@ -149,17 +148,6 @@ export default function Profile() {
       <div>
         <div className="flex items-center justify-between gap-4">
           <h2 className="font-display text-4xl font-semibold text-cream">{greeting}</h2>
-          {user.role === 'admin' && (
-            <Tabs
-              options={[
-                { id: 'user', label: t.modoPublico ?? 'Público' },
-                { id: 'admin', label: t.modoAdmin ?? 'Admin' },
-              ]}
-              selected={isAdminView ? 'admin' : 'user'}
-              onChange={(val) => setIsAdminView(val === 'admin')}
-              size="sm"
-            />
-          )}
         </div>
         <p className="text-muted text-sm mt-1">
           {followedZones.length} {t.followedZones.toLowerCase()} · {favoriteSpecies.length} {t.favoriteSpecies.toLowerCase()}

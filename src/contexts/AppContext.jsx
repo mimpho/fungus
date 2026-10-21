@@ -76,7 +76,6 @@ export function AppProvider({ children }) {
   const [user, setUser]             = useState(null)
   const [authLoading, setAuthLoading] = useState(true)   // true until initial refresh resolves
   const [authModal, setAuthModal]   = useState(null)      // null | 'login' | 'register'
-  const [isAdminView, setIsAdminView] = useState(false)  // admin nav visible only when toggled
 
   // Tracks whether the initial session restore (apiRefresh) has settled.
   // FedCM can fire the Google callback before apiRefresh completes — we use this
@@ -252,7 +251,6 @@ export function AppProvider({ children }) {
       user, isAuthenticated, authLoading,
       login, register, loginWithGoogle, logout, updateUserProfile, deleteAccount, refreshUser,
       authModal, setAuthModal,
-      isAdminView, setIsAdminView,
       // modal stack
       selectedZone, setSelectedZone,
       selectedSpecies, setSelectedSpecies,

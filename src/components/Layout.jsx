@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { IC } from '../lib/helpers'
+import UserMenu from './UserMenu'
 
 export default function Layout() {
-  const { followedZones, t, user, isAdminView } = useApp()
+  const { followedZones, t } = useApp()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // ── Header fixed + spacer ──────────────────────────────────────────────────
@@ -97,39 +98,29 @@ export default function Layout() {
     }
   }, [])
 
-  const isAdmin = user?.role === 'admin'
-
-  const userNavItems = [
-    { to: '/',          label: t.dashboard,  icon: IC.chart,    end: true },
-    { to: '/zonas',     label: t.zonas,      icon: IC.pin,      badge: followedZones.length },
-    { to: '/especies',  label: t.especies,   icon: IC.mushroom },
-    { to: '/micologia', label: t.micologia,  icon: IC.book },
-  ]
-
-  const adminNavItems = [
-    { to: '/admin/generator', label: t.adminGenerator, icon: IC.wand },
-    { to: '/admin/gallery',   label: t.adminGallery,   icon: IC.grid },
-  ]
-
+  // Five sections. Perfil lives in the avatar menu (UserMenu), not in this row.
   const navItems = [
-    ...(isAdmin && isAdminView ? adminNavItems : userNavItems),
-    { to: '/perfil', label: t.profile, icon: IC.user },
+    { to: '/',            label: t.dashboard,  icon: IC.chart,       end: true },
+    { to: '/zonas',       label: t.zonas,      icon: IC.pin,         badge: followedZones.length },
+    { to: '/observatorio', label: t.obsTitle,  icon: IC.observatory },
+    { to: '/especies',    label: t.especies,   icon: IC.mushroom },
+    { to: '/micologia',   label: t.micologia,  icon: IC.book },
   ]
 
   const headerContent = (
     <>
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center">
         {/* Logo */}
         <NavLink to="/" onClick={() => setMobileMenuOpen(false)}>
           <img src="/assets/images/logoFungus.png" alt="Fungus" className="h-16 w-auto object-contain logo-adaptive" />
         </NavLink>
 
-        {/* Nav desktop */}
-        <nav className="hidden md:flex items-center gap-1">
+        {/* Nav desktop: icons only between md and lg (aria-label + title), icon and text from lg */}
+        <nav className="hidden md:flex items-center gap-1 ml-auto mr-3">
           {navItems.map(({ to, label, icon, end, badge }) => (
-            <NavLink key={to} to={to} end={end}
-              className={({ isActive }) => `nav-item relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200${isActive ? ' nav-item--active' : ''}`}>
-              {icon} {label}
+            <NavLink key={to} to={to} end={end} aria-label={label} title={label}
+              className={({ isActive }) => `nav-item relative flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200${isActive ? ' nav-item--active' : ''}`}>
+              {icon} <span className="hidden lg:inline">{label}</span>
               {badge > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white rounded-full text-[10px] flex items-center justify-center font-bold">{badge}</span>
               )}
@@ -137,15 +128,20 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* Hamburger button — mobile only */}
-        <button
-          onClick={() => setMobileMenuOpen(o => !o)}
-          className="md:hidden p-2 rounded-lg hover:bg-white/10 text-cream/70 transition-colors">
-          {mobileMenuOpen
-            ? IC.close
-            : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-          }
-        </button>
+        {/* Avatar menu (all widths) + hamburger (mobile only) */}
+        <div className="ml-auto md:ml-0 flex items-center gap-1">
+          <UserMenu onOpen={() => setMobileMenuOpen(false)} />
+          <button
+            onClick={() => setMobileMenuOpen(o => !o)}
+            aria-label={mobileMenuOpen ? t.menuClose : t.menuOpen}
+            aria-expanded={mobileMenuOpen}
+            className="md:hidden p-2 rounded-lg hover:bg-white/10 text-cream/70 transition-colors">
+            {mobileMenuOpen
+              ? IC.close
+              : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            }
+          </button>
+        </div>
       </div>
 
       {/* Mobile dropdown menu */}

@@ -13,6 +13,13 @@
 }
 
 /* Opaque variant for floating elements over content (sticky bar) */
+/* Near-opaque variant for dropdowns over content (user menu) */
+.glass-olive-92 {
+  background: var(--glass-olive-92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
 .glass-olive-80 {
   background: var(--glass-olive-80);
   backdrop-filter: blur(16px);
