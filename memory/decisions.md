@@ -584,3 +584,18 @@ useEffect(() => {
 **Discarded:** exact-pixel forest (a point in a field next to a forest read "no forest"); municipality radius for now.
 
 **Update (2026-10-20):** species the forest cannot judge (meadow, garden, riparian, no forest type) are left out of the excellent mean, on the map and in the thermometer. Single-species layers and the species list are unchanged.
+
+## Forecast on the conditions layer (2026-10-21)
+
+**Decision:** The map layer can be asked for any day up to today + 7, using the forecast already stored per cell in `climate_cell_history` (`source='forecast'`). No `cell_forecast` table and no migration.
+
+**Details:**
+- **Why no table:** 7a already stores 16 forecast days per cell (cell load and daily refresh, same Open-Meteo request), and `/point/forecast` and `/point/calendar` read them there. A second table would have meant moving both endpoints or keeping two sources, to isolate rows that `prepare_climate` already filters by date.
+- **Budget:** the daily refresh is ~3 weighted calls per cell (~1,270 a day for 423 cells, cap 1,500). Limiting the forecast to +7 saves nothing (today−7 … today+7 is 15 days, still 2 calls), so the 16 days stay. Several coordinates per call was left out: the weighted cost probably does not change (how locations count is not documented) and it needs `elevation` per coordinate and a rewrite of the budget loop; measure first (`load --limit 10`).
+- **Honesty rules:** the forecast counts only if it is continuous from today and yesterday is observed; a hole is never filled (the model would invent the rain) and the cell has no score for later days. A forecast fetched before UTC midnight two days before today is not shown, by whole UTC days so the answer is stable within a day and cacheable. Consequence: if the daily refresh stops, the map shows holes rather than stale days.
+- **Today counts as forecast** (`basis: "forecast"`); `last_data_date` stays the last observed day; `clamped` means beyond `max_date`.
+- **The model window starts 100 days before the chosen day** (as the thermometer does for any day), so a future day can differ by 1–3 points from the point calendar, which starts it at the last observed day. Same cause as the map/thermometer differences already known.
+- **Licence:** the free Open-Meteo API is for non-commercial use only (also for the forecast). Decide before any monetisation; attribution is already shown in `Attribution.jsx`. No warning to users: it is a constraint for the owner, not information for them.
+- **Map look (dark basemaps):** `multiply` on the layer pane over the relief; opacity per basemap (satellite ×0.8, streets ×1.5, relief ×2); place names in their own pane above the layer for streets and relief (CARTO `dark_nolabels` + `dark_only_labels`). Satellite stays as it was: ICGC's hybrid tile has the names printed in it.
+
+**Discarded:** a `cell_forecast` table; a notice for cells without forecast for now (to be decided once the daily refresh is seen at work); estimating the days after the forecast (the calendar does it, the layer stops at +7 where the forecast still says something).

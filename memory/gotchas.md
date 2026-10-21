@@ -300,7 +300,16 @@ Forest and substrate rasters live in `local-data/` (out of git) and are built wi
 The ensemble counts a species only if altitude fit ≠ 0 and the product of `fit_parts` ≥ 0.05. Change `scoring_v2.py` and `layer_probability.py` together.
 
 ### ⚠️ Map vs point differences
-Map forest is smoothed client-side per pixel; the server judges the 500 m mean at the point. Expect a few points of difference and float rounding at exact colour thresholds (float32 vs float64).
+Map forest is smoothed client-side per pixel; the server judges the 500 m mean at the point. Expect a few points of difference and float rounding at exact colour thresholds (float32 vs float64). A forecast day of the layer can also differ 1–3 points from the point calendar: the layer starts the model window 100 days before the chosen day, the calendar 100 days before the last observed day.
 
 ### ⚠️ Local DB port
 The local database answers on 5433 or 55432 depending on the setup; check before running `check_layer_probability.py`.
+
+### ⚠️ A forecast older than 2 UTC days leaves holes in the layer
+The layer only shows a forecast fetched on one of the two UTC days before today or later (`forecast_fresh_since`). If the daily cell refresh does not run (budget 0, a failed night), the cells with an old forecast come without score for days ahead and the map shows a cut, often a straight edge: cells load in id order, so they share a download day. `python -m scripts.ingest_cells status` lists the forecast by download day and marks the stale ones; `refresh --max-calls 1500` fixes it (a few cells may fail with transient 503s: run it again).
+
+### ⚠️ `ingest_cells.py` writes where `DATABASE_URL` points, and `backend/.env` points at production
+For the disposable database put the URL in front of the command: `DATABASE_URL="postgresql+asyncpg://…@localhost:55432/fungus" PYTHONPATH=. python -m scripts.ingest_cells status`. Without it `refresh`, `load` and `discover` write to production.
+
+### ⚠️ `multiply` on the relief only blends because the layer pane is a sibling of the tile pane
+`mix-blend-mode` on the `obsLayer` pane blends with what is under it in the same stacking context (Leaflet's map pane). Moving the pane inside another stacking context (or giving it `isolation`) makes the blend do nothing. Place names of the dark maps live in their own pane (`obsLabels`) above the layer so they are not tinted.
