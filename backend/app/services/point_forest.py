@@ -168,9 +168,7 @@ def parse_cover(text: str) -> LandCover | None:
 def cover_from_class(
     code: int | None, name: str, raw: str | None = None, fetched_at: str | None = None
 ) -> LandCover:
-    """LandCover from a class code and name. Used on the service's answer and to read a stored
-    class again (saved points keep code and name, not the macrotype), so a change in the
-    mapping applies to old points without asking the service again."""
+    """LandCover from a class code and name, with the macrotype derived from the name."""
     if code == 0:
         return LandCover(0, name, None, None, raw=raw, fetched_at=fetched_at)
     macro = macrotype_of(name)

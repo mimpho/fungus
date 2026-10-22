@@ -1,33 +1,34 @@
 """
-Saved points of the free-map Observatory: coordinates a user named and keeps.
+Saved points of the free-map Observatory ("corners"): coordinates a user named and keeps.
 
-The climate is never stored here: it comes from the point's cell, which is a rebuildable
-cache, so `cell_id` has no foreign key (purging or rebuilding cells must not delete points).
-What is stored is what cannot be regenerated: the user's choices (name, notes, forest types)
-and where the derived data came from (land cover layer, class code and name, retrieval date;
-toponym name and label; MCSC-4 codes with their share). Never the services' raw texts, nor
-the macrotype derived from the class: that is derived again, so a change in the mapping
-applies to old points without asking the services again.
+Only what the user writes and the coordinates are stored: name, notes, kind, tagged species
+and photos. The climate, the forest, the soil and the toponym are never stored: they come from
+the point's cell and from the map sources when the corner is opened, so a change in an
+algorithm or a source applies to old corners without migrating anything. `elevation_m` is the
+one derived value kept, until the cards can read the elevation model themselves.
 """
 from datetime import datetime
-from typing import Any
 
 from sqlalchemy import (
-    ARRAY,
+    CheckConstraint,
     DateTime,
     Float,
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+
+# What the corner is, chosen by the user (never computed). The first one is the default.
+KINDS = ("unspecified", "mushroom_site", "prospect", "parking")
+DEFAULT_KIND = KINDS[0]
 
 
 class SavedPoint(Base):
@@ -35,6 +36,9 @@ class SavedPoint(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "lat", "lon", name="uq_saved_points_user_place"),
         Index("ix_saved_points_user_id_created_at", "user_id", "created_at"),
+        CheckConstraint(
+            "kind IN (" + ", ".join(f"'{k}'" for k in KINDS) + ")", name="ck_saved_points_kind"
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -46,22 +50,10 @@ class SavedPoint(Base):
     lon: Mapped[float] = mapped_column(Float, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # The author's forest types (one or several); null = use the ones derived from the land cover.
-    forest_types: Mapped[list[str] | None] = mapped_column(ARRAY(Text), nullable=True)
-    elevation_m: Mapped[float | None] = mapped_column(Float, nullable=True)
-    cell_id: Mapped[str | None] = mapped_column(String, nullable=True)
-
-    land_cover_layer: Mapped[str | None] = mapped_column(Text, nullable=True)
-    land_cover_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    land_cover_name: Mapped[str | None] = mapped_column(Text, nullable=True)
-    land_cover_retrieved_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    kind: Mapped[str] = mapped_column(
+        Text, nullable=False, default=DEFAULT_KIND, server_default=DEFAULT_KIND
     )
-    toponym_name: Mapped[str | None] = mapped_column(Text, nullable=True)
-    toponym_label: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # {"radius_m": 300, "items": [{"code": "bfs20", "pct": 95.0}]}; null until the MCSC-4
-    # grid exists.
-    composition: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    elevation_m: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -72,3 +64,55 @@ class SavedPoint(Base):
 
     def __repr__(self) -> str:
         return f"<SavedPoint id={self.id} user_id={self.user_id} name={self.name!r}>"
+
+
+class SavedPointSpecies(Base):
+    """A catalogue species the user tagged on a corner directly."""
+
+    __tablename__ = "saved_point_species"
+    __table_args__ = (Index("ix_saved_point_species_species_id", "species_id"),)
+
+    saved_point_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("saved_points.id", ondelete="CASCADE"), primary_key=True
+    )
+    species_id: Mapped[str] = mapped_column(
+        String, ForeignKey("species.id", ondelete="CASCADE"), primary_key=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class SavedPointPhoto(Base):
+    """One of the (up to five) photos of a corner. The files live in private object storage;
+    here only their keys, thumbnail and large version."""
+
+    __tablename__ = "saved_point_photos"
+    __table_args__ = (
+        UniqueConstraint("saved_point_id", "position", name="uq_saved_point_photos_position"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    saved_point_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("saved_points.id", ondelete="CASCADE"), nullable=False
+    )
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    thumb_key: Mapped[str] = mapped_column(Text, nullable=False)
+    large_key: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class SavedPointPhotoSpecies(Base):
+    """A species tagged on a photo (zero, one or several per photo)."""
+
+    __tablename__ = "saved_point_photo_species"
+    __table_args__ = (Index("ix_saved_point_photo_species_species_id", "species_id"),)
+
+    photo_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("saved_point_photos.id", ondelete="CASCADE"), primary_key=True
+    )
+    species_id: Mapped[str] = mapped_column(
+        String, ForeignKey("species.id", ondelete="CASCADE"), primary_key=True
+    )

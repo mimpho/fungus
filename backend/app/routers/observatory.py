@@ -36,7 +36,6 @@ from app.services.point_forest import (
     DEFAULT_RADIUS_M,
     MAX_RADIUS_M,
     MIN_RADIUS_M,
-    LandCover,
     cover_dict,
     fetch_toponym,
     forest_block,
@@ -206,12 +205,11 @@ def _today() -> date:
     return datetime.now(UTC).date()
 
 
-def _habitat(point: PointQuery, *, author_forest: bool = False) -> Habitat:
+def _habitat(point: PointQuery) -> Habitat:
     """Forest and soil shares at the point from the class rasters (empty where they are not
-    built). A saved point's own forest types win: its forest shares are then left out."""
-    h = habitat_at(point.lat, point.lon, settings.forest_raster_dir, settings.substrate_raster_dir)
-    return Habitat(
-        forest=None if author_forest else h.forest, soil=h.soil, forest_radius_m=h.forest_radius_m
+    built)."""
+    return habitat_at(
+        point.lat, point.lon, settings.forest_raster_dir, settings.substrate_raster_dir
     )
 
 
@@ -319,34 +317,25 @@ async def build_species_response(
     db: AsyncSession,
     store: CellStore,
     provider: CellProvider,
-    *,
-    author_types: frozenset[str] | None = None,
-    stored_cover: LandCover | None = None,
-    stored_land_cover: dict | None = None,
 ) -> dict:
     """Species that fit a point on a date. Shared by /point/species and a saved point's species.
 
-    Forest types come from, in this order: `author_types` (a saved point's, they win even over
-    "no forest"), the land cover (`stored_cover` of a saved point, else asked to the ICGC now).
-    `forest_source` says which one decided: "author", "land_cover" or null (unknown, nobody is
-    excluded by forest)."""
+    Forest types come from the land cover, asked to the ICGC now. `forest_source` says whether
+    it decided ("land_cover") or not (null: unknown, nobody is excluded by forest)."""
     cell, rows = await _cell_and_rows(point, store, provider, user)
     elevation = await point_elevation(point.lat, point.lon)
-    if author_types:
-        cover, forest_types, source = stored_cover, author_types, "author"
-    else:
-        cover = stored_cover or await land_cover(point.lat, point.lon)
-        forest_types = species_forest_types(cover)
-        source = "land_cover" if forest_types is not None else None
-    cover_info = stored_land_cover if stored_cover else cover_dict(cover)
-    habitat = _habitat(point, author_forest=bool(author_types))
+    cover = await land_cover(point.lat, point.lon)
+    forest_types = species_forest_types(cover)
+    source = "land_cover" if forest_types is not None else None
+    cover_info = cover_dict(cover)
+    habitat = _habitat(point)
     around = habitat.forest_around()
     # Forest is judged around the point when the CREAF raster covers it, else on the exact spot
     if around is not None:
         no_forest = not around
     else:
         no_forest = cover is not None and cover.forest is False
-    if not author_types and no_forest and around is None:
+    if no_forest and around is None:
         # no CREAF raster here and the land cover says no forest: the climate still answers;
         # species do not. With the raster, no forest around still lists the species the forest
         # cannot judge (meadow, garden, riparian): they are not in the mean, but can be picked.

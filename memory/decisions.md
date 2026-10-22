@@ -486,6 +486,8 @@ useEffect(() => {
 
 ## Observatory — saved points keep provenance, not raw data; the author's forest types win (2026-10-16)
 
+> **Superseded 2026-10-22** by «Mis rincones»: store only what the user writes (see the entry at the end of this file). Migration 020 drops the provenance columns.
+
 **Decision:** a saved point stores the user's choices (name, notes, forest types as a list) and where the derived data came from: land cover layer, class code, name and retrieval date; toponym name and label; MCSC-4 codes with their percentage and radius. Not the services' raw texts, nor the macrotype derived from the class. The server fetches all of it when saving (the client cannot send it). The author's forest types, when present, win over the land cover, even over «no forest»; without them the stored class is read again with the current mapping. `cell_id` has no foreign key. No limit of points per user by default (`OBSERVATORY_MAX_SAVED_POINTS_PER_USER`, 0 = no limit).
 
 **Why:** the raw texts only add legend colours and pixel coordinates, both derivable; keeping the code and name lets a change in the macrotype mapping or in a licence be applied to old points without asking the services again. The curated zones have coordinates that miss the forest (18 of 40 fall outside it), so the author must be able to override what the land cover says. Cells are a rebuildable cache, so a foreign key would let a purge delete a user's points. The Observatory is not born limited (free-map PRD).
@@ -615,3 +617,16 @@ useEffect(() => {
 - **Out of this branch:** «Ver en el Observatorio» in the zone card (the Observatory goes by coordinates since 14 Oct and `?zona=` no longer exists) and the pass on phone, languages and dark/light themes (step 10), both separate tasks.
 
 **Discarded:** a separate Galería item in the menu (same route as the generator); hiding the Observatorio entry from guests.
+
+
+## Observatory — «Mis rincones»: store only what the user writes (2026-10-22)
+
+**Decision:** a saved point (a «rincón») stores the coordinates and what the user writes or chooses: name, notes, a manual kind, species tagged from the catalogue (on the corner and on each photo) and up to five own photos. Everything derived (toponym, land cover, forest, climate cell, composition, soil) is computed when the corner is opened. `elevation_m` stays stored until the cards can read the elevation model. **Supersedes** the 2026-10-16 provenance entry above and the 2026-10-20 note that the backend forest-types field stays until a migration decides otherwise: migration 020 drops those columns (the downgrade restores them empty).
+
+**Why:** a stored toponym or land cover goes stale when the service or the algorithm improves, and checking whether it changed costs as much as asking again.
+
+- **Kinds** (code → UI label): `unspecified` (default), `mushroom_site` (setal), `prospect` (paraje), `parking` (aparcamiento).
+- **Species:** `species_ids` are the editable direct tags; `all_species_ids` is the deduplicated union with the photo tags.
+- **Photos (branch 3):** private Supabase Storage bucket, WebP thumbnail ≈600 px and large ≈1200 px, Pillow plus `pillow-heif` for iPhone HEIC, EXIF orientation applied and EXIF/GPS stripped, signed URLs, objects deleted with the corner or the account. Free plan: 1 GB storage, 5 GB egress, 50 MB per file.
+- **Abuse controls (not implemented yet):** 15 MB per upload, pixel limit, 30 photo uploads per user per day, 50 new corners per user per day; configurable, 0 = off. No cap on corners per user beyond the existing configurable one.
+- Plan and branches: `memory/observatory-corners-plan.md`.

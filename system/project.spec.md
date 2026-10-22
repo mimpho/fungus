@@ -137,7 +137,7 @@ backend/
 │   ├── base.py
 │   └── open_meteo.py
 ├── migrations/
-│   └── versions/            ← 001…009 Alembic migrations
+│   └── versions/            ← 001…020 Alembic migrations
 ├── scripts/
 │   ├── generate_visual_dna.py   ← Gemini 2.5 Flash offline, resume-safe
 │   ├── refine_visual_dna.py     ← Gemini Vision multimodal
@@ -451,7 +451,7 @@ GET    /api/v1/observatory/layer/substrate-raster[/meta] ← private substrate c
 GET    /api/v1/observatory/saved-points        ← my saved points
 POST   /api/v1/observatory/saved-points
 GET    /api/v1/observatory/saved-points/{id}
-PATCH  /api/v1/observatory/saved-points/{id}   ← name, notes, forest_types
+PATCH  /api/v1/observatory/saved-points/{id}   ← name, notes, kind, species_ids (responses carry species_ids and all_species_ids)
 DELETE /api/v1/observatory/saved-points/{id}
 GET    /api/v1/observatory/saved-points/{id}/species
 ```
