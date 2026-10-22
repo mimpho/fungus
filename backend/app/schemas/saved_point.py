@@ -1,10 +1,18 @@
-"""Pydantic schemas of the saved points endpoints."""
+"""Pydantic schemas of the saved points ("corners") endpoints."""
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.services.geo_bounds import LAT_RANGE, LON_RANGE
-from app.services.saved_points import FOREST_TYPES, NAME_MAX, NOTES_MAX, SavedPointRecord
+from app.services.saved_points import (
+    DEFAULT_KIND,
+    KINDS,
+    NAME_MAX,
+    NOTES_MAX,
+    SPECIES_MAX,
+    SavedPointRecord,
+    all_species_ids,
+)
 
 
 def _name(value: str) -> str:
@@ -14,20 +22,21 @@ def _name(value: str) -> str:
     return value
 
 
-def _forest_types(value: list[str] | None) -> list[str] | None:
-    if value is None:
-        return None
-    if not value:
-        raise ValueError("use null, not an empty list, to go back to the derived forest types")
-    unknown = [v for v in value if v not in FOREST_TYPES]
-    if unknown:
-        raise ValueError(f"unknown forest types {unknown}; valid: {list(FOREST_TYPES)}")
+def _kind(value: str) -> str:
+    if value not in KINDS:
+        raise ValueError(f"unknown kind {value!r}; valid: {list(KINDS)}")
+    return value
+
+
+def _species_ids(value: list[str]) -> list[str]:
+    if len(value) > SPECIES_MAX:
+        raise ValueError(f"at most {SPECIES_MAX} species per corner")
     return list(dict.fromkeys(value))  # no duplicates, order kept
 
 
 class SavedPointCreate(BaseModel):
-    """What the client sends. Provenance (land cover, toponym, elevation, cell, composition)
-    is filled in by the server: sending it is a 422."""
+    """What the client sends. The elevation is filled in by the server: sending it (or anything
+    else not listed here) is a 422."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -35,8 +44,9 @@ class SavedPointCreate(BaseModel):
     lon: float = Field(ge=LON_RANGE[0], le=LON_RANGE[1])
     name: str | None = Field(None, description="Default: the nearest toponym")
     notes: str | None = Field(None, max_length=NOTES_MAX)
-    forest_types: list[str] | None = Field(
-        None, description="The author's forest types; they win over the land cover"
+    kind: str = Field(DEFAULT_KIND, description=f"One of {list(KINDS)}")
+    species_ids: list[str] = Field(
+        default_factory=list, description="Catalogue species tagged on the corner"
     )
 
     @field_validator("name")
@@ -44,20 +54,27 @@ class SavedPointCreate(BaseModel):
     def _check_name(cls, value: str | None) -> str | None:
         return None if value is None else _name(value)
 
-    @field_validator("forest_types")
+    @field_validator("kind")
     @classmethod
-    def _check_types(cls, value: list[str] | None) -> list[str] | None:
-        return _forest_types(value)
+    def _check_kind(cls, value: str) -> str:
+        return _kind(value)
+
+    @field_validator("species_ids")
+    @classmethod
+    def _check_species(cls, value: list[str]) -> list[str]:
+        return _species_ids(value)
 
 
 class SavedPointUpdate(BaseModel):
-    """Only these can change. Coordinates cannot: moving a point means saving another one."""
+    """Only these can change. Coordinates cannot: moving a point means saving another one.
+    `species_ids` replaces the whole list (an empty list clears it)."""
 
     model_config = ConfigDict(extra="forbid")
 
     name: str | None = None
     notes: str | None = Field(None, max_length=NOTES_MAX)
-    forest_types: list[str] | None = None
+    kind: str | None = None
+    species_ids: list[str] | None = None
 
     @field_validator("name")
     @classmethod
@@ -66,22 +83,19 @@ class SavedPointUpdate(BaseModel):
             raise ValueError("name cannot be null")
         return _name(value)
 
-    @field_validator("forest_types")
+    @field_validator("kind")
     @classmethod
-    def _check_types(cls, value: list[str] | None) -> list[str] | None:
-        return _forest_types(value)
+    def _check_kind(cls, value: str | None) -> str:
+        if value is None:
+            raise ValueError("kind cannot be null")
+        return _kind(value)
 
-
-class LandCoverOut(BaseModel):
-    layer: str | None
-    code: int | None
-    name: str | None
-    retrieved_at: datetime | None
-
-
-class ToponymOut(BaseModel):
-    name: str | None
-    label: str | None
+    @field_validator("species_ids")
+    @classmethod
+    def _check_species(cls, value: list[str] | None) -> list[str]:
+        if value is None:
+            raise ValueError("species_ids cannot be null; send [] to clear it")
+        return _species_ids(value)
 
 
 class SavedPointOut(BaseModel):
@@ -90,26 +104,19 @@ class SavedPointOut(BaseModel):
     lon: float
     name: str
     notes: str | None
-    forest_types: list[str] | None
+    kind: str
     elevation_m: float | None
-    cell_id: str | None
-    land_cover: LandCoverOut | None
-    toponym: ToponymOut | None
-    composition: dict | None
+    species_ids: list[str] = Field(description="Tagged on the corner itself (what a change writes)")
+    all_species_ids: list[str] = Field(
+        description="Those plus the ones tagged on its photos, once each"
+    )
     created_at: datetime
     updated_at: datetime
 
 
 def to_out(r: SavedPointRecord) -> SavedPointOut:
     return SavedPointOut(
-        id=r.id, lat=r.lat, lon=r.lon, name=r.name, notes=r.notes,
-        forest_types=r.forest_types, elevation_m=r.elevation_m, cell_id=r.cell_id,
-        land_cover=None if r.land_cover_name is None else LandCoverOut(
-            layer=r.land_cover_layer, code=r.land_cover_code, name=r.land_cover_name,
-            retrieved_at=r.land_cover_retrieved_at,
-        ),
-        toponym=None if r.toponym_name is None else ToponymOut(
-            name=r.toponym_name, label=r.toponym_label
-        ),
-        composition=r.composition, created_at=r.created_at, updated_at=r.updated_at,
+        id=r.id, lat=r.lat, lon=r.lon, name=r.name, notes=r.notes, kind=r.kind,
+        elevation_m=r.elevation_m, species_ids=list(r.species_ids),
+        all_species_ids=all_species_ids(r), created_at=r.created_at, updated_at=r.updated_at,
     )

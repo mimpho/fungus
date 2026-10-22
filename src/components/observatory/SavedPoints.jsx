@@ -68,7 +68,8 @@ function CardMeter({ point }) {
 function Card({ sp, observed, onObserve }) {
   const { t } = useApp()
   const isObserved = samePoint(observed, sp)
-  const label = sp.toponym?.label && sp.toponym.label !== sp.name ? sp.toponym.label : formatCoords(sp)
+  // The toponym is not stored any more: it shows when the corner is observed. The list has the coordinates.
+  const label = formatCoords(sp)
 
   return (
     <li

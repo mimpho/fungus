@@ -247,3 +247,13 @@ class TestFetchWrappers:
         assert await pf.land_cover(41.77451, 2.43501, fetch) is cover  # same ~10 m key
         assert len(calls) == 2
 
+
+class TestCoverFromClass:
+    def test_the_macrotype_is_derived_from_the_class_name(self):
+        assert pf.cover_from_class(4, "Bosc dens d'aciculifolis").macrotype == "conifera"
+        assert pf.cover_from_class(5, "Bosc dens d'esclerofil·les").macrotype == "esclerofilo"
+        assert pf.cover_from_class(31, "Eixample").forest is False
+
+    def test_the_sea_has_no_data(self):
+        cover = pf.cover_from_class(0, "Sense dades")
+        assert cover.forest is None and cover.macrotype is None

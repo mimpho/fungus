@@ -1,8 +1,8 @@
-"""Saved points (feat/observatory-saved-points): CRUD, provenance, author's forest types.
+"""Saved points / corners (feat/observatory-corners-model): CRUD, kind, tagged species.
 
-No DB, no network. Scenarios follow the proposal agreed on 2026-10-16: the server records the
-provenance (land cover layer/code/name/date, toponym name/label, MCSC-4 codes with their
-percentage), never the services' raw texts; the author's forest types win over the land cover.
+No DB, no network. Scenarios follow the proposal agreed on 2026-10-22: a corner stores only
+what the user writes (name, notes, kind, tagged species) and the coordinates, plus the
+elevation; the toponym, the land cover, the climate cell and the like are never stored.
 """
 import dataclasses
 import importlib.util
@@ -13,24 +13,26 @@ from types import SimpleNamespace
 import httpx
 import pytest
 from fastapi import FastAPI
-from sqlalchemy import ARRAY
-from sqlalchemy.dialects.postgresql import JSONB
 
 from app.config import Settings
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import SavedPoint
-from app.models.climate_cell import lookup_key
+from app.models import (
+    SavedPoint,
+    SavedPointPhoto,
+    SavedPointPhotoSpecies,
+    SavedPointSpecies,
+)
 from app.routers import observatory as obs
 from app.routers import saved_points as sp
-from app.services.point_forest import LandCover, Toponym, cover_from_class
+from app.services.point_forest import LandCover, Toponym
 from app.services.saved_points import (
+    KINDS,
     DuplicatePoint,
     NewPoint,
     PointContext,
     SavedPointRecord,
-    author_forest_types,
-    composition_json,
+    all_species_ids,
     create_saved_point,
 )
 from tests.unit.test_cell_provider import TODAY, _provider
@@ -38,7 +40,6 @@ from tests.unit.test_observatory_router import SANTA_FE, _StoreWithHistory
 
 BASE = "/observatory/saved-points"
 RETRIEVED = "2026-10-16T21:00:00+00:00"
-RETRIEVED_AT = datetime(2026, 10, 16, 21, 0, tzinfo=UTC)
 
 FOREST = LandCover(4, "Bosc dens d'aciculifolis", "conifera", True, fetched_at=RETRIEVED)
 URBAN = LandCover(31, "Eixample", None, False, fetched_at=RETRIEVED)
@@ -47,6 +48,9 @@ TOPONYM = Toponym(
     kind="Disseminat", layer="topo2", municipality="Fogars de Montclús", comarca="Vallès",
     distance_km=0.2,
 )
+
+# The catalogue ids a corner can be tagged with in these tests
+KNOWN_SPECIES = {"esp-001", "esp-002", "esp-003", "pinar-sp", "encinar-sp", "hayedo-sp", "any-sp"}
 
 
 def _species(sid, forest_types, edibility="good"):
@@ -72,8 +76,9 @@ class FakeSavedStore:
     def __init__(self):
         self.rows: dict[int, SavedPointRecord] = {}
         self._next = 1
-        self._clock = datetime(2026, 10, 16, 21, 0, tzinfo=UTC)
+        self._clock = datetime(2026, 10, 22, 19, 0, tzinfo=UTC)
         self.race_on_add = False
+        self.catalogue = set(KNOWN_SPECIES)
 
     def _tick(self):
         self._clock += timedelta(minutes=1)
@@ -110,6 +115,9 @@ class FakeSavedStore:
         row = await self.get(user_id, point_id)
         if row is None:
             return None
+        changes = dict(changes)
+        if "species_ids" in changes:
+            changes["species_ids"] = tuple(changes["species_ids"])
         self.rows[point_id] = dataclasses.replace(row, **changes, updated_at=self._tick())
         return self.rows[point_id]
 
@@ -118,6 +126,9 @@ class FakeSavedStore:
             return False
         del self.rows[point_id]
         return True
+
+    async def known_species(self, ids):
+        return set(ids) & self.catalogue
 
 
 class _Db:
@@ -165,8 +176,8 @@ def env(monkeypatch):
         env.calls.append("elevation")
         return env.elevation
 
+    monkeypatch.setattr(obs, "land_cover", cover)
     for module in (sp, obs):
-        monkeypatch.setattr(module, "land_cover", cover)
         monkeypatch.setattr(module, "point_elevation", elevation)
     monkeypatch.setattr(sp, "fetch_toponym", toponym)
     return env
@@ -208,38 +219,40 @@ class TestLogin:
 # ── Create ────────────────────────────────────────────────────────────────────
 
 class TestCreate:
-    async def test_it_saves_the_provenance_the_services_gave(self, env):
+    async def test_it_saves_what_the_user_wrote_and_the_elevation(self, env):
         env.cover, env.toponym = FOREST, TOPONYM
         r = await _save(env, name="Mi fageda", notes="buen año")
         body = r.json()
         assert r.status_code == 201 and body["id"] >= 1
         assert (body["name"], body["notes"]) == ("Mi fageda", "buen año")
+        assert (body["lat"], body["lon"]) == (SANTA_FE["lat"], SANTA_FE["lon"])
         assert body["elevation_m"] == 1167.0
-        assert body["land_cover"]["layer"] == "cobertes_2024"
-        assert (body["land_cover"]["code"], body["land_cover"]["name"]) == (4, FOREST.name)
-        stamp = body["land_cover"]["retrieved_at"].replace("Z", "+00:00")
-        assert datetime.fromisoformat(stamp) == RETRIEVED_AT
-        assert body["toponym"] == {"name": TOPONYM.name, "label": TOPONYM.label}
 
-    async def test_it_never_keeps_the_raw_texts_nor_the_derived_macrotype(self, env):
-        env.cover, env.toponym = (
-            dataclasses.replace(FOREST, raw="class = 'x' colour pixel"),
-            dataclasses.replace(TOPONYM, raw={"properties": {"nom": "x"}}),
-        )
+    async def test_it_stores_nothing_a_service_or_a_model_derives(self, env):
+        env.cover, env.toponym = FOREST, TOPONYM
         body = (await _save(env)).json()
         record = env.points.rows[body["id"]]
-        for name in ("macrotype", "forest", "raw"):
+        derived = (
+            "land_cover", "toponym", "cell_id", "composition", "forest_types", "macrotype",
+            "forest", "raw",
+        )
+        for name in derived:
             assert name not in body and not hasattr(record, name)
-        assert "pixel" not in str(dataclasses.asdict(record))
+
+    async def test_the_land_cover_is_not_even_asked_when_saving(self, env):
+        env.cover, env.toponym = FOREST, TOPONYM
+        await _save(env)
+        assert "cover" not in env.calls and env.log["resolve"] == [] and env.log["fetch"] == []
 
     @pytest.mark.parametrize(
         "extra",
         [
             {"land_cover_code": 4}, {"elevation_m": 10}, {"cell_id": "x"},
-            {"composition": {"items": []}}, {"toponym_name": "x"}, {"forest_type": "pinar"},
+            {"composition": {"items": []}}, {"toponym_name": "x"}, {"forest_types": ["pinar"]},
+            {"forest_type": "pinar"}, {"photos": []},
         ],
     )
-    async def test_provenance_sent_by_the_client_is_rejected(self, env, extra):
+    async def test_data_the_server_derives_or_that_is_gone_is_rejected(self, env, extra):
         assert (await _save(env, **extra)).status_code == 422
         assert env.points.rows == {}
 
@@ -254,36 +267,22 @@ class TestCreate:
     async def test_failing_services_never_block_the_save(self, env):
         env.elevation = None
         r = await _save(env)
-        body = r.json()
-        assert r.status_code == 201
-        assert (body["land_cover"], body["toponym"], body["elevation_m"]) == (None, None, None)
+        assert r.status_code == 201 and r.json()["elevation_m"] is None
 
     async def test_coordinates_are_rounded_to_five_decimals(self, env):
         body = (await _save(env, lat=41.774512345, lon=2.435049999)).json()
         assert (body["lat"], body["lon"]) == (41.77451, 2.43505)
 
-    async def test_forest_types_keep_their_order_and_lose_duplicates(self, env):
-        body = (await _save(env, forest_types=["pinar", "encinar", "pinar"])).json()
-        assert body["forest_types"] == ["pinar", "encinar"]
-        assert (await _save(env, lat=41.8)).json()["forest_types"] is None
-
     @pytest.mark.parametrize(
         "bad",
         [
             {"lat": 48.85, "lon": 2.35}, {"lat": 41.7, "lon": -3.7}, {"name": "  "},
-            {"name": "x" * 81}, {"notes": "x" * 2001}, {"forest_types": ["bosque"]},
-            {"forest_types": []}, {"forest_types": ["mixto"]},
+            {"name": "x" * 81}, {"notes": "x" * 2001},
         ],
     )
     async def test_invalid_input_is_422(self, env, bad):
         assert (await _save(env, **bad)).status_code == 422
         assert env.points.rows == {}
-
-    async def test_the_cell_comes_from_the_lookup_and_saving_loads_nothing(self, env):
-        env.cells.lookups[lookup_key(SANTA_FE["lat"], SANTA_FE["lon"])] = "41.8000_2.4000"
-        assert (await _save(env)).json()["cell_id"] == "41.8000_2.4000"
-        assert (await _save(env, lat=41.9, lon=1.9)).json()["cell_id"] is None
-        assert env.log["resolve"] == [] and env.log["fetch"] == []
 
     async def test_the_same_place_twice_is_409_and_the_services_are_not_asked_again(self, env):
         assert (await _save(env)).status_code == 201
@@ -317,30 +316,97 @@ class TestLimit:
         assert codes == [201] * 5
 
 
-class TestComposition:
-    def test_codes_and_percentages_sorted_and_rounded_without_anything_else(self):
-        assert composition_json([("bqi20", 4.96), ("bfs20", 95.04)], 300) == {
-            "radius_m": 300,
-            "items": [{"code": "bfs20", "pct": 95.0}, {"code": "bqi20", "pct": 5.0}],
-        }
+# ── Kind ──────────────────────────────────────────────────────────────────────
 
-    def test_an_empty_composition_is_none(self):
-        assert composition_json([], 300) is None
+class TestKind:
+    def test_the_four_kinds_and_the_default(self):
+        assert KINDS == ("unspecified", "mushroom_site", "prospect", "parking")
 
-    async def test_the_service_stores_it_as_given(self):
+    async def test_a_corner_is_unspecified_unless_the_user_says_otherwise(self, env):
+        assert (await _save(env)).json()["kind"] == "unspecified"
+
+    @pytest.mark.parametrize("kind", ["unspecified", "mushroom_site", "prospect", "parking"])
+    async def test_every_kind_can_be_chosen_when_saving(self, env, kind):
+        assert (await _save(env, kind=kind)).json()["kind"] == kind
+
+    @pytest.mark.parametrize("bad", ["setal", "", "PARKING", None, 3])
+    async def test_an_unknown_kind_is_422(self, env, bad):
+        assert (await _save(env, kind=bad)).status_code == 422
+        assert env.points.rows == {}
+
+    async def test_the_kind_is_not_computed_from_the_tagged_species(self, env):
+        body = (await _save(env, species_ids=["esp-001"])).json()
+        assert body["kind"] == "unspecified"  # tagging a mushroom never turns it into a setal
+
+
+# ── Tagged species ────────────────────────────────────────────────────────────
+
+class TestSpecies:
+    async def test_a_corner_can_be_saved_with_species_from_the_catalogue(self, env):
+        body = (await _save(env, species_ids=["esp-002", "esp-001"])).json()
+        assert body["species_ids"] == ["esp-002", "esp-001"]
+        assert body["all_species_ids"] == ["esp-002", "esp-001"]
+
+    async def test_without_species_the_lists_are_empty(self, env):
+        body = (await _save(env)).json()
+        assert (body["species_ids"], body["all_species_ids"]) == ([], [])
+
+    async def test_duplicates_are_dropped_and_the_order_is_kept(self, env):
+        body = (await _save(env, species_ids=["esp-002", "esp-001", "esp-002"])).json()
+        assert body["species_ids"] == ["esp-002", "esp-001"]
+
+    async def test_an_unknown_species_is_422_and_nothing_is_saved(self, env):
+        r = await _save(env, species_ids=["esp-001", "esp-999"])
+        assert r.status_code == 422 and "esp-999" in r.json()["detail"]
+        assert env.points.rows == {} and env.calls == []
+
+    async def test_there_is_a_ceiling_on_tags_per_corner(self, env):
+        env.points.catalogue = {f"s{i}" for i in range(60)}
+        assert (await _save(env, species_ids=[f"s{i}" for i in range(50)])).status_code == 201
+        assert (
+            await _save(env, lat=41.9, species_ids=[f"s{i}" for i in range(51)])
+        ).status_code == 422
+
+    def test_the_species_of_the_photos_join_the_corners_own_without_repeats(self):
+        record = SavedPointRecord(
+            1, 41.0, 2.0, "x", species_ids=("esp-001", "esp-002"),
+            photo_species_ids=("esp-002", "esp-003"),
+        )
+        assert all_species_ids(record) == ["esp-001", "esp-002", "esp-003"]
+
+    def test_a_corner_with_only_tagged_photos_lists_those(self):
+        record = SavedPointRecord(1, 41.0, 2.0, "x", photo_species_ids=("esp-003",))
+        assert all_species_ids(record) == ["esp-003"]
+
+    async def test_the_response_unites_both_lists(self, env):
+        pid = (await _save(env, species_ids=["esp-001"])).json()["id"]
+        env.points.rows[pid] = dataclasses.replace(
+            env.points.rows[pid], photo_species_ids=("esp-001", "esp-003")
+        )
+        _login(env)
+        async with _client(env.app) as c:
+            body = (await c.get(f"{BASE}/{pid}")).json()
+        assert body["species_ids"] == ["esp-001"]
+        assert body["all_species_ids"] == ["esp-001", "esp-003"]
+
+
+# ── Service: create ───────────────────────────────────────────────────────────
+
+class TestCreateService:
+    async def test_the_service_keeps_kind_and_species_as_given(self):
         store = FakeSavedStore()
-        comp = composition_json([("bfs20", 95.04), ("bqi20", 4.96)], 300)
 
         async def context(lat, lon):
-            return PointContext(None, None, None, None, comp)
+            return PointContext(None, 950.0)
 
         record = await create_saved_point(
-            store, 1, NewPoint(41.7745, 2.435, "Fageda", None, None), context, max_per_user=0
+            store, 1, NewPoint(41.7745, 2.435, "Fageda", None, "mushroom_site", ("esp-001",)),
+            context, max_per_user=0,
         )
-        assert record.composition == comp and store.rows[record.id].composition == comp
-
-    async def test_through_the_api_it_is_null_until_the_mcsc_grid_exists(self, env):
-        assert (await _save(env)).json()["composition"] is None
+        assert (record.kind, record.species_ids, record.elevation_m) == (
+            "mushroom_site", ("esp-001",), 950.0
+        )
+        assert store.rows[record.id] == record
 
 
 # ── Read ──────────────────────────────────────────────────────────────────────
@@ -361,8 +427,7 @@ class TestRead:
         assert ids == [b, a]
 
     async def test_the_detail_is_mine_only(self, env):
-        env.cover = FOREST
-        pid = (await _save(env, name="Mío")).json()["id"]
+        pid = (await _save(env, name="Mío", kind="parking")).json()["id"]
         _login(env, 1)
         async with _client(env.app) as c:
             mine = await c.get(f"{BASE}/{pid}")
@@ -370,7 +435,7 @@ class TestRead:
             theirs = await c.get(f"{BASE}/{pid}")
             missing = await c.get(f"{BASE}/999")
             bad = await c.get(f"{BASE}/abc")
-        assert mine.json()["name"] == "Mío" and mine.json()["land_cover"]["code"] == 4
+        assert mine.json()["name"] == "Mío" and mine.json()["kind"] == "parking"
         assert (theirs.status_code, missing.status_code, bad.status_code) == (404, 404, 422)
 
 
@@ -382,38 +447,55 @@ class TestUpdate:
         async with _client(env.app) as c:
             return await c.patch(f"{BASE}/{pid}", json=body)
 
-    async def test_name_notes_and_forest_types_change_and_the_rest_does_not(self, env):
-        env.cover = FOREST
+    async def test_name_notes_kind_and_species_change_and_the_rest_does_not(self, env):
         first = (await _save(env, name="A", notes="n")).json()
         r = await self._patch(
-            env, first["id"], {"name": "B", "notes": "m", "forest_types": ["hayedo", "pinar"]}
+            env, first["id"],
+            {"name": "B", "notes": "m", "kind": "mushroom_site", "species_ids": ["esp-001"]},
         )
         body = r.json()
         assert r.status_code == 200
-        assert (body["name"], body["notes"]) == ("B", "m")
-        assert body["forest_types"] == ["hayedo", "pinar"]
+        assert (body["name"], body["notes"], body["kind"]) == ("B", "m", "mushroom_site")
+        assert body["species_ids"] == ["esp-001"]
         assert body["created_at"] == first["created_at"]
         assert body["updated_at"] != first["updated_at"]
-        assert (body["lat"], body["lon"], body["land_cover"]) == (
-            first["lat"], first["lon"], first["land_cover"]
+        assert (body["lat"], body["lon"], body["elevation_m"]) == (
+            first["lat"], first["lon"], first["elevation_m"]
         )
 
-    async def test_null_clears_notes_and_forest_types(self, env):
-        pid = (await _save(env, notes="n", forest_types=["pinar"])).json()["id"]
-        body = (await self._patch(env, pid, {"notes": None, "forest_types": None})).json()
-        assert body["notes"] is None and body["forest_types"] is None
+    async def test_the_kind_changes_on_its_own(self, env):
+        pid = (await _save(env, kind="prospect", species_ids=["esp-001"])).json()["id"]
+        body = (await self._patch(env, pid, {"kind": "mushroom_site"})).json()
+        assert body["kind"] == "mushroom_site" and body["species_ids"] == ["esp-001"]
+
+    async def test_species_are_replaced_as_a_whole_and_an_empty_list_clears_them(self, env):
+        pid = (await _save(env, species_ids=["esp-001", "esp-002"])).json()["id"]
+        body = (await self._patch(env, pid, {"species_ids": ["esp-003"]})).json()
+        assert body["species_ids"] == ["esp-003"]
+        body = (await self._patch(env, pid, {"species_ids": []})).json()
+        assert body["species_ids"] == [] and body["all_species_ids"] == []
+
+    async def test_a_name_change_leaves_the_species_alone(self, env):
+        pid = (await _save(env, species_ids=["esp-001"])).json()["id"]
+        assert (await self._patch(env, pid, {"name": "B"})).json()["species_ids"] == ["esp-001"]
+
+    async def test_null_clears_notes(self, env):
+        pid = (await _save(env, notes="n")).json()["id"]
+        assert (await self._patch(env, pid, {"notes": None})).json()["notes"] is None
 
     @pytest.mark.parametrize(
         "bad",
         [
             {}, {"lat": 41.0}, {"land_cover_code": 1}, {"name": None}, {"name": " "},
-            {"forest_types": []}, {"forest_types": ["bosque"]}, {"notes": "x" * 2001},
+            {"kind": None}, {"kind": "setal"}, {"species_ids": None},
+            {"species_ids": ["esp-999"]}, {"forest_types": ["pinar"]}, {"notes": "x" * 2001},
         ],
     )
     async def test_invalid_changes_are_422_and_nothing_changes(self, env, bad):
-        pid = (await _save(env, name="A")).json()["id"]
+        pid = (await _save(env, name="A", species_ids=["esp-001"])).json()["id"]
+        before = env.points.rows[pid]
         assert (await self._patch(env, pid, bad)).status_code == 422
-        assert env.points.rows[pid].name == "A"
+        assert env.points.rows[pid] == before
 
     async def test_someone_else_s_point_is_404_and_untouched(self, env):
         pid = (await _save(env, name="A")).json()["id"]
@@ -440,7 +522,7 @@ class TestDelete:
         assert pid in env.points.rows
 
 
-# ── Species of a saved point: the author's forest types ──────────────────────
+# ── Species that fit a saved point ────────────────────────────────────────────
 
 class TestSpeciesOfASavedPoint:
     async def _species(self, env, pid, user_id=1):
@@ -452,46 +534,30 @@ class TestSpeciesOfASavedPoint:
     def _ids(r):
         return sorted(i["id"] for i in r.json()["species"])
 
-    def test_the_authors_types_also_admit_the_mixed_forest_species(self):
-        assert author_forest_types(["pinar", "encinar"]) == {"pinar", "encinar", "mixto"}
-
-    async def test_the_authors_types_do_not_override_no_forest(self, env):
-        env.cover = URBAN
-        pid = (await _save(env, forest_types=["pinar", "encinar"])).json()["id"]
-        body = (await self._species(env, pid)).json()
-        assert body["species"] == [] and body["reason"] == "no_forest"
-        assert body["forest_source"] == "land_cover"
-
-    async def test_the_authors_types_do_not_override_the_map_sources(self, env):
+    async def test_the_land_cover_is_asked_now_and_decides(self, env):
+        pid = (await _save(env)).json()["id"]
         env.cover = FOREST  # conifer: pinar
-        pid = (await _save(env, forest_types=["encinar"])).json()["id"]
         r = await self._species(env, pid)
         assert self._ids(r) == ["any-sp", "pinar-sp"]
-        assert r.json()["forest_source"] == "land_cover"
+        assert r.json()["forest_source"] == "land_cover" and env.calls.count("cover") == 1
 
-    async def test_without_authors_types_the_stored_cover_decides_and_the_icgc_is_not_asked(
-        self, env
-    ):
-        env.cover = FOREST
+    async def test_a_non_forest_class_means_no_forest(self, env):
         pid = (await _save(env)).json()["id"]
-        env.cover = None  # the service would now say "unknown"
-        asked = env.calls.count("cover")
-        r = await self._species(env, pid)
-        assert self._ids(r) == ["any-sp", "pinar-sp"]
-        assert r.json()["forest_source"] == "land_cover" and env.calls.count("cover") == asked
-
-    async def test_a_stored_non_forest_class_means_no_forest(self, env):
         env.cover = URBAN
-        pid = (await _save(env)).json()["id"]
         body = (await self._species(env, pid)).json()
         assert body["species"] == [] and body["reason"] == "no_forest"
         assert body["land_cover"]["code"] == 31
 
-    async def test_with_nothing_stored_it_asks_the_icgc_now(self, env):
-        pid = (await _save(env)).json()["id"]  # the ICGC failed when saving
+    async def test_a_corner_s_own_species_do_not_change_what_fits_there(self, env):
         env.cover = FOREST
+        pid = (await _save(env, species_ids=["hayedo-sp"])).json()["id"]
+        assert self._ids(await self._species(env, pid)) == ["any-sp", "pinar-sp"]
+
+    async def test_when_the_icgc_does_not_answer_nobody_is_excluded_by_forest(self, env):
+        pid = (await _save(env)).json()["id"]
+        env.cover = None
         r = await self._species(env, pid)
-        assert self._ids(r) == ["any-sp", "pinar-sp"] and r.json()["forest_source"] == "land_cover"
+        assert r.json()["forest_source"] is None and len(self._ids(r)) == len(CATALOGUE)
 
     async def test_it_answers_for_the_saved_coordinates(self, env):
         pid = (await _save(env, lat=41.80, lon=2.40)).json()["id"]
@@ -504,34 +570,27 @@ class TestSpeciesOfASavedPoint:
         assert (await self._species(env, 999)).status_code == 404
 
 
-class TestStoredCover:
-    def test_the_macrotype_is_derived_again_from_the_stored_class(self):
-        assert cover_from_class(4, "Bosc dens d'aciculifolis").macrotype == "conifera"
-        assert cover_from_class(5, "Bosc dens d'esclerofil·les").macrotype == "esclerofilo"
-        assert cover_from_class(31, "Eixample").forest is False
-
-    def test_the_sea_has_no_data(self):
-        cover = cover_from_class(0, "Sense dades")
-        assert cover.forest is None and cover.macrotype is None
-
-
 # ── Model and migration ───────────────────────────────────────────────────────
 
-MIGRATION = Path(__file__).parents[2] / "migrations" / "versions" / "019_saved_points.py"
+VERSIONS = Path(__file__).parents[2] / "migrations" / "versions"
+MIGRATION = VERSIONS / "020_corners.py"
+DROPPED = {
+    "forest_types", "cell_id", "land_cover_layer", "land_cover_code", "land_cover_name",
+    "land_cover_retrieved_at", "toponym_name", "toponym_label", "composition",
+}
+
+
+def _migration():
+    spec = importlib.util.spec_from_file_location("m_020", MIGRATION)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class TestModel:
     def test_it_belongs_to_a_user_and_follows_its_deletion(self):
         fk = next(iter(SavedPoint.__table__.c.user_id.foreign_keys))
         assert fk.column.table.name == "users" and fk.ondelete == "CASCADE"
-
-    def test_a_cell_is_not_a_foreign_key_because_cells_are_a_rebuildable_cache(self):
-        assert not SavedPoint.__table__.c.cell_id.foreign_keys
-
-    def test_forest_types_are_a_list_and_the_composition_json(self):
-        cols = SavedPoint.__table__.c
-        assert isinstance(cols.forest_types.type, ARRAY) and cols.forest_types.nullable
-        assert isinstance(cols.composition.type, JSONB) and cols.composition.nullable
 
     def test_one_point_per_user_and_place(self):
         uniques = [
@@ -541,15 +600,65 @@ class TestModel:
         ]
         assert ["user_id", "lat", "lon"] in uniques
 
-    def test_the_stored_provenance_has_no_raw_or_derived_columns(self):
+    def test_only_what_the_user_writes_the_coordinates_and_the_elevation_are_stored(self):
         names = {c.name for c in SavedPoint.__table__.columns}
-        assert names >= {"land_cover_layer", "land_cover_code", "land_cover_name",
-                         "land_cover_retrieved_at", "toponym_name", "toponym_label"}
-        assert not names & {"macrotype", "forest", "raw", "land_cover_raw", "toponym_raw"}
+        assert names == {
+            "id", "user_id", "lat", "lon", "name", "notes", "kind", "elevation_m", "created_at",
+            "updated_at",
+        }
+        assert not names & DROPPED
 
-    def test_the_migration_follows_018_and_enables_rls(self):
-        spec = importlib.util.spec_from_file_location("m_019", MIGRATION)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        assert (module.revision, module.down_revision) == ("019", "018")
-        assert "ENABLE ROW LEVEL SECURITY" in MIGRATION.read_text()
+    def test_the_kind_is_closed_to_the_four_values_and_defaults_to_unspecified(self):
+        kind = SavedPoint.__table__.c.kind
+        assert not kind.nullable and kind.server_default.arg == "unspecified"
+        checks = [str(k.sqltext) for k in SavedPoint.__table__.constraints
+                  if k.__class__.__name__ == "CheckConstraint"]
+        assert any(all(f"'{v}'" in text for v in KINDS) for text in checks)
+
+    @pytest.mark.parametrize(
+        ("model", "parent", "column"),
+        [
+            (SavedPointSpecies, "saved_points", "saved_point_id"),
+            (SavedPointSpecies, "species", "species_id"),
+            (SavedPointPhoto, "saved_points", "saved_point_id"),
+            (SavedPointPhotoSpecies, "saved_point_photos", "photo_id"),
+            (SavedPointPhotoSpecies, "species", "species_id"),
+        ],
+    )
+    def test_tags_and_photos_follow_the_deletion_of_what_they_hang_from(
+        self, model, parent, column
+    ):
+        fk = next(iter(model.__table__.c[column].foreign_keys))
+        assert fk.column.table.name == parent and fk.ondelete == "CASCADE"
+
+    def test_a_species_is_tagged_once_per_corner_and_once_per_photo(self):
+        assert [c.name for c in SavedPointSpecies.__table__.primary_key.columns] == [
+            "saved_point_id", "species_id"
+        ]
+        assert [c.name for c in SavedPointPhotoSpecies.__table__.primary_key.columns] == [
+            "photo_id", "species_id"
+        ]
+
+    def test_a_photo_position_is_unique_within_its_corner(self):
+        uniques = [
+            [c.name for c in k.columns]
+            for k in SavedPointPhoto.__table__.constraints
+            if k.__class__.__name__ == "UniqueConstraint"
+        ]
+        assert ["saved_point_id", "position"] in uniques
+
+    def test_the_migration_follows_019_enables_rls_and_drops_the_provenance(self):
+        module = _migration()
+        assert (module.revision, module.down_revision) == ("020", "019")
+        assert tuple(module.KINDS) == KINDS
+        assert {name for name, _ in module.DROPPED} == DROPPED
+        text = MIGRATION.read_text()
+        assert "ENABLE ROW LEVEL SECURITY" in text
+        assert (
+            'for table in ("saved_point_species", "saved_point_photos", '
+            '"saved_point_photo_species")'
+        ) in text
+
+    def test_the_migration_is_the_next_after_019_and_nothing_else_claims_020(self):
+        revisions = {p.name[:3] for p in VERSIONS.glob("0*.py")}
+        assert "019" in revisions and "020" in revisions and "021" not in revisions

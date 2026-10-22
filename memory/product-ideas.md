@@ -73,3 +73,10 @@
   - Municipality radius for the place search (instead of a fixed 500 m around the point).
   - Clip the layer to Catalonia using `catalonia_outline.py`; the substrate raster also covers Andorra, Aragon and Perpinyà.
   - Forecast slider up to +7 days (branch `feat/observatory-layer-forecast`).
+
+
+## 7. «Mis rincones» (Marcos, 2026-10-21; decided, in progress)
+
+- Saved points evolve into corners: a manual kind (setal, paraje, aparcamiento, unspecified), species tagged from the catalogue, up to five own photos with their own species tags, and a «Mis rincones» layer on the interactive map, with a tab in the profile.
+- Rule: exact foraging coordinates never go into the repo (tests and docs use fake ones).
+- Work, branches and open items live in `memory/pending.md` (6c) and `memory/observatory-corners-plan.md`.

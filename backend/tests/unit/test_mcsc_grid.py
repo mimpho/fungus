@@ -29,7 +29,6 @@ from app.services.mcsc_grid import (
     to_utm31,
     write_grid,
 )
-from app.services.saved_points import composition_json
 from scripts import mcsc_preprocess
 from scripts.mcsc_lookup import Sheet, inside
 
@@ -345,17 +344,6 @@ def test_composition_reads_across_a_tile_edge_and_tolerates_a_missing_tile():
 def test_composition_rejects_a_non_positive_radius():
     with pytest.raises(ValueError):
         composition(grid_of(GridBuilder(build_code_table(["a"]))), 0, 0, 0)
-
-
-def test_composition_feeds_composition_json_as_stored_with_saved_points():
-    b = GridBuilder(build_code_table(["a", "b"]))
-    b.fill_polygon([square(0, 0, 1000, 2000)], "a")
-    b.fill_polygon([square(1000, 0, 2000, 2000)], "b")
-    got = composition_json(composition(grid_of(b), 1000, 1000, 300), 300)
-    assert got == {
-        "radius_m": 300,
-        "items": [{"code": "a", "pct": 50.0}, {"code": "b", "pct": 50.0}],
-    }
 
 
 def test_composition_at_takes_latitude_and_longitude():

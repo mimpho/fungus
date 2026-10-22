@@ -128,6 +128,15 @@ Async function in FastAPI (`app/main.py`) that runs on app startup and shutdown.
 | `robledal` | Oak forests (Quercus robur, Q. petraea, Q. pyrenaica) |
 | `encinar` | Holm oak and Mediterranean forests (Quercus ilex) |
 
+### cornerKind (complete)
+
+| Value | UI label (es) | Meaning |
+|---|---|---|
+| `unspecified` | Sin especificar | Default |
+| `mushroom_site` | Setal | Place where mushrooms are found |
+| `prospect` | Paraje | Area worth exploring |
+| `parking` | Aparcamiento | Where to leave the car |
+
 ### lang (i18n)
 
 | Value | Language |

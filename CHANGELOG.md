@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — «Mis rincones», data model (2026-10-22, `feat/observatory-corners-model`)
+
+- **Migration 020:** `saved_points.kind` (`unspecified` default, `mushroom_site`, `prospect`, `parking`; check constraint) and three tables with RLS on and cascade deletes: `saved_point_species` (species tagged on the corner), `saved_point_photos` (up to five per corner, only the storage keys of the thumbnail and the large version) and `saved_point_photo_species` (species tagged on a photo).
+- **API:** `POST` and `PATCH /observatory/saved-points` accept `kind` and `species_ids` (`[]` clears them); unknown species answer 422. Responses carry `kind`, `species_ids` (direct, editable) and `all_species_ids` (direct plus photo tags, deduplicated).
+- **Rule:** only what the user writes plus the coordinates is stored; everything derived is computed when the corner is opened. `elevation_m` stays until the cards can read the elevation model.
+
+### Removed — stored provenance of saved points (2026-10-22, `feat/observatory-corners-model`)
+
+- Migration 020 drops `forest_types`, `cell_id`, `land_cover_layer/code/name/retrieved_at`, `toponym_name`, `toponym_label` and `composition`. The downgrade brings the columns back empty (the data is not recoverable).
+- Service and router code that wrote or read them is gone (`author_forest_types`, `composition_json`, `stored_cover`, author types in `build_species_response`).
+
+### Changed — saved points read their context live (2026-10-22, `feat/observatory-corners-model`)
+
+- `GET /observatory/saved-points/{id}/species` asks land cover and forest live instead of using stored values.
+- The saved-point card shows the coordinates as its label (the toponym is no longer stored).
+
 ### Added — Observatory in the header and user menu (2026-10-21, `feat/observatory-header-menu`, step 9 of `feat/observatory-page`)
 
 - **Header with five sections:** Inicio, Zonas, Observatorio (`/observatorio`), Catálogo, Micología. Between `md` and `lg` the items are icons only, with `aria-label` and `title`; from `lg` they show icon and text.
