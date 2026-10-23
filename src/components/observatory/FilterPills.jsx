@@ -12,9 +12,12 @@ function Pill({ label, onRemove }) {
         type="button"
         onClick={onRemove}
         aria-label={t.obsFilterRemove.replace('{name}', label)}
-        className="shrink-0 w-6 h-6 rounded-full text-cream/80 hover:text-cream hover:bg-cream/15 transition-colors text-xs"
+        className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-cream/15 transition-colors"
       >
-        <span aria-hidden="true">✕</span>
+        {/* Stroke from the cream token's RGB so it follows the theme (the glyph it replaces did not) */}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--color-cream-rgb))" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </button>
     </li>
   )
