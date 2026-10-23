@@ -16,9 +16,10 @@ from app.services.saved_points import (
 
 
 def _name(value: str) -> str:
+    """Trimmed name. Blank is allowed: it asks for the default one (the nearest toponym)."""
     value = value.strip()
-    if not value or len(value) > NAME_MAX:
-        raise ValueError(f"name must have 1 to {NAME_MAX} characters")
+    if len(value) > NAME_MAX:
+        raise ValueError(f"name must have at most {NAME_MAX} characters")
     return value
 
 
@@ -42,7 +43,7 @@ class SavedPointCreate(BaseModel):
 
     lat: float = Field(ge=LAT_RANGE[0], le=LAT_RANGE[1])
     lon: float = Field(ge=LON_RANGE[0], le=LON_RANGE[1])
-    name: str | None = Field(None, description="Default: the nearest toponym")
+    name: str | None = Field(None, description="Default (also when blank): the nearest toponym")
     notes: str | None = Field(None, max_length=NOTES_MAX)
     kind: str = Field(DEFAULT_KIND, description=f"One of {list(KINDS)}")
     species_ids: list[str] = Field(
@@ -52,7 +53,7 @@ class SavedPointCreate(BaseModel):
     @field_validator("name")
     @classmethod
     def _check_name(cls, value: str | None) -> str | None:
-        return None if value is None else _name(value)
+        return None if value is None else (_name(value) or None)
 
     @field_validator("kind")
     @classmethod
@@ -67,7 +68,8 @@ class SavedPointCreate(BaseModel):
 
 class SavedPointUpdate(BaseModel):
     """Only these can change. Coordinates cannot: moving a point means saving another one.
-    `species_ids` replaces the whole list (an empty list clears it)."""
+    A blank `name` puts the default one back (the nearest toponym). `species_ids` replaces the
+    whole list (an empty list clears it)."""
 
     model_config = ConfigDict(extra="forbid")
 

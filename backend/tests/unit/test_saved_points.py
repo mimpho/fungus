@@ -261,6 +261,11 @@ class TestCreate:
         assert (await _save(env)).json()["name"] == TOPONYM.name
         assert (await _save(env, lat=41.80, name="Mi sitio")).json()["name"] == "Mi sitio"
 
+    async def test_a_blank_name_is_the_same_as_none(self, env):
+        env.toponym = TOPONYM
+        assert (await _save(env, name="   ")).json()["name"] == TOPONYM.name
+        assert (await _save(env, lat=41.80, name="")).json()["name"] == TOPONYM.name
+
     async def test_without_a_name_nor_toponym_it_uses_the_coordinates(self, env):
         assert (await _save(env)).json()["name"] == "41.7745, 2.4350"
 
@@ -276,7 +281,7 @@ class TestCreate:
     @pytest.mark.parametrize(
         "bad",
         [
-            {"lat": 48.85, "lon": 2.35}, {"lat": 41.7, "lon": -3.7}, {"name": "  "},
+            {"lat": 48.85, "lon": 2.35}, {"lat": 41.7, "lon": -3.7},
             {"name": "x" * 81}, {"notes": "x" * 2001},
         ],
     )
@@ -479,6 +484,18 @@ class TestUpdate:
         pid = (await _save(env, species_ids=["esp-001"])).json()["id"]
         assert (await self._patch(env, pid, {"name": "B"})).json()["species_ids"] == ["esp-001"]
 
+    async def test_a_blank_name_puts_the_toponym_back(self, env):
+        env.toponym = TOPONYM
+        pid = (await _save(env, name="Mi sitio")).json()["id"]
+        for blank in ("", "   "):
+            await self._patch(env, pid, {"name": "Otro"})
+            body = (await self._patch(env, pid, {"name": blank})).json()
+            assert body["name"] == TOPONYM.name
+
+    async def test_a_blank_name_without_toponym_puts_the_coordinates_back(self, env):
+        pid = (await _save(env, name="Mi sitio")).json()["id"]
+        assert (await self._patch(env, pid, {"name": ""})).json()["name"] == "41.7745, 2.4350"
+
     async def test_null_clears_notes(self, env):
         pid = (await _save(env, notes="n")).json()["id"]
         assert (await self._patch(env, pid, {"notes": None})).json()["notes"] is None
@@ -486,7 +503,7 @@ class TestUpdate:
     @pytest.mark.parametrize(
         "bad",
         [
-            {}, {"lat": 41.0}, {"land_cover_code": 1}, {"name": None}, {"name": " "},
+            {}, {"lat": 41.0}, {"land_cover_code": 1}, {"name": None}, {"name": "x" * 81},
             {"kind": None}, {"kind": "setal"}, {"species_ids": None},
             {"species_ids": ["esp-999"]}, {"forest_types": ["pinar"]}, {"notes": "x" * 2001},
         ],
