@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Maximize, Minimize } from 'lucide-react'
+import { Maximize, Minimize, ChevronUp } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
 import { useSavedPoints } from '../hooks/useSavedPoints'
@@ -18,7 +18,7 @@ import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker
 import { ObservedZone } from '../components/observatory/ObservedZone'
 import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList, SavedPointsToggle } from '../components/observatory/SavedPoints'
-import { ObsModal } from '../components/observatory/ObsModal'
+import { ObsModal, isDialogAbove } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
 import { ObservatoryNotice } from '../components/observatory/ObservatoryNotice'
 import { Attribution } from '../components/observatory/Attribution'
@@ -106,33 +106,23 @@ export default function Observatory() {
     try { localStorage.setItem('fungus-obs-basemap', value) } catch (_e) { /* per-viewer convenience only */ }
   }
 
-  // Fullscreen: the browser's own when it has it, otherwise the page just covers the viewport (fixed).
+  // Fullscreen: the page covers the viewport (fixed). The browser's own Fullscreen API is not used
+  // on purpose: it takes Esc for itself and leaves fullscreen whatever the page does, so closing a
+  // modal with Esc would also leave it. This way Esc is always the page's.
   // The page inside is the same one, scrolling to the observed zone as usual, without the site's
   // header and wrapper; the only way out is the button or Esc (observing or saving does not leave it).
   function exitFullscreen() {
     setFullscreen(false)
-    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
   }
   function toggleFullscreen() {
-    if (fullscreen) { exitFullscreen(); return }
-    setFullscreen(true)
-    pageRef.current?.requestFullscreen?.().catch(() => { /* refused: the fixed box is enough */ })
+    setFullscreen(f => !f)
   }
-  useEffect(() => {
-    // The browser left its fullscreen by itself (Esc): the page follows
-    const onChange = () => { if (!document.fullscreenElement) setFullscreen(false) }
-    document.addEventListener('fullscreenchange', onChange)
-    return () => {
-      document.removeEventListener('fullscreenchange', onChange)
-      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
-    }
-  }, [])
 
   // Esc leaves fullscreen first; otherwise it closes the point panel
   useEffect(() => {
     if (!pending && !fullscreen) return
     const onKey = e => {
-      if (e.key !== 'Escape') return
+      if (e.key !== 'Escape' || isDialogAbove()) return // a dialog on top takes this Esc
       if (fullscreen) exitFullscreen()
       else setPending(null)
     }
@@ -313,17 +303,16 @@ export default function Observatory() {
             {pending && (
               <PointPanel point={pending} observed={observed} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onGoToZone={goToZone} onClose={() => setPending(null)} />
             )}
-            {/* Only a strip of the map shows: the whole strip takes the person back up to it */}
+            {/* Only a strip of the map shows: a 100 px band that ends where the observed zone starts (the anchor the page scrolls to), so it is always right above it; it takes the person back up to the map */}
             {hasObserved && peeking && (
               <button
                 type="button"
                 onClick={backToMap}
                 aria-label={t.obsBackToMap}
-                className="absolute inset-0 z-[1300] flex cursor-pointer items-end justify-center bg-gradient-to-t from-black/55 via-black/25 to-black/10 pb-4"
+                className="absolute inset-x-0 bottom-0 z-[1300] h-[100px] flex cursor-pointer flex-col items-center justify-end gap-0.5 bg-gradient-to-t from-modal/95 via-modal/60 to-transparent pb-3 text-cream/90 hover:text-cream transition-colors"
               >
-                <span className="inline-flex items-center gap-2 rounded-xl bg-bar px-4 py-2 text-sm font-medium text-white shadow-md">
-                  <span aria-hidden="true">↑</span>{t.obsBackToMap}
-                </span>
+                <ChevronUp size={22} strokeWidth={2.2} aria-hidden="true" />
+                <span className="text-[10.5px] font-medium uppercase tracking-[1.4px]">{t.obsBackToMap}</span>
               </button>
             )}
           </div>
@@ -335,6 +324,8 @@ export default function Observatory() {
             <div ref={zoneRef} className={fullscreen ? 'px-4 pt-4 scroll-mt-0 min-h-dvh' : 'scroll-mt-[9.5rem] min-h-[calc(100vh-9.5rem)]'}>
               <ObservedZone
                 key={`${observed.lat},${observed.lon}`}
+                onSpeciesPick={goToZone}
+                onOpenList={() => setSavedOpen(true)}
                 point={observed}
                 saved={saved}
                 until={until}

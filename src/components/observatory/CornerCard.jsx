@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
@@ -27,7 +28,7 @@ function BrokenHeart() {
  * its notes, the species it has (as cards) and what can be done with it — edit and remove, each
  * in a dialog. Photos will join the species here. Nothing if the zone is not saved.
  */
-export function CornerCard({ point, saved, suggestedName, onRemoved }) {
+export function CornerCard({ point, saved, suggestedName, onRemoved, onOpenList }) {
   const { t } = useApp()
   const [mode, setMode] = useState('idle')
   const rows = useSpeciesRows()
@@ -44,7 +45,7 @@ export function CornerCard({ point, saved, suggestedName, onRemoved }) {
 
   return (
     <>
-      <section aria-label={t.obsCornerSavedHere} data-testid="corner-card" className="glass rounded-2xl p-4 space-y-3 min-w-0">
+      <section aria-label={t.obsCornerSavedHere} data-testid="corner-card" className="rounded-2xl p-4 space-y-3 min-w-0 bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px]">
         <div className="flex items-start gap-3 min-w-0">
           <span aria-hidden="true" className="shrink-0 mt-0.5 [&>svg]:w-[26px] [&>svg]:h-[33px]" dangerouslySetInnerHTML={{ __html: pinSvg(corner.kind) }} />
           <div className="min-w-0">
@@ -53,6 +54,17 @@ export function CornerCard({ point, saved, suggestedName, onRemoved }) {
             </p>
             <h3 data-testid="saved-badge" className="font-display text-xl font-semibold text-cream break-words">{corner.name}</h3>
           </div>
+          {onOpenList && (
+            <button
+              type="button"
+              onClick={onOpenList}
+              aria-haspopup="dialog"
+              className="ml-auto shrink-0 inline-flex items-center gap-0.5 text-sm font-medium text-cream/80 hover:text-cream transition-colors"
+            >
+              {t.obsSavedListTitle}
+              <ChevronRight size={16} strokeWidth={2.2} aria-hidden="true" />
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2">

@@ -19,7 +19,7 @@ function Skeleton() {
  * pointer (`draft`) and the page's window is only changed on release. `species` is the id being
  * looked at (or null) and `range` its thermal range, drawn as a band on the temperature tab.
  */
-export function ChartSection({ point, species, speciesName, range, until, days, onWindow, calendar = null, enabled = true }) {
+export function ChartSection({ point, species, speciesName, range, until, days, onWindow, calendar = null, enabled = true, children }) {
   const { t } = useApp()
   const series = usePointData(fetchPointSeries, point, { days: MAX_API_DAYS, species }, { enabled })
   const all = series.status === 'ready' ? series.data.days ?? [] : null
@@ -45,12 +45,19 @@ export function ChartSection({ point, species, speciesName, range, until, days, 
     onWindow(u, d)
   }
 
-  // The score chart looks ahead only when the window ends at the last real day
+  // The score chart always has room for the days that follow the window, so that moving back does
+  // not rescale it: those days are the real ones between the window and today, then the forecast
+  // (as many days ahead as there is room for). At the last day they are all forecast.
   const atLatest = Boolean(shown) && shown.win.b >= shown.all.length - 1
-  const future = useMemo(() => {
-    if (!atLatest || !shown || calendar?.status !== 'ready') return []
-    return futureDays(calendar.data, shown.all[shown.all.length - 1]?.date)
-  }, [atLatest, shown, calendar?.status, calendar?.data])
+  const { tail, future } = useMemo(() => {
+    if (!shown || calendar?.status !== 'ready') return { tail: [], future: [] }
+    const ahead = futureDays(calendar.data, shown.all[shown.all.length - 1]?.date)
+    const real = Math.min(ahead.length, shown.all.length - 1 - shown.win.b)
+    return {
+      tail: shown.all.slice(shown.win.b + 1, shown.win.b + 1 + real),
+      future: ahead.slice(0, ahead.length - real),
+    }
+  }, [shown, calendar?.status, calendar?.data])
 
   const timeline = shown && {
     series: shown.all,
@@ -61,7 +68,8 @@ export function ChartSection({ point, species, speciesName, range, until, days, 
     atLatest,
   }
 
-  return (
+  const dim = vm ? '' : 'opacity-60'
+  const chart = (
     <section aria-label={t.obsChSection} aria-busy={series.status === 'loading'} className="space-y-3">
       {series.status === 'loading' && !shown && <Skeleton />}
       {series.status === 'error' && <ObservatoryNotice error={series.error} onRetry={series.retry} />}
@@ -69,13 +77,25 @@ export function ChartSection({ point, species, speciesName, range, until, days, 
         <p role="note" className="glass obs-card rounded-2xl px-4 py-3 text-sm text-cream/80">{t.obsChNoDataWindow}</p>
       )}
       {shown && shown.all.length > 0 && (
-        <div className={`grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] items-start transition-opacity ${vm ? '' : 'opacity-60'}`}>
-          <WeatherChart vm={shown.vm} timeline={timeline} speciesName={speciesName} range={range} future={future} />
-          <div className="relative lg:self-stretch lg:min-h-[24rem]">
-            <EventsList vm={shown.vm} />
-          </div>
+        <div className={`transition-opacity ${dim}`}>
+          <WeatherChart vm={shown.vm} timeline={timeline} speciesName={speciesName} range={range} future={future} tail={tail} />
         </div>
       )}
     </section>
+  )
+  const events = shown && shown.all.length > 0 && (
+    <div className={`transition-opacity ${dim}`}>
+      <EventsList vm={shown.vm} />
+    </div>
+  )
+
+  // The page can put the chart and the events list in the columns it wants (see ObservedZone);
+  // without a render function they go side by side
+  if (typeof children === 'function') return children({ chart, events })
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] items-start">
+      {chart}
+      {events}
+    </div>
   )
 }

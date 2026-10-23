@@ -34,7 +34,7 @@ const MACRO_KEY = {
  * says that the species will not be listed. The place name is context: if it fails, coordinates
  * stand in and nothing is reported. Only the thermometer failing is an error to show.
  */
-export function ObservedZone({ point, saved, until = null, days, onWindow, onRemoved, initialSpecies = null }) {
+export function ObservedZone({ point, saved, until = null, days, onWindow, onRemoved, initialSpecies = null, onSpeciesPick, onOpenList }) {
   const { t, lang } = useApp()
   // Starts on the species the map layer shows, so the thermometer and the map speak of the same one
   const [speciesId, setSpeciesId] = useState(initialSpecies)
@@ -120,8 +120,12 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
         onClearWindow={() => onWindow(null, DEFAULT_WINDOW)}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] items-start">
-        <div className="space-y-3 min-w-0">
+      {/* Two independent columns, so a card never waits for the height of the one beside it: on the left the
+          thermometer and the chart, on the right the corner, the species filter and the events list */}
+      <ChartSection point={point} species={activeId} speciesName={activeName} range={chosenRange} until={until} days={days} onWindow={onWindow} calendar={calendar}>
+        {({ chart, events }) => (
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_clamp(22rem,38%,34.5rem)] items-start">
+        <div className="space-y-4 min-w-0">
           {/* Moving the window asks for another day: the last thermometer stays, dimmed, until it arrives */}
           {snap.data == null && snap.status === 'loading' && <ThermometerSkeleton />}
           {snap.status === 'error' && <ObservatoryNotice error={snap.error} onRetry={snap.retry} />}
@@ -130,21 +134,29 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
               <Thermometer snap={snap.data} note={thermoNote} />
             </div>
           )}
+          {chart}
         </div>
-        {/* On desktop the panel is laid out absolutely inside this box: its height is the thermometer's */}
-        <div className="flex flex-col gap-4 min-w-0 lg:self-stretch">
-          <CornerCard point={point} saved={saved} suggestedName={d?.toponym?.name ?? d?.toponym?.label} onRemoved={onRemoved} />
-          <div className="relative lg:flex-1 lg:min-h-[30rem]">
-            <SpeciesPanel state={speciesList} selected={speciesId} onSelect={setSpeciesId} />
-          </div>
+        <div className="flex flex-col gap-4 min-w-0">
+          <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} onRemoved={onRemoved} />
+          <SpeciesPanel
+            state={speciesList}
+            selected={speciesId}
+            // Choosing (or unchoosing) a species re-asks the thermometer and the cards: bring the
+            // top of the zone into view so the person sees them change
+            onSelect={id => { setSpeciesId(id); onSpeciesPick?.() }}
+          />
+          {events}
         </div>
       </div>
+        )}
+      </ChartSection>
 
-      <ChartSection point={point} species={activeId} speciesName={activeName} range={chosenRange} until={until} days={days} onWindow={onWindow} calendar={calendar} />
+      {/* From 1440 px up the forecast and the calendar sit side by side */}
+      <div className="grid gap-4 min-[1440px]:grid-cols-2 items-start">
+        <ForecastSection point={point} zoneName={title} />
 
-      <ForecastSection point={point} zoneName={title} />
-
-      <CalendarSection cal={calendar} speciesName={activeName} />
+        <CalendarSection cal={calendar} speciesName={activeName} />
+      </div>
     </section>
   )
 }

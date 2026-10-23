@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Observatory interface polish (2026-10-23, `feat/observatory-ui-polish`)
+
+Front end only (no API, no migration).
+
+- **Charts** (`WeatherChart`): lines are smooth (monotone Bézier, `smoothPath` / `smoothPoints` / `smoothArea` in `chartData`), no per-day dots. **Condición:** vertical red→green gradient by score (stops at the middle of each band, from the `--ui-score-*` tokens), with a translucent fill down to the axis. **Temperatura:** the max–min band is a gradient by temperature (blue cold, red hot), mean in the theme's cream, soil in dark brown, the species' min/opt/max as red dotted lines. **Lluvia / Humedad / Viento:** accumulated rain, humidity and wind are a smooth line with a fill that goes from transparent at the X axis to full colour at the highest value of the window (recomputed when the timeline moves); wind is light grey and no longer bars.
+- **Condición keeps its width while panning:** the chart has a fixed number of slots after the window: the real days between the window and today, then the forecast, so dragging back no longer rescales it (the real days after the window sit in a lighter band).
+- **Data table** opens in a modal (zebra rows, ochre header, score in its band colour).
+- **Timeline:** the dates and «Volver a hoy» (right) are one line of fixed height, the hint is always the second line.
+- **Layout of the observed zone:** two independent columns (left: thermometer and chart; right: corner card, species filter, «Detonantes y frenos»), so a card never waits for the height of its neighbour. The right column is `clamp(22rem, 38%, 34.5rem)`. Forecast and calendar sit side by side from 1440 px, with smaller text and icons in the forecast cards. On phones the chart now comes before the corner card.
+- **Species filter:** a card icon next to the edibility tag opens the species' catalogue preview; choosing (or unchoosing) a species scrolls smoothly to the top of the zone. The map layer's search says «Filtrar por seta…».
+- **Corner card and buttons:** the saved corner card has an ochre-brown background (`coffee`) and the `ring-2 ring-bar` outline, with a «Mis rincones» link (opens the list modal) at its top right; «Mis rincones» and both «Guardar rincón» buttons share that look.
+- **«Volver al mapa»:** a chevron over small uppercase text on a 100 px gradient of the page's green that ends where the zone starts (replaces the pill button).
+- **Fullscreen** no longer uses the browser's Fullscreen API (it takes Esc for itself and left fullscreen when a modal was closed with Esc): the page just covers the viewport, so Esc is always the page's. A dialog on top (`isDialogAbove`) takes the Esc before the page.
+
 ### Added — «Mis rincones», interface (2026-10-23, `feat/observatory-corners-ui`)
 
 - **Corner card** in the observed zone (right column, above the species panel) and a compact block in the map's point panel: pin by kind, name, notes, species as cards (page) or 4:3 photos with a thin horizontal scroll (panel), «Editar» and «Quitar rincón» in dialogs. Notes that only repeat the species' scientific names are hidden.

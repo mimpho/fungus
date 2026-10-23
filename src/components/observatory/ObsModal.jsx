@@ -11,6 +11,7 @@ import { MODAL } from '../../lib/constants'
  */
 // Dialogs opened over an ObsModal (a species' modal): while one is up, Esc is theirs, not the form's
 let openAbove = 0
+export const isDialogAbove = () => openAbove > 0
 export function useDialogAboveObsModal() {
   useEffect(() => {
     openAbove += 1
@@ -55,6 +56,6 @@ export function ObsModal({ title, onClose, wide = false, size = 'md', children }
         {children}
       </div>
     </div>,
-    document.fullscreenElement ?? document.body,
+    document.body,
   )
 }
