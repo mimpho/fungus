@@ -6,6 +6,7 @@ import { formatNumber } from '../../lib/thermometer'
 import { getScoreBand } from '../../lib/scoreBands'
 import { formatCoords, samePoint } from '../../lib/observatoryView'
 import { sortSaved } from '../../lib/savedPoints'
+import { kindMeta, pinSvg } from '../../lib/cornerKinds'
 import { ObservatoryNotice } from './ObservatoryNotice'
 
 /** The card's score bar: the same look as the zone card's, from the point's own snapshot. */
@@ -93,6 +94,11 @@ function Card({ sp, observed, onObserve }) {
 
         <div className="relative z-[1] pointer-events-none">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-cream/70 mb-4">
+            <span className="flex items-center gap-1.5" data-testid="saved-kind">
+              <span aria-hidden="true" className="[&>svg]:w-3.5 [&>svg]:h-[18px]" dangerouslySetInnerHTML={{ __html: pinSvg(sp.kind) }} />
+              {t[kindMeta(sp.kind).labelKey]}
+            </span>
+            {sp.species_ids?.length > 0 && <span>{t.obsCornerCount.replace('{n}', sp.species_ids.length)}</span>}
             {Number.isFinite(sp.elevation_m) && (
               <span className="flex items-center gap-1.5">
                 <img src="/assets/images/icons/mountain.png" alt="" height="16" width="16" />
