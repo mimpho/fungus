@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Maximize, Minimize } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
 import { useSavedPoints } from '../hooks/useSavedPoints'
@@ -43,6 +44,14 @@ export default function Observatory() {
   const [probabilityOn, setProbabilityOn] = useState(false)
   const [layerSpecies, setLayerSpecies] = useState(null)
   const [layerDate, setLayerDate] = useState(null) // null = last day with data
+  // «Mis rincones» layer: on by default; the choice is remembered in this browser only
+  const [cornersOn, setCornersOn] = useState(() => {
+    try { return localStorage.getItem('fungus-obs-corners') !== 'off' } catch (_e) { return true }
+  })
+  function chooseCorners(value) {
+    setCornersOn(value)
+    try { localStorage.setItem('fungus-obs-corners', value ? 'on' : 'off') } catch (_e) { /* per-viewer convenience only */ }
+  }
   const shownSpecies = probabilityOn ? layerSpecies : null
   const { species: catalog } = useSpecies()
   const speciesLabel = id => {
@@ -75,7 +84,10 @@ export default function Observatory() {
   }, [pending, elevation, layer.data])
   // The map stays on the page when a zone is observed: the page scrolls down to the zone and only
   // a strip of the map stays above it (peeking). Clicking the strip scrolls back up to the map.
-  const mapBoxRef = useRef(null)
+  const mapBoxRef = useRef(null) // keeps the map's place in the page (it is out of the flow while fullscreen)
+  const pageRef = useRef(null) // the whole page goes fullscreen (it keeps scrolling to the observed zone), not just the map
+  const [fullscreen, setFullscreen] = useState(false)
+  const pad = fullscreen ? 'px-4' : '' // the map goes edge to edge in fullscreen; what is below keeps a side margin
   const zoneRef = useRef(null)
   const firstScroll = useRef(true)
   const [peeking, setPeeking] = useState(false)
@@ -94,13 +106,39 @@ export default function Observatory() {
     try { localStorage.setItem('fungus-obs-basemap', value) } catch (_e) { /* per-viewer convenience only */ }
   }
 
-  // Esc closes the point panel
+  // Fullscreen: the browser's own when it has it, otherwise the page just covers the viewport (fixed).
+  // The page inside is the same one, scrolling to the observed zone as usual, without the site's
+  // header and wrapper; the only way out is the button or Esc (observing or saving does not leave it).
+  function exitFullscreen() {
+    setFullscreen(false)
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+  }
+  function toggleFullscreen() {
+    if (fullscreen) { exitFullscreen(); return }
+    setFullscreen(true)
+    pageRef.current?.requestFullscreen?.().catch(() => { /* refused: the fixed box is enough */ })
+  }
   useEffect(() => {
-    if (!pending) return
-    const onKey = e => { if (e.key === 'Escape') setPending(null) }
+    // The browser left its fullscreen by itself (Esc): the page follows
+    const onChange = () => { if (!document.fullscreenElement) setFullscreen(false) }
+    document.addEventListener('fullscreenchange', onChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange)
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+    }
+  }, [])
+
+  // Esc leaves fullscreen first; otherwise it closes the point panel
+  useEffect(() => {
+    if (!pending && !fullscreen) return
+    const onKey = e => {
+      if (e.key !== 'Escape') return
+      if (fullscreen) exitFullscreen()
+      else setPending(null)
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pending])
+  }, [pending, fullscreen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll to the observed zone: smooth when the person chooses it, at once when the page opens on it
   const hasObserved = Boolean(observed) && isAuthenticated
@@ -122,9 +160,15 @@ export default function Observatory() {
     return () => io.disconnect()
   }, [hasObserved])
 
+  function goToZone() {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    zoneRef.current?.scrollIntoView({ behavior: reduce ? 'instant' : 'smooth', block: 'start' })
+  }
+
   function backToMap() {
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    window.scrollTo({ top: 0, behavior: reduce ? 'instant' : 'smooth' })
+    const scroller = fullscreen ? pageRef.current : window
+    scroller?.scrollTo({ top: 0, behavior: reduce ? 'instant' : 'smooth' })
   }
 
   function handlePick(lat, lon) {
@@ -163,14 +207,16 @@ export default function Observatory() {
   }
 
   return (
-    <div className="space-y-6 anim-up pb-20">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+    <div ref={pageRef} className={fullscreen ? 'fixed inset-0 z-[150] overflow-y-auto bg-modal pb-20 space-y-6' : 'space-y-6 anim-up pb-20'}>
+      {/* The title and the list button are left out in fullscreen: the map takes the screen.
+          (Not just hidden: space-y would still push the map down by the hidden row's margin.) */}
+      {!fullscreen && <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
           <h2 className="font-display text-4xl font-semibold text-cream">{t.obsTitle}</h2>
           <p className="text-muted text-sm mt-1">{t.obsSubtitle}</p>
         </div>
         {isAuthenticated && savedToggle}
-      </div>
+      </div>}
 
       {!isAuthenticated ? (
         <section className="glass rounded-2xl p-8 text-center max-w-2xl mx-auto">
@@ -193,13 +239,16 @@ export default function Observatory() {
         </section>
       ) : (
         <>
-          {pickError && <ObservatoryNotice error={pickError} />}
+          {pickError && <div className={fullscreen ? 'absolute z-[1200] top-3 left-4 right-4' : ''}><ObservatoryNotice error={pickError} /></div>}
 
-          <div ref={mapBoxRef} className="relative isolate rounded-2xl overflow-hidden border border-white/[0.08]">
+          <div ref={mapBoxRef} className={fullscreen ? 'h-dvh' : 'h-[62vh] min-h-[420px] md:h-[65vh]'}>
+          <div className={`relative h-full isolate overflow-hidden ${fullscreen ? '' : 'rounded-2xl border border-white/[0.08]'}`}>
             <ObservatoryMap
               observed={observed}
               pending={pending}
               saved={saved.points}
+              showSaved={cornersOn}
+              pinLabel={t.obsCornerPinLabel}
               layer={probabilityOn ? layer.data : null}
               elevation={elevation}
               habitat={habitat}
@@ -208,28 +257,42 @@ export default function Observatory() {
               basemap={basemap}
               flyTo={flyTo}
               startAt={lastObserved.current}
-              className="h-[62vh] min-h-[420px] md:h-[65vh]"
+              className="h-full"
             />
             {!pending && !observed && (
               <p className="absolute z-[1100] bottom-10 left-3 right-16 md:bottom-3 md:right-auto md:max-w-sm glass-olive rounded-xl px-3 py-2 text-xs text-cream/80 pointer-events-none">
                 {t.obsMapHint}
               </p>
             )}
-            {/* View selector: same look as Zonas / Mapa de calor on the zones map */}
-            <div
-              role="group"
-              aria-label={t.obsBasemapLabel}
-              className="absolute z-[1100] top-[4.75rem] right-3 md:top-3 backdrop-blur-sm bg-modal/80 rounded-xl p-1.5"
-            >
-              <Tabs
-                options={[{ id: 'satellite', label: t.obsBasemapSatellite }, { id: 'streets', label: t.obsBasemapStreets }, { id: 'relief', label: t.obsBasemapRelief }]}
-                selected={basemap}
-                onChange={chooseBasemap}
-                size="md"
-                variant="compact" />
+            {/* View selector (same look as Zonas / Mapa de calor on the zones map) and, to its right, fullscreen */}
+            <div className="absolute z-[1100] top-[4.75rem] right-3 md:top-3 flex items-stretch gap-1.5">
+              <div
+                role="group"
+                aria-label={t.obsBasemapLabel}
+                className="backdrop-blur-sm bg-modal/80 rounded-xl p-1.5"
+              >
+                <Tabs
+                  options={[{ id: 'satellite', label: t.obsBasemapSatellite }, { id: 'streets', label: t.obsBasemapStreets }, { id: 'relief', label: t.obsBasemapRelief }]}
+                  selected={basemap}
+                  onChange={chooseBasemap}
+                  size="md"
+                  variant="compact" />
+              </div>
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                aria-pressed={fullscreen}
+                aria-label={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
+                title={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
+                className="px-3 flex items-center justify-center backdrop-blur-sm bg-modal/80 rounded-xl text-cream hover:bg-white/10 transition-colors"
+              >
+                {fullscreen ? <Minimize size={18} aria-hidden="true" /> : <Maximize size={18} aria-hidden="true" />}
+              </button>
             </div>
             {/* Under the basemap tabs on the right, so it never covers the clicked point's panel (bottom left). Before the search in the DOM so the search list opens over it on mobile */}
             <MapLayersBox
+              corners={cornersOn}
+              onCorners={chooseCorners}
               probability={probabilityOn}
               onProbability={setProbabilityOn}
               className="absolute z-[1100] top-[8rem] left-3 right-3 md:left-auto md:top-[4.75rem] md:right-3 md:w-[22rem]"
@@ -248,7 +311,7 @@ export default function Observatory() {
               <MapSearch onSelect={handleSearchSelect} className="pointer-events-auto w-full md:w-[30rem]" />
             </div>
             {pending && (
-              <PointPanel point={pending} observed={observed} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={() => setPending(null)} />
+              <PointPanel point={pending} observed={observed} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onGoToZone={goToZone} onClose={() => setPending(null)} />
             )}
             {/* Only a strip of the map shows: the whole strip takes the person back up to it */}
             {hasObserved && peeking && (
@@ -264,11 +327,12 @@ export default function Observatory() {
               </button>
             )}
           </div>
+          </div>
         </>
       )}
 
       {isAuthenticated && observed && (
-            <div ref={zoneRef} className="scroll-mt-[9.5rem] min-h-[calc(100vh-9.5rem)]">
+            <div ref={zoneRef} className={fullscreen ? 'px-4 pt-4 scroll-mt-0 min-h-dvh' : 'scroll-mt-[9.5rem] min-h-[calc(100vh-9.5rem)]'}>
               <ObservedZone
                 key={`${observed.lat},${observed.lon}`}
                 point={observed}
@@ -282,7 +346,7 @@ export default function Observatory() {
             </div>
       )}
 
-      {isAuthenticated && <TerritorySection active={observed} onObserve={handleObserve} />}
+      {isAuthenticated && <div className={pad}><TerritorySection active={observed} onObserve={handleObserve} /></div>}
 
       {savedOpen && (
         <ObsModal title={t.obsSavedListTitle} onClose={() => setSavedOpen(false)} wide>
@@ -290,7 +354,7 @@ export default function Observatory() {
         </ObsModal>
       )}
 
-      <Attribution />
+      <div className={pad}><Attribution /></div>
     </div>
   )
 }
