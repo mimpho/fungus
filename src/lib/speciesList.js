@@ -10,7 +10,6 @@ import { formatDay, formatNumber, fill } from './thermometer'
 
 const LOCALES = { es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }
 const FOREST_KEY = { pinar: 'obsFtPinar', hayedo: 'obsFtHayedo', robledal: 'obsFtRobledal', encinar: 'obsFtEncinar', mixto: 'obsFtMixto' }
-const GRADE_KEY = { probable: 'obsSpGrade_probable', possible: 'obsSpGrade_possible', early: 'obsSpGrade_early', unlikely: 'obsSpGrade_unlikely' }
 const CONDITIONS = ['forest', 'soil', 'altitude', 'season', 'temperature', 'humidity', 'rain', 'frost', 'shock', 'cycle']
 // Edibility values of the catalogue grouped as the app labels them (bueno = comestible)
 const EDIB_GROUP = {
@@ -181,7 +180,6 @@ export function buildRows(data, catalog, t, lang) {
       followed: !!item.followed,
       score: item.score,
       band,
-      grade: t[GRADE_KEY[item.grade]] ?? '',
       window: windowText(item.window, t, lang),
       conditions: buildConditionLines(item, t, lang),
     }
