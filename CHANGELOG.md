@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — «Mis rincones», interface (2026-10-23, `feat/observatory-corners-ui`)
+
+- **Corner card** in the observed zone (right column, above the species panel) and a compact block in the map's point panel: pin by kind, name, notes, species as cards (page) or 4:3 photos with a thin horizontal scroll (panel), «Editar» and «Quitar rincón» in dialogs. Notes that only repeat the species' scientific names are hidden.
+- **Create/edit dialog:** kind selector (radio cards), species picker with a search box and an overlay list (up to 5 slots, dashed placeholders), a soft kind suggestion. A species opens its catalogue preview over the dialog.
+- **«Mis rincones» map layer** with `leaflet.markercluster` (pins per kind, first row of the layers box) and a fullscreen mode for the whole page (Fullscreen API, CSS fallback): Observar and Guardar keep it and scroll to the zone.
+- **Species panel** renamed «Filtrar por seta en esta zona» (was «¿Qué seta buscas?»): catalogue photo to the card's edge, edibility tag, score at the right next to the details arrow, themed clear button for the search.
+- **Backend:** a blank name (on create or PATCH) is stored as the nearest toponym, else the coordinates; `name: null` stays a 422.
+- **Dependency:** `leaflet.markercluster` ^1.5.3 (run `npm install`).
+
+### Removed
+- The species rows' grade text (Favorable, Posible…) and the `obsSpGrade_*` keys: the score already says it.
+
 ### Added — «Mis rincones», data model (2026-10-22, `feat/observatory-corners-model`)
 
 - **Migration 020:** `saved_points.kind` (`unspecified` default, `mushroom_site`, `prospect`, `parking`; check constraint) and three tables with RLS on and cascade deletes: `saved_point_species` (species tagged on the corner), `saved_point_photos` (up to five per corner, only the storage keys of the thumbnail and the large version) and `saved_point_photo_species` (species tagged on a photo).

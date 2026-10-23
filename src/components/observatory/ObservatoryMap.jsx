@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
 import {
   CARTO_LABELS_URL, CARTO_NOLABELS_URL, BASEMAP_ATTRIBUTION, ICGC_HYBRID_TILES_URL,
   ICGC_RELIEF_TILES_URL, ICGC_RELIEF_BOUNDS, ICGC_ATTRIBUTION,
@@ -7,11 +8,17 @@ import {
 import { CATALONIA_BOUNDS } from '../../lib/catalonia'
 import { cellFill, ALPHA_SCALE_BY_BASEMAP } from '../../lib/layerColors'
 import { reliefOverlay } from '../../lib/reliefLayer'
+import { pinSvg } from '../../lib/cornerKinds'
+
+// leaflet.markercluster is UMD and looks for `L` as a global: expose it before importing it
+// (same as LeafletMap.jsx does for leaflet.heat), and import it only when the layer is shown.
+window.L = L
+let clusterLoad = null
+const ensureCluster = () => (clusterLoad ??= import('leaflet.markercluster').catch(err => { clusterLoad = null; throw err }))
 
 // Leaflet draws SVG outside React's DOM: colours are literal hex, never CSS vars
 // (see the Leaflet entry in memory/gotchas.md).
 const OBSERVED_STYLE = { radius: 10, color: '#f4ebe1', weight: 2, fillColor: '#4a7c59', fillOpacity: 0.95 }
-const SAVED_STYLE    = { radius: 7, color: '#4a7c59', weight: 2, fillColor: '#f0d9a8', fillOpacity: 0.95, bubblingMouseEvents: false }
 const PENDING_STYLE  = { radius: 9, color: '#f0d9a8', weight: 3, dashArray: '3 3', fillColor: '#c4a06b', fillOpacity: 0.45 }
 
 const BOUNDS = L.latLngBounds(
@@ -28,15 +35,40 @@ const meanScore = s => {
 const LAYER_PANE = 'obsLayer' // between the tiles (200) and the markers (400): the layer never covers a point
 const LABELS_PANE = 'obsLabels' // place names of the dark maps: over the layer (350), under the markers
 
+// A cluster of corners: dark olive disc with a cream ring, so it reads on satellite, streets and relief alike
+function clusterIcon(cluster) {
+  const n = cluster.getChildCount()
+  const size = n < 10 ? 36 : n < 50 ? 42 : 48
+  return L.divIcon({
+    className: 'corner-cluster',
+    iconSize: [size, size],
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#2f5d3f;border:2px solid #f4ebe1;box-shadow:0 1px 4px rgba(0,0,0,.6);color:#f4ebe1;display:flex;align-items:center;justify-content:center;font:700 ${n < 100 ? 14 : 12}px Arial,Helvetica,sans-serif">${n}</div>`,
+  })
+}
+
+function cornerMarker(sp, pinLabel, onPick) {
+  const marker = L.marker([sp.lat, sp.lon], {
+    icon: L.divIcon({ className: 'corner-pin', html: pinSvg(sp.kind), iconSize: [30, 38], iconAnchor: [15, 37], tooltipAnchor: [0, -34] }),
+    title: pinLabel.replace('{name}', sp.name), // setAttribute: the name is user text, never HTML
+    riseOnHover: true,
+  })
+  const name = document.createElement('span')
+  name.textContent = sp.name
+  marker.bindTooltip(name, { direction: 'top' })
+  marker.on('click', () => onPick(sp.lat, sp.lon))
+  return marker
+}
+
 /**
  * Map of Catalonia. A click only reports the coordinates (onPick); what to do with them is the
  * page's. `observed` is the point being observed (green), `pending` the one just picked (dashed).
+ * `saved` are the user's corners, drawn as pins by kind and grouped in clusters (the «Mis rincones» layer) while `showSaved` is on.
  * `layer` is the answer of /layer/probability. With the elevation raster (`elevation`) every pixel
  * is coloured by the score of its own elevation; without it every scored cell is a rectangle
  * coloured by its score. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
  * the forest is not one the species fits or the soil pH is not its own. Neither takes clicks, so picking a point works over the layer.
  */
-export function ObservatoryMap({ observed, pending, saved = [], layer = null, elevation = null, habitat = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, className = '' }) {
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
   const observedRef = useRef(null)
@@ -141,23 +173,30 @@ export function ObservatoryMap({ observed, pending, saved = [], layer = null, el
     layerRef.current = group
   }, [layer, elevation, habitat, basemap])
 
-  // Saved points: a marker with its name; clicking one picks it like a click on that spot
+  // Corners: a pin per kind with its name, in clusters (leaflet.markercluster, loaded on demand);
+  // clicking one picks it like a click on that spot. If the plugin cannot load, plain pins.
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map) return undefined
+    let cancelled = false
     savedRef.current?.remove()
-    const group = L.layerGroup()
-    for (const sp of saved) {
-      const marker = L.circleMarker([sp.lat, sp.lon], SAVED_STYLE)
-      const name = document.createElement('span')
-      name.textContent = sp.name // textContent: the name is user text, never HTML
-      marker.bindTooltip(name, { direction: 'top', offset: [0, -6] })
-      marker.on('click', () => onPickRef.current?.(sp.lat, sp.lon))
-      marker.addTo(group)
+    savedRef.current = null
+    if (!showSaved || !saved.length) return undefined
+    const pick = (lat, lon) => onPickRef.current?.(lat, lon)
+    const fill = group => {
+      for (const sp of saved) cornerMarker(sp, pinLabel, pick).addTo(group)
+      if (cancelled || mapRef.current !== map) return
+      group.addTo(map)
+      savedRef.current = group
     }
-    group.addTo(map)
-    savedRef.current = group
-  }, [saved])
+    ensureCluster()
+      .then(() => fill(L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 45, iconCreateFunction: clusterIcon })))
+      .catch(err => {
+        console.warn('Corners layer: clustering unavailable, plain pins', err)
+        if (!cancelled) fill(L.layerGroup())
+      })
+    return () => { cancelled = true }
+  }, [saved, showSaved, pinLabel])
 
   // Observed point: marker, and the view goes to it (also when it comes from the URL)
   useEffect(() => {

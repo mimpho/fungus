@@ -29,6 +29,7 @@ from app.services.saved_points import (
     SavedPointRecord,
     SavedPointStore,
     create_saved_point,
+    default_name,
 )
 
 router = APIRouter(
@@ -123,6 +124,11 @@ async def update_point(
         )
     if "species_ids" in changes:
         await _check_species(store, changes["species_ids"])
+    if changes.get("name") == "":  # blank name: the default one again, as when it was saved
+        current = await _found(store, user, point_id)
+        changes["name"] = default_name(
+            current.lat, current.lon, await fetch_toponym(current.lat, current.lon)
+        )
     record = await store.update(user.id, point_id, changes)
     if record is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Saved point not found")

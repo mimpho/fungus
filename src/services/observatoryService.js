@@ -156,13 +156,19 @@ export const fetchClassRaster = (kind, { signal } = {}) =>
 // ── Saved points ─────────────────────────────────────────────────────────────
 
 export const fetchSavedPoints = ({ signal } = {}) => request('/saved-points', { signal })
-export const createSavedPoint = ({ lat, lon, name, notes }) =>
+export const createSavedPoint = ({ lat, lon, name, notes, kind, species_ids }) =>
   request('/saved-points', {
     method: 'POST',
-    body: { lat, lon, ...(name ? { name } : {}), ...(notes ? { notes } : {}) },
+    body: {
+      lat, lon,
+      ...(name ? { name } : {}),
+      ...(notes ? { notes } : {}),
+      ...(kind ? { kind } : {}),
+      ...(species_ids?.length ? { species_ids } : {}),
+    },
   })
 export const fetchSavedPoint = (id, { signal } = {}) => request(`/saved-points/${id}`, { signal })
-/** `changes` uses the API names: { name, notes } (notes: null = remove them). */
+/** `changes` uses the API names: { name, notes, kind, species_ids } (notes: null = remove them; species_ids replaces the list). */
 export const updateSavedPoint = (id, changes) => request(`/saved-points/${id}`, { method: 'PATCH', body: changes })
 export const deleteSavedPoint = id => request(`/saved-points/${id}`, { method: 'DELETE' })
 export const fetchSavedPointSpecies = (id, { date, signal } = {}) =>

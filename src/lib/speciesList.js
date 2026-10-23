@@ -10,7 +10,6 @@ import { formatDay, formatNumber, fill } from './thermometer'
 
 const LOCALES = { es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }
 const FOREST_KEY = { pinar: 'obsFtPinar', hayedo: 'obsFtHayedo', robledal: 'obsFtRobledal', encinar: 'obsFtEncinar', mixto: 'obsFtMixto' }
-const GRADE_KEY = { probable: 'obsSpGrade_probable', possible: 'obsSpGrade_possible', early: 'obsSpGrade_early', unlikely: 'obsSpGrade_unlikely' }
 const CONDITIONS = ['forest', 'soil', 'altitude', 'season', 'temperature', 'humidity', 'rain', 'frost', 'shock', 'cycle']
 // Edibility values of the catalogue grouped as the app labels them (bueno = comestible)
 const EDIB_GROUP = {
@@ -52,7 +51,7 @@ export function countGroups(rows) {
 /**
  * Rows for the map-layer species picker: every species of the catalogue, by name for people
  * (first common name of the app language, else the scientific one), sorted in that language.
- * `search` has the scientific name, the common names and the Latin synonyms (see matchesQuery).
+ * `photo` is the catalogue's main photo URL (or null); `edibility` the catalogue's value. `search` has the scientific name, the common names and the Latin synonyms (see matchesQuery).
  */
 export function buildPickerRows(catalog, lang) {
   const collator = new Intl.Collator(LOCALES[lang] ?? LOCALES.es)
@@ -62,6 +61,8 @@ export function buildPickerRows(catalog, lang) {
       id: s.id,
       name: s.commonNames?.[0] || s.scientificName,
       scientific: s.scientificName ?? '',
+      photo: s.photo?.url ?? null,
+      edibility: s.edibility ?? null,
       search: searchText(s.scientificName, s),
     }))
     .sort((a, b) => collator.compare(a.name, b.name))
@@ -172,13 +173,13 @@ export function buildRows(data, catalog, t, lang) {
       id: item.id,
       name: speciesName(item.id, item.scientific_name, catalog),
       scientific: item.scientific_name,
+      photo: catalog?.get?.(item.id)?.photo?.url ?? null,
       edibility: item.edibility,
       edibGroup: edibilityGroup(item.edibility),
       search: searchText(item.scientific_name, catalog?.get?.(item.id)),
       followed: !!item.followed,
       score: item.score,
       band,
-      grade: t[GRADE_KEY[item.grade]] ?? '',
       window: windowText(item.window, t, lang),
       conditions: buildConditionLines(item, t, lang),
     }

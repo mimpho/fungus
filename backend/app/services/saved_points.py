@@ -95,6 +95,11 @@ def all_species_ids(record: SavedPointRecord) -> list[str]:
     return list(dict.fromkeys((*record.species_ids, *record.photo_species_ids)))
 
 
+def default_name(lat: float, lon: float, toponym: Toponym | None) -> str:
+    """Name for a corner whose owner gives none: the nearest toponym, else the coordinates."""
+    return toponym.name if toponym else f"{lat:.4f}, {lon:.4f}"
+
+
 async def create_saved_point(
     store: SavedPointStore,
     user_id: int,
@@ -112,7 +117,7 @@ async def create_saved_point(
         raise SavedPointLimitExceeded(max_per_user)
 
     ctx = await context(lat, lon)
-    name = point.name or (ctx.toponym.name if ctx.toponym else f"{lat:.4f}, {lon:.4f}")
+    name = point.name or default_name(lat, lon, ctx.toponym)
     return await store.add(
         SavedPointRecord(
             user_id=user_id, lat=lat, lon=lon, name=name, notes=point.notes, kind=point.kind,

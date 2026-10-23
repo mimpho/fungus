@@ -27,7 +27,7 @@ Why now: we are in the middle of the autumn season. Everything else (Android app
 |---|---|
 | Scoring v2 (Outbreak Index v2.1) in the backend | Pure functions, same numbers as the prototype (±1). Generic model and per species |
 | v2 for any date and any window | Time machine: the page can look at any past date with data |
-| Observatory page, zone area | Zone search, zone title with Follow and Notifications actions, «¿Qué seta buscas?», thermometer with "Ver por qué", weather chart (Momento, Lluvia, Temperatura, Humedad, Viento) with timeline window 7–180 days and data table, mushrooms fruiting, triggers and brakes, calendar «¿Cuándo me conviene ir?» (estimate without forecast) |
+| Observatory page, zone area | Zone search, zone title with Follow and Notifications actions, «Filtrar por seta en esta zona» (was «¿Qué seta buscas?»), thermometer with "Ver por qué", weather chart (Momento, Lluvia, Temperatura, Humedad, Viento) with timeline window 7–180 days and data table, mushrooms fruiting, triggers and brakes, calendar «¿Cuándo me conviene ir?» (estimate without forecast) |
 | View state in the URL | Shareable, back button works, deep links |
 | Multi-day forecast | 16 days stored per zone, used by Momento and the calendar, «Previsión en la zona» widget. See OQ-3 |
 | Access to the Observatory | Navigation entry and links from the zone card. See OQ-13 |
@@ -58,7 +58,7 @@ Why now: we are in the middle of the autumn season. Everything else (Android app
 4. User sees "lluvias en camino": a recent rain that does not count yet and when it would start to show.
 
 **Flow 2 — I am looking for one mushroom**
-1. In «¿Qué seta buscas?» the user picks a species from the list of excellent species of the zone (sorted by today's v2 for that species).
+1. In «Filtrar por seta en esta zona» (formerly «¿Qué seta buscas?») the user picks a species from the list of excellent species of the zone (sorted by today's v2 for that species).
 2. The thermometer, Momento, the temperature threshold, the calendar and the timeline background switch to that species, each with a label that leads back to the selector.
 3. The ✕ returns to «Cualquier seta».
 

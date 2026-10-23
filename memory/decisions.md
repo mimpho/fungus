@@ -630,3 +630,13 @@ useEffect(() => {
 - **Photos (branch 3):** private Supabase Storage bucket, WebP thumbnail ≈600 px and large ≈1200 px, Pillow plus `pillow-heif` for iPhone HEIC, EXIF orientation applied and EXIF/GPS stripped, signed URLs, objects deleted with the corner or the account. Free plan: 1 GB storage, 5 GB egress, 50 MB per file.
 - **Abuse controls (not implemented yet):** 15 MB per upload, pixel limit, 30 photo uploads per user per day, 50 new corners per user per day; configurable, 0 = off. No cap on corners per user beyond the existing configurable one.
 - Plan and branches: `memory/observatory-corners-plan.md`.
+
+## Observatory — «Mis rincones» interface (2026-10-23)
+
+**Decision:** the corner is one more card of the observed zone (right column, above the species panel); the map's point panel shows a compact version. A blank name is valid and becomes the nearest toponym (else the coordinates).
+
+- **Species:** cards with 4:3 photo, edibility tag, Latin and common name; a click opens a preview over the modal (not a navigation to `/especies/…`). Five slots, free ones as dashed outlines.
+- **Fullscreen:** the whole page goes fullscreen (map without padding, content scrolls below); Observar and Guardar do not leave it; Observar stays active and scrolls to the zone.
+- **Species panel:** «Filtrar por seta en esta zona»; no grade text, the score is enough.
+- **Leaflet** draws outside React, so pin colours are literal hex and `leaflet.markercluster` is loaded dynamically after `window.L = L`.
+- **Pending for the mobile pass:** basemap switch and fullscreen button, modal after observing in fullscreen, Esc with stacked modals, ranking overlap in fullscreen.

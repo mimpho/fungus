@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
-import { getEdibilityColor } from '../../lib/helpers'
+import { getEdibilityColor, resolveUrl } from '../../lib/helpers'
 import {
   DEFAULT_EDIB_GROUP, EDIB_GROUPS, buildRows, countGroups, filterRows,
 } from '../../lib/speciesList'
@@ -18,26 +18,41 @@ function Row({ row, selected, onSelect }) {
   const edib = getEdibilityColor(row.edibility)
   const detailsId = `obs-sp-${row.id}`
   return (
-    <li data-testid="species-row" className={`rounded-xl border ${selected ? 'border-bar bg-bar/10' : 'border-cream/15'}`}>
+    <li data-testid="species-row" className={`obs-card relative rounded-xl overflow-hidden ${selected ? 'bg-bar/10' : 'bg-cream/[0.08]'}`}>
+      {/* Selection outline drawn inside the card (above the photo) so the list never clips it */}
+      {selected && <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 rounded-xl ring-2 ring-inset ring-bar" />}
       <div className="flex items-stretch">
         <button
           type="button"
           onClick={() => onSelect(selected ? null : row.id)}
           aria-pressed={selected}
           aria-label={t.obsSpPick.replace('{name}', row.name)}
-          className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 text-left rounded-xl hover:bg-cream/[0.06] transition-colors"
+          className="flex-1 min-w-0 flex items-stretch text-left hover:bg-cream/[0.06] transition-colors"
         >
-          <span className={`font-display text-2xl font-bold w-9 text-right shrink-0 ${row.band.text}`}>{row.score}</span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium text-cream truncate">
-              {row.followed && <span aria-label={t.obsSpFollowed} title={t.obsSpFollowed}>★ </span>}
-              {row.name}
+          {/* The catalogue's photo, to the card's edge (no padding) and as tall as the row */}
+          <span aria-hidden="true" className="relative shrink-0 w-20 bg-cream/[0.08]">
+            {row.photo && (
+              <img
+                src={resolveUrl(row.photo)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                onError={e => { e.currentTarget.style.visibility = 'hidden' }}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+          </span>
+          <span className="flex-1 min-w-0 flex items-center gap-2.5 pl-3 pr-1 py-2.5">
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-cream truncate">
+                {row.followed && <span aria-label={t.obsSpFollowed} title={t.obsSpFollowed}>★ </span>}
+                {row.name}
+              </span>
+              <span className="block text-xs text-cream/60 truncate italic">{row.scientific}</span>
+              <span className={`inline-block mt-0.5 text-[11px] px-1.5 py-px rounded-full ${edib.bg} ${edib.text}`}>{t[edib.tKey]}</span>
             </span>
-            <span className="block text-xs text-cream/60 truncate italic">{row.scientific}</span>
-            <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-              <span className="text-xs text-cream/80">{row.grade}</span>
-              <span className={`text-[11px] px-1.5 py-px rounded-full ${edib.bg} ${edib.text}`}>{t[edib.tKey]}</span>
-            </span>
+            {/* The score, at the right end next to the arrow that opens the details */}
+            <span className={`font-display text-2xl font-bold shrink-0 min-w-9 text-right ${row.band.text}`}>{row.score}</span>
           </span>
         </button>
         <button
@@ -150,15 +165,30 @@ export function SpeciesPanel({ state, selected, onSelect }) {
       {rows.length > 0 && (
         <>
           <div className="space-y-2">
-            <input
-              type="search"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              aria-label={t.obsSpSearchLabel}
-              placeholder={t.obsSpSearch}
-              autoComplete="off"
-              className={`${FIELD} w-full`}
-            />
+            <div className="relative">
+              <input
+                type="search"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                aria-label={t.obsSpSearchLabel}
+                placeholder={t.obsSpSearch}
+                autoComplete="off"
+                className={`${FIELD} w-full pr-10 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none`}
+              />
+              {/* Own clear button: the browser's native one is blue and ignores the theme */}
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label={t.obsSpSearchClear}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full hover:bg-cream/10 transition-colors"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--color-cream-rgb))" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <label htmlFor={`${uid}-edib`} className="text-xs text-cream/60 shrink-0">{t.obsSpEdib}</label>
               <ObsSelect id={`${uid}-edib`} value={group} onChange={e => setGroup(e.target.value)} className="flex-1 min-w-0">

@@ -12,6 +12,7 @@ import { formatCoords } from '../../lib/observatoryView'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { PointHabitat } from './PointHabitat'
 import { SavePointControls } from './SavePointControls'
+import { CornerCard } from './CornerCard'
 import { Thermometer, ThermometerSkeleton } from './Thermometer'
 import { SpeciesPanel } from './SpeciesPanel'
 import { ChartSection } from './ChartSection'
@@ -87,9 +88,8 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
     <section aria-label={t.obsObservedTitle} className="space-y-4">
       <SavePointControls
         point={point}
-        suggestedName={d?.toponym?.label}
+        suggestedName={d?.toponym?.name ?? d?.toponym?.label}
         saved={saved}
-        onRemoved={onRemoved}
         lead={(
           <>
             <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">{t.obsObservedTitle}</p>
@@ -132,8 +132,11 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
           )}
         </div>
         {/* On desktop the panel is laid out absolutely inside this box: its height is the thermometer's */}
-        <div className="relative lg:self-stretch lg:min-h-[30rem]">
-          <SpeciesPanel state={speciesList} selected={speciesId} onSelect={setSpeciesId} />
+        <div className="flex flex-col gap-4 min-w-0 lg:self-stretch">
+          <CornerCard point={point} saved={saved} suggestedName={d?.toponym?.name ?? d?.toponym?.label} onRemoved={onRemoved} />
+          <div className="relative lg:flex-1 lg:min-h-[30rem]">
+            <SpeciesPanel state={speciesList} selected={speciesId} onSelect={setSpeciesId} />
+          </div>
         </div>
       </div>
 

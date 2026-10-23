@@ -9,16 +9,27 @@ import { MODAL } from '../../lib/constants'
  * card, close button at the top right, Esc and click outside close it). It is drawn in a portal
  * so that no animated ancestor of the page can offset its fixed position.
  */
-export function ObsModal({ title, onClose, wide = false, children }) {
+// Dialogs opened over an ObsModal (a species' modal): while one is up, Esc is theirs, not the form's
+let openAbove = 0
+export function useDialogAboveObsModal() {
+  useEffect(() => {
+    openAbove += 1
+    return () => { openAbove -= 1 }
+  }, [])
+}
+
+export function ObsModal({ title, onClose, wide = false, size = 'md', children }) {
   const { t } = useApp()
   const titleId = useId()
 
   useEffect(() => {
-    const onKey = e => { if (e.key === 'Escape') onClose() }
+    // stopPropagation: the page's own Esc (it closes the map's point panel) must not also fire and unmount what the dialog belongs to
+    const onKey = e => { if (e.key === 'Escape' && openAbove === 0) { e.stopPropagation(); onClose() } }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // In browser fullscreen only the fullscreen element is drawn: the dialog goes inside it
   return createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center p-4 modal-outer"
@@ -29,7 +40,7 @@ export function ObsModal({ title, onClose, wide = false, children }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative rounded-2xl w-full ${wide ? 'max-w-5xl' : 'max-w-md'} p-6 anim-scale max-h-[90vh] overflow-y-auto`}
+        className={`relative rounded-2xl w-full ${wide ? 'max-w-5xl' : size === 'lg' ? 'max-w-2xl' : 'max-w-md'} p-6 anim-scale max-h-[90vh] overflow-y-auto`}
         style={{ background: MODAL.bg }}
       >
         <button
@@ -44,6 +55,6 @@ export function ObsModal({ title, onClose, wide = false, children }) {
         {children}
       </div>
     </div>,
-    document.body,
+    document.fullscreenElement ?? document.body,
   )
 }
