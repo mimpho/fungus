@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Crosshair } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
@@ -7,6 +8,7 @@ import { fill } from '../../lib/thermometer'
 import { usePointData } from '../../hooks/usePointData'
 import { fetchPointCalendar, fetchPointForest, fetchPointSnapshot, fetchPointSpecies, fetchSavedPointSpecies } from '../../services/observatoryService'
 import { speciesRange } from '../../lib/chartData'
+import { FOREST_ICONS, forestParts } from '../../lib/habitat'
 import { ENSEMBLE } from '../../lib/speciesList'
 import { formatCoords } from '../../lib/observatoryView'
 import { ObservatoryNotice } from './ObservatoryNotice'
@@ -83,6 +85,19 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
   // where the server has no CREAF raster.
   const hasCreaf = Object.values(habitat?.forest ?? {}).some(share => share >= 0.05)
   const macro = hasForest && d?.macrotype && !hasCreaf ? `${t[MACRO_KEY[d.macrotype]]} (ICGC 2024)` : null
+  const mainForest = forestParts(habitat, t)[0]?.key
+  // The subtitle of the zone: place · coordinates · altitude · kind of terrain, each with its icon.
+  // (The coordinates are the title when there is no toponym, so they are not repeated.)
+  const facts = [
+    { key: 'place', icon: 'location', text: d?.toponym?.comarca },
+    { key: 'coords', icon: 'crosshair', text: d?.toponym ? formatCoords(point) : null },
+    { key: 'elevation', icon: 'mountain', text: Number.isFinite(elevation) ? `${Math.round(elevation)} m` : null },
+    {
+      key: 'terrain',
+      icon: FOREST_ICONS.has(mainForest) ? `forest-type-${mainForest}` : null,
+      text: hasForest ? [t.obsForestYes, macro].filter(Boolean).join(' · ') : null,
+    },
+  ].filter(f => f.text)
 
   return (
     <section aria-label={t.obsObservedTitle} className="space-y-4">
@@ -94,13 +109,16 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
           <>
             <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">{t.obsObservedTitle}</p>
             <h2 data-testid="zone-title" className="font-display font-bold text-[clamp(38px,5vw,56px)] leading-[1.02] tracking-[0.3px] text-cream break-words mt-1">{title}</h2>
-            <p className="text-[13px] text-cream/70 mt-2">
-              {[
-                d?.toponym?.comarca,
-                Number.isFinite(elevation) ? `${Math.round(elevation)} m` : null,
-                d?.toponym ? formatCoords(point) : null,
-                hasForest ? [t.obsForestYes, macro].filter(Boolean).join(' · ') : null,
-              ].filter(Boolean).join(' · ')}
+            <p data-testid="zone-facts" className="text-[13px] text-cream/70 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+              {facts.map((f, i) => (
+                <span key={f.key} className="inline-flex items-center gap-1.5">
+                  {i > 0 && <span aria-hidden="true" className="mr-0.5">·</span>}
+                  {f.icon === 'crosshair'
+                    ? <Crosshair size={14} strokeWidth={1.75} aria-hidden="true" />
+                    : f.icon && <img src={`/assets/images/icons/${f.icon}.png`} alt="" height="14" width="14" />}
+                  {f.text}
+                </span>
+              ))}
             </p>
           </>
         )}
@@ -124,7 +142,7 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
           thermometer and the chart, on the right the corner, the species filter and the events list */}
       <ChartSection point={point} species={activeId} speciesName={activeName} range={chosenRange} until={until} days={days} onWindow={onWindow} calendar={calendar}>
         {({ chart, events }) => (
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_clamp(22rem,38%,34.5rem)] items-start">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_clamp(20rem,30%,30rem)] items-start">
         <div className="space-y-4 min-w-0">
           {/* Moving the window asks for another day: the last thermometer stays, dimmed, until it arrives */}
           {snap.data == null && snap.status === 'loading' && <ThermometerSkeleton />}
@@ -137,7 +155,7 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
           {chart}
         </div>
         <div className="flex flex-col gap-4 min-w-0">
-          <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} onRemoved={onRemoved} />
+          <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} onRemoved={onRemoved} />
           <SpeciesPanel
             state={speciesList}
             selected={speciesId}

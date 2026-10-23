@@ -156,11 +156,18 @@ export function Thermometer({ snap, note = null }) {
             {vm.factors.map(f => {
               const band = getScoreBand(f.score)
               return (
-                <div key={f.key} className="grid grid-cols-[minmax(0,1fr)_3rem] sm:grid-cols-[minmax(8rem,12rem)_3rem_minmax(5rem,1fr)] items-center gap-x-4 gap-y-1 py-2">
+                <div key={f.key} className="grid grid-cols-[minmax(0,1fr)_4rem] sm:grid-cols-[minmax(8rem,12rem)_4rem_minmax(5rem,1fr)] items-center gap-x-4 gap-y-1 py-2">
                   <span className="text-sm font-medium text-cream">
                     {f.name} <span className="text-xs font-normal text-cream/50">{f.weight}</span>
                   </span>
-                  <span className={`font-display text-2xl font-bold text-right ${band.text}`}>{f.score}</span>
+                  <span className="text-right leading-tight">
+                    <span className={`block font-display text-2xl font-bold ${band.text}`}>{f.display ?? f.score}</span>
+                    {f.points != null && (
+                      <span data-testid={`thermo-points-${f.key}`} title={t.obsThPointsTitle} className="block text-[11px] text-cream/50 tabular-nums">
+                        {f.points > 0 ? '+' : f.points < 0 ? '−' : ''}{Math.abs(f.points)} {t.obsThPointsUnit}
+                      </span>
+                    )}
+                  </span>
                   <div className="col-span-2 sm:col-span-1 sm:row-start-1 sm:col-start-3 h-1.5 rounded-full bg-white/10 overflow-hidden" aria-hidden="true">
                     <div className={`h-full rounded-full ${band.bar}`} style={{ width: `${Math.min(100, Math.max(0, f.score))}%` }} />
                   </div>

@@ -17,6 +17,9 @@ const parts = (shares, labels, t) => Object.entries(shares ?? {})
   .sort((a, b) => b[1] - a[1])
   .map(([key, share]) => ({ key, label: t[labels[key]] ?? key, pct: Math.round(share * 100) }))
 
+/** Forest classes that have an icon (public/assets/images/icons/forest-type-<class>.png). */
+export const FOREST_ICONS = new Set(['pinar', 'encinar', 'hayedo', 'robledal'])
+
 /** Forest classes present around the point, biggest first: [{ key, label, pct }]. */
 export const forestParts = (habitat, t) => parts(habitat?.forest, FOREST_LABEL, t)
 

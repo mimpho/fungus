@@ -651,3 +651,10 @@ useEffect(() => {
 - **Colour language.** Chart fills fade from transparent at the axis to full colour at the window's highest value; the score line and the temperature band use a vertical gradient anchored to the axis values (not to the shape). Corner-related surfaces use the `coffee` token with the `ring-bar` outline; no new colours were added to the palette.
 - **Open for the mobile pass:** the new column order on phones (chart before corner card), the data modal, the 100 px «Volver al mapa» band and the forecast cards at medium widths.
 
+## Observatory — score breakdown and corner score (2026-10-24)
+
+**Decision:** the score stays a product of factors (a mushroom needs all conditions at once; a mean would let a good factor hide a zero). What changes is how it is shown: each row of «Ver por qué» carries the points it takes from 100, split in proportion to the logarithm of its multiplier so the column adds up to the distance to the score; the frost factor and the temperature-drop bonus (×1.1) get their own rows. **Discarded:** a plain or geometric mean (needs recalibrating the map, calendar and backend tests; a mean hides limiting factors).
+
+- **Ensemble caveat:** with several species the score is the mean of each species' product, and the rows are the means of their factors; the product of the means is not the mean of the products. The points are rescaled to the real score and the footnote says so.
+- **Corner cards:** a corner with exactly one tagged mushroom is scored as that mushroom; with none or several it shows the excellent-edibles mean as «Condiciones ahora». `/point/snapshot` scores one species per request; several tagged species would need the endpoint to accept a list (not done).
+

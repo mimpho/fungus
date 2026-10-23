@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Observatory interface polish, second round (2026-10-24, `feat/observatory-ui-polish-2`)
+
+Front end only (no API, no migration).
+
+- **Score breakdown** («Ver por qué»): the score is a product of factors, so the rows are multipliers, not shares. Each row now shows the points it takes from 100 (or adds), split in proportion to the logarithm of its multiplier so they add up to exactly the distance to the score. New rows: **Helada** (was hidden inside «Calor y secado») and **Bajada de temperatura ×1,10** (the bonus was applied but never shown). The mean-of-species footnote says the rows are not multiplied together.
+- **«Mis rincones» cards:** the score bar is the tagged mushroom's own when exactly one is tagged (labelled with its name), else the mean of the excellent edibles labelled «Condiciones ahora» (was «Cond. de recolección»). Two-line header (kind and «Mis rincones» link; pin, name and toponym), horizontal species scroll bleeding to the edge, coordinates with the kind, altitude and forest icons, one line with the notes.
+- **Observed zone:** the right column is `clamp(20rem, 30%, 30rem)`. The subtitle reads Lugar · Coordenadas (crosshair) · Altura · Tipo de terreno, each with an icon (`FOREST_ICONS` moved to `habitat.js`). «Quitar rincón» is now «Eliminar rincón».
+
 ### Changed — Observatory interface polish (2026-10-23, `feat/observatory-ui-polish`)
 
 Front end only (no API, no migration).
