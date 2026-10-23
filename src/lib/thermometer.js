@@ -140,24 +140,41 @@ function seasonWhy(snap, t) {
   return t.obsThWhySeasonLow
 }
 
-/** The five factors of the score with their value 0–100 and the reason, for «Ver por qué». */
+/**
+ * The factors of the score with their value 0–100, the reason and `points`: how much of the
+ * 100 each one takes away (negative) or adds (the temperature-drop bonus). The score is a
+ * product, so a factor is a multiplier, not a share: the points split the distance from 100 to
+ * the score in proportion to each multiplier's logarithm, so they add up to exactly that.
+ */
 export function buildFactors(snap, t, lang) {
   const f = snap.factors, k = snap.key_facts ?? {}
   const optimum = (snap.conditions ?? []).find(c => c.values?.optimum_c != null)?.values.optimum_c ?? GENERIC_OPTIMUM_C
-  return [
-    { key: 'activation', name: t.obsThFActivation, weight: t.obsThWBase, score: f.activation,
+  const rows = [
+    { key: 'activation', name: t.obsThFActivation, weight: t.obsThWBase, score: f.activation, mult: f.activation / 100,
       why: snap.warm ? t.obsThWhyRowActivationWarm : t.obsThWhyRowActivationCold },
-    { key: 'moisture', name: t.obsThFMoisture, weight: t.obsThWMoisture, score: f.moisture,
+    { key: 'moisture', name: t.obsThFMoisture, weight: t.obsThWMoisture, score: f.moisture, mult: 0.5 + 0.5 * f.moisture / 100,
       why: fill(t.obsThWhyRowMoisture, { soil_water_mm: k.soil_water_mm, capacity: SOIL_CAPACITY_MM }, lang) },
-    { key: 'temperature', name: t.obsThFTemperature, weight: t.obsThWTimes, score: f.temperature,
+    { key: 'temperature', name: t.obsThFTemperature, weight: t.obsThWTimes, score: f.temperature, mult: f.temperature / 100,
       why: fill(t.obsThWhyRowTemperature, { air_temp_20d_c: k.air_temp_20d_c, soil_temp_7d_c: k.soil_temp_7d_c, optimum_c: optimum }, lang) },
-    { key: 'season', name: t.obsThFSeason, weight: t.obsThWSeason, score: Math.round(f.season * 100),
+    { key: 'season', name: t.obsThFSeason, weight: t.obsThWSeason, score: Math.round(f.season * 100), mult: 0.4 + 0.6 * f.season,
       why: seasonWhy(snap, t) },
-    { key: 'heatdry', name: t.obsThFHeatDry, weight: t.obsThWTimes, score: Math.round(f.heat * f.drying * 100),
-      why: fill(t.obsThWhyRowHeatDry, { dry_days: k.dry_days }, lang) + (f.frost < 1 ? ` ${fill(t.obsThWhyRowFrost, { frost: formatNumber(f.frost, lang, 2) }, lang)}` : '') },
-    ...((f.needs ?? 1) < 1 ? [{ key: 'needs', name: t.obsThFNeeds, weight: t.obsThWTimes, score: Math.round(f.needs * 100), why: t.obsThWhyRowNeeds }] : []),
-    ...((f.fit ?? 1) < 1 ? [{ key: 'fit', name: t.obsThFFit, weight: t.obsThWTimes, score: Math.round(f.fit * 100), why: t.obsThWhyRowFit }] : []),
+    { key: 'heatdry', name: t.obsThFHeatDry, weight: t.obsThWTimes, score: Math.round(f.heat * f.drying * 100), mult: f.heat * f.drying,
+      why: fill(t.obsThWhyRowHeatDry, { dry_days: k.dry_days }, lang) },
+    ...(f.frost < 1 ? [{ key: 'frost', name: t.obsThFFrost, weight: t.obsThWTimes, score: Math.round(f.frost * 100), mult: f.frost,
+      why: fill(t.obsThWhyRowFrost, { frost: formatNumber(f.frost, lang, 2) }, lang) }] : []),
+    ...(f.shock > 1 ? [{ key: 'shock', name: t.obsThFShock, weight: t.obsThWTimes, score: 100, mult: f.shock,
+      display: `×${formatNumber(f.shock, lang, 2)}`, why: t.obsThWhyRowShock }] : []),
+    ...((f.needs ?? 1) < 1 ? [{ key: 'needs', name: t.obsThFNeeds, weight: t.obsThWTimes, score: Math.round(f.needs * 100), mult: f.needs, why: t.obsThWhyRowNeeds }] : []),
+    ...((f.fit ?? 1) < 1 ? [{ key: 'fit', name: t.obsThFFit, weight: t.obsThWTimes, score: Math.round(f.fit * 100), mult: f.fit, why: t.obsThWhyRowFit }] : []),
   ].filter(row => Number.isFinite(row.score))
+  return withPoints(rows, snap.score)
+}
+
+function withPoints(rows, score) {
+  const logs = rows.map(r => Math.log(r.mult))
+  const total = logs.reduce((a, b) => a + b, 0)
+  const ok = Number.isFinite(total) && Math.abs(total) > 1e-6 && Number.isFinite(score) && (score - 100) * total > 0
+  return rows.map(({ mult, ...row }, i) => ({ ...row, points: ok ? Math.round(((score - 100) * logs[i]) / total) : null }))
 }
 
 /** Score = A × (0,5 + 0,5·H) × T × (0,4 + 0,6·S) × D·C [× F] [× 1,1] = score, with the real numbers. */

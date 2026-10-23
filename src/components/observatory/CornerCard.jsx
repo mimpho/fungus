@@ -28,7 +28,7 @@ function BrokenHeart() {
  * its notes, the species it has (as cards) and what can be done with it — edit and remove, each
  * in a dialog. Photos will join the species here. Nothing if the zone is not saved.
  */
-export function CornerCard({ point, saved, suggestedName, onRemoved, onOpenList }) {
+export function CornerCard({ point, saved, suggestedName, toponym = null, onRemoved, onOpenList }) {
   const { t } = useApp()
   const [mode, setMode] = useState('idle')
   const rows = useSpeciesRows()
@@ -40,31 +40,41 @@ export function CornerCard({ point, saved, suggestedName, onRemoved, onOpenList 
     return (corner?.species_ids ?? []).map(id => byId.get(id) ?? { id, name: id, scientific: '', photo: null })
   }, [rows, corner?.species_ids])
   const close = () => setMode('idle')
+  // The place's own name, shown under the corner's when the corner has another one
+  const same = x => x && corner?.name?.trim().toLowerCase() === x.trim().toLowerCase()
+  const place = toponym && !same(toponym.name) && !same(toponym.label) ? (toponym.label ?? toponym.name) : null
 
   if (!corner) return <CornerModals mode={mode} onClose={close} point={point} saved={saved} onRemoved={onRemoved} />
 
   return (
     <>
-      <section aria-label={t.obsCornerSavedHere} data-testid="corner-card" className="rounded-2xl p-4 space-y-3 min-w-0 bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px]">
-        <div className="flex items-start gap-3 min-w-0">
-          <span aria-hidden="true" className="shrink-0 mt-0.5 [&>svg]:w-[26px] [&>svg]:h-[33px]" dangerouslySetInnerHTML={{ __html: pinSvg(corner.kind) }} />
-          <div className="min-w-0">
+      <section aria-label={t.obsCornerSavedHere} data-testid="corner-card" className="rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px]">
+        {/* The kind and the link to the list on the first line; below, the pin beside the name and, when
+            the name is not the place's own, the toponym */}
+        <div className="space-y-2 min-w-0">
+          <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">
               {t[kindMeta(corner.kind).labelKey]}
             </p>
-            <h3 data-testid="saved-badge" className="font-display text-xl font-semibold text-cream break-words">{corner.name}</h3>
+            {onOpenList && (
+              <button
+                type="button"
+                onClick={onOpenList}
+                aria-haspopup="dialog"
+                className="shrink-0 inline-flex items-center gap-0.5 text-sm font-medium text-cream/80 hover:text-cream transition-colors"
+              >
+                {t.obsSavedListTitle}
+                <ChevronRight size={16} strokeWidth={2.2} aria-hidden="true" />
+              </button>
+            )}
           </div>
-          {onOpenList && (
-            <button
-              type="button"
-              onClick={onOpenList}
-              aria-haspopup="dialog"
-              className="ml-auto shrink-0 inline-flex items-center gap-0.5 text-sm font-medium text-cream/80 hover:text-cream transition-colors"
-            >
-              {t.obsSavedListTitle}
-              <ChevronRight size={16} strokeWidth={2.2} aria-hidden="true" />
-            </button>
-          )}
+          <div className="flex items-center gap-3 min-w-0">
+            <span aria-hidden="true" className="shrink-0 [&>svg]:w-[26px] [&>svg]:h-[33px]" dangerouslySetInnerHTML={{ __html: pinSvg(corner.kind) }} />
+            <div className="min-w-0">
+              <h3 data-testid="saved-badge" className="font-display text-xl font-semibold text-cream break-words">{corner.name}</h3>
+              {place && <p data-testid="saved-place" className="text-sm text-cream break-words">{place}</p>}
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -80,8 +90,9 @@ export function CornerCard({ point, saved, suggestedName, onRemoved, onOpenList 
 
         {corner.notes && !notesAreSpeciesNames(corner.notes, species.map(r => r.scientific)) && <p className="text-sm text-cream/75 whitespace-pre-line break-words">{corner.notes}</p>}
 
+        {/* The species strip goes edge to edge: the card's padding is only the start position of the photos */}
         {species.length > 0 && (
-          <ul className={`flex gap-2 overflow-x-auto pb-1.5 ${SCROLL_THIN}`} aria-label={t.obsCornerSpecies}>
+          <ul className={`flex gap-2 overflow-x-auto pb-1.5 -mx-4 px-4 ${SCROLL_THIN}`} aria-label={t.obsCornerSpecies}>
             {species.map(r => (
               <li key={r.id} className="shrink-0 w-[150px]">
                 <SpeciesCard row={r} onOpen={() => setViewing(r.id)} openLabel={t.obsCornerSpeciesOpen.replace('{name}', r.name)} />

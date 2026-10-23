@@ -1,18 +1,20 @@
 import { useApp } from '../../contexts/AppContext'
 import { IC } from '../../lib/helpers'
 import { usePointData } from '../../hooks/usePointData'
-import { fetchPointSnapshot } from '../../services/observatoryService'
+import { useSpecies } from '../../hooks/useSpecies'
+import { speciesName } from '../../lib/speciesList'
+import { fetchPointForest, fetchPointSnapshot } from '../../services/observatoryService'
 import { formatNumber } from '../../lib/thermometer'
 import { getScoreBand } from '../../lib/scoreBands'
 import { formatCoords, samePoint } from '../../lib/observatoryView'
 import { sortSaved } from '../../lib/savedPoints'
-import { kindMeta, pinSvg } from '../../lib/cornerKinds'
+import { DEFAULT_KIND, kindMeta, pinSvg } from '../../lib/cornerKinds'
+import { FOREST_ICONS, forestParts } from '../../lib/habitat'
 import { ObservatoryNotice } from './ObservatoryNotice'
 
 /** The card's score bar: the same look as the zone card's, from the point's own snapshot. */
-function CardMeter({ point }) {
+function CardMeter({ snap, label }) {
   const { t, lang } = useApp()
-  const snap = usePointData(fetchPointSnapshot, point)
 
   if (snap.status === 'loading') {
     return (
@@ -37,7 +39,7 @@ function CardMeter({ point }) {
   return (
     <>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-cream/70 text-xs">{t.condRecoleccion}</span>
+        <span className="text-cream/70 text-xs truncate pr-2">{label}</span>
         <span data-testid="saved-score" className={`text-xs font-semibold ${band.text}`}>{score} · {t[band.obsKey]}</span>
       </div>
       <div className="progress-bar" aria-hidden="true">
@@ -63,14 +65,27 @@ function CardMeter({ point }) {
 }
 
 /**
- * One saved point as a card like the zones page's: name, altitude and the score bar. The whole
- * card observes the point (the name is the button, stretched over the card). Editing and removing happen once the point is observed.
+ * One saved point as a card like the zones page's: name, pin, kind and coordinates,
+ * altitude and forest, the score bar, and the species count with the notes in one line. The whole card observes the point (the name is the
+ * button, stretched over the card). Editing and removing happen once the point is observed.
  */
 function Card({ sp, observed, onObserve }) {
   const { t } = useApp()
   const isObserved = samePoint(observed, sp)
   // The toponym is not stored any more: it shows when the corner is observed. The list has the coordinates.
   const label = formatCoords(sp)
+  // With exactly one mushroom tagged the score is that mushroom's own; with none or several it is
+  // the mean of the excellent edibles of the place (the server scores one species per request)
+  const { species: catalog } = useSpecies()
+  const onlyId = sp.species_ids?.length === 1 ? sp.species_ids[0] : null
+  const snap = usePointData(fetchPointSnapshot, sp, onlyId ? { species: onlyId } : undefined)
+  const meterLabel = onlyId
+    ? speciesName(onlyId, null, new Map((catalog ?? []).map(c => [c.id, c])))
+    : t.obsSavedCondLabel
+  // The forest around the point (CREAF classes, biggest first; the two main ones), live like the toponym
+  const forest = usePointData(fetchPointForest, sp)
+  const forestTypes = forestParts(forest.data?.habitat, t).slice(0, 2)
+  const count = sp.species_ids?.length ?? 0
 
   return (
     <li
@@ -89,27 +104,37 @@ function Card({ sp, observed, onObserve }) {
               {sp.name}
             </button>
           </h3>
-          <p className="text-muted text-xs mt-0.5 truncate">{isObserved ? t.obsPointObserving : label}</p>
+          <p className="text-muted text-xs mt-0.5 flex items-center gap-1.5 min-w-0">
+            <span aria-hidden="true" className="shrink-0 [&>svg]:w-3.5 [&>svg]:h-[18px]" dangerouslySetInnerHTML={{ __html: pinSvg(sp.kind) }} />
+            {sp.kind !== DEFAULT_KIND && <span data-testid="saved-kind" className="shrink-0 text-cream/80">{t[kindMeta(sp.kind).labelKey]} ·</span>}
+            <span className="truncate">{label}</span>
+          </p>
         </div>
 
         <div className="relative z-[1] pointer-events-none">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-cream/70 mb-4">
-            <span className="flex items-center gap-1.5" data-testid="saved-kind">
-              <span aria-hidden="true" className="[&>svg]:w-3.5 [&>svg]:h-[18px]" dangerouslySetInnerHTML={{ __html: pinSvg(sp.kind) }} />
-              {t[kindMeta(sp.kind).labelKey]}
-            </span>
-            {sp.species_ids?.length > 0 && <span>{t.obsCornerCount.replace('{n}', sp.species_ids.length)}</span>}
             {Number.isFinite(sp.elevation_m) && (
               <span className="flex items-center gap-1.5">
                 <img src="/assets/images/icons/mountain.png" alt="" height="16" width="16" />
                 {Math.round(sp.elevation_m)} m
               </span>
             )}
+            {forestTypes.map(f => (
+              <span key={f.key} data-testid="saved-forest" className="flex items-center gap-1.5">
+                {FOREST_ICONS.has(f.key) && <img src={`/assets/images/icons/forest-type-${f.key}.png`} alt="" height="16" width="16" />}
+                {f.label}
+              </span>
+            ))}
           </div>
-          <CardMeter point={sp} />
-          {sp.notes && <p className="mt-2 text-xs text-cream/60 line-clamp-2 break-words">{sp.notes}</p>}
+          <CardMeter snap={snap} label={meterLabel} />
         </div>
-
+        {(count > 0 || sp.notes) && (
+          <p className="relative z-[1] pointer-events-none mt-3 text-xs text-cream/60 truncate">
+            {count > 0 && <span data-testid="saved-count-species">{t.obsCornerCount.replace('{n}', count)}</span>}
+            {count > 0 && sp.notes && ' · '}
+            {sp.notes}
+          </p>
+        )}
       </div>
     </li>
   )
