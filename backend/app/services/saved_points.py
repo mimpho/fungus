@@ -96,7 +96,7 @@ def all_species_ids(record: SavedPointRecord) -> list[str]:
 
 
 def default_name(lat: float, lon: float, toponym: Toponym | None) -> str:
-    """What a corner is called when its owner gives no name: the nearest toponym, else the coordinates."""
+    """Name for a corner whose owner gives none: the nearest toponym, else the coordinates."""
     return toponym.name if toponym else f"{lat:.4f}, {lon:.4f}"
 
 
