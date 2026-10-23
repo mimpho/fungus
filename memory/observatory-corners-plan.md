@@ -17,8 +17,9 @@
 
 From branch 2 on each one is vertical (API + interface) so it can be reviewed on screen.
 
-1. 🔶 `feat/observatory-corners-model` — migration 020 (`kind`; `saved_point_species`, `saved_point_photos`, `saved_point_photo_species`; the dropped columns), model, store, schemas, router (`kind` and `species_ids` on POST/PATCH, `all_species_ids` on reads), dead code of the author's forest types removed from `observatory.py`, tests. Frontend: the card no longer reads the stored toponym. The photo tables are created now; their endpoints come in branch 3.
+1. ✅ (integrated in `epic/observatory`, #142) `feat/observatory-corners-model` — migration 020 (`kind`; `saved_point_species`, `saved_point_photos`, `saved_point_photo_species`; the dropped columns), model, store, schemas, router (`kind` and `species_ids` on POST/PATCH, `all_species_ids` on reads), dead code of the author's forest types removed from `observatory.py`, tests. Frontend: the card no longer reads the stored toponym. The photo tables are created now; their endpoints come in branch 3.
 2. ✅ (2026-10-23, reviewed on screen; mobile pass pending) `feat/observatory-corners-ui` — kind selector in the form, multiple species picker with cards (extracted from `SpeciesLayerPicker`; lazy images, capped results), copy «Guardar / Editar / Quitar rincón» in ES/CA/EN, the «Mis rincones» layer (in `MapLayersBox`), pins and clusters.
+2b. `feat/observatory-ui-polish` (2026-10-23) — interface improvements made after branch 2 (charts, columns, buttons); no new feature. See `CHANGELOG.md`.
 3. `feat/observatory-corners-photos` — Supabase Storage client behind a protocol with a fake for tests (a dev bucket, because the local `.env` points at production), Pillow + `pillow-heif`, upload/delete endpoints, signed URLs, tagging species per photo, anti-abuse limits, object cleanup on corner and account deletion, uploader and viewer. Needs `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in Render (never in the frontend).
 4. `feat/profile-corners-tab` — «Mis rincones» tab in the profile with a filter by kind.
 

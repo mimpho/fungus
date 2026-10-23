@@ -7,12 +7,13 @@ import {
 } from '../../lib/speciesList'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { ObsSelect } from './ObsSelect'
+import { SpeciesPreview } from './SpeciesPreview'
 
 const MARK = { met: '✓', pending: '…', not_met: '✗' }
 const ALL = 'all'
 const FIELD = 'rounded-xl bg-cream/[0.08] px-3 py-2 text-base md:text-sm text-cream placeholder:text-cream/40 outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
 
-function Row({ row, selected, onSelect }) {
+function Row({ row, selected, onSelect, onOpenCard }) {
   const { t } = useApp()
   const [open, setOpen] = useState(false)
   const edib = getEdibilityColor(row.edibility)
@@ -22,15 +23,18 @@ function Row({ row, selected, onSelect }) {
       {/* Selection outline drawn inside the card (above the photo) so the list never clips it */}
       {selected && <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 rounded-xl ring-2 ring-inset ring-bar" />}
       <div className="flex items-stretch">
-        <button
-          type="button"
-          onClick={() => onSelect(selected ? null : row.id)}
-          aria-pressed={selected}
-          aria-label={t.obsSpPick.replace('{name}', row.name)}
-          className="flex-1 min-w-0 flex items-stretch text-left hover:bg-cream/[0.06] transition-colors"
-        >
+        {/* The row is one big button (an overlay) so the card icon next to the edibility tag is not
+            a button inside a button; the content above it lets clicks through, except that icon */}
+        <div className="relative flex-1 min-w-0 flex items-stretch">
+          <button
+            type="button"
+            onClick={() => onSelect(selected ? null : row.id)}
+            aria-pressed={selected}
+            aria-label={t.obsSpPick.replace('{name}', row.name)}
+            className="absolute inset-0 z-0 hover:bg-cream/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cream/50"
+          />
           {/* The catalogue's photo, to the card's edge (no padding) and as tall as the row */}
-          <span aria-hidden="true" className="relative shrink-0 w-20 bg-cream/[0.08]">
+          <span aria-hidden="true" className="pointer-events-none relative shrink-0 w-20 bg-cream/[0.08]">
             {row.photo && (
               <img
                 src={resolveUrl(row.photo)}
@@ -42,19 +46,35 @@ function Row({ row, selected, onSelect }) {
               />
             )}
           </span>
-          <span className="flex-1 min-w-0 flex items-center gap-2.5 pl-3 pr-1 py-2.5">
+          <span className="pointer-events-none relative flex-1 min-w-0 flex items-center gap-2.5 pl-3 pr-1 py-2.5">
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium text-cream truncate">
                 {row.followed && <span aria-label={t.obsSpFollowed} title={t.obsSpFollowed}>★ </span>}
                 {row.name}
               </span>
               <span className="block text-xs text-cream/60 truncate italic">{row.scientific}</span>
-              <span className={`inline-block mt-0.5 text-[11px] px-1.5 py-px rounded-full ${edib.bg} ${edib.text}`}>{t[edib.tKey]}</span>
+              <span className="mt-0.5 flex items-center gap-1.5">
+                <span className={`inline-block text-[11px] px-1.5 py-px rounded-full ${edib.bg} ${edib.text}`}>{t[edib.tKey]}</span>
+                <button
+                  type="button"
+                  onClick={() => onOpenCard(row.id)}
+                  title={t.ver_ficha}
+                  aria-label={t.obsCornerSpeciesOpen.replace('{name}', row.name)}
+                  className="pointer-events-auto relative z-10 inline-flex items-center justify-center size-6 -my-1 rounded-full text-cream/60 hover:text-cream hover:bg-cream/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+                >
+                  {/* A file card with lines */}
+                  <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 3v5h5" />
+                    <path d="M9 13h6M9 17h6" />
+                  </svg>
+                </button>
+              </span>
             </span>
             {/* The score, at the right end next to the arrow that opens the details */}
             <span className={`font-display text-2xl font-bold shrink-0 min-w-9 text-right ${row.band.text}`}>{row.score}</span>
           </span>
-        </button>
+        </div>
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
@@ -100,6 +120,7 @@ export function SpeciesPanel({ state, selected, onSelect }) {
   const { species: catalog } = useSpecies()
   const [group, setGroup] = useState(DEFAULT_EDIB_GROUP)
   const [query, setQuery] = useState('')
+  const [viewing, setViewing] = useState(null)     // species whose card is open over the page
   const [infoOpen, setInfoOpen] = useState(false)   // pinned by a click (touch screens)
   const [infoHover, setInfoHover] = useState(false) // while the pointer or focus is on the button
 
@@ -118,11 +139,12 @@ export function SpeciesPanel({ state, selected, onSelect }) {
     () => filterRows(rows, { group: group === ALL ? null : group, query }),
     [rows, group, query],
   )
+  const card = viewing && (catalog ?? []).find(s => s.id === viewing)
   // Groups with nothing to show are left out, except the one chosen
   const groups = EDIB_GROUPS.filter(g => counts[g] > 0 || g === group)
 
   return (
-    <aside aria-labelledby="obs-sp-title" className={`glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:absolute lg:inset-0 transition-opacity ${state.stale ? 'opacity-70' : ''}`}>
+    <aside aria-labelledby="obs-sp-title" className={`glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:h-[36rem] transition-opacity ${state.stale ? 'opacity-70' : ''}`}>
       <div className="flex items-center justify-between gap-2">
         <h3 id="obs-sp-title" className="font-display text-2xl text-cream">{t.obsSpTitle}</h3>
         <div
@@ -207,12 +229,13 @@ export function SpeciesPanel({ state, selected, onSelect }) {
               className="space-y-2 max-h-[350px] lg:max-h-none lg:flex-1 lg:min-h-0 overflow-y-auto pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/50 rounded-xl"
             >
               {shown.map(row => (
-                <Row key={row.id} row={row} selected={row.id === selected} onSelect={onSelect} />
+                <Row key={row.id} row={row} selected={row.id === selected} onSelect={onSelect} onOpenCard={setViewing} />
               ))}
             </ul>
           )}
         </>
       )}
+      {card && <SpeciesPreview species={card} onClose={() => setViewing(null)} />}
     </aside>
   )
 }

@@ -123,7 +123,7 @@ export function SavedPointsToggle({ saved, onToggle }) {
       type="button"
       onClick={onToggle}
       aria-haspopup="dialog"
-      className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl glass text-cream text-base font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+      className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px] text-cream text-sm font-medium hover:bg-coffee/35 transition-all"
     >
       <span aria-hidden="true" className="[&>svg]:w-[18px] [&>svg]:h-[18px]">{IC.heart(true)}</span>
       <span>{t.obsSavedListTitle}</span>

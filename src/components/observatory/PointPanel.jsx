@@ -169,7 +169,7 @@ export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onCl
           <button
             type="button"
             onClick={() => setMode('create')}
-            className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+            className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px] text-cream text-sm font-medium hover:bg-coffee/35 transition-all"
           >
             <span aria-hidden="true" className="[&>svg]:w-4 [&>svg]:h-4">{IC.heart(false)}</span>
             {t.obsSaveZoneButton}

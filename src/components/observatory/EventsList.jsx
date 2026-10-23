@@ -15,7 +15,7 @@ export function EventsList({ vm }) {
   const frost = frostLine(vm.lowest, t, lang)
 
   return (
-    <aside aria-labelledby="obs-ev-title" className="glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:absolute lg:inset-0">
+    <aside aria-labelledby="obs-ev-title" className="glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:max-h-[34rem]">
       <div>
         <h3 id="obs-ev-title" className="font-display text-2xl text-cream">{t.obsChEvents}</h3>
         <p className="text-xs text-cream/60">{t.obsChEventsSub}</p>

@@ -640,3 +640,14 @@ useEffect(() => {
 - **Species panel:** «Filtrar por seta en esta zona»; no grade text, the score is enough.
 - **Leaflet** draws outside React, so pin colours are literal hex and `leaflet.markercluster` is loaded dynamically after `window.L = L`.
 - **Pending for the mobile pass:** basemap switch and fullscreen button, modal after observing in fullscreen, Esc with stacked modals, ranking overlap in fullscreen.
+
+## Observatory — interface polish (2026-10-23)
+
+**Decision:** one front-end branch, `feat/observatory-ui-polish`, groups the small interface improvements made after the corners interface, without new features.
+
+- **Fullscreen without the browser's API.** The Fullscreen API takes Esc for itself: the page cannot stop the browser leaving fullscreen, so closing a modal with Esc also left it. Fullscreen is now only the fixed page over the viewport (the browser's own bars stay visible); Esc is always the page's and a dialog on top (`isDialogAbove`) takes it first. Alternative discarded: Keyboard Lock (Chromium only, fragile).
+- **A chart that does not rescale while panning.** The score chart always has the same number of slots: window, then the real days up to today, then the forecast. It needs the calendar loaded to reserve the forecast room (it widens once when it arrives). Discarded: leaving the forecast room empty when the window is in the past (looked cut) and shrinking the forecast gradually (its dates would not follow the window).
+- **Independent columns instead of rows in a grid.** Each column stacks its own cards, so there are no gaps under the shorter one. The species panel has a fixed height (36 rem) and the events list a maximum (34 rem), both scroll inside; before they stretched to the neighbour's height. `ChartSection` hands the chart and the events list to the page through a render function so the page decides the columns.
+- **Colour language.** Chart fills fade from transparent at the axis to full colour at the window's highest value; the score line and the temperature band use a vertical gradient anchored to the axis values (not to the shape). Corner-related surfaces use the `coffee` token with the `ring-bar` outline; no new colours were added to the palette.
+- **Open for the mobile pass:** the new column order on phones (chart before corner card), the data modal, the 100 px «Volver al mapa» band and the forecast cards at medium widths.
+

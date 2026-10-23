@@ -1,20 +1,37 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { Tabs } from '../ui/Tabs'
+import { ObsModal } from './ObsModal'
 import { Timeline } from './Timeline'
 import { SCORE_BANDS, getScoreBand } from '../../lib/scoreBands'
 import {
-  TABS, fmt, indexAt, labelIndexes, linePath, niceRange, scaleY, ticks, tableRow,
+  TABS, fmt, indexAt, labelIndexes, niceRange, smoothArea, smoothPath, smoothPoints, scaleY, ticks, tableRow,
 } from '../../lib/chartData'
 import { formatDay } from '../../lib/thermometer'
 import { dragWindow } from '../../lib/timeline'
 
 // Literal colours: the chart is SVG drawn from numbers, the same in both themes.
-const RAIN = '#4a8fb8', AIR = '#d08a3c', SOIL = '#8a6a45', GOOD = '#4a7c59', WARN = '#c98a40', WIND = '#7b8794'
+const RAIN = '#4a8fb8', AIR = '#d08a3c', SOIL = '#8a6a45', SOIL_DARK = '#5a3b1e', RANGE_RED = '#e5484d', ACC_BLUE = '#2f7fe8', GOOD = '#4a7c59', WARN = '#c98a40', WIND = '#7b8794', WIND_LINE = '#c9d0d8'
 const CREAM = 'rgb(var(--color-cream-rgb))'
 const LIMIT_COLOR = { activation: RAIN, moisture: SOIL, temperature: AIR, drying: WIND }
 const LIMIT_NAME = { activation: 'obsThFActivation', moisture: 'obsThFMoisture', temperature: 'obsThFTemperature', drying: 'obsThFHeatDry' }
 const TAB_KEY = { score: 'obsChTabScore', rain: 'obsChTabRain', temp: 'obsChTabTemp', hum: 'obsChTabHum', wind: 'obsChTabWind' }
+// Max–min band: colour follows the temperature itself (blue cold, red hot), the same on every day
+const TEMP_COLORS = [[-5, [47, 107, 179]], [5, [90, 167, 201]], [15, [224, 182, 74]], [25, [217, 98, 43]], [35, [192, 57, 43]]]
+const tempColor = t => {
+  const a = TEMP_COLORS
+  if (t <= a[0][0]) return `rgb(${a[0][1]})`
+  for (let i = 1; i < a.length; i++) {
+    if (t <= a[i][0]) {
+      const k = (t - a[i - 1][0]) / (a[i][0] - a[i - 1][0])
+      return `rgb(${a[i - 1][1].map((c, j) => Math.round(c + (a[i][1][j] - c) * k))})`
+    }
+  }
+  return `rgb(${a[a.length - 1][1]})`
+}
+const TEMP_BAND_OPACITY = 0.55
+// Middle of each score band (see scoreBands.js), bottom to top; the ends repeat the first and last colour
+const SCORE_STOPS = [[0, 'low'], [15, 'low'], [42.5, 'mid'], [62.5, 'ok'], [77.5, 'good'], [92.5, 'high'], [100, 'high']]
 const HEIGHT = 300, TOP = 30, BOTTOM = 272, LEFT = 40
 const RAIN_MAX_MM = 40
 
@@ -70,25 +87,27 @@ function legendFor(tab, layers, species, t, future = []) {
   }
   if (tab === 'rain') {
     const out = [{ color: RAIN, label: t.obsChRainDay, box: true }]
-    if (layers.acc) out.push({ color: CREAM, label: t.obsChRainAcc })
+    if (layers.acc) out.push({ color: ACC_BLUE, label: t.obsChRainAcc })
     return out
   }
   if (tab === 'temp') {
-    const out = [{ color: AIR, label: t.obsChAvg }, { color: SOIL, label: t.obsChSoil, dash: true }, { color: AIR, label: t.obsChMaxMinBand, box: true, faint: true }]
-    if (species) out.push({ color: WARN, label: t.obsChSpeciesRange, dash: true })
+    const out = [{ color: CREAM, label: t.obsChAvg }, { color: SOIL_DARK, label: t.obsChSoil, dash: true }, { color: AIR, label: t.obsChMaxMinBand, box: true, tempGradient: true }]
+    if (species) out.push({ color: RANGE_RED, label: t.obsChSpeciesRange, dots: true })
     return out
   }
-  if (tab === 'hum') return [{ color: RAIN, label: t.obsChHumidity }, { color: GOOD, label: t.obsChHumOptimum, box: true, faint: true }, { color: WARN, label: t.obsChBrakeLine, dash: true }]
-  return [{ color: WIND, label: t.obsChWindMean, box: true }]
+  if (tab === 'hum') return [{ color: ACC_BLUE, label: t.obsChHumidity }, { color: GOOD, label: t.obsChHumOptimum, box: true, faint: true }, { color: WARN, label: t.obsChBrakeLine, dash: true }]
+  return [{ color: WIND_LINE, label: t.obsChWindMean }]
 }
 
 /** The drawing itself: one SVG per tab, with the events of the window on top. */
-function Chart({ vm, tab, layers, range, width, future, pan }) {
+function Chart({ vm, tab, layers, range, width, future, tail, pan }) {
   const { t, lang } = useApp()
   const svgRef = useRef(null)
   const gid = `g${useId().replace(/:/g, '')}`
   const [hover, setHover] = useState(null)
-  const days = vm.days
+  // Score tab: the real days after the window (see ChartSection) go on after it, in a lighter band
+  const days = useMemo(() => (tab === 'score' && tail.length ? [...vm.days, ...tail] : vm.days), [vm.days, tail, tab])
+  const R = days.length - vm.days.length
   const N = days.length
   // Days ahead are only drawn on the score tab; the plot makes room for them after the real days
   const ahead = tab === 'score' ? future : []
@@ -166,6 +185,7 @@ function Chart({ vm, tab, layers, range, width, future, pan }) {
     avg: days.map(d => d.climate?.temp_avg_c ?? null),
     soil: days.map(d => d.climate?.soil_temp_c ?? null),
     hum: days.map(d => d.climate?.humidity_pct ?? null),
+    wind: days.map(d => d.climate?.wind_kmh ?? null),
     acc: days.map(d => d.acc ?? null),
   }), [days])
 
@@ -188,8 +208,10 @@ function Chart({ vm, tab, layers, range, width, future, pan }) {
   const area = useMemo(() => {
     const pts = days.map((d, i) => (d.climate ? [cx(i), d.climate] : null)).filter(Boolean)
     if (pts.length < 2) return ''
-    const at = (x, v) => `${x.toFixed(1)},${y(v).toFixed(1)}`
-    return `M${pts.map(([x, c]) => at(x, c.temp_max_c)).join(' L')} L${pts.slice().reverse().map(([x, c]) => at(x, c.temp_min_c)).join(' L')} Z`
+    // Maximum edge left to right, minimum edge right to left, both smooth (same curve as the lines)
+    const top = pts.map(([x, c]) => [x, y(c.temp_max_c)])
+    const bottom = pts.map(([x, c]) => [x, y(c.temp_min_c)]).reverse()
+    return `${smoothPoints(top)}${smoothPoints(bottom, false)}Z`
   }, [days, step, g]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const bars = (key, max, color) => days.map((d, i) => {
@@ -222,11 +244,27 @@ function Chart({ vm, tab, layers, range, width, future, pan }) {
     )
   }) : null
 
-  // Line of the score: colour follows the band of each day (same bands as the thermometer)
-  const gradStops = [...days.map(d => d.v2?.score ?? null), ...ahead.map(f => f.score)]
-    .map((score, i) => (score != null ? { o: NT > 1 ? i / (NT - 1) : 0, key: getScoreBand(score).key } : null))
-    .filter(Boolean)
-  const useGrad = NT > 1 && gradStops.length > 1
+  // Highest accumulated rain in the window on screen: the fill under the accumulated line goes from transparent
+  // at the X axis to full blue here, so it follows the window when the timeline moves
+  const accPeak = Math.max(0, ...series.acc.filter(v => v != null))
+  // Same idea for humidity and wind: the fill goes from transparent at the X axis to full colour at
+  // the highest value of the window
+  const peakOf = values => Math.max(0, ...values.filter(v => v != null))
+  const humPeak = peakOf(series.hum), windPeak = peakOf(series.wind)
+  const fadeDefs = (id, color, peak) => peak > 0 && (
+    <defs>
+      <linearGradient id={`${gid}${id}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={BOTTOM} y2={y(peak)}>
+        <stop offset="0" stopColor={color} stopOpacity="0" />
+        <stop offset="1" stopColor={color} stopOpacity="1" />
+      </linearGradient>
+    </defs>
+  )
+  const fadeLine = (id, values, color, peak) => (
+    <g>
+      {peak > 0 && <path d={smoothArea(values, cx, y, BOTTOM)} fill={`url(#${gid}${id})`} />}
+      <path d={smoothPath(values, cx, y)} style={stroke(color, 2.4)} />
+    </g>
+  )
 
   const hovered = hover != null && hover < N ? days[hover] : null
   const hoveredAhead = hover != null && hover >= N ? ahead[hover - N] : null
@@ -244,10 +282,34 @@ function Chart({ vm, tab, layers, range, width, future, pan }) {
         aria-label={`${t[TAB_KEY[tab]]}: ${formatDay(days[0].date, lang)} – ${formatDay(dateAt(NT - 1), lang)}`}
         className="block max-w-full touch-pan-y"
       >
-        {tab === 'score' && useGrad && (
+        {tab === 'hum' && fadeDefs('h', ACC_BLUE, humPeak)}
+        {tab === 'wind' && fadeDefs('w', WIND_LINE, windPeak)}
+        {tab === 'rain' && layers.acc && yAcc && accPeak > 0 && (
           <defs>
-            <linearGradient id={gid} gradientUnits="userSpaceOnUse" x1={cx(0)} x2={cx(NT - 1)} y1="0" y2="0">
-              {gradStops.map(s => <stop key={s.o} offset={s.o.toFixed(4)} style={{ stopColor: `var(--ui-score-${s.key}-bar)` }} />)}
+            <linearGradient id={`${gid}a`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={yAcc(0)} y2={yAcc(accPeak)}>
+              <stop offset="0" stopColor={ACC_BLUE} stopOpacity="0" />
+              <stop offset="1" stopColor={ACC_BLUE} stopOpacity="1" />
+            </linearGradient>
+          </defs>
+        )}
+        {tab === 'temp' && (
+          <defs>
+            {/* userSpaceOnUse: the colour belongs to the temperature on the axis, not to the band's own height */}
+            <linearGradient id={`${gid}t`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={y(g.lo)} y2={y(g.hi)}>
+              {[g.lo, ...TEMP_COLORS.map(([v]) => v).filter(v => v > g.lo && v < g.hi), g.hi].map(v => (
+                <stop key={v} offset={((v - g.lo) / (g.hi - g.lo)).toFixed(4)} stopColor={tempColor(v)} />
+              ))}
+            </linearGradient>
+          </defs>
+        )}
+        {tab === 'score' && (
+          <defs>
+            {/* Vertical: the colour belongs to the score on the axis (red low, green high), the stops
+                at the middle of each band so each band reads as its own colour */}
+            <linearGradient id={`${gid}s`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={y(0)} y2={y(100)}>
+              {SCORE_STOPS.map(([score, key]) => (
+                <stop key={score} offset={score / 100} style={{ stopColor: `var(--ui-score-${key}-bar)` }} />
+              ))}
             </linearGradient>
           </defs>
         )}
@@ -262,10 +324,10 @@ function Chart({ vm, tab, layers, range, width, future, pan }) {
         })}
         {tab === 'temp' && range && (
           <g>
-            <rect x={LEFT} y={y(range.max)} width={plotW} height={y(range.min) - y(range.max)} fill={WARN} fillOpacity="0.08" />
-            <line x1={LEFT} x2={LEFT + plotW} y1={y(range.max)} y2={y(range.max)} style={stroke(CREAM, 1.2, '6 4', 0.55)} />
-            <line x1={LEFT} x2={LEFT + plotW} y1={y(range.min)} y2={y(range.min)} style={stroke(CREAM, 1.2, '6 4', 0.55)} />
-            {range.opt != null && <line x1={LEFT} x2={LEFT + plotW} y1={y(range.opt)} y2={y(range.opt)} style={stroke(CREAM, 1, '1 4', 0.4)} />}
+            <rect x={LEFT} y={y(range.max)} width={plotW} height={y(range.min) - y(range.max)} fill={RANGE_RED} fillOpacity="0.05" />
+            <line x1={LEFT} x2={LEFT + plotW} y1={y(range.max)} y2={y(range.max)} style={stroke(RANGE_RED, 2, '1 6')} />
+            <line x1={LEFT} x2={LEFT + plotW} y1={y(range.min)} y2={y(range.min)} style={stroke(RANGE_RED, 2, '1 6')} />
+            {range.opt != null && <line x1={LEFT} x2={LEFT + plotW} y1={y(range.opt)} y2={y(range.opt)} style={stroke(RANGE_RED, 1.2, '1 6', 0.55)} />}
           </g>
         )}
         {tab === 'hum' && (
@@ -289,33 +351,37 @@ function Chart({ vm, tab, layers, range, width, future, pan }) {
           <text key={i} x={cx(i)} y={BOTTOM + 17} textAnchor="middle" fontSize="11" style={{ fill: CREAM, fillOpacity: 0.6 }}>{formatDay(dateAt(i), lang)}</text>
         ))}
 
+        {tab === 'rain' && layers.acc && yAcc && accPeak > 0 && (
+          <path d={smoothArea(series.acc, cx, yAcc, BOTTOM)} fill={`url(#${gid}a)`} />
+        )}
         {tab === 'rain' && bars('precipitation_mm', RAIN_MAX_MM, RAIN)}
-        {tab === 'wind' && bars('wind_kmh', g.hi, WIND)}
-        {tab === 'rain' && layers.acc && <path d={linePath(series.acc, cx, yAcc)} style={stroke(CREAM, 2.2)} />}
+        {tab === 'rain' && layers.acc && <path d={smoothPath(series.acc, cx, yAcc)} style={stroke(ACC_BLUE, 2.4)} />}
 
         {tab === 'temp' && (
           <g>
-            <path d={area} fill={AIR} fillOpacity="0.14" />
-            <path d={linePath(series.soil, cx, y)} style={stroke(SOIL, 2, '6 3')} />
-            <path d={linePath(series.avg, cx, y)} style={stroke(AIR, 2.2)} />
+            <path d={area} fill={`url(#${gid}t)`} fillOpacity={TEMP_BAND_OPACITY} />
+            <path d={smoothPath(series.soil, cx, y)} style={stroke(SOIL_DARK, 2.6, '6 3')} />
+            <path d={smoothPath(series.avg, cx, y)} style={stroke(CREAM, 2.8)} />
           </g>
         )}
-        {tab === 'hum' && <path d={linePath(series.hum, cx, y)} style={stroke(RAIN, 2.2)} />}
+        {tab === 'hum' && fadeLine('h', series.hum, ACC_BLUE, humPeak)}
+        {tab === 'wind' && fadeLine('w', series.wind, WIND_LINE, windPeak)}
         {F > 0 && (
           <g>
             <rect x={LEFT + step * N} y={TOP} width={step * F} height={BOTTOM - TOP} fill={CREAM} fillOpacity="0.035" />
             <line x1={LEFT + step * N} x2={LEFT + step * N} y1={TOP} y2={BOTTOM} style={stroke(CREAM, 1, '4 4', 0.5)} />
             <text x={LEFT + step * N + 8} y={TOP + 14} fontSize="11" fontWeight="600" style={{ fill: CREAM, fillOpacity: 0.7 }}>{t.obsChFutureLabel}</text>
-            {fcRuns.fcN > 0 && <path d={linePath(fcRuns.fc, cx, y)} style={stroke(useGrad ? `url(#${gid})` : CREAM, 3, '2 6')} />}
-            {fcRuns.fcN < F && <path d={linePath(fcRuns.es, cx, y)} style={stroke(useGrad ? `url(#${gid})` : CREAM, 3, '2 6', 0.5)} />}
+            {fcRuns.fcN > 0 && <path d={smoothPath(fcRuns.fc, cx, y)} style={stroke(`url(#${gid}s)`, 3, '2 6')} />}
+            {fcRuns.fcN < F && <path d={smoothPath(fcRuns.es, cx, y)} style={stroke(`url(#${gid}s)`, 3, '2 6', 0.5)} />}
           </g>
+        )}
+        {tab === 'score' && R > 0 && (
+          <rect x={LEFT + step * (N - R)} y={TOP} width={step * R} height={BOTTOM - TOP} fill={CREAM} fillOpacity="0.035" />
         )}
         {tab === 'score' && (
           <g>
-            <path d={linePath(series.score, cx, y)} style={stroke(useGrad ? `url(#${gid})` : CREAM, 3)} />
-            {N <= 40 && days.map((d, i) => d.v2 && (
-              <circle key={d.date} cx={cx(i)} cy={y(d.v2.score)} r={3.2} style={{ fill: `var(--ui-score-${getScoreBand(d.v2.score).key}-bar)` }} stroke={CREAM} strokeOpacity="0.8" strokeWidth="1" />
-            ))}
+            <path d={smoothArea(series.score, cx, y, BOTTOM)} fill={`url(#${gid}s)`} fillOpacity="0.32" />
+            <path d={smoothPath(series.score, cx, y)} style={stroke(`url(#${gid}s)`, 3)} />
           </g>
         )}
         {strip && days.map((d, i) => d.v2?.limiting_factor && (
@@ -372,7 +438,18 @@ function Legend({ items }) {
         <li key={it.label} className="flex items-center gap-2 leading-snug">
           <svg width="18" height="10" aria-hidden="true" className="shrink-0">
             {it.box
-              ? <rect x="1" y="1" width="16" height="8" rx="2" fill={it.color} fillOpacity={it.faint ? 0.3 : 0.85} />
+              ? (
+            <>
+              {it.tempGradient && (
+                <defs>
+                  <linearGradient id="obs-legend-temp" x1="0" x2="1" y1="0" y2="0">
+                    {[0, 0.5, 1].map(o => <stop key={o} offset={o} stopColor={tempColor(5 + o * 25)} />)}
+                  </linearGradient>
+                </defs>
+              )}
+              <rect x="1" y="1" width="16" height="8" rx="2" fill={it.tempGradient ? 'url(#obs-legend-temp)' : it.color} fillOpacity={it.tempGradient ? TEMP_BAND_OPACITY + 0.2 : it.faint ? 0.3 : 0.85} />
+            </>
+          )
               : <line x1="1" x2="17" y1="5" y2="5" style={stroke(it.color, 2.4, it.dots ? '2 4' : it.dash ? '5 3' : undefined, it.opacity ?? 1)} />}
           </svg>
           {it.label}
@@ -387,25 +464,25 @@ function DataTable({ days }) {
   const rows = days.map(d => tableRow(d, lang)).reverse()
   const tagText = { frost: t.obsChTagFrost, heat: t.obsChTagHeat, rain: t.obsChTagRain }
   return (
-    <div data-testid="chart-table" className="max-h-[350px] overflow-auto rounded-xl border border-cream/15" tabIndex={0} aria-label={t.obsChTable}>
+    <div data-testid="chart-table" className="max-h-[65vh] overflow-auto rounded-xl border border-cream/15" tabIndex={0} aria-label={t.obsChTable}>
       <table className="w-full text-xs text-cream/80 border-collapse">
         <thead className="sticky top-0 bg-modal">
-          <tr className="text-left text-cream/60">
-            {[t.obsChColDay, t.obsChScore, t.obsChColRain, t.obsChColMax, t.obsChColMin, t.obsChColSoil, t.obsChColHum, t.obsChColWind, ''].map((h, i) => <th key={i} scope="col" className="px-2 py-1.5 font-medium whitespace-nowrap">{h}</th>)}
+          <tr className="text-left text-cream">
+            {[t.obsChColDay, t.obsChScore, t.obsChColRain, t.obsChColMax, t.obsChColMin, t.obsChColSoil, t.obsChColHum, t.obsChColWind, ''].map((h, i) => <th key={i} scope="col" className="px-2 py-2.5 font-bold whitespace-nowrap bg-bar/30">{h}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map(r => (
-            <tr key={r.date} className="border-t border-cream/10">
-              <th scope="row" className="px-2 py-1 font-medium whitespace-nowrap text-left">{r.day}</th>
-              <td className="px-2 py-1">{r.score ?? '–'}</td>
-              <td className="px-2 py-1">{fmt(r.rain, lang)}</td>
-              <td className="px-2 py-1">{fmt(r.max, lang)}</td>
-              <td className="px-2 py-1">{fmt(r.min, lang)}</td>
-              <td className="px-2 py-1">{fmt(r.soil, lang)}</td>
-              <td className="px-2 py-1">{r.hum ?? '–'}</td>
-              <td className="px-2 py-1">{r.wind ?? '–'}</td>
-              <td className="px-2 py-1 whitespace-nowrap">{r.tag ? tagText[r.tag] : ''}</td>
+            <tr key={r.date} className="even:bg-cream/[0.06]">
+              <th scope="row" className="px-2 py-2 font-medium whitespace-nowrap text-left">{r.day}</th>
+              <td className="px-2 py-2 font-semibold" style={r.score != null ? { color: `var(--ui-score-${getScoreBand(r.score).key}-text)` } : undefined}>{r.score ?? '–'}</td>
+              <td className="px-2 py-2">{fmt(r.rain, lang)}</td>
+              <td className="px-2 py-2">{fmt(r.max, lang)}</td>
+              <td className="px-2 py-2">{fmt(r.min, lang)}</td>
+              <td className="px-2 py-2">{fmt(r.soil, lang)}</td>
+              <td className="px-2 py-2">{r.hum ?? '–'}</td>
+              <td className="px-2 py-2">{r.wind ?? '–'}</td>
+              <td className="px-2 py-2 whitespace-nowrap">{r.tag ? tagText[r.tag] : ''}</td>
             </tr>
           ))}
         </tbody>
@@ -419,7 +496,7 @@ function DataTable({ days }) {
  * Viento over a window of days ending at the last day with data. Triggers and brakes are drawn as
  * numbered circles with the same numbers as the list beside it. `vm` is prepareSeries().
  */
-export function WeatherChart({ vm, timeline, speciesName, range, future = [] }) {
+export function WeatherChart({ vm, timeline, speciesName, range, future = [], tail = [] }) {
   const { t } = useApp()
   const uid = useId()
   const [tab, setTab] = useState('score')
@@ -459,7 +536,7 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [] }) 
       <div className="space-y-3">
         <div ref={boxRef} className="w-full min-w-0">
           {vm.hasData ? (
-            <Chart vm={vm} tab={tab} layers={layers} range={range} width={width} future={future} pan={pan} />
+            <Chart vm={vm} tab={tab} layers={layers} range={range} width={width} future={future} tail={tail} pan={pan} />
           ) : (
             <p className="text-sm text-cream/70 py-8 text-center">{t.obsChNoDataWindow}</p>
           )}
@@ -505,13 +582,17 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [] }) 
         <>
           <button
             type="button"
-            onClick={() => setShowTable(s => !s)}
-            aria-expanded={showTable}
+            onClick={() => setShowTable(true)}
+            aria-haspopup="dialog"
             className="px-4 py-2 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
           >
-            {showTable ? t.obsChHideTable : t.obsChShowTable}
+            {t.obsChShowTable}
           </button>
-          {showTable && <DataTable days={vm.days} />}
+          {showTable && (
+            <ObsModal title={t.obsChTable} wide onClose={() => setShowTable(false)}>
+              <DataTable days={vm.days} />
+            </ObsModal>
+          )}
         </>
       )}
     </article>

@@ -1,11 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
-import { BTN_SECONDARY } from './SavedPointParts'
 import { CornerModals } from './CornerModals'
 import { IC } from '../../lib/helpers'
-
-// The zone header's action: bigger than the usual secondary button, icon on the left
-const ACTION_BTN = `${BTN_SECONDARY} !px-6 !py-3 !text-base inline-flex items-center gap-2.5`
 
 /**
  * The observed zone's header: `lead` (title and facts) on the left and, at the bottom right,
@@ -24,8 +20,9 @@ export function SavePointControls({ point, suggestedName, saved, lead }) {
         <div className="min-w-0 flex-1 basis-[18rem]">{lead}</div>
         {!existing && (
           <div className="flex gap-2 ml-auto">
-            <button type="button" onClick={() => setMode('create')} className={ACTION_BTN}>
-              <span aria-hidden="true" className="[&>svg]:w-5 [&>svg]:h-5">{IC.heart(false)}</span>
+            {/* Same look as the «Mis rincones» button (and as the corner card) */}
+            <button type="button" onClick={() => setMode('create')} className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px] text-cream text-sm font-medium hover:bg-coffee/35 transition-all">
+              <span aria-hidden="true" className="[&>svg]:w-[18px] [&>svg]:h-[18px]">{IC.heart(false)}</span>
               {t.obsSaveZoneButton}
             </button>
           </div>

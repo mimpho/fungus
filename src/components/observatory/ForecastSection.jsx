@@ -25,29 +25,29 @@ function Skeleton() {
 
 function DayCard({ d }) {
   return (
-    <li aria-label={d.aria} className="rounded-xl bg-cream/[0.05] p-3 flex flex-col items-start gap-2 min-w-0">
-      <span aria-hidden="true" className="text-base font-semibold text-cream capitalize">
-        {d.weekday} <span className="font-normal text-cream/60">{d.dayMonth}</span>
+    <li aria-label={d.aria} className="rounded-xl bg-cream/[0.05] p-3 min-[1440px]:p-2.5 flex flex-col items-start gap-2 min-[1440px]:gap-1.5 min-w-0">
+      <span aria-hidden="true" className="text-base min-[1440px]:text-sm font-semibold text-cream capitalize">
+        {d.weekday} <span className="font-normal text-cream/60 whitespace-nowrap">{d.dayMonth}</span>
       </span>
-      <div aria-hidden="true" className="flex items-center gap-3 self-center">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${ICON_COLOR[d.kind]}`}>
+      <div aria-hidden="true" className="flex items-center gap-3 min-[1440px]:gap-2 self-center">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 min-[1440px]:w-9 min-[1440px]:h-9 ${ICON_COLOR[d.kind]}`}>
           <path d={ICON[d.kind]} />
         </svg>
         <span className="flex flex-col leading-tight">
-          <span className="text-xl font-semibold text-cream">{d.maxText}</span>
-          <span className="text-[15px] text-cream/60">{d.minText}</span>
+          <span className="text-xl min-[1440px]:text-lg font-semibold text-cream">{d.maxText}</span>
+          <span className="text-[15px] min-[1440px]:text-[13px] text-cream/60">{d.minText}</span>
         </span>
       </div>
       {/* Rain and wind: a 20 px cell for the bar or the icon and the text next to it; the rain text sits on the bar's base line */}
-      <span aria-hidden="true" className="flex items-end gap-2 h-6 text-xs text-cream">
+      <span aria-hidden="true" className="flex items-end gap-2 h-6 text-xs min-[1440px]:text-[11px] text-cream whitespace-nowrap">
         <span className="w-5 h-full flex items-end justify-center">
           <span className="w-2.5 rounded-t-[3px] bg-[var(--ui-rain-text)]" style={{ height: d.bar }} />
         </span>
         <span className="leading-none translate-y-[2px]">{d.rainText}</span>
       </span>
-      <span aria-hidden="true" className="flex items-center gap-2 h-6 text-xs text-cream">
+      <span aria-hidden="true" className="flex items-center gap-2 h-6 text-xs min-[1440px]:text-[11px] text-cream whitespace-nowrap">
         <span className="w-5 flex items-center justify-center">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cream/70">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cream/70 min-[1440px]:w-4 min-[1440px]:h-4">
             <path d={WIND_ICON} />
           </svg>
         </span>

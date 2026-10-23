@@ -125,6 +125,63 @@ export function linePath(values, x, y) {
   return d
 }
 
+/**
+ * Smooth curve through points [[x, y], ...]: cubic Bézier with monotone tangents (Fritsch–Carlson),
+ * so it never overshoots between two values (a smoothed maximum never rises above the real one).
+ * `move` = false continues an open path with `L` instead of starting one with `M`.
+ */
+export function smoothPoints(pts, move = true) {
+  const n = pts.length
+  if (n === 0) return ''
+  const f = v => v.toFixed(1)
+  const start = `${move ? 'M' : 'L'}${f(pts[0][0])},${f(pts[0][1])}`
+  if (n === 1) return start
+  if (n === 2) return `${start}L${f(pts[1][0])},${f(pts[1][1])}`
+  const dx = [], sl = []
+  for (let i = 0; i < n - 1; i++) {
+    dx.push(pts[i + 1][0] - pts[i][0])
+    sl.push(dx[i] === 0 ? 0 : (pts[i + 1][1] - pts[i][1]) / dx[i])
+  }
+  const m = [sl[0]]
+  for (let i = 1; i < n - 1; i++) m.push(sl[i - 1] * sl[i] <= 0 ? 0 : (sl[i - 1] + sl[i]) / 2)
+  m.push(sl[n - 2])
+  for (let i = 0; i < n - 1; i++) {
+    if (sl[i] === 0) { m[i] = 0; m[i + 1] = 0; continue }
+    const a = m[i] / sl[i], b = m[i + 1] / sl[i], h = Math.hypot(a, b)
+    if (h > 3) { m[i] = (3 * a / h) * sl[i]; m[i + 1] = (3 * b / h) * sl[i] }
+  }
+  let d = start
+  for (let i = 0; i < n - 1; i++) {
+    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], k = dx[i] / 3
+    d += `C${f(x0 + k)},${f(y0 + m[i] * k)} ${f(x1 - k)},${f(y1 - m[i + 1] * k)} ${f(x1)},${f(y1)}`
+  }
+  return d
+}
+
+/** Like linePath, but smooth. Gaps (null) split the line into separate smooth runs. */
+export function smoothPath(values, x, y) {
+  let d = '', run = []
+  const flush = () => { if (run.length) d += smoothPoints(run); run = [] }
+  values.forEach((v, i) => { if (v == null) flush(); else run.push([x(i), y(v)]) })
+  flush()
+  return d
+}
+
+/** Smooth area between a line and the horizontal `base` (pixel y): one closed shape per run. */
+export function smoothArea(values, x, y, base) {
+  let d = '', run = []
+  const flush = () => {
+    if (run.length > 1) {
+      const f = v => v.toFixed(1)
+      d += `${smoothPoints(run)}L${f(run[run.length - 1][0])},${f(base)}L${f(run[0][0])},${f(base)}Z`
+    }
+    run = []
+  }
+  values.forEach((v, i) => { if (v == null) flush(); else run.push([x(i), y(v)]) })
+  flush()
+  return d
+}
+
 /** Every k-th label, counted from the last day, so the newest date is always labelled. */
 export function labelIndexes(count, maxLabels) {
   const k = Math.max(1, Math.ceil(count / Math.max(2, maxLabels)))

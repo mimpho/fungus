@@ -86,20 +86,22 @@ export function Timeline({ series, win, tab, onDraft, onCommit, onToday, atLates
 
   return (
     <div className="space-y-1.5">
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
-        <span className="inline-flex items-center gap-2.5">
+      {/* Two lines, always: the dates (with «back to today» at the right, which only comes and goes
+          inside its own fixed-height line) and the hint below */}
+      <div className="text-xs">
+        <div className="flex items-center justify-between gap-x-3 min-h-[1.625rem]">
           <span data-testid="timeline-label" className="text-cream font-semibold">{label}</span>
           {!atLatest && (
             <button
               type="button"
               onClick={onToday}
-              className="px-2.5 py-0.5 rounded-xl glass text-cream text-xs font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+              className="shrink-0 px-2.5 py-0.5 rounded-xl glass text-cream text-xs font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
             >
               {t.obsTlToday}
             </button>
           )}
-        </span>
-        <span className="text-cream/60">{t[TAB_LABEL[tab]]} · {t.obsTlHint}</span>
+        </div>
+        <p className="text-cream/60">{t[TAB_LABEL[tab]]} · {t.obsTlHint}</p>
       </div>
 
       <div
