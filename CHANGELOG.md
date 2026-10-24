@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Corner photos, first iteration (2026-10-24, `feat/observatory-corners-photos`)
+
+Back end, migration 021 and front end. Photos are the last piece of «Mis rincones»; this is a first iteration, to be refined on screen.
+
+- **API** (login; someone else's corner is a 404): `GET /observatory/saved-points/{id}/photos` (list, with signed URLs), `POST …/photos` (multipart `file` + repeated `species_ids`), `PATCH …/photos/{photo_id}` (replaces the species tagged on the photo) and `DELETE …/photos/{photo_id}`. A corner now carries `photo_count`.
+- **Images** (`photo_images.py`, Pillow + `pillow-heif`): any format in, HEIC included. EXIF orientation is applied and all metadata (GPS included) is dropped; two WebP copies come out, thumbnail ≈600 px and large ≈1200 px on the long side, never enlarged; the original is discarded. A file over 15 MB or over 60 Mpx (read from the header, before decoding) is a 413, and one that is not an image a 415.
+- **Storage** (`photo_storage.py`): a `PhotoStorage` protocol. `SupabasePhotoStorage` uses a private Supabase Storage bucket through its REST API with the service key (sent as `apikey` and `Authorization`), never overwrites (`x-upsert: false`) and signs URLs in one batch (1 h). The storage keys never leave the server. Tests use an in-memory fake (`tests/unit/fakes.py`). Without `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` an upload answers 503.
+- **Limits** (all configurable, 0 = off): 5 photos per corner (409); 30 photo uploads and 50 new corners per user and UTC day (429 with `Retry-After` until midnight UTC). They are counted in the new table `corner_usage_events` (migration 021), so deleting a photo or a corner gives no slot back; rows older than a week are pruned when a new one is written.
+- **Cleanup:** deleting a photo, a corner or the account removes the objects first. If the storage fails the call answers 502 and nothing else is deleted, so it can be repeated (deleting a missing object is not an error).
+- **Front end:** a «Fotos» section (`n / 5`) in the edit dialog, between the species and the notes, and in the corner card: thumbnails in a row, a dashed «Añadir foto» slot (several files at once, uploaded one after another), a viewer with arrows and keyboard, species tagging with the same search as the corner's, and delete with confirmation. The create dialog says photos are added from «Editar». In `ObsModal` only the topmost dialog answers Esc.
+- **Scripts:** `check_photo_storage.py` (smoke test against a real bucket) and `qa_corner_photos.py` (end to end against a running backend).
+- **Verified:** 948 unit tests; QA against a disposable Postgres (migrations 001→021 and back one step, upload, list, signed URLs, tag, delete, delete corner) and a dev bucket. **Not verified:** a HEIC photo with real GPS, the account-deletion path and the 429 limits against a real database, the front end on a phone.
+
+### Security — `seed_catalog.py` guard rails (2026-10-24)
+
+A run from a terminal without `DATABASE_URL` read `backend/.env`, which points at production, and overwrote the curated zones and replaced every species' `extra_data`. The data was restored from the SQL files of `migrations/` and checked against the saved Supabase snippets (see `memory/gotchas.md`). Now the script writes only to a local database (`localhost`, `127.0.0.1`, `::1`) unless `--allow-remote` is given, and always names the host and database it is about to write (never the user or the password). Zones are insert-only unless `--overwrite-zones`, and a species' `extra_data` is merged over the stored one instead of replaced. `tests/unit/test_seed_catalog.py`.
+
 ### Changed — Observatory interface polish, second round (2026-10-24, `feat/observatory-ui-polish-2`)
 
 Front end only (no API, no migration).

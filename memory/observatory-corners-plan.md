@@ -21,11 +21,12 @@ From branch 2 on each one is vertical (API + interface) so it can be reviewed on
 2. ✅ (2026-10-23, reviewed on screen; mobile pass pending) `feat/observatory-corners-ui` — kind selector in the form, multiple species picker with cards (extracted from `SpeciesLayerPicker`; lazy images, capped results), copy «Guardar / Editar / Quitar rincón» in ES/CA/EN, the «Mis rincones» layer (in `MapLayersBox`), pins and clusters.
 2b. `feat/observatory-ui-polish` (2026-10-23) — interface improvements made after branch 2 (charts, columns, buttons); no new feature. See `CHANGELOG.md`.
 2c. `feat/observatory-ui-polish-2` (2026-10-24) — score breakdown with points per factor, corner cards scored by their tagged mushroom, zone subtitle with icons. See `CHANGELOG.md` and `decisions.md`.
-3. `feat/observatory-corners-photos` — Supabase Storage client behind a protocol with a fake for tests (a dev bucket, because the local `.env` points at production), Pillow + `pillow-heif`, upload/delete endpoints, signed URLs, tagging species per photo, anti-abuse limits, object cleanup on corner and account deletion, uploader and viewer. Needs `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in Render (never in the frontend).
+3. ✅ (2026-10-24, first iteration; to refine on screen) `feat/observatory-corners-photos` — Supabase Storage client behind a protocol with a fake for tests, Pillow + `pillow-heif`, upload/list/tag/delete endpoints, signed URLs (1 h), species per photo, limits counted in `corner_usage_events` (migration 021: 30 uploads and 50 new corners per user and UTC day; 5 photos per corner; 15 MB; 60 Mpx), object cleanup on photo, corner and account deletion, uploader and viewer (a section of the edit dialog and of the corner card). A dev bucket, because the local `.env` points at production. Needs `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in Render (never in the front end). Details: `CHANGELOG.md`, `decisions.md`.
 4. `feat/profile-corners-tab` — «Mis rincones» tab in the profile with a filter by kind.
 
 ## Open
 
+- Photos: staged upload in the create dialog (today photos come after saving); several tagged species vs the corner card's single-species score; photo count in the saved list.
 - Check the weight of `photo_url` in the species list on the real database (generated images may be `data:` URIs, see `decisions.md`).
 - How «rincón» sounds in Catalan and English.
 - Future idea, out of scope: join a parking corner and mushroom sites in a route.

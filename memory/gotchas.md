@@ -317,3 +317,11 @@ For the disposable database put the URL in front of the command: `DATABASE_URL="
 
 ### ⚠️ The user menu shows the generator only to `role = 'admin'`, and it opens the gallery
 `/admin/generator` is the hub: it shows the gallery, and the generator loads only with `?especie=…&generar=1` (a species picked in the gallery). A local user is not an admin until `users.role` is set: `UPDATE users SET role = 'admin' WHERE email = '…';` on the disposable database (`docker exec -it fungus-ingest-test psql -U postgres -d fungus -c "…"`), then reload so `/me` returns the role.
+
+### ⚠️ `seed_catalog.py` wrote to production (2026-10-24)
+
+Run without `DATABASE_URL` it used `backend/.env`, which points at production. It overwrote the name, coordinates, altitude, forest type and description of every zone in the mock, and replaced the `extra_data` of all 202 species (synonyms, confusions, translations, fruiting conditions, `antiConfusion`). Restored from `migrations/*.sql` and checked against the Supabase snippets: the only things the SQL files could not give back were `antiConfusion` of `esp-062` (restored by hand) and the altitudes of the 17 moved zones (recomputed with `zone_elevation_ranges.py`). Eleven species whose fruiting conditions the 2026-03-14 audit had cleared got them back from the `015` session-B files; clear them again if they should stay without. Now guarded (see the changelog), but **any other writing script still trusts `backend/.env`**: put `DATABASE_URL` in front of every command that writes, and check it with `echo`.
+
+### ⚠️ What the Supabase tools can and cannot tell you about past SQL
+
+The free plan has **no backups**. The SQL editor's saved snippets keep only the **last content of each tab**, and `supabase snippets list` shows only the first page (10) with no way to ask for the next one; the API takes a `cursor`. A token with the scoped permission «SQL Snippets (read)» is refused (403): that capability enables no endpoint yet; a full-access token works. Treat the `migrations/` folder as the only record of data changes.
