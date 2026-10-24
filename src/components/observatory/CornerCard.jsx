@@ -7,6 +7,7 @@ import { kindMeta, pinSvg } from '../../lib/cornerKinds'
 import { IC } from '../../lib/helpers'
 import { BTN_SECONDARY } from './SavedPointParts'
 import { CornerModals } from './CornerModals'
+import { CornerPhotos } from './CornerPhotos'
 import { SpeciesCard } from './SpeciesCard'
 import { SpeciesPreview } from './SpeciesPreview'
 import { SCROLL_THIN, notesAreSpeciesNames } from './CornerSummary'
@@ -25,8 +26,8 @@ function BrokenHeart() {
 
 /**
  * The saved corner of the observed zone, as one more card of the page: pin of its kind and name,
- * its notes, the species it has (as cards) and what can be done with it — edit and remove, each
- * in a dialog. Photos will join the species here. Nothing if the zone is not saved.
+ * its notes, the species it has (as cards), its photos and what can be done with it — edit and
+ * remove, each in a dialog. Nothing if the zone is not saved.
  */
 export function CornerCard({ point, saved, suggestedName, toponym = null, onRemoved, onOpenList }) {
   const { t } = useApp()
@@ -100,6 +101,8 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
             ))}
           </ul>
         )}
+
+        <CornerPhotos corner={corner} onChanged={() => saved.refresh(corner.id)} />
       </section>
       {viewing && (catalog ?? []).some(s => s.id === viewing) && (
         <SpeciesPreview species={catalog.find(s => s.id === viewing)} onClose={() => setViewing(null)} />

@@ -10,6 +10,8 @@ export const KINDS = ['unspecified', 'mushroom_site', 'prospect', 'parking']
 export const DEFAULT_KIND = 'unspecified'
 /** Tagged species per corner: the API's own limit (SPECIES_MAX). */
 export const SPECIES_MAX = 50
+/** Photos per corner: the API's own limit (corner_photos_max_per_corner). */
+export const PHOTOS_MAX = 5
 
 const CREAM = '#f4ebe1'
 

@@ -1,4 +1,4 @@
-import { useEffect, useId } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useApp } from '../../contexts/AppContext'
 import { IC } from '../../lib/helpers'
@@ -19,13 +19,28 @@ export function useDialogAboveObsModal() {
   }, [])
 }
 
+// ObsModals open at once (the photo viewer opens over the edit dialog): only the last one answers Esc
+const openStack = []
+
 export function ObsModal({ title, onClose, wide = false, size = 'md', children }) {
   const { t } = useApp()
   const titleId = useId()
+  const token = useRef({})
+
+  useEffect(() => {
+    const mine = token.current
+    openStack.push(mine)
+    return () => { openStack.splice(openStack.indexOf(mine), 1) }
+  }, [])
 
   useEffect(() => {
     // stopPropagation: the page's own Esc (it closes the map's point panel) must not also fire and unmount what the dialog belongs to
-    const onKey = e => { if (e.key === 'Escape' && openAbove === 0) { e.stopPropagation(); onClose() } }
+    const onKey = e => {
+      if (e.key === 'Escape' && openAbove === 0 && openStack[openStack.length - 1] === token.current) {
+        e.stopPropagation()
+        onClose()
+      }
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])

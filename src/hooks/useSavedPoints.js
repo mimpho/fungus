@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  fetchSavedPoints, createSavedPoint, updateSavedPoint, deleteSavedPoint,
+  fetchSavedPoints, fetchSavedPoint, createSavedPoint, updateSavedPoint, deleteSavedPoint,
 } from '../services/observatoryService'
 import { findSaved } from '../lib/savedPoints'
 
@@ -50,8 +50,15 @@ export function useSavedPoints(enabled) {
     setState(s => ({ ...s, points: s.points.filter(p => p.id !== id) }))
   }, [])
 
+  // Reads one corner again (its photo count and species change when a photo is added or tagged)
+  const refresh = useCallback(async id => {
+    const fresh = await fetchSavedPoint(id)
+    setState(s => ({ ...s, points: s.points.map(p => (p.id === id ? fresh : p)) }))
+    return fresh
+  }, [])
+
   const find = useCallback(point => findSaved(state.points, point), [state.points])
   const reload = useCallback(() => setAttempt(a => a + 1), [])
 
-  return { status: state.status, points: state.points, error: state.error, add, update, remove, find, reload }
+  return { status: state.status, points: state.points, error: state.error, add, update, remove, refresh, find, reload }
 }

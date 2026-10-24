@@ -53,10 +53,11 @@ function KindField({ value, onChange, uid }) {
 
 /**
  * Name, kind, tagged species and notes of a saved point («rincón»). A blank name is allowed: the
- * server then uses the place name (the placeholder says so). Used to create and to edit. `onSubmit(form)` returns a promise; if it throws, the error is
+ * server then uses the place name (the placeholder says so). Used to create and to edit. `photos` is
+ * the section between the species and the notes (the photos act at once, so they are not part of `form`). `onSubmit(form)` returns a promise; if it throws, the error is
  * shown here and the form stays as it was.
  */
-export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, onCancel }) {
+export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, onCancel, photos = null }) {
   const { t } = useApp()
   const uid = useId()
   const [form, setForm] = useState(initial)
@@ -109,6 +110,7 @@ export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, o
           </p>
         )}
       </div>
+      {photos}
       <div>
         <label htmlFor={`${uid}-notes`} className={LABEL}>{t.obsSaveNotes}</label>
         <textarea

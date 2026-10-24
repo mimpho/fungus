@@ -7,7 +7,10 @@
 //   outside      422 on lat/lon: the point is outside Catalonia
 //   invalid      any other 422
 //   not_found    404 (no climate data yet, unknown species or saved point)
-//   conflict     409 (point already saved, or the saved-point limit)
+//   conflict     409 (point already saved, or the saved-point limit; a corner with 5 photos)
+//   too_large    413 (a photo over the size or pixel limit)
+//   unsupported  415 (the file is not a readable image)
+//   storage      502 (the photo storage failed: try again)
 //   limit        429 daily limit of new cells (retryAfter = seconds)
 //   unavailable  503 weather provider down or daily budget spent
 //   network      fetch failed (offline, CORS, server asleep)
@@ -64,6 +67,9 @@ async function toError(res) {
     case 401: return new ObservatoryError('auth', info)
     case 404: return new ObservatoryError('not_found', info)
     case 409: return new ObservatoryError('conflict', info)
+    case 413: return new ObservatoryError('too_large', info)
+    case 415: return new ObservatoryError('unsupported', info)
+    case 502: return new ObservatoryError('storage', { ...info, retryAfter })
     case 422: return new ObservatoryError(isCoordinateError(detail) ? 'outside' : 'invalid', info)
     case 429: return new ObservatoryError('limit', { ...info, retryAfter: retryAfter ?? secondsToUtcMidnight() })
     case 503: return new ObservatoryError('unavailable', { ...info, retryAfter })
@@ -80,15 +86,16 @@ function buildUrl(path, params) {
   return `${API_BASE}/observatory${path}${query ? `?${query}` : ''}`
 }
 
-async function request(path, { method = 'GET', params, body, signal, parse = 'json' } = {}) {
+async function request(path, { method = 'GET', params, body, form, signal, parse = 'json' } = {}) {
   const url = buildUrl(path, params)
   const attempt = async () => {
     try {
       const res = await fetch(url, {
         method,
+        // A FormData body sets its own Content-Type (with the multipart boundary)
         headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...authHeaders() },
         credentials: 'include',
-        body: body ? JSON.stringify(body) : undefined,
+        body: form ?? (body ? JSON.stringify(body) : undefined),
         signal,
       })
       return res
@@ -173,3 +180,21 @@ export const updateSavedPoint = (id, changes) => request(`/saved-points/${id}`, 
 export const deleteSavedPoint = id => request(`/saved-points/${id}`, { method: 'DELETE' })
 export const fetchSavedPointSpecies = (id, { date, signal } = {}) =>
   request(`/saved-points/${id}/species`, { signal, params: { date } })
+
+// ── Corner photos ────────────────────────────────────────────────────────────
+// The API answers { id, position, thumb_url, large_url, species_ids }: the URLs are signed and
+// expire (an hour), so they are never stored, only held while the card is open.
+
+export const fetchCornerPhotos = (id, { signal } = {}) => request(`/saved-points/${id}/photos`, { signal })
+/** Any image format (HEIC included); the server makes the two WebP copies and drops the EXIF. */
+export function uploadCornerPhoto(id, file, speciesIds = []) {
+  const form = new FormData()
+  form.append('file', file)
+  for (const sid of speciesIds) form.append('species_ids', sid)
+  return request(`/saved-points/${id}/photos`, { method: 'POST', form })
+}
+/** Replaces the species tagged on the photo (an empty list clears them). */
+export const tagCornerPhoto = (id, photoId, species_ids) =>
+  request(`/saved-points/${id}/photos/${photoId}`, { method: 'PATCH', body: { species_ids } })
+export const deleteCornerPhoto = (id, photoId) =>
+  request(`/saved-points/${id}/photos/${photoId}`, { method: 'DELETE' })
