@@ -22,11 +22,13 @@ _FIELDS = (
 
 
 def _record(
-    row: SavedPoint, species: Iterable[str] = (), photo_species: Iterable[str] = ()
+    row: SavedPoint, species: Iterable[str] = (), photo_species: Iterable[str] = (),
+    photo_count: int = 0,
 ) -> SavedPointRecord:
     data = {f: getattr(row, f) for f in _FIELDS}
     return SavedPointRecord(
-        **data, species_ids=tuple(species), photo_species_ids=tuple(photo_species)
+        **data, species_ids=tuple(species), photo_species_ids=tuple(photo_species),
+        photo_count=photo_count,
     )
 
 
@@ -61,8 +63,20 @@ class SqlSavedPointStore:
         return direct, via_photos
 
     async def _with_tags(self, rows: list[SavedPoint]) -> list[SavedPointRecord]:
-        direct, via_photos = await self._tags([r.id for r in rows])
-        return [_record(r, direct[r.id], via_photos[r.id]) for r in rows]
+        ids = [r.id for r in rows]
+        direct, via_photos = await self._tags(ids)
+        counts = await self._photo_counts(ids)
+        return [_record(r, direct[r.id], via_photos[r.id], counts.get(r.id, 0)) for r in rows]
+
+    async def _photo_counts(self, point_ids: list[int]) -> dict[int, int]:
+        if not point_ids:
+            return {}
+        rows = await self.db.execute(
+            select(SavedPointPhoto.saved_point_id, func.count())
+            .where(SavedPointPhoto.saved_point_id.in_(point_ids))
+            .group_by(SavedPointPhoto.saved_point_id)
+        )
+        return {point_id: count for point_id, count in rows}
 
     async def count_for_user(self, user_id: int) -> int:
         return await self.db.scalar(

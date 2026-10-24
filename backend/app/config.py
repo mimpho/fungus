@@ -87,6 +87,24 @@ class Settings(BaseSettings):
     # with the zone ingest and the weather cache.
     observatory_cell_refresh_budget: int = 1500
 
+    # New corners per user and UTC day (abuse guard, not a product limit). Over it: 429 until
+    # midnight UTC. 0 = no limit.
+    observatory_max_new_corners_per_user_per_day: int = 50
+
+    # Corner photos: private Supabase Storage bucket, reached by REST with the service key (never
+    # in the frontend). Local runs use a DEV bucket: the local .env points at production.
+    # Empty url or key = photos off (uploads answer 503).
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+    corner_photos_bucket: str = "corner-photos"
+    corner_photos_max_per_corner: int = 5
+    # Abuse guards, 0 = off: bytes of one upload, pixels of the decoded image, uploads per user
+    # and UTC day (a deleted photo is not refunded)
+    corner_photo_max_bytes: int = 15 * 1024 * 1024
+    corner_photo_max_pixels: int = 60_000_000
+    corner_photo_uploads_per_user_per_day: int = 30
+    corner_photo_url_ttl_seconds: int = 3600
+
     # Forest raster of the probability layer (build_forest_raster.py): folder with
     # forest-catalonia.bin/.json. Derived from CREAF MCSC-4 (licence unconfirmed): never in
     # public/ or git; the API serves it behind login. Missing folder = layer without forest.
@@ -116,6 +134,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",")]
+
+    @property
+    def has_photo_storage(self) -> bool:
+        return bool(self.supabase_url and self.supabase_service_key)
 
     @property
     def has_resend(self) -> bool:

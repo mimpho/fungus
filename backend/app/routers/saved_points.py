@@ -6,7 +6,9 @@ the elevation; the climate, the forest, the soil and the toponym are never store
 from /observatory/point/* when the corner is opened.
 """
 import asyncio
+import logging
 from datetime import date
+from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +20,14 @@ from app.models.user import User
 from app.routers import observatory as obs
 from app.schemas.saved_point import SavedPointCreate, SavedPointOut, SavedPointUpdate, to_out
 from app.services.cell_provider import CellProvider, CellStore
+from app.services.corner_photo_store import SqlPhotoStore, SqlUsageLog
+from app.services.corner_photos import (
+    DailyLimitExceeded,
+    PhotoStore,
+    UsageLog,
+    purge_point_photos,
+)
+from app.services.photo_storage import PhotoStorage, StorageError, SupabasePhotoStorage
 from app.services.point_elevation import point_elevation
 from app.services.point_forest import fetch_toponym
 from app.services.saved_point_store import SqlSavedPointStore
@@ -32,6 +42,8 @@ from app.services.saved_points import (
     default_name,
 )
 
+log = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/observatory/saved-points",
     tags=["Observatory"],
@@ -41,6 +53,44 @@ router = APIRouter(
 
 def get_saved_point_store(db: AsyncSession = Depends(get_db)) -> SavedPointStore:
     return SqlSavedPointStore(db)
+
+
+def get_photo_store(db: AsyncSession = Depends(get_db)) -> PhotoStore:
+    return SqlPhotoStore(db)
+
+
+def get_usage_log(db: AsyncSession = Depends(get_db)) -> UsageLog:
+    return SqlUsageLog(db)
+
+
+@lru_cache
+def _supabase_storage(url: str, key: str, bucket: str) -> SupabasePhotoStorage:
+    return SupabasePhotoStorage(url, key, bucket)  # one HTTP client for the whole process
+
+
+def get_photo_storage() -> PhotoStorage | None:
+    """The private bucket, or None when SUPABASE_URL / SUPABASE_SERVICE_KEY are not set."""
+    if not settings.has_photo_storage:
+        return None
+    return _supabase_storage(
+        settings.supabase_url, settings.supabase_service_key, settings.corner_photos_bucket
+    )
+
+
+def daily_limit_error(exc: DailyLimitExceeded) -> HTTPException:
+    what = "photo uploads" if exc.kind == "photo_upload" else "new corners"
+    return HTTPException(
+        status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=f"Daily limit of {exc.limit} {what} reached; try again after midnight UTC",
+        headers={"Retry-After": str(exc.retry_after)},
+    )
+
+
+def storage_error(exc: StorageError) -> HTTPException:
+    log.warning("Photo storage failed: %s", exc)
+    return HTTPException(
+        status.HTTP_502_BAD_GATEWAY, detail="The photo storage is not available; try again later"
+    )
 
 
 async def _found(store: SavedPointStore, user: User, point_id: int) -> SavedPointRecord:
@@ -70,6 +120,7 @@ async def create_point(
     body: SavedPointCreate,
     user: User = Depends(get_current_user),
     store: SavedPointStore = Depends(get_saved_point_store),
+    usage: UsageLog = Depends(get_usage_log),
 ) -> SavedPointOut:
     """Save a point. Toponym and elevation are looked up here, never taken from the client. The
     name defaults to the nearest toponym."""
@@ -88,7 +139,10 @@ async def create_point(
                 body.lat, body.lon, body.name, body.notes, body.kind, tuple(body.species_ids)
             ),
             context, max_per_user=settings.observatory_max_saved_points_per_user,
+            usage=usage, max_new_per_day=settings.observatory_max_new_corners_per_user_per_day,
         )
+    except DailyLimitExceeded as exc:
+        raise daily_limit_error(exc) from exc
     except DuplicatePoint as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT, detail="You already saved a point at these coordinates"
@@ -140,7 +194,16 @@ async def delete_point(
     point_id: int,
     user: User = Depends(get_current_user),
     store: SavedPointStore = Depends(get_saved_point_store),
+    photos: PhotoStore = Depends(get_photo_store),
+    storage: PhotoStorage | None = Depends(get_photo_storage),
 ) -> Response:
+    """Delete a corner. Its photos' objects go first (the database cascade does not reach the
+    storage); if that fails nothing is deleted and the call can simply be repeated."""
+    await _found(store, user, point_id)
+    try:
+        await purge_point_photos(photos, storage, point_id)
+    except StorageError as exc:
+        raise storage_error(exc) from exc
     if not await store.delete(user.id, point_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Saved point not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
