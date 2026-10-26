@@ -9,12 +9,14 @@
 // =====================================================
 
 /** Forest types the map can tell apart, in legend order, with their colour and label key. */
+// The colours stay out of red, orange, yellow and green: those are the score bands of the
+// conditions layer, and with both layers on a forest colour must not read as a score.
 export const FOREST_TYPES = [
-  { key: 'pinar',    hex: '#2f8f83', label: 'obsFtPinar' },
-  { key: 'encinar',  hex: '#c8923a', label: 'obsFtEncinar' },
-  { key: 'hayedo',   hex: '#7fb83a', label: 'obsFtHayedo' },
-  { key: 'robledal', hex: '#b5533c', label: 'obsFtRobledal' },
-  { key: 'otro',     hex: '#8a6fc2', label: 'obsMacroOtro' },
+  { key: 'pinar',    hex: '#3b82f6', label: 'obsFtPinar' },
+  { key: 'encinar',  hex: '#a855f7', label: 'obsFtEncinar' },
+  { key: 'hayedo',   hex: '#22d3ee', label: 'obsFtHayedo' },
+  { key: 'robledal', hex: '#f472b6', label: 'obsFtRobledal' },
+  { key: 'otro',     hex: '#e5e7eb', label: 'obsMacroOtro' },
 ]
 
 // Same noise floor as the point's forest list and the probability layer (FOREST_MIN)
