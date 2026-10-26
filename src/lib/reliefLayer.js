@@ -56,6 +56,17 @@ const SOIL_MIN_SHARE = 0.05
 // A habitat factor below this paints nothing
 const MIN_FACTOR = 0.05
 
+/**
+ * [[index in the raster, weight], ...] of the forest classes a species fits. `weights` is the
+ * species' `forest_class_weights` (how well it fruits under each class, 0-1); a class without a
+ * weight counts 1, as before the weights existed.
+ */
+function forestPairs(classes, weights, rasterClasses) {
+  return classes
+    .map(c => [rasterClasses.indexOf(c), weights?.[c] ?? 1])
+    .filter(([i]) => i >= 0)
+}
+
 /** Multiplier (0-1) of the probability for a share (0-1) of forest the species fits. */
 export function forestFactor(share) {
   if (share < FOREST_MIN) return 0
@@ -127,7 +138,8 @@ export function buildReliefGrid(raster, cells) {
  * Habitat factor of every pixel (Float32Array, 1 = no filter), or null when no filter applies.
  * `habitat` = { forest: { raster, classes }, soil: { raster, factors } }, each optional:
  *  - forest: the species fits the forest classes `classes` ([name, ...]); the share of them in the
- *    pixel goes through `forestFactor`.
+ *    pixel, each times its weight in `weights` ({ class: 0-1 }, 1 if missing), goes through
+ *    `forestFactor`.
  *  - soil: `factors[k]` (0-1) says how well the species' soil pH fits class k of the substrate
  *    raster; the pixel takes the mean over the classes present there (no filter where no data).
  * Rasters that do not share the elevation raster's grid are ignored.
@@ -139,14 +151,14 @@ function habitatFactors(grid, habitat) {
   const forest = usable(habitat.forest?.raster) && habitat.forest.classes ? habitat.forest : null
   const soil = usable(habitat.soil?.raster) && habitat.soil.factors ? habitat.soil : null
   if (!forest && !soil) return null
-  const fIdx = forest ? forest.classes.map(c => forest.raster.classes.indexOf(c)).filter(i => i >= 0) : []
+  const fIdx = forest ? forestPairs(forest.classes, forest.weights, forest.raster.classes) : []
   const out = new Float32Array(N).fill(1)
   for (let p = 0; p < N; p++) {
     const q = grid.demIdx[p]
     let f = 1
     if (forest) {
       let share = 0
-      for (const k of fIdx) share += forest.raster.data[k * N + q]
+      for (const [k, w] of fIdx) share += forest.raster.data[k * N + q] * w
       f = forestFactor(share / 255)
     }
     if (soil && f > 0) {
@@ -252,7 +264,7 @@ const CHUNK_ROWS = 48
  * species' forest and soil factors). A species counts at a pixel when its altitude range
  * (± margin) holds the pixel's elevation, some cell reaches it with a score, and its habitat
  * factor is at least MIN_FACTOR. Pixels with no species present are not painted.
- * `layer` = { species: [{ elevation_min_m, elevation_max_m, forest_classes, substrate_factors }],
+ * `layer` = { species: [{ elevation_min_m, elevation_max_m, forest_classes, forest_class_weights, substrate_factors }],
  *   substrate_classes, band_step_m, cells: [{ score: [...], bands: [[elev, [...]], ...] }] }.
  * `rasters` = { forest, substrate } class rasters on the elevation grid (each optional).
  */
@@ -273,7 +285,7 @@ export function paintReliefMany(grid, layer, rasters = {}) {
     lo: sp.elevation_min_m != null ? sp.elevation_min_m - RANGE_MARGIN_M : -Infinity,
     hi: sp.elevation_max_m != null ? sp.elevation_max_m + RANGE_MARGIN_M : Infinity,
     forest: forestR && sp.forest_classes
-      ? sp.forest_classes.map(c => forestR.classes.indexOf(c)).filter(i => i >= 0) : null,
+      ? forestPairs(sp.forest_classes, sp.forest_class_weights, forestR.classes) : null,
     soil: soilR && sp.substrate_factors
       ? matchClasses(layer.substrate_classes, sp.substrate_factors, soilR.classes) : null,
   }))
@@ -343,7 +355,7 @@ export function paintReliefMany(grid, layer, rasters = {}) {
           let f = 1
           if (sp.forest) {
             let share = 0
-            for (const k of sp.forest) share += fShare[k]
+            for (const [k, w] of sp.forest) share += fShare[k] * w
             f = forestFactor(share)
           }
           if (sp.soil && f > 0) {
@@ -373,7 +385,7 @@ function factorAt(sp, q, N, rasters) {
     let share = 0
     for (const c of sp.forest_classes) {
       const k = forestR.classes.indexOf(c)
-      if (k >= 0) share += forestR.data[k * N + q]
+      if (k >= 0) share += forestR.data[k * N + q] * (sp.forest_class_weights?.[c] ?? 1)
     }
     f = forestFactor(share / 255)
   }
@@ -486,7 +498,7 @@ export function reliefOverlay(raster, layer, rasters = {}, { alphaScale = 1 } = 
   const range = multi ? null : sp && sp.elevation_min_m != null && sp.elevation_max_m != null
     ? [sp.elevation_min_m, sp.elevation_max_m] : null
   const habitat = multi ? null : {
-    forest: rasters.forest && sp?.forest_classes ? { raster: rasters.forest, classes: sp.forest_classes } : null,
+    forest: rasters.forest && sp?.forest_classes ? { raster: rasters.forest, classes: sp.forest_classes, weights: sp.forest_class_weights } : null,
     soil: rasters.substrate && sp?.substrate_factors
       ? { raster: rasters.substrate, factors: matchClasses(sp.substrate_classes, sp.substrate_factors, rasters.substrate.classes) }
       : null,

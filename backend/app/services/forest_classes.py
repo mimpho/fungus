@@ -13,7 +13,7 @@ meadows, urban, water, ...) has no class.
 from __future__ import annotations
 
 import re
-from collections.abc import Collection
+from collections.abc import Collection, Iterable, Mapping
 
 CLASSES = ("pinar", "encinar", "hayedo", "robledal", "otro")
 
@@ -54,10 +54,49 @@ def classify(code: str) -> tuple[str, float] | None:
     return cls, SPARSE_WEIGHT if cover == "5" else 1.0
 
 
-def classes_for(forest_types: Collection[str] | None) -> list[str] | None:
-    """Classes a species fits, in `CLASSES` order. None = the forest cannot judge it (no forest
-    type, or only meadow, garden or riparian types, which no land cover tells): no filter."""
+def clean_affinity(
+    affinity: Mapping[str, object] | Iterable[tuple[str, object]] | None,
+) -> dict[str, float]:
+    """The usable part of a species' `forest_affinity`: known classes with a weight over 0
+    (clamped to 1), in `CLASSES` order. Anything else is dropped."""
+    try:
+        items = dict(affinity or ())
+    except (TypeError, ValueError):
+        return {}
+    out: dict[str, float] = {}
+    for cls in CLASSES:
+        w = items.get(cls)
+        if isinstance(w, bool) or not isinstance(w, int | float):
+            continue
+        if w > 0:
+            out[cls] = min(1.0, float(w))
+    return out
+
+
+def class_weights_for(
+    forest_types: Collection[str] | None,
+    affinity: Mapping[str, object] | Iterable[tuple[str, object]] | None = None,
+) -> dict[str, float] | None:
+    """How much each forest class counts for a species, 0-1, in `CLASSES` order.
+
+    With a `forest_affinity` (how well it fruits under each class) those are the weights, and
+    they replace what the forest types say. Without one (or with nothing usable in it) every
+    class the types fit weighs 1, as it always did. None = the forest cannot judge it (no
+    forest type, or only meadow, garden or riparian types, which no land cover tells): no filter.
+    """
+    if (weights := clean_affinity(affinity)):
+        return weights
     types = set(forest_types or ())
     if not types & _JUDGED:
         return None
-    return [c for c in CLASSES if _FITS[c] & types]
+    return {c: 1.0 for c in CLASSES if _FITS[c] & types}
+
+
+def classes_for(
+    forest_types: Collection[str] | None,
+    affinity: Mapping[str, object] | Iterable[tuple[str, object]] | None = None,
+) -> list[str] | None:
+    """Classes a species fits, in `CLASSES` order (see `class_weights_for`). None = the forest
+    cannot judge it: no filter."""
+    weights = class_weights_for(forest_types, affinity)
+    return None if weights is None else list(weights)

@@ -19,7 +19,7 @@ from typing import Any
 
 from app.services.altitude_fit import altitude_fit, zone_band
 from app.services.cell_discovery import Grid, build_grid
-from app.services.forest_classes import classes_for
+from app.services.forest_classes import class_weights_for
 from app.services.point_series import prepare_climate
 from app.services.point_species import SpeciesRecord
 from app.services.scoring_v2 import compute_v2_multi, compute_v2_series, round_half_up
@@ -54,6 +54,12 @@ class CellClimate:
     lon: float
     elevation_m: float
     rows: Sequence[Any]
+
+
+def _classes(sp) -> list[str] | None:
+    """Forest classes a species fits (its keys in `forest_class_weights`); None = unjudged."""
+    weights = class_weights_for(sp.forest_types, sp.forest_affinity)
+    return None if weights is None else list(weights)
 
 
 def history_start(today: date, on: date | None) -> date:
@@ -213,7 +219,9 @@ def species_layer(
             "elevation_max_m": sp.elevation_max_m,
             "generic_model": sp.params is None,
             # forest classes it fits (forest_classes.py); None = the forest cannot judge it
-            "forest_classes": classes_for(sp.forest_types),
+            "forest_classes": _classes(sp),
+            # weight of each of them (1 unless the species has a forest_affinity), same keys
+            "forest_class_weights": class_weights_for(sp.forest_types, sp.forest_affinity),
             # how well its soil pH range fits each substrate class (in that order); None = unknown
             "substrate_classes": list(SUBSTRATE_CLASSES),
             "substrate_factors": ph_fit(sp.ph_min, sp.ph_max),
@@ -304,7 +312,8 @@ def excellent_layer(
                 "elevation_min_m": sp.elevation_min_m,
                 "elevation_max_m": sp.elevation_max_m,
                 "in_season": bool(in_season[i]),
-                "forest_classes": classes_for(sp.forest_types),
+                "forest_classes": _classes(sp),
+                "forest_class_weights": class_weights_for(sp.forest_types, sp.forest_affinity),
                 "substrate_factors": ph_fit(sp.ph_min, sp.ph_max),
             }
             for i, sp in enumerate(species)

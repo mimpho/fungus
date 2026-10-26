@@ -658,3 +658,17 @@ useEffect(() => {
 - **Ensemble caveat:** with several species the score is the mean of each species' product, and the rows are the means of their factors; the product of the means is not the mean of the products. The points are rescaled to the real score and the footnote says so.
 - **Corner cards:** a corner with exactly one tagged mushroom is scored as that mushroom; with none or several it shows the excellent-edibles mean as «Condiciones ahora». `/point/snapshot` scores one species per request; several tagged species would need the endpoint to accept a list (not done).
 
+
+## Observatory — forest affinity per species (2026-10-26)
+
+**Decision:** the forest factor of a species comes from `species.extra_data.forest_affinity` (weight 0-1 per forest class of the raster) when it exists, and from `forest_types` (every fitted class weighs 1) when it does not. The weighted share goes through the same ramp as before (10 % → 0, 40 % → 1).
+
+**Why:** `forest_types` was all-or-nothing, so *B. aereus* scored 0 in a beech forest and *B. edulis* was penalised on soils its range left out. A single weight per class also lets "otro" be split later (chestnut, birch, hazel...) by adding keys, without touching the model.
+
+**What the weight means:** how well the species fruits under that class, not competition with other trees. With the ramp, a pure stand of a class weighing 0.6 still gives factor 1 (0.6 > 0.4); the weight only costs where the class is a minority. A weight under 0.4 does penalise a pure stand.
+
+**Stored in `extra_data`**, like the pH range and the humidity limits, so no Alembic migration. `forest_types` stays as the list of main hosts for zone filters and v1.
+
+**Honest status:** the weights are estimates from host lists (IUCN, Bioimages, fungi.fr, Van der Linde, ...), "several sources agree" only on the hosts, never on the numbers. GBIF cannot measure them (too few precise records; minority classes such as beech, 2.5 % of the forest, have almost no records) and the probe failed its own control (*L. deliciosus* came out with beech at 1.0). Do not apply weights from a single source. `043` had a mistake (*B. edulis* pinar 0.8 against the Iberian evidence), corrected in `044`: review every weight against field knowledge before trusting it.
+
+**Related, not done:** the soil factor takes the class of the ICGC lithology (carbonated = calcareous, pH 7.0–8.3), but under forest the topsoil on limestone is often decarbonated and acid; the map can say «calcáreo» where the layer the mushroom grows in is acid. The pH ranges of the catalogue come from generated text and need an audit (draft in the Project; only *B. edulis* applied).

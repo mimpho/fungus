@@ -9,6 +9,7 @@ from app.services.point_habitat import Habitat
 from app.services.point_species import (
     SpeciesRecord,
     best_window,
+    fit_parts,
     grade,
     species_for_point,
 )
@@ -345,3 +346,34 @@ class TestFitParts:
         assert abs(snap["score"] - listed) <= 1
         codes = [c["code"] for c in snap["conditions"]]
         assert "habitat_forest" in codes
+
+
+class TestForestAffinityInTheRecord:
+    def _row(self, **extra):
+        return SimpleNamespace(
+            id="esp-9", scientific_name="X", edibility="good", temp_min_c="5.0",
+            temp_opt_c="14.0", temp_max_c="22.0", rain_min_mm=30, rain_opt_mm=80, cycle_days=10,
+            forest_types=["encinar"], fruiting_months=[9, 10], elevation_min_m=400,
+            elevation_max_m=1500, extra_data=extra,
+        )
+
+    def test_it_reads_the_affinity_from_extra_data(self):
+        rec = SpeciesRecord.from_row(self._row(forest_affinity={"hayedo": 1.0, "robledal": 0.6}))
+        assert dict(rec.forest_affinity) == {"hayedo": 1.0, "robledal": 0.6}
+
+    def test_missing_or_malformed_means_none(self):
+        assert SpeciesRecord.from_row(self._row()).forest_affinity == ()
+        assert SpeciesRecord.from_row(self._row(forest_affinity="hayedo")).forest_affinity == ()
+        assert SpeciesRecord.from_row(self._row(forest_affinity=[1, 2])).forest_affinity == ()
+
+    def test_the_record_stays_hashable(self):
+        rec = SpeciesRecord.from_row(self._row(forest_affinity={"hayedo": 1.0}))
+        assert isinstance(hash(rec), int)
+
+    def test_a_beech_forest_no_longer_zeroes_a_species_that_fruits_there(self):
+        beech = Habitat(forest={"hayedo": 0.9, "pinar": 0.1}, soil=None, forest_radius_m=500)
+        without = SpeciesRecord.from_row(self._row())
+        affinity = {"hayedo": 1.0, "robledal": 0.6}
+        with_it = SpeciesRecord.from_row(self._row(forest_affinity=affinity))
+        assert dict(fit_parts(without, 700, beech))["forest"] == 0.0
+        assert dict(fit_parts(with_it, 700, beech))["forest"] == 1.0

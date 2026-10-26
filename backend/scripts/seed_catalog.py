@@ -166,6 +166,7 @@ async def seed_species(db, species_data: list[dict], dry_run: bool = False) -> i
             "humedad_min", "humedad_optima",
             "ph_suelo_min", "ph_suelo_max",
             "requiere_helada", "requiere_choque_termico",
+            "forest_affinity",
         ):
             value = s.get(field)
             if value is not None:

@@ -23,7 +23,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from app.services.forest_classes import classes_for
+from app.services.forest_classes import class_weights_for
 from app.services.substrate_classes import PH_RANGE, SUBSTRATE_CLASSES, ph_fit
 
 FOREST_MIN = 0.1  # share of fitting forest below which the species is not listed
@@ -161,14 +161,25 @@ def forest_factor(share: float) -> float:
     return (share - FOREST_MIN) / (FOREST_FULL - FOREST_MIN)
 
 
-def forest_fit(forest_types: Collection[str], shares: dict[str, float] | None) -> dict | None:
+def forest_fit(
+    forest_types: Collection[str],
+    shares: dict[str, float] | None,
+    affinity: Any = None,
+) -> dict | None:
     """Share of the point's forest that the species fits and its factor; None if the forest
-    cannot judge the species (no shares, or only meadow / garden / riparian types)."""
-    classes = classes_for(forest_types)
-    if shares is None or classes is None:
+    cannot judge the species (no shares, or only meadow / garden / riparian types).
+
+    The share adds up each class the species fits times its weight (`forest_affinity`; 1 for
+    every class when it has none), so a lesser host counts for less where it is a minority and
+    still gives full factor where it is most of the forest (the ramp tops out at 40 %)."""
+    weights = class_weights_for(forest_types, affinity)
+    if shares is None or weights is None:
         return None
-    share = min(1.0, sum(shares.get(c, 0.0) for c in classes))
-    return {"classes": classes, "share": round(share, 3), "factor": round(forest_factor(share), 3)}
+    share = min(1.0, sum(shares.get(c, 0.0) * w for c, w in weights.items()))
+    return {
+        "classes": list(weights), "weights": weights,
+        "share": round(share, 3), "factor": round(forest_factor(share), 3),
+    }
 
 
 def soil_fit(

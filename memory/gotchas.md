@@ -317,3 +317,16 @@ For the disposable database put the URL in front of the command: `DATABASE_URL="
 
 ### ⚠️ The user menu shows the generator only to `role = 'admin'`, and it opens the gallery
 `/admin/generator` is the hub: it shows the gallery, and the generator loads only with `?especie=…&generar=1` (a species picked in the gallery). A local user is not an admin until `users.role` is set: `UPDATE users SET role = 'admin' WHERE email = '…';` on the disposable database (`docker exec -it fungus-ingest-test psql -U postgres -d fungus -c "…"`), then reload so `/me` returns the role.
+
+
+### ⚠️ Every GET except `/species` is cached by the browser for an hour
+`add_cache_control` (`app/main.py`) sets `Cache-Control: public, max-age=3600` on any 200 GET whose **path** has no `/species`; the query string does not count. `/observatory/point/species` is `no-store`, but `/observatory/point/snapshot?species=…`, `/series` and `/calendar` are kept: after a change of catalogue data the species list shows the new score and the thermometer the old one. Found 2026-10-26 (a thermometer stuck at 2 while the list said 16). While debugging: DevTools → Network → «Disable cache» and a hard reload. `public` on responses that need login is also wrong; a fix (`private, max-age=60` under `/observatory/`) is pending.
+
+### ⚠️ An exported `DATABASE_URL` wins over `backend/.env`
+`app/config.py` is a `pydantic-settings` class: an environment variable beats the `.env` file. A terminal that once ran `export DATABASE_URL=…` (a disposable database) keeps it, so the backend reads that database while `backend/.env` says production, or the other way round if you unset it. Check what the process really uses: `echo $DATABASE_URL | sed -E 's#//[^@]*@#//***@#'` in the terminal that started it. For one-off runs put the variable in front of the command, never `export` it. The same goes for `VITE_API_BASE` on the Vite dev server (a forced port 8001 once left the frontend talking to a backend that was not running).
+
+### ⚠️ Local runs against production fail on the Observatory tables
+Production is at Alembic 016 until the epic is deployed, so a backend started on `backend/.env` answers 500 (`relation "cell_lookup" does not exist`) on every `/observatory/*` route. That is expected; test the Observatory on the disposable database (`fungus-ingest-test`, port 55432), where the catalogue, 423 cells and the migrations up to 021 are. Never run `alembic upgrade head` from local against Supabase (rule 21 of `agents.spec.md`).
+
+### ⚠️ The soil class comes from the bedrock, the pH that matters is the topsoil's
+`substrate_classes.py` maps the ICGC lithology (1:250,000) to three classes with typical pH ranges; carbonated rock is «calcáreo» (7.0–8.3). Under forest the topsoil on limestone is often decarbonated and acid (black trumpets are recorded on calcareous bedrock with bilberry), so a species with an acid range can be penalised on a point that is acid where it grows. The 46 % soil factor of a *B. edulis* at a point near La Molina came from a pure acid class and a catalogue range of 5.5–6.5.
