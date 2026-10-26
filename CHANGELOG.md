@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Forest weights per species and data corrections (2026-10-26, `feat/observatory-forest-affinity`)
+
+The forest factor of a species is no longer all-or-nothing by forest type. No API route changes; the layer's `species` block gains a field. Four data migrations (`042`–`045`), no Alembic migration.
+
+- **`species.extra_data.forest_affinity`** (`{ pinar | encinar | hayedo | robledal | otro: 0-1 }`): how well the species fruits under each class of the CREAF raster. When present it replaces what `forest_types` says; without it every class the types fit weighs 1, as before (`forest_classes.class_weights_for`, `clean_affinity`).
+- **Weighted share:** the share of fitting forest around a point is `Σ share × weight` per class, through the same 10 %–40 % ramp (`point_habitat.forest_fit`, which also returns `weights`). A lesser host still gives full factor where it is most of the forest and counts for less where it is a minority. Applies to the point's species list, thermometer, chart and calendar, and to the ensemble of excellent edibles (`counts_in_ensemble` takes the affinity).
+- **Layer:** `species` carries `forest_class_weights` (per species in the ensemble answer); `reliefLayer.js` uses it in the three places that sum the forest share (per pixel, ensemble, point value). `forest_classes` stays and is derived from the weights.
+- **`SpeciesRecord.forest_affinity`** (pairs, keeps the record hashable, so the layer cache key changes when it changes) read from `extra_data`.
+- **Data (`migrations/`):** `042` *B. aereus* (adds `hayedo` to `forest_types` and its weights), `043` seven species with several sources agreeing on their hosts, `044` *B. edulis* pinar 0.8 → 1.0 (a mistake of `043`: it penalised pine sites), `045` *B. edulis* soil pH 5.5–6.5 → 4.5–6.5 (acid substrates scored 0.46). `species.js` and `seed_catalog.py` carry the same fields.
+- **Not measured:** the weights are a split made from host information in the literature, not data. A GBIF probe (`backend/scripts/gbif_forest_affinity.py`) found too few precise records in Catalonia to measure them (394 for *B. edulis* in all, 90 at 1 km). A draft audit of the pH ranges lives in the Project (`ph_audit_borrador.xlsx`); only *B. edulis* is applied.
+
 ### Changed — Observatory interface polish, second round (2026-10-24, `feat/observatory-ui-polish-2`)
 
 Front end only (no API, no migration).
