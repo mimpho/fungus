@@ -672,3 +672,12 @@ useEffect(() => {
 **Honest status:** the weights are estimates from host lists (IUCN, Bioimages, fungi.fr, Van der Linde, ...), "several sources agree" only on the hosts, never on the numbers. GBIF cannot measure them (too few precise records; minority classes such as beech, 2.5 % of the forest, have almost no records) and the probe failed its own control (*L. deliciosus* came out with beech at 1.0). Do not apply weights from a single source. `043` had a mistake (*B. edulis* pinar 0.8 against the Iberian evidence), corrected in `044`: review every weight against field knowledge before trusting it.
 
 **Related, not done:** the soil factor takes the class of the ICGC lithology (carbonated = calcareous, pH 7.0–8.3), but under forest the topsoil on limestone is often decarbonated and acid; the map can say «calcáreo» where the layer the mushroom grows in is acid. The pH ranges of the catalogue come from generated text and need an audit (draft in the Project; only *B. edulis* applied).
+
+
+## Observatory — forest type layer (2026-10-27)
+
+**Decision:** the layer paints the dominant class of the CREAF forest raster that the conditions layer already loads; no endpoint and no new data. The legend is the filter: a type switched off disappears and the colour is chosen among the types still on.
+
+**Why this raster and not the zones' `forest_type`:** the map shows what is around each point (the same 500 m mean the model judges), so the user sees why a species scores as it does. The raster is the client-smoothed one, so small patches blur; the dominant class is only an overview.
+
+**Limits worth knowing:** five classes only («otro» still mixes chestnut, birch, hazel, riparian trees); a ~250 m pixel from a 2009 map; no composition on click (that is `feat/observatory-composition`). Colours were chosen to tell the five apart over satellite imagery and have to be checked on the other basemaps and the light theme.

@@ -14,6 +14,8 @@ import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { Tabs } from '../components/ui/Tabs'
 import { MapSearch } from '../components/observatory/MapSearch'
 import { MapLayersBox } from '../components/observatory/MapLayersBox'
+import { ForestTypeLegend } from '../components/observatory/ForestTypeLegend'
+import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
 import { ObservedZone } from '../components/observatory/ObservedZone'
 import { TerritorySection } from '../components/observatory/TerritorySection'
@@ -52,6 +54,14 @@ export default function Observatory() {
     setCornersOn(value)
     try { localStorage.setItem('fungus-obs-corners', value ? 'on' : 'off') } catch (_e) { /* per-viewer convenience only */ }
   }
+  // Forest type layer: the forest raster by dominant type; the legend filters which types show
+  const [forestOn, setForestOn] = useState(false)
+  const [forestShown, setForestShown] = useState(() => new Set(FOREST_TYPES.map(f => f.key)))
+  const toggleForestType = key => setForestShown(prev => {
+    const next = new Set(prev)
+    if (next.has(key)) next.delete(key); else next.add(key)
+    return next
+  })
   const shownSpecies = probabilityOn ? layerSpecies : null
   const { species: catalog } = useSpecies()
   const speciesLabel = id => {
@@ -65,9 +75,10 @@ export default function Observatory() {
   const layer = useProbabilityLayer(isAuthenticated ? layerId : null, { date: layerDate ?? undefined })
   const chooseLayerSpecies = id => { setLayerSpecies(id); setLayerDate(null) }
   const elevation = useElevationRaster(Boolean(layerId) && isAuthenticated)
-  const forest = useClassRaster('forest', Boolean(layerId) && isAuthenticated)
+  const forest = useClassRaster('forest', (Boolean(layerId) || forestOn) && isAuthenticated)
   const substrate = useClassRaster('substrate', Boolean(layerId) && isAuthenticated)
   const habitat = useMemo(() => ({ forest, substrate }), [forest, substrate])
+  const forestTypes = useMemo(() => (forestOn && forest ? { raster: forest, active: forestShown } : null), [forestOn, forest, forestShown])
   // What the layer paints at the spot picked on the map ({ score, count }; null = nothing there)
   const layerValue = useMemo(() => {
     const data = layer.data
@@ -242,6 +253,7 @@ export default function Observatory() {
               layer={probabilityOn ? layer.data : null}
               elevation={elevation}
               habitat={habitat}
+              forestTypes={forestTypes}
               onPick={handlePick}
               label={t.obsMapLabel}
               basemap={basemap}
@@ -285,6 +297,9 @@ export default function Observatory() {
               onCorners={chooseCorners}
               probability={probabilityOn}
               onProbability={setProbabilityOn}
+              forest={forestOn}
+              onForest={setForestOn}
+              forestChildren={<ForestTypeLegend active={forestShown} onToggle={toggleForestType} loaded={Boolean(forest)} />}
               className="absolute z-[1100] top-[8rem] left-3 right-3 md:left-auto md:top-[4.75rem] md:right-3 md:w-[22rem]"
             >
               <SpeciesLayerPicker

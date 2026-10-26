@@ -8,6 +8,7 @@ import {
 import { CATALONIA_BOUNDS } from '../../lib/catalonia'
 import { cellFill, ALPHA_SCALE_BY_BASEMAP } from '../../lib/layerColors'
 import { reliefOverlay } from '../../lib/reliefLayer'
+import { forestTypeOverlay } from '../../lib/forestLayer'
 import { pinSvg } from '../../lib/cornerKinds'
 
 // leaflet.markercluster is UMD and looks for `L` as a global: expose it before importing it
@@ -33,6 +34,7 @@ const meanScore = s => {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
 }
 const LAYER_PANE = 'obsLayer' // between the tiles (200) and the markers (400): the layer never covers a point
+const FOREST_PANE = 'obsForest' // forest types: under the conditions layer, so both can be on
 const LABELS_PANE = 'obsLabels' // place names of the dark maps: over the layer (350), under the markers
 
 // A cluster of corners: dark olive disc with a cream ring, so it reads on satellite, streets and relief alike
@@ -68,7 +70,7 @@ function cornerMarker(sp, pinLabel, onPick) {
  * coloured by its score. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
  * the forest is not one the species fits or the soil pH is not its own. Neither takes clicks, so picking a point works over the layer.
  */
-export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, className = '' }) {
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
   const observedRef = useRef(null)
@@ -76,6 +78,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
   const tilesRef    = useRef(null)
   const savedRef    = useRef(null)
   const layerRef    = useRef(null)
+  const forestRef   = useRef(null)
   const onPickRef  = useRef(onPick)
   const initial    = useRef(observed ?? startAt)
   useEffect(() => { onPickRef.current = onPick }, [onPick])
@@ -89,6 +92,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
       maxBounds: BOUNDS.pad(0.25),
       maxBoundsViscosity: 0.8,
     })
+    map.createPane(FOREST_PANE).style.zIndex = 340
     map.createPane(LAYER_PANE).style.zIndex = 350
     map.createPane(LABELS_PANE).style.zIndex = 360
     L.control.zoom({ position: 'bottomright' }).addTo(map)
@@ -104,7 +108,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     return () => {
       ro.disconnect()
       try { map.remove() } catch (_e) { /* partial state: ignore */ }
-      mapRef.current = observedRef.current = pendingRef.current = tilesRef.current = savedRef.current = layerRef.current = null
+      mapRef.current = observedRef.current = pendingRef.current = tilesRef.current = savedRef.current = layerRef.current = forestRef.current = null
     }
   }, [])
 
@@ -172,6 +176,21 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     group.addTo(map)
     layerRef.current = group
   }, [layer, elevation, habitat, basemap])
+
+  // Forest type layer: the forest raster painted by dominant type; `forestTypes` = { raster, active }
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    forestRef.current?.remove()
+    forestRef.current = null
+    if (!forestTypes?.raster) return
+    try {
+      const overlay = forestTypeOverlay(forestTypes.raster, forestTypes.active, { alphaScale: ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1 })
+      if (overlay) forestRef.current = L.imageOverlay(overlay.url, overlay.bounds, { pane: FOREST_PANE, interactive: false }).addTo(map)
+    } catch (err) {
+      console.warn('Forest type layer: picture failed', err)
+    }
+  }, [forestTypes, basemap])
 
   // Corners: a pin per kind with its name, in clusters (leaflet.markercluster, loaded on demand);
   // clicking one picks it like a click on that spot. If the plugin cannot load, plain pins.

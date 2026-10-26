@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — «Tipo de bosque» map layer (2026-10-27, `feat/observatory-layer-forest`)
+
+Front end only (no API, no migration): it paints the forest raster the page already loads for the conditions layer.
+
+- **Layer:** a new checkbox in the layers box paints every pixel with the colour of its **dominant forest class** (pinar, encinar, hayedo, robledal, otro). Pixels with less than 10 % forest of the classes shown stay transparent, and the colour fades in until 50 % (`paintForestTypes` / `forestTypeOverlay` in `src/lib/forestLayer.js`, pure functions, rows resampled to Web Mercator like `reliefLayer.js`).
+- **Legend as filter** (`ForestTypeLegend.jsx`): one toggle button per type (`aria-pressed`); switching one off removes it from the map and the dominant class is taken among the types still on.
+- **Own pane** (`obsForest`, z-index 340) under the conditions layer (350), so both can be on at once; strength scaled per basemap with `ALPHA_SCALE_BY_BASEMAP`. Colours are literal hex (Leaflet rule). The forest raster is loaded when either layer needs it (`useClassRaster('forest', …)`).
+- **Texts** `obsLayerForest`, `obsForestLegend`, `obsForestHint`, `obsForestLoading` in es / ca / en. The hint names the source (CREAF MCSC-4) and the ~250 m pixel.
+- **Not checked on screen yet:** the colours on the three basemaps (satellite, streets, relief), in the light theme and on a phone.
+
 ### Changed — Forest weights per species and data corrections (2026-10-26, `feat/observatory-forest-affinity`)
 
 The forest factor of a species is no longer all-or-nothing by forest type. No API route changes; the layer's `species` block gains a field. Four data migrations (`042`–`045`), no Alembic migration.
