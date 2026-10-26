@@ -70,8 +70,8 @@ NNN_short_description.sql
 | `041_zones_catalonia_named_places.sql` | 17 generic Catalan zones moved onto named places (book routes) and renamed, zone-030 renamed, 23 new zones; elevation reset to NULL (run the elevation script and backfill after) | ✅ Run 2026-10-11 |
 | `042_forest_affinity_aereus.sql` | `forest_affinity` for *B. aereus* (first species with per-class forest weights) and `hayedo` added to its `forest_types`; placeholder weights | ✅ Run 2026-10-25 |
 | `043_forest_affinity_multi_source.sql` | `forest_affinity` for seven species whose hosts several sources agree on (*edulis*, *reticulatus*, *Imleria badia*, *Craterellus cornucopioides*, *A. caesarea*, *T. melanosporum*, *B. regius*) | ✅ Run 2026-10-25 |
-| `044_edulis_pinar_affinity.sql` | *B. edulis* pinar weight 0.8 → 1.0 (correction of 043) | ⏳ Pending in Supabase (applied on the disposable DB 2026-10-26) |
-| `045_edulis_ph_range.sql` | *B. edulis* soil pH 5.5–6.5 → 4.5–6.5 | ⏳ Pending in Supabase (applied on the disposable DB 2026-10-26) |
+| `044_edulis_pinar_affinity.sql` | *B. edulis* pinar weight 0.8 → 1.0 (correction of 043) | ✅ Run 2026-10-27 |
+| `045_edulis_ph_range.sql` | *B. edulis* soil pH 5.5–6.5 → 4.5–6.5 | ✅ Run 2026-10-27 |
 | `audit_cond_fruct*.sql` | Read-only diagnostic queries — not migrations, do not run | 🔍 Audit only |
 
 ## Adding a new migration
