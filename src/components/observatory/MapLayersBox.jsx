@@ -31,7 +31,7 @@ function Row({ id, checked, disabled = false, onChange, label, hint }) {
  * probability layer: the species search, the day, the legend) in `children`; off, the map goes
  * back to the plain basemap. Layers not built yet are listed, disabled.
  */
-export function MapLayersBox({ corners = true, onCorners, probability, onProbability, children, className = '' }) {
+export function MapLayersBox({ corners = true, onCorners, probability, onProbability, forest = false, onForest, forestChildren = null, children, className = '' }) {
   const { t } = useApp()
   const uid = useId()
   return (
@@ -41,6 +41,8 @@ export function MapLayersBox({ corners = true, onCorners, probability, onProbabi
         <Row id={`${uid}-corners`} checked={corners} onChange={onCorners} label={t.obsLayerCorners} />
         <Row id={`${uid}-prob`} checked={probability} onChange={onProbability} label={t.obsLayerProbability} />
         {probability && <div className="pb-1">{children}</div>}
+        <Row id={`${uid}-forest`} checked={forest} onChange={onForest} label={t.obsLayerForest} />
+        {forest && <div className="pb-1">{forestChildren}</div>}
         {COMING.map(l => (
           <Row key={l.id} id={`${uid}-${l.id}`} checked={false} disabled label={t[l.key]} hint={t.obsLayerSoon} />
         ))}
