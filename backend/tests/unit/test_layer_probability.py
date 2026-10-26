@@ -449,3 +449,24 @@ class TestForecastEndpoint:
             env, "probability", species="esp-1", date=(TODAY + timedelta(days=3)).isoformat()
         )
         assert body["date"] == REF.isoformat() and body["clamped"] is True
+
+
+class TestForestWeightsInTheLayer:
+    def test_the_species_carries_the_weight_of_each_class(self):
+        sp = _sp(forest_types=("encinar",), forest_affinity=(("hayedo", 1.0), ("robledal", 0.6)))
+        out = species_layer(CELLS, TODAY, sp)
+        assert out["species"]["forest_classes"] == ["hayedo", "robledal"]
+        assert out["species"]["forest_class_weights"] == {"hayedo": 1.0, "robledal": 0.6}
+
+    def test_without_affinity_every_class_weighs_one(self):
+        out = species_layer(CELLS, TODAY, _sp(forest_types=("pinar",)))
+        assert out["species"]["forest_class_weights"] == {"pinar": 1.0}
+        none = species_layer(CELLS, TODAY, _sp(forest_types=("prados",)))
+        assert none["species"]["forest_class_weights"] is None
+
+    def test_the_ensemble_carries_them_per_species(self):
+        a = _sp(id="a", forest_types=("pinar",))
+        b = _sp(id="b", forest_types=(), forest_affinity=(("hayedo", 0.8),))
+        res = excellent_layer(CELLS, TODAY, [a, b])
+        assert [s["forest_class_weights"] for s in res["species"]] == [
+            {"pinar": 1.0}, {"hayedo": 0.8}]

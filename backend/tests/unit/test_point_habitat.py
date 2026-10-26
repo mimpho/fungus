@@ -116,3 +116,30 @@ class TestSurroundings:
         assert Habitat(forest={"a": 0.05, "b": 0.04}).forest_around() is False
         assert Habitat(forest={"a": 0.06, "b": 0.05}).forest_around() is True
         assert Habitat(forest=None).forest_around() is None
+
+
+class TestFitWithAffinity:
+    AFFINITY = {"robledal": 1.0, "hayedo": 0.6}
+
+    def test_a_pure_stand_of_a_lesser_host_still_gets_full_factor(self):
+        fit = forest_fit(("robledal",), {"hayedo": 1.0}, self.AFFINITY)
+        assert fit["share"] == 0.6 and fit["factor"] == 1.0
+
+    def test_a_minority_of_the_lesser_host_weighs_less(self):
+        fit = forest_fit(("robledal",), {"hayedo": 0.3, "pinar": 0.7}, self.AFFINITY)
+        assert fit["share"] == 0.18
+        assert round(fit["factor"], 2) == 0.27
+
+    def test_hosts_add_up_with_their_weights(self):
+        shares = {"robledal": 0.1, "hayedo": 0.2, "pinar": 0.7}
+        fit = forest_fit(("robledal",), shares, self.AFFINITY)
+        assert fit["share"] == 0.22
+        assert fit["weights"] == {"robledal": 1.0, "hayedo": 0.6}
+
+    def test_without_affinity_the_answer_is_what_it_was(self):
+        fit = forest_fit(("encinar",), {"pinar": 0.5, "encinar": 0.3, "hayedo": 0.2})
+        assert fit["share"] == 0.3 and fit["weights"] == {"encinar": 1.0}
+
+    def test_the_share_never_goes_over_one(self):
+        fit = forest_fit(("robledal",), {"robledal": 0.8, "hayedo": 0.8}, self.AFFINITY)
+        assert fit["share"] == 1.0

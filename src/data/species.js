@@ -4,6 +4,8 @@ export const mockSpecies = [
     commonNames: ["Boleto", "Hongo calabaza", "Cep", "Steinpilz", "Porcino", "Sureny"],
     family: "Boletaceae", edibility: "excelente",
     forestTypes: ["pinar", "hayedo", "robledal", "encinar"],
+    // Placeholder weights, see migrations/043
+    forest_affinity: { pinar: 1.0, encinar: 0.5, hayedo: 1.0, robledal: 1.0, otro: 0.9 },
     fruitingMonths: [8,9,10,11],
     description: "El rey de las setas. Uno de los hongos más apreciados gastronómicamente en todo el mundo. Su carne firme y sabor intenso lo hacen insustituible en la cocina. Forma micorriza con pinos, abetos, hayas y robles.",
     cap: { forma: "Convexo-abombado", color: "Marrón castaño a ocre", diametro: "8-30 cm", superficie: "Lisa, algo viscosa con humedad" },
@@ -20,7 +22,7 @@ export const mockSpecies = [
     temp_optima_min: 12.0, temp_optima_max: 18.0,
     humedad_min: 70.0, humedad_optima: 80.0,
     precip_14dias_min: 30.0, precip_14dias_max: 80.0,
-    ph_suelo_min: 5.5, ph_suelo_max: 6.5,
+    ph_suelo_min: 4.5, ph_suelo_max: 6.5,
     requiere_helada: false, requiere_choque_termico: true,
     dias_hasta_fructificacion: 7,
   },
@@ -28,7 +30,9 @@ export const mockSpecies = [
     id: "esp-002", scientificName: "Boletus aereus",
     commonNames: ["Boleto negro", "Cep negre", "Hongo negro", "Porcino de verano"],
     family: "Boletaceae", edibility: "excelente",
-    forestTypes: ["encinar", "robledal"],
+    forestTypes: ["encinar", "robledal", "hayedo"],
+    // How well it fruits under each forest class (0-1); placeholder values, see migrations/042
+    forest_affinity: { robledal: 1.0, encinar: 1.0, hayedo: 0.6, otro: 0.8 },
     fruitingMonths: [6,7,8,9,10],
     description: "Boleto muy apreciado de sombrero oscuro casi negro. Típico de la zona mediterránea bajo encinas y robles. Más escaso que B. edulis pero igualmente excelente. El más estival de los boletos nobles.",
     cap: { forma: "Hemisférico a convexo", color: "Marrón muy oscuro, casi negro", diametro: "6-20 cm", superficie: "Aterciopelada en joven" },
@@ -79,6 +83,8 @@ export const mockSpecies = [
     commonNames: ["Boleto de verano", "Cep d'estiu", "Summer cep"],
     family: "Boletaceae", edibility: "excelente",
     forestTypes: ["robledal", "encinar"],
+    // Placeholder weights, see migrations/043
+    forest_affinity: { encinar: 0.8, hayedo: 0.4, robledal: 1.0, otro: 0.8 },
     fruitingMonths: [6,7,8,9],
     description: "El boleto de verano, muy similar al B. edulis pero con sombrero más seco y mate. Primera especie del género en aparecer cada año. Excelente comestible, muy apreciado en verano cuando escasean las setas.",
     cap: { forma: "Convexo", color: "Marrón ocre a ocre pajizo", diametro: "6-20 cm", superficie: "Mate, algo agrietada en seco" },
@@ -104,6 +110,8 @@ export const mockSpecies = [
     commonNames: ["Boleto bayo", "Cep bru"],
     family: "Boletaceae", edibility: "excelente",
     forestTypes: ["pinar", "hayedo"],
+    // Placeholder weights, see migrations/043
+    forest_affinity: { pinar: 1.0, hayedo: 0.5, robledal: 0.4, otro: 0.4 },
     fruitingMonths: [8,9,10,11],
     description: "Seta de pino de tamaño mediano con sombrero marrón castaño y poros blanquecinos que azulean ligeramente al corte. Especie comestible muy apreciada, frecuente en pinares y hayedos del norte y centro peninsular. Puede confundirse con el Boletus edulis, del que se distingue por los poros que azulean y la ausencia de reticulado en el pie.",
     cap: { forma: "Convexo a aplanado", color: "Marrón castaño a caoba", diametro: "5-15 cm", superficie: "Lisa, ligeramente grasa en húmedo" },
@@ -1179,6 +1187,8 @@ export const mockSpecies = [
     commonNames: ["Trompeta de los muertos", "Trompeta de la mort", "Trompeta negra", "Corn d'abundància", "Morro de rata"],
     family: "Cantharellaceae", edibility: "excelente",
     forestTypes: ["hayedo", "robledal"],
+    // Placeholder weights, see migrations/043
+    forest_affinity: { pinar: 0.3, encinar: 0.4, hayedo: 1.0, robledal: 0.9, otro: 0.8 },
     fruitingMonths: [9,10,11],
     description: "Pese a su nombre inquietante, es una excelente seta comestible. Aroma intenso y sabor profundo, especialmente seca. Crece en grupos bajo hayas. Su color negro la hace difícil de ver en el bosque.",
     cap: { forma: "Tubular en forma de trompeta", color: "Negro a gris oscuro", diametro: "3-8 cm", superficie: "Fibrosa, escamosa" },
@@ -1354,6 +1364,8 @@ export const mockSpecies = [
     commonNames: ["Oronja", "Ou de reig", "Seta de César", "Ovolo"],
     family: "Amanitaceae", edibility: "excelente",
     forestTypes: ["robledal", "encinar"],
+    // Placeholder weights, see migrations/043
+    forest_affinity: { pinar: 0.2, encinar: 1.0, hayedo: 0.3, robledal: 1.0, otro: 0.6 },
     fruitingMonths: [6,7,8,9,10],
     description: "Considerada por muchos la seta más exquisita de Europa. Sale de un huevo blanco que la protege inicialmente. Su sombrero naranja brillante y láminas amarillas la hacen inconfundible. El César romano la consideraba «comida de dioses».",
     cap: { forma: "Esférico después convexo-extendido", color: "Naranja brillante a rojo", diametro: "8-20 cm", superficie: "Lisa, brillante" },
@@ -2135,6 +2147,8 @@ export const mockSpecies = [
     commonNames: ["Trufa negra", "Tòfona negra"],
     family: "Tuberaceae", edibility: "excelente",
     forestTypes: ["encinar", "robledal"],
+    // Placeholder weights, see migrations/043
+    forest_affinity: { encinar: 1.0, robledal: 1.0, otro: 0.6 },
     fruitingMonths: [12,1,2,3],
     description: "La trufa negra de Périgord o trufa negra de invierno, el hongo más cotizado de la gastronomía mundial. Crece hipogea bajo encinas y robles en terrenos calizos. España es uno de los principales productores mundiales, especialmente Teruel, Huesca y Castellón. La temporada va de diciembre a marzo. Fuente: https://es.wikipedia.org/wiki/Tuber_melanosporum",
     cap: { forma: "Subgloboso a irregular (hipogeo)", color: "Negro-azulado a marrón-negro", diametro: "3-10 cm", superficie: "Verrugosa, pirámide poligonal" },
@@ -5010,6 +5024,8 @@ export const mockSpecies = [
     commonNames: ["Boleto real", "Cep reial", "Royal bolete"],
     family: "Boletaceae", edibility: "excelente",
     forestTypes: ["robledal", "hayedo", "encinar"],
+    // Placeholder weights, see migrations/043
+    forest_affinity: { encinar: 0.8, hayedo: 0.5, robledal: 1.0, otro: 0.5 },
     fruitingMonths: [6,7,8,9,10],
     description: "Boleto de gran tamaño y sombrero rosado-violáceo inconfundible. Los poros son amarillos brillantes. No azulea al corte, la carne permanece firme y amarilla. Especie micorrizógena de frondosas, menos frecuente que B. edulis.",
     cap: { forma: "Convexo a plano-convexo", color: "Rosa-liláceo a rojo frambuesa", diametro: "8-20 cm", superficie: "Seca, aterciopelada" },

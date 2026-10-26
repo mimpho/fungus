@@ -161,7 +161,7 @@ async def _scored_species(
         if row.temp_min_c is None or row.temp_opt_c is None or row.temp_max_c is None:
             continue
         record = SpeciesRecord.from_row(row)
-        if not counts_in_ensemble(record.forest_types):
+        if not counts_in_ensemble(record.forest_types, record.forest_affinity):
             continue
         parts = fit_parts(record, where, habitat)
         if any(f == 0 for name, f in parts if name == "altitude"):

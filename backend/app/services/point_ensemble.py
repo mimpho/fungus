@@ -26,11 +26,11 @@ from app.services.scoring_v2 import (
 ENSEMBLE_SPECIES = "excellent"  # the `species` value that asks for the ensemble
 
 
-def counts_in_ensemble(forest_types) -> bool:
+def counts_in_ensemble(forest_types, affinity=None) -> bool:
     """Only the species that grow in forest make the mean. The ones the forest cannot judge
     (meadow, garden, riparian, or no forest type) count nothing: a lawn in a town must not
     paint a place green for someone looking for mushrooms."""
-    return classes_for(forest_types) is not None
+    return classes_for(forest_types, affinity) is not None
 
 
 @dataclass(frozen=True)

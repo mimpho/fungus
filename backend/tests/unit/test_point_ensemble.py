@@ -94,3 +94,12 @@ class TestBuilders:
         cal = build_calendar(_rows(), TODAY, 667, 667, species=ens)
         scores = [e["score"] for e in cal["days"] if e["score"] is not None]
         assert scores and all(0 <= v <= 100 for v in scores)
+
+
+class TestEnsembleWithAffinity:
+    def test_a_species_with_affinity_counts_even_without_forest_types(self):
+        from app.services.point_ensemble import counts_in_ensemble
+
+        assert counts_in_ensemble([], {"hayedo": 0.8}) is True
+        assert counts_in_ensemble(["prado"], {"hayedo": 0.8}) is True
+        assert counts_in_ensemble(["prado"], None) is False
