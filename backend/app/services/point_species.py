@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from app.services.altitude_fit import Fit, altitude_fit, zone_band
+from app.services.forest_classes import clean_affinity
 from app.services.point_habitat import MIN_FACTOR, Habitat, forest_fit, soil_fit
 from app.services.point_series import prepare_climate
 from app.services.scoring_v2 import (
@@ -61,6 +62,9 @@ class SpeciesRecord:
     humidity_opt_pct: float | None = None
     needs_frost: bool = False
     needs_shock: bool = False
+    # How well it fruits under each forest class, 0-1 (extra_data.forest_affinity) as pairs so
+    # the record stays hashable; empty = every class its forest types fit weighs 1
+    forest_affinity: tuple[tuple[str, float], ...] = ()
 
     @classmethod
     def from_row(cls, row: Any) -> "SpeciesRecord":
@@ -76,6 +80,9 @@ class SpeciesRecord:
         def ph(key):
             v = extra.get(key) if isinstance(extra, dict) else None
             return float(v) if isinstance(v, int | float) else None
+
+        raw = extra.get("forest_affinity") if isinstance(extra, dict) else None
+        affinity = tuple(clean_affinity(raw).items()) if isinstance(raw, dict) else ()
 
         return cls(
             id=row.id,
@@ -97,6 +104,7 @@ class SpeciesRecord:
             humidity_opt_pct=ph("humedad_optima"),
             needs_frost=flag("requiere_helada"),
             needs_shock=flag("requiere_choque_termico"),
+            forest_affinity=affinity,
         )
 
     @property
@@ -121,7 +129,7 @@ def fit_parts(
     objection or not known). Their product is what species_for_point multiplies the score by."""
     band = zone_band(None if elevation_m is None else round(elevation_m), None, None)
     alt = altitude_fit(band, sp.elevation_min_m, sp.elevation_max_m)
-    forest = forest_fit(sp.forest_types, habitat.forest if habitat else None)
+    forest = forest_fit(sp.forest_types, habitat.forest if habitat else None, sp.forest_affinity)
     soil = soil_fit(sp.ph_min, sp.ph_max, habitat.soil if habitat else None)
     return (
         ("altitude", round(alt.score_factor, 3) if alt.compatible else 0.0),
@@ -270,7 +278,8 @@ def species_for_point(
     items = []
     for sp in catalogue:
         fit = altitude_fit(band, sp.elevation_min_m, sp.elevation_max_m)
-        forest_hit = forest_fit(sp.forest_types, habitat.forest if habitat else None)
+        forest_hit = forest_fit(
+            sp.forest_types, habitat.forest if habitat else None, sp.forest_affinity)
         forest = (_forest_shares(forest_hit, sp, habitat.forest) if forest_hit
                   else _forest(sp, forest_types))
         soil_hit = soil_fit(sp.ph_min, sp.ph_max, habitat.soil if habitat else None)

@@ -671,3 +671,26 @@ useEffect(() => {
 ## Rules proposed after the `seed_catalog` incident (2026-10-24) — not applied yet
 
 On 2026-10-24 `seed_catalog.py` ran against production because the terminal had no `DATABASE_URL` and `backend/.env` points there. There are no backups on the free plan. Proposed, in order of value: (1) keep the production URL out of `backend/.env` (a local default there, production in Render and in a separate file loaded on purpose); (2) give every script that writes (`ingest_cells`, `backfill`, `zone_relocate`, `zone_elevation_ranges`, `fix_species_colors`, `make_admin`, `seed_visual_prompts`, `generate_visual_dna`) the same `check_target` guard; (3) a backup routine (Supabase Pro, or a periodic `pg_dump` of `zones`, `species`, `users`, `saved_points`) and a dump of the table before any data migration; (4) a read-only role for everyday local use. Every data change goes into `migrations/` before it is run: the Supabase SQL editor keeps no usable history.
+
+## Observatory — forest affinity per species (2026-10-26)
+
+**Decision:** the forest factor of a species comes from `species.extra_data.forest_affinity` (weight 0-1 per forest class of the raster) when it exists, and from `forest_types` (every fitted class weighs 1) when it does not. The weighted share goes through the same ramp as before (10 % → 0, 40 % → 1).
+
+**Why:** `forest_types` was all-or-nothing, so *B. aereus* scored 0 in a beech forest and *B. edulis* was penalised on soils its range left out. A single weight per class also lets "otro" be split later (chestnut, birch, hazel...) by adding keys, without touching the model.
+
+**What the weight means:** how well the species fruits under that class, not competition with other trees. With the ramp, a pure stand of a class weighing 0.6 still gives factor 1 (0.6 > 0.4); the weight only costs where the class is a minority. A weight under 0.4 does penalise a pure stand.
+
+**Stored in `extra_data`**, like the pH range and the humidity limits, so no Alembic migration. `forest_types` stays as the list of main hosts for zone filters and v1.
+
+**Honest status:** the weights are estimates from host lists (IUCN, Bioimages, fungi.fr, Van der Linde, ...), "several sources agree" only on the hosts, never on the numbers. GBIF cannot measure them (too few precise records; minority classes such as beech, 2.5 % of the forest, have almost no records) and the probe failed its own control (*L. deliciosus* came out with beech at 1.0). Do not apply weights from a single source. `043` had a mistake (*B. edulis* pinar 0.8 against the Iberian evidence), corrected in `044`: review every weight against field knowledge before trusting it.
+
+**Related, not done:** the soil factor takes the class of the ICGC lithology (carbonated = calcareous, pH 7.0–8.3), but under forest the topsoil on limestone is often decarbonated and acid; the map can say «calcáreo» where the layer the mushroom grows in is acid. The pH ranges of the catalogue come from generated text and need an audit (draft in the Project; only *B. edulis* applied).
+
+
+## Observatory — forest type layer (2026-10-27)
+
+**Decision:** the layer paints the dominant class of the CREAF forest raster that the conditions layer already loads; no endpoint and no new data. The legend is the filter: a type switched off disappears and the colour is chosen among the types still on.
+
+**Why this raster and not the zones' `forest_type`:** the map shows what is around each point (the same 500 m mean the model judges), so the user sees why a species scores as it does. The raster is the client-smoothed one, so small patches blur; the dominant class is only an overview.
+
+**Limits worth knowing:** five classes only («otro» still mixes chestnut, birch, hazel, riparian trees); a ~250 m pixel from a 2009 map; no composition on click (that is `feat/observatory-composition`). Colours were chosen to tell the five apart over satellite imagery and have to be checked on the other basemaps and the light theme.

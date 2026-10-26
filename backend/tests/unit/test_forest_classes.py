@@ -68,3 +68,59 @@ class TestClassesFor:
 
     def test_a_forest_type_next_to_unjudged_ones_still_filters(self):
         assert classes_for(["prados", "encinar"]) == ["encinar"]
+
+
+class TestClassWeights:
+    """`forest_affinity` (species.extra_data): how well the species fruits under each forest
+    class, 0-1. Without it every class the forest types fit weighs 1, as before."""
+
+    def test_without_affinity_every_fitted_class_weighs_one(self):
+        from app.services.forest_classes import class_weights_for
+
+        assert class_weights_for(["pinar"]) == {"pinar": 1.0}
+        assert class_weights_for(["hayedo"]) == {"hayedo": 1.0, "otro": 1.0}
+        assert class_weights_for(["prados"]) is None
+
+    def test_affinity_defines_the_weights_and_overrides_the_types(self):
+        from app.services.forest_classes import class_weights_for
+
+        affinity = {"hayedo": 1.0, "robledal": 0.6}
+        assert class_weights_for(["encinar", "robledal"], affinity) == {
+            "robledal": 0.6, "hayedo": 1.0}
+
+    def test_weights_come_in_class_order(self):
+        from app.services.forest_classes import class_weights_for
+
+        out = class_weights_for([], {"otro": 0.5, "pinar": 1.0, "hayedo": 0.7})
+        assert list(out) == ["pinar", "hayedo", "otro"]
+
+    def test_a_species_with_affinity_is_judged_even_without_forest_types(self):
+        from app.services.forest_classes import class_weights_for
+
+        assert class_weights_for([], {"hayedo": 0.8}) == {"hayedo": 0.8}
+        assert class_weights_for(None, {"hayedo": 0.8}) == {"hayedo": 0.8}
+
+    def test_values_are_clamped_and_bad_entries_dropped(self):
+        from app.services.forest_classes import class_weights_for
+
+        out = class_weights_for(
+            [],
+            {"pinar": 1.7, "hayedo": 0, "robledal": -1, "alien": 0.5, "otro": "x", "encinar": 0.4},
+        )
+        assert out == {"pinar": 1.0, "encinar": 0.4}
+
+    def test_an_affinity_with_nothing_usable_falls_back_to_the_types(self):
+        from app.services.forest_classes import class_weights_for
+
+        assert class_weights_for(["pinar"], {"alien": 1.0, "hayedo": 0}) == {"pinar": 1.0}
+        assert class_weights_for(["prados"], {}) is None
+
+    def test_classes_for_follows_the_affinity(self):
+        assert classes_for(["encinar"], {"hayedo": 1.0, "robledal": 0.6}) == ["hayedo", "robledal"]
+        assert classes_for(["encinar"], None) == ["encinar"]
+
+    def test_the_pairs_form_of_the_record_works_too(self):
+        from app.services.forest_classes import class_weights_for
+
+        assert class_weights_for([], (("hayedo", 0.8), ("pinar", 1.0))) == {
+            "pinar": 1.0, "hayedo": 0.8}

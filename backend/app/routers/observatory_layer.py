@@ -97,7 +97,7 @@ async def probability_excellent_layer(
     little more than one. Answers are remembered while the stored data does not change."""
     rows = (await db.scalars(select(Species).where(Species.edibility.in_(sorted(EXCELLENT))))).all()
     records = (SpeciesRecord.from_row(r) for r in rows)
-    species = [sp for sp in records if counts_in_ensemble(sp.forest_types)]
+    species = [sp for sp in records if counts_in_ensemble(sp.forest_types, sp.forest_affinity)]
     today = _today()
     key = ("excellent", today, on, await store.data_signature(), tuple(species))
     if (cached := layer_cache.answers.get(key)) is not None:
