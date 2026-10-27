@@ -121,5 +121,6 @@ def to_out(r: SavedPointRecord) -> SavedPointOut:
     return SavedPointOut(
         id=r.id, lat=r.lat, lon=r.lon, name=r.name, notes=r.notes, kind=r.kind,
         elevation_m=r.elevation_m, species_ids=list(r.species_ids),
-        all_species_ids=all_species_ids(r), photo_count=r.photo_count, created_at=r.created_at, updated_at=r.updated_at,
+        all_species_ids=all_species_ids(r), photo_count=r.photo_count,
+        created_at=r.created_at, updated_at=r.updated_at,
     )
