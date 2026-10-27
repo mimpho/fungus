@@ -694,3 +694,21 @@ On 2026-10-24 `seed_catalog.py` ran against production because the terminal had 
 **Why this raster and not the zones' `forest_type`:** the map shows what is around each point (the same 500 m mean the model judges), so the user sees why a species scores as it does. The raster is the client-smoothed one, so small patches blur; the dominant class is only an overview.
 
 **Limits worth knowing:** five classes only («otro» still mixes chestnut, birch, hazel, riparian trees); a ~250 m pixel from a 2009 map; no composition on click (that is `feat/observatory-composition`). Colours were chosen to tell the five apart over satellite imagery and have to be checked on the other basemaps and the light theme.
+
+## Observatory — corner species mirror the photo tags (2026-10-27)
+
+**Decision:** a corner's tagged species and its photos' tags are kept in step by the API. Tagging a photo adds the species to the corner; removing it from a photo removes it from the corner unless another photo of the corner still has it; removing it from the corner removes it from all its photos (the photos stay). Deleting a photo does not touch the corner's tags.
+
+**Why:** the user sees one list of mushrooms (the pills) and the photos' own tags; letting them drift apart (a pill with no photo behind it, or a photo tagged with something the corner does not list) was confusing, and saving the edit form would have silently stripped photo-only tags. `all_species_ids` (the union) stays in the answers, now equal to `species_ids` for new data.
+
+**Where it lives:** in the routers, over the store protocols (so the fakes test it), not in SQL: `_sync_corner` in `corner_photos.py`, the dropped species in `update_point`, one new `PhotoStore.remove_species`. The steps are separate commits, not one transaction; a failure between them leaves a tag the next edit repairs.
+
+**Left open:** a manual tag on no photo disappears when a photo that carried the same species is untagged and no other photo has it (the rule cannot tell them apart); deleting a photo is left alone on purpose.
+
+## Corners and photos are never cached (2026-10-27)
+
+`Cache-Control: private, no-store` on `/observatory/saved-points…` through a router dependency (the middleware does not override a header a route set). The global `public, max-age=3600` made the browser serve the corner as it was before a tag was added, and these answers are the user's own. The rest of `/observatory/` keeps the hour; `fix/observatory-cache-control` (`private, max-age=60`) is still open for it.
+
+## The lightbox's history entry keeps the query (2026-10-27)
+
+`ModalRenderer` pushes a history entry when the lightbox opens so Back closes it. It used the bare pathname, which dropped the query string; the Observatory keeps its view state in the URL (`?lat=…&lon=…`), so the zone being observed, and the edit dialog open over it, closed. The entry now carries pathname, search and hash.

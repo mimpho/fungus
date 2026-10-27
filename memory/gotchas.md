@@ -337,3 +337,12 @@ Production is at Alembic 016 until the epic is deployed, so a backend started on
 
 ### ⚠️ The soil class comes from the bedrock, the pH that matters is the topsoil's
 `substrate_classes.py` maps the ICGC lithology (1:250,000) to three classes with typical pH ranges; carbonated rock is «calcáreo» (7.0–8.3). Under forest the topsoil on limestone is often decarbonated and acid (black trumpets are recorded on calcareous bedrock with bilberry), so a species with an acid range can be penalised on a point that is acid where it grows. The 46 % soil factor of a *B. edulis* at a point near La Molina came from a pure acid class and a catalogue range of 5.5–6.5.
+
+### ⚠️ A modal that closes its parent: React events cross portals, Esc crosses dialogs
+Two ways a dialog opened over another closed both: (1) a click that React bubbles from a portal up its React parent (a × inside a clickable area opens that area: stop the propagation in the button); (2) one Esc press heard by every `keydown` listener on `document`, the dialog above first, which unmounts it before the next listener looks (`useDialogAboveObsModal` now gives its slot back with a `setTimeout(0)` so the dialog under still sees it open). Any new overlay over an `ObsModal` should call that hook.
+
+### ⚠️ A history entry without the query string resets the Observatory
+`navigate(location.pathname, …)` drops `?lat=…&lon=…`, which is the Observatory's view state, and the observed zone (with whatever is open over it) closes. Keep `search` and `hash` when pushing an entry on the same page.
+
+### ⚠️ A local database one migration behind answers 500, not a clear error
+`fungus-ingest-test` was at Alembic 020, and the first photo upload failed with a 500 on the missing `corner_usage_events`. After pulling a branch with a migration, `alembic current` against the local database (with `DATABASE_URL` in front) tells which one is missing.

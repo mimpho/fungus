@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Corner photos, second iteration (2026-10-27, `feat/observatory-corners-photos`)
+
+Back end (no migration), front end and three fixes to shared dialogs.
+
+- **Species follow the photos** (`routers/corner_photos.py`, `saved_points.py`; `PhotoStore.remove_species`): tagging a mushroom on a photo (upload or `PATCH`) tags it on the corner too; taking it off a photo takes it off the corner unless another photo of the corner still has it; taking it off the corner (`PATCH /saved-points/{id}` with `species_ids`) takes it off every photo of the corner (the photos stay). Tags set by hand on no photo are not touched by photo changes; deleting a whole photo does not change the corner's tags. Eight scenarios in `TestCornerSpeciesFollowPhotos`.
+- **No cache for corners:** `/observatory/saved-points…` (corners and photos) answer `Cache-Control: private, no-store` (`no_store` dependency on both routers). The middleware's public hour made the page read the corner as it was before a tag was added. The rest of `/observatory/` keeps the hour (see `pending.md`).
+- **Several photos at once, drag and drop** (`CornerPhotos.jsx`): the file chooser and a drop on the photos section take up to the free places, one after another, with «Subiendo n de m…»; when more are chosen than fit, a notice says how many went up and how many were left out (`obsPhotoOverflow`). A file the server cannot take (too large, unreadable) does not stop the others; a full corner, the daily limit, storage or the network does.
+- **Photo viewer in full screen** (`PhotoViewer.jsx`, rewritten): black backdrop like the species' photo viewer, arrows, swipe, Esc; the tag and delete actions are icons at the top right and the tagged mushroom's name is centred under the picture (nothing when there is none). Tagging and deleting are black translucent overlays over the whole viewport (title on the counter's line, content a third of the way down, transparent buttons with a white border). Without `onTag`/`onDelete` it is read only (the map's panel).
+- **Tag pills instead of cards** (`SpeciesPills.jsx`): the species of a corner are pills (name, and a × in the edit dialog; the name opens the species' sheet) in the edit dialog, the «Mi rincón» card and the map panel's block. The picker lost its five dashed places (`slots`); `withPhotos` gives each match of its list a small photo (used in the photo viewer). The map panel's block now shows the corner's photos as read-only thumbnails (`CornerPhotos variant="strip"`).
+- **Edge-to-edge thumbnails** in the edit dialog and the map panel, like the card's: the row bleeds to the container's edges and the first one starts at the content's left margin.
+- **Edit and create dialogs as a bottom sheet on phones** (`ObsModal sheet`): under 640px it rises from the bottom, full width, with a handle to drag it down (max height screen − 50px, like the lists' filters); from 640px up it is the usual centred modal. The edit form takes in the species that appear while it is open (tagged from a photo) so saving does not take them off again; the card's photos are read again after the corner changes.
+- **«Mi rincón» card:** the title «Mi rincón» (`obsCornerCardTitle`) on top, then the pin with the name and the kind under it. «Mi rincón» and «Qué ha pasado» titles at 27px.
+- **Fixes:** the × of a species' sheet no longer opens its photo viewer (the click reached the hero photo); Esc over a dialog no longer closes the Observatory dialog under it (`useDialogAboveObsModal` gives the slot back a tick later, and the lightbox counts too); opening the lightbox no longer drops the URL's query (`ModalRenderer` pushed the bare path and the Observatory, whose view state lives in `?lat=…`, closed the zone and its open dialog).
+- **Local databases need migration 021** (`corner_usage_events`): without it an upload answers 500. `fungus-ingest-test` was at 020.
+- **Verified:** corner and photo unit tests (158 in the two files, the two migration-chain ones need `migrations/`), ruff, `vite build`. **Not verified on screen:** everything above in the front end, HEIC with real GPS, account deletion and the 429 limits against a real database, the phone layout.
+
 ### Added — «Tipo de bosque» map layer (2026-10-27, `feat/observatory-layer-forest`)
 
 Front end only (no API, no migration): it paints the forest raster the page already loads for the conditions layer.
