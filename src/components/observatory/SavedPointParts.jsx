@@ -54,10 +54,12 @@ function KindField({ value, onChange, uid }) {
 /**
  * Name, kind, tagged species and notes of a saved point («rincón»). A blank name is allowed: the
  * server then uses the place name (the placeholder says so). Used to create and to edit. `photos` is
- * the section between the species and the notes (the photos act at once, so they are not part of `form`). `onSubmit(form)` returns a promise; if it throws, the error is
+ * the section between the species and the notes (the photos act at once, so they are not part of `form`).
+ * `cornerSpecies` is the corner's species as the server has them: tagging a mushroom on a photo adds it there, and
+ * the species that appear since the last time are added to the form too (what the user took off the form stays off). `onSubmit(form)` returns a promise; if it throws, the error is
  * shown here and the form stays as it was.
  */
-export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, onCancel, photos = null }) {
+export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, onCancel, photos = null, cornerSpecies = null }) {
   const { t } = useApp()
   const uid = useId()
   const [form, setForm] = useState(initial)
@@ -65,6 +67,16 @@ export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, o
   const [error, setError] = useState(null)
   const formRef = useRef(null)
   const suggested = suggestKind(form.kind, form.species_ids)
+  const seenSpecies = useRef(cornerSpecies)
+
+  useEffect(() => {
+    if (!cornerSpecies) return
+    const added = cornerSpecies.filter(id => !(seenSpecies.current ?? []).includes(id))
+    seenSpecies.current = cornerSpecies
+    if (added.length) {
+      setForm(f => ({ ...f, species_ids: [...f.species_ids, ...added.filter(id => !f.species_ids.includes(id))] }))
+    }
+  }, [cornerSpecies])
 
   // Opened by a button in a small scrolling panel: bring it into view and start at the name
   useEffect(() => {

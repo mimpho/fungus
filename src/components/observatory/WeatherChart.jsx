@@ -521,7 +521,7 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [], ta
   return (
     <article aria-labelledby={`${uid}-h`} className="glass obs-card rounded-2xl p-[22px] space-y-4 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h3 id={`${uid}-h`} className="font-display text-[26px] leading-tight text-cream">{t.obsChTitle}</h3>
+        <h3 id={`${uid}-h`} className="font-display text-[27px] leading-tight text-cream">{t.obsChTitle}</h3>
       </div>
 
       <div className="overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&_button]:whitespace-nowrap [&>div]:w-max" role="group" aria-label={t.obsChTabsLabel}>

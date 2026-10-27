@@ -1,16 +1,14 @@
 import { ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
-import { useSpecies } from '../../hooks/useSpecies'
 import { useSpeciesRows } from '../../hooks/useSpeciesRows'
 import { kindMeta, pinSvg } from '../../lib/cornerKinds'
 import { IC } from '../../lib/helpers'
 import { BTN_SECONDARY } from './SavedPointParts'
 import { CornerModals } from './CornerModals'
 import { CornerPhotos } from './CornerPhotos'
-import { SpeciesCard } from './SpeciesCard'
-import { SpeciesPreview } from './SpeciesPreview'
-import { SCROLL_THIN, notesAreSpeciesNames } from './CornerSummary'
+import { SpeciesPills } from './SpeciesPills'
+import { notesAreSpeciesNames } from './CornerSummary'
 
 const ACTION_BTN = `${BTN_SECONDARY} inline-flex items-center gap-2`
 
@@ -26,15 +24,13 @@ function BrokenHeart() {
 
 /**
  * The saved corner of the observed zone, as one more card of the page: pin of its kind and name,
- * its notes, the species it has (as cards), its photos and what can be done with it — edit and
+ * its notes, the species it has (as tag pills), its photos and what can be done with it — edit and
  * remove, each in a dialog. Nothing if the zone is not saved.
  */
 export function CornerCard({ point, saved, suggestedName, toponym = null, onRemoved, onOpenList }) {
   const { t } = useApp()
   const [mode, setMode] = useState('idle')
   const rows = useSpeciesRows()
-  const { species: catalog } = useSpecies()
-  const [viewing, setViewing] = useState(null) // id of the species whose catalogue modal is open
   const corner = saved.find(point)
   const species = useMemo(() => {
     const byId = new Map(rows.map(r => [r.id, r]))
@@ -50,13 +46,11 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
   return (
     <>
       <section aria-label={t.obsCornerSavedHere} data-testid="corner-card" className="rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px]">
-        {/* The kind and the link to the list on the first line; below, the pin beside the name and, when
-            the name is not the place's own, the toponym */}
-        <div className="space-y-2 min-w-0">
+        {/* The card's title and the link to the list on the first line; below, the pin beside the corner's name,
+            its kind under it and, when the name is not the place's own, the toponym */}
+        <div className="space-y-3 min-w-0">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">
-              {t[kindMeta(corner.kind).labelKey]}
-            </p>
+            <h2 className="font-display text-[27px] leading-tight text-cream">{t.obsCornerCardTitle}</h2>
             {onOpenList && (
               <button
                 type="button"
@@ -72,7 +66,10 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
           <div className="flex items-center gap-3 min-w-0">
             <span aria-hidden="true" className="shrink-0 [&>svg]:w-[26px] [&>svg]:h-[33px]" dangerouslySetInnerHTML={{ __html: pinSvg(corner.kind) }} />
             <div className="min-w-0">
-              <h3 data-testid="saved-badge" className="font-display text-xl font-semibold text-cream break-words">{corner.name}</h3>
+              <h3 data-testid="saved-badge" className="text-base font-semibold text-cream break-words">{corner.name}</h3>
+              <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">
+                {t[kindMeta(corner.kind).labelKey]}
+              </p>
               {place && <p data-testid="saved-place" className="text-sm text-cream break-words">{place}</p>}
             </div>
           </div>
@@ -91,22 +88,10 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
 
         {corner.notes && !notesAreSpeciesNames(corner.notes, species.map(r => r.scientific)) && <p className="text-sm text-cream/75 whitespace-pre-line break-words">{corner.notes}</p>}
 
-        {/* The species strip goes edge to edge: the card's padding is only the start position of the photos */}
-        {species.length > 0 && (
-          <ul className={`flex gap-2 overflow-x-auto pb-1.5 -mx-4 px-4 ${SCROLL_THIN}`} aria-label={t.obsCornerSpecies}>
-            {species.map(r => (
-              <li key={r.id} className="shrink-0 w-[150px]">
-                <SpeciesCard row={r} onOpen={() => setViewing(r.id)} openLabel={t.obsCornerSpeciesOpen.replace('{name}', r.name)} />
-              </li>
-            ))}
-          </ul>
-        )}
+        <SpeciesPills ids={corner.species_ids} />
 
         <CornerPhotos corner={corner} onChanged={() => saved.refresh(corner.id)} />
       </section>
-      {viewing && (catalog ?? []).some(s => s.id === viewing) && (
-        <SpeciesPreview species={catalog.find(s => s.id === viewing)} onClose={() => setViewing(null)} />
-      )}
       <CornerModals mode={mode} onClose={close} point={point} saved={saved} suggestedName={suggestedName} onRemoved={onRemoved} />
     </>
   )

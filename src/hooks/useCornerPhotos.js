@@ -9,9 +9,10 @@ import {
  * once). Nothing is fetched for a corner that has no photos. The three actions keep the list in
  * step with the answer and then call `onChanged` (the corner's own count and species change);
  * they throw the ObservatoryError so that whoever asked can show it. `uploads` goes one file
- * at a time.
+ * at a time. When `syncKey` changes (the corner was edited: taking a species off the corner takes it
+ * off its photos) the list is read again, without the loading state, so an open viewer stays.
  */
-export function useCornerPhotos(cornerId, knownCount, onChanged) {
+export function useCornerPhotos(cornerId, knownCount, onChanged, syncKey) {
   const [state, setState] = useState({ status: 'idle', photos: [], error: null })
   const [busy, setBusy] = useState(false)
   const countRef = useRef(knownCount)
@@ -36,6 +37,20 @@ export function useCornerPhotos(cornerId, knownCount, onChanged) {
       })
     return () => ctrl.abort()
   }, [cornerId])
+
+  const firstSync = useRef(true)
+  useEffect(() => {
+    if (firstSync.current) {
+      firstSync.current = false
+      return undefined
+    }
+    if (!cornerId || !countRef.current) return undefined
+    const ctrl = new AbortController()
+    fetchCornerPhotos(cornerId, { signal: ctrl.signal })
+      .then(photos => setState(s => ({ ...s, photos })))
+      .catch(() => { /* the list stays as it was */ })
+    return () => ctrl.abort()
+  }, [cornerId, syncKey])
 
   /** An <img> failed (most likely an expired URL): ask for new ones, once per card opening. */
   const refreshUrls = useCallback(async () => {
