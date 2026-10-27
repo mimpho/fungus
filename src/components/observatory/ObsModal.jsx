@@ -119,16 +119,19 @@ export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = fa
           >
             <div className="w-10 h-1 rounded-full bg-cream/20" />
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t.obsPointClose}
-            className="absolute top-4 right-5 text-cream/40 hover:text-cream transition-colors p-1"
-          >
-            {IC.close}
-          </button>
           <div className="px-6 pb-8 pt-2">
-            <h2 id={titleId} className="font-display text-2xl font-semibold text-cream mb-5 pr-8">{title}</h2>
+            {/* The × on the title's line */}
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <h2 id={titleId} className="font-display text-2xl font-semibold text-cream">{title}</h2>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={t.obsPointClose}
+                className="shrink-0 -mr-1 text-cream/40 hover:text-cream transition-colors p-1"
+              >
+                {IC.close}
+              </button>
+            </div>
             {children}
           </div>
         </div>

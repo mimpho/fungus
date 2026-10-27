@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpeciesRows } from '../../hooks/useSpeciesRows'
-import { kindMeta, pinSvg } from '../../lib/cornerKinds'
+import { DEFAULT_KIND, kindMeta, pinSvg } from '../../lib/cornerKinds'
 import { IC } from '../../lib/helpers'
 import { BTN_SECONDARY } from './SavedPointParts'
 import { CornerModals } from './CornerModals'
@@ -12,20 +12,9 @@ import { notesAreSpeciesNames } from './CornerSummary'
 
 const ACTION_BTN = `${BTN_SECONDARY} inline-flex items-center gap-2`
 
-/** A heart split along a crack, the two pieces a little apart: no such icon in the shared set. */
-function BrokenHeart() {
-  return (
-    <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path transform="translate(-1.7 -0.6)" d="M12 7.636 10.682 6.318A4.5 4.5 0 0 0 4.318 6.318 4.5 4.5 0 0 0 4.318 12.682L12 20.364 11.2 16.6 12.9 13.4 10.9 11Z" />
-      <path transform="translate(1.7 0.9)" d="M12 7.636 13.318 6.318A4.5 4.5 0 0 1 19.682 6.318 4.5 4.5 0 0 1 19.682 12.682L12 20.364 11.2 16.6 12.9 13.4 10.9 11Z" />
-    </svg>
-  )
-}
-
 /**
  * The saved corner of the observed zone, as one more card of the page: pin of its kind and name,
- * its notes, the species it has (as tag pills), its photos and what can be done with it — edit and
- * remove, each in a dialog. Nothing if the zone is not saved.
+ * its notes, the species it has (as tag pills), its photos and a button to edit it (bottom right; the edit dialog is where it is removed). Nothing if the zone is not saved.
  */
 export function CornerCard({ point, saved, suggestedName, toponym = null, onRemoved, onOpenList }) {
   const { t } = useApp()
@@ -66,24 +55,15 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
           <div className="flex items-center gap-3 min-w-0">
             <span aria-hidden="true" className="shrink-0 [&>svg]:w-[26px] [&>svg]:h-[33px]" dangerouslySetInnerHTML={{ __html: pinSvg(corner.kind) }} />
             <div className="min-w-0">
+              {corner.kind && corner.kind !== DEFAULT_KIND && (
+                <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">
+                  {t[kindMeta(corner.kind).labelKey]}
+                </p>
+              )}
               <h3 data-testid="saved-badge" className="text-base font-semibold text-cream break-words">{corner.name}</h3>
-              <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">
-                {t[kindMeta(corner.kind).labelKey]}
-              </p>
-              {place && <p data-testid="saved-place" className="text-sm text-cream break-words">{place}</p>}
+              {place && <p data-testid="saved-place" className="text-sm text-cream/60 break-words">{place}</p>}
             </div>
           </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => setMode('edit')} className={ACTION_BTN}>
-            <span aria-hidden="true" className="[&>svg]:w-4 [&>svg]:h-4">{IC.pencil}</span>
-            {t.obsSavedEdit}
-          </button>
-          <button type="button" onClick={() => setMode('remove')} className={ACTION_BTN}>
-            <BrokenHeart />
-            {t.obsSavedRemove}
-          </button>
         </div>
 
         {corner.notes && !notesAreSpeciesNames(corner.notes, species.map(r => r.scientific)) && <p className="text-sm text-cream/75 whitespace-pre-line break-words">{corner.notes}</p>}
@@ -91,8 +71,16 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
         <SpeciesPills ids={corner.species_ids} />
 
         <CornerPhotos corner={corner} onChanged={() => saved.refresh(corner.id)} />
+
+        {/* At the bottom of the card, on the right; removing the corner is in the edit dialog */}
+        <div className="flex justify-end pt-1">
+          <button type="button" onClick={() => setMode('edit')} className={ACTION_BTN}>
+            <span aria-hidden="true" className="[&>svg]:w-4 [&>svg]:h-4">{IC.pencil}</span>
+            {t.obsSavedEdit}
+          </button>
+        </div>
       </section>
-      <CornerModals mode={mode} onClose={close} point={point} saved={saved} suggestedName={suggestedName} onRemoved={onRemoved} />
+      <CornerModals mode={mode} setMode={setMode} onClose={close} point={point} saved={saved} suggestedName={suggestedName} onRemoved={onRemoved} />
     </>
   )
 }

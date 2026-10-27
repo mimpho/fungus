@@ -10,6 +10,16 @@ export const BTN_SECONDARY = 'px-4 py-2 rounded-xl glass text-cream text-sm font
 const LABEL = 'block text-xs font-medium text-cream/70 mb-2'
 const FIELD = 'w-full rounded-xl bg-cream/[0.08] px-3 py-2.5 text-base md:text-sm text-cream placeholder:text-cream/40 outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
 
+/** A heart split along a crack, the two pieces a little apart: no such icon in the shared set. */
+export function BrokenHeart() {
+  return (
+    <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path transform="translate(-1.7 -0.6)" d="M12 7.636 10.682 6.318A4.5 4.5 0 0 0 4.318 6.318 4.5 4.5 0 0 0 4.318 12.682L12 20.364 11.2 16.6 12.9 13.4 10.9 11Z" />
+      <path transform="translate(1.7 0.9)" d="M12 7.636 13.318 6.318A4.5 4.5 0 0 1 19.682 6.318 4.5 4.5 0 0 1 19.682 12.682L12 20.364 11.2 16.6 12.9 13.4 10.9 11Z" />
+    </svg>
+  )
+}
+
 /** Why a save, change or removal failed: 409 has two meanings, the rest is the common notice. */
 export function SaveError({ error }) {
   const { t } = useApp()
@@ -57,9 +67,10 @@ function KindField({ value, onChange, uid }) {
  * the section between the species and the notes (the photos act at once, so they are not part of `form`).
  * `cornerSpecies` is the corner's species as the server has them: tagging a mushroom on a photo adds it there, and
  * the species that appear since the last time are added to the form too (what the user took off the form stays off). `onSubmit(form)` returns a promise; if it throws, the error is
- * shown here and the form stays as it was.
+ * shown here and the form stays as it was. With `onRemove` the footer has «Eliminar rincón» on the left; there is no
+ * «Cancelar»: the dialog's own × closes it.
  */
-export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, onCancel, photos = null, cornerSpecies = null }) {
+export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, onRemove = null, photos = null, cornerSpecies = null }) {
   const { t } = useApp()
   const uid = useId()
   const [form, setForm] = useState(initial)
@@ -136,9 +147,16 @@ export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, o
         />
       </div>
       <SaveError error={error} />
-      <div className="flex gap-3 justify-end pt-4 border-t border-cream/10">
-        <button type="button" onClick={onCancel} disabled={busy} className={BTN_SECONDARY}>{t.obsSaveCancel}</button>
-        <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? t.obsSaving : submitLabel}</button>
+      <div className="flex items-center gap-3 pt-4 border-t border-cream/10">
+        {onRemove && (
+          <button type="button" onClick={onRemove} disabled={busy} className={`${BTN_SECONDARY} mr-auto inline-flex items-center gap-2`}>
+            <BrokenHeart />
+            {t.obsSavedRemove}
+          </button>
+        )}
+        <div className="flex gap-3 ml-auto">
+          <button type="submit" disabled={busy} className={BTN_PRIMARY}>{busy ? t.obsSaving : submitLabel}</button>
+        </div>
       </div>
     </form>
   )

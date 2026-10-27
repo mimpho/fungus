@@ -11,9 +11,10 @@ const EMPTY = { name: '', notes: '', kind: DEFAULT_KIND, species_ids: [] }
  * The three dialogs of a corner: `mode` is 'create' (the point is not saved), 'edit' or 'remove'
  * (it is), anything else shows nothing. The caller owns `mode` so that any button can open them
  * (the zone's header and card, the map's point panel). Each form is keyed by what it edits, so
- * it can never start from another corner's values.
+ * it can never start from another corner's values. With `setMode` the edit dialog offers «Eliminar rincón»
+ * (it switches to the 'remove' dialog).
  */
-export function CornerModals({ mode, onClose, point, saved, suggestedName, onRemoved }) {
+export function CornerModals({ mode, setMode, onClose, point, saved, suggestedName, onRemoved }) {
   const { t } = useApp()
   const existing = saved.find(point)
 
@@ -49,7 +50,6 @@ export function CornerModals({ mode, onClose, point, saved, suggestedName, onRem
           suggestedName={suggestedName}
           submitLabel={t.obsSaveSubmit}
           onSubmit={create}
-          onCancel={onClose}
         />
       </ObsModal>
     )
@@ -65,8 +65,8 @@ export function CornerModals({ mode, onClose, point, saved, suggestedName, onRem
           cornerSpecies={existing.species_ids}
           suggestedName={suggestedName}
           submitLabel={t.obsSavedUpdate}
+          onRemove={setMode ? () => setMode('remove') : null}
           onSubmit={edit}
-          onCancel={onClose}
         />
       </ObsModal>
     )

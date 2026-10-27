@@ -177,7 +177,7 @@ export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onCl
         )}
       </div>
 
-      <CornerModals mode={mode} onClose={() => setMode('idle')} point={point} saved={saved} suggestedName={d?.toponym?.name ?? d?.toponym?.label} />
+      <CornerModals mode={mode} setMode={setMode} onClose={() => setMode('idle')} point={point} saved={saved} suggestedName={d?.toponym?.name ?? d?.toponym?.label} />
     </div>
   )
 }

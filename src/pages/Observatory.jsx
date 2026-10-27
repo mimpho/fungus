@@ -129,13 +129,14 @@ export default function Observatory() {
     setFullscreen(f => !f)
   }
 
-  // Esc leaves fullscreen first; otherwise it closes the point panel
+  // Esc leaves fullscreen first; otherwise it closes the point panel (through a ref: the listener must see the current zone)
+  const closePanelRef = useRef(() => {})
   useEffect(() => {
     if (!pending && !fullscreen) return
     const onKey = e => {
       if (e.key !== 'Escape' || isDialogAbove()) return // a dialog on top takes this Esc
       if (fullscreen) exitFullscreen()
-      else setPending(null)
+      else closePanelRef.current()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -171,6 +172,16 @@ export default function Observatory() {
     const scroller = fullscreen ? pageRef.current : window
     scroller?.scrollTo({ top: 0, behavior: reduce ? 'instant' : 'smooth' })
   }
+
+  // Closing the clicked point's card also closes the observed zone below the map and goes back to the top
+  function closePanel() {
+    setPending(null)
+    if (hasObserved) {
+      clear()
+      backToMap()
+    }
+  }
+  closePanelRef.current = closePanel
 
   function handlePick(lat, lon) {
     if (!isInCatalonia(lat, lon)) {
@@ -316,7 +327,7 @@ export default function Observatory() {
               <MapSearch onSelect={handleSearchSelect} className="pointer-events-auto w-full md:w-[30rem]" />
             </div>
             {pending && (
-              <PointPanel point={pending} observed={observed} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onGoToZone={goToZone} onClose={() => setPending(null)} />
+              <PointPanel point={pending} observed={observed} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onGoToZone={goToZone} onClose={closePanel} />
             )}
             {/* Only a strip of the map shows: a 100 px band that ends where the observed zone starts (the anchor the page scrolls to), so it is always right above it; it takes the person back up to the map */}
             {hasObserved && peeking && (
@@ -355,7 +366,7 @@ export default function Observatory() {
       {isAuthenticated && <div className={pad}><TerritorySection active={observed} onObserve={handleObserve} /></div>}
 
       {savedOpen && (
-        <ObsModal title={t.obsSavedListTitle} onClose={() => setSavedOpen(false)} wide>
+        <ObsModal title={t.obsSavedListTitle} onClose={() => setSavedOpen(false)} wide sheet>
           {savedList}
         </ObsModal>
       )}
