@@ -9,7 +9,7 @@ import { InfoTip } from './InfoTip'
 import { CornerSummary, notesAreSpeciesNames } from './CornerSummary'
 import { useSpeciesRows } from '../../hooks/useSpeciesRows'
 import { CornerModals } from './CornerModals'
-import { kindMeta, pinSvg } from '../../lib/cornerKinds'
+import { DEFAULT_KIND, kindMeta, pinSvg } from '../../lib/cornerKinds'
 import { IC } from '../../lib/helpers'
 import { getScoreBand } from '../../lib/scoreBands'
 
@@ -98,26 +98,32 @@ export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onCl
       </div>
 
       {corner && (
-        <div data-testid="point-corner" className="rounded-xl bg-cream/[0.08] px-3 py-2.5 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">{t.obsCornerSavedHere}</p>
-              <p className="flex items-start gap-2 mt-1 text-sm text-cream font-medium break-words">
-                <span aria-hidden="true" title={t[kindMeta(corner.kind).labelKey]} className="shrink-0 [&>svg]:w-4 [&>svg]:h-5" dangerouslySetInnerHTML={{ __html: pinSvg(corner.kind) }} />
-                <span className="min-w-0">{corner.name}</span>
-              </p>
-            </div>
+        <section data-testid="point-corner" aria-label={t.obsCornerSavedHere} className="rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/25 [[data-theme=light]_&]:bg-[var(--glass-white)] [[data-theme=light]_&_.glass]:!bg-bar/20 [[data-theme=light]_&_.glass]:hover:!bg-bar/30 ring-2 ring-bar backdrop-blur-[16px]">
+          {/* Same layout as the «Mi rincón» card: title (with the pencil to edit on its right), then the pin beside the kind and the name */}
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-display text-[27px] leading-tight text-cream">{t.obsCornerCardTitle}</h2>
             <button
               type="button"
               onClick={() => setMode('edit')}
-              className="shrink-0 px-2.5 py-1 rounded-lg glass text-xs text-cream hover:[background-color:var(--ui-surface-hover)] transition-all"
+              aria-label={t.obsSavedEdit}
+              title={t.obsSavedEdit}
+              className="shrink-0 p-2 rounded-xl text-cream/80 hover:text-cream hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
             >
-              {t.obsSavedEdit}
+              <span aria-hidden="true" className="block [&>svg]:w-[18px] [&>svg]:h-[18px]">{IC.pencil}</span>
             </button>
           </div>
-          {corner.notes && !notesAreSpeciesNames(corner.notes, speciesRows.filter(r => corner.species_ids?.includes(r.id)).map(r => r.scientific)) && <p className="text-xs text-cream/60 line-clamp-3 whitespace-pre-line break-words">{corner.notes}</p>}
-          <CornerSummary corner={corner} />
-        </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <span aria-hidden="true" className="shrink-0 [&>svg]:w-[26px] [&>svg]:h-[33px] [&>svg]:!filter-none" dangerouslySetInnerHTML={{ __html: pinSvg(corner.kind) }} />
+            <div className="min-w-0">
+              {corner.kind && corner.kind !== DEFAULT_KIND && (
+                <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">{t[kindMeta(corner.kind).labelKey]}</p>
+              )}
+              <h3 className="text-sm font-semibold leading-tight text-cream break-words">{corner.name}</h3>
+            </div>
+          </div>
+          {corner.notes && !notesAreSpeciesNames(corner.notes, speciesRows.filter(r => corner.species_ids?.includes(r.id)).map(r => r.scientific)) && <p className="text-sm text-cream/75 whitespace-pre-line break-words">{corner.notes}</p>}
+          <CornerSummary corner={corner} onChanged={() => saved.refresh(corner.id)} />
+        </section>
       )}
 
       {state.status === 'error' && <ObservatoryNotice error={state.error} onRetry={() => setAttempt(a => a + 1)} />}

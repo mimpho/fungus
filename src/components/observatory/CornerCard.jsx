@@ -4,13 +4,13 @@ import { useApp } from '../../contexts/AppContext'
 import { useSpeciesRows } from '../../hooks/useSpeciesRows'
 import { DEFAULT_KIND, kindMeta, pinSvg } from '../../lib/cornerKinds'
 import { IC } from '../../lib/helpers'
-import { BTN_SECONDARY } from './SavedPointParts'
+import { BTN_PRIMARY } from './SavedPointParts'
 import { CornerModals } from './CornerModals'
 import { CornerPhotos } from './CornerPhotos'
 import { SpeciesPills } from './SpeciesPills'
 import { notesAreSpeciesNames } from './CornerSummary'
 
-const ACTION_BTN = `${BTN_SECONDARY} inline-flex items-center gap-2`
+const ACTION_BTN = `${BTN_PRIMARY} inline-flex items-center gap-2`
 
 /**
  * The saved corner of the observed zone, as one more card of the page: pin of its kind and name,
@@ -34,7 +34,7 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
 
   return (
     <>
-      <section aria-label={t.obsCornerSavedHere} data-testid="corner-card" className="rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px]">
+      <section aria-label={t.obsCornerSavedHere} data-testid="corner-card" className="rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/25 [[data-theme=light]_&]:bg-[var(--glass-white)] [[data-theme=light]_&_.glass]:!bg-bar/20 [[data-theme=light]_&_.glass]:hover:!bg-bar/30 ring-2 ring-bar backdrop-blur-[16px]">
         {/* The card's title and the link to the list on the first line; below, the pin beside the corner's name,
             its kind under it and, when the name is not the place's own, the toponym */}
         <div className="space-y-3 min-w-0">
@@ -53,7 +53,7 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
             )}
           </div>
           <div className="flex items-center gap-3 min-w-0">
-            <span aria-hidden="true" className="shrink-0 [&>svg]:w-[26px] [&>svg]:h-[33px]" dangerouslySetInnerHTML={{ __html: pinSvg(corner.kind) }} />
+            <span aria-hidden="true" className="shrink-0 [&>svg]:w-[26px] [&>svg]:h-[33px] [&>svg]:!filter-none" dangerouslySetInnerHTML={{ __html: pinSvg(corner.kind) }} />
             <div className="min-w-0">
               {corner.kind && corner.kind !== DEFAULT_KIND && (
                 <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">

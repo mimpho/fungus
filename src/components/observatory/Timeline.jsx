@@ -95,7 +95,7 @@ export function Timeline({ series, win, tab, onDraft, onCommit, onToday, atLates
             <button
               type="button"
               onClick={onToday}
-              className="shrink-0 px-2.5 py-0.5 rounded-xl glass text-cream text-xs font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+              className="shrink-0 px-2.5 py-0.5 rounded-xl glass obs-btn text-cream text-xs font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
             >
               {t.obsTlToday}
             </button>

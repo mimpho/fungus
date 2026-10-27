@@ -2,14 +2,15 @@ import { useMemo, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
 import { useSpeciesRows } from '../../hooks/useSpeciesRows'
+import { SCROLL_THIN } from './scrollStyles'
 import { SpeciesPreview } from './SpeciesPreview'
 
 /**
  * The mushrooms tagged on a corner as tag pills: the name, and a × beside it when `onRemove` is
- * given (the edit dialog). The name opens the species' sheet over whatever is open. Nothing is
+ * given (the edit dialog); `size` 'sm' is the map panel's: smaller pills in one line that scrolls sideways (edge to edge of the card). The name opens the species' sheet over whatever is open. Nothing is
  * drawn for an empty list. `ids` are catalogue ids; an unknown one shows as its id.
  */
-export function SpeciesPills({ ids, onRemove, className = '' }) {
+export function SpeciesPills({ ids, onRemove, size = 'md', className = '' }) {
   const { t } = useApp()
   const rows = useSpeciesRows()
   const { species: catalog } = useSpecies()
@@ -19,18 +20,19 @@ export function SpeciesPills({ ids, onRemove, className = '' }) {
     return (ids ?? []).map(id => byId.get(id) ?? { id, name: id })
   }, [rows, ids])
   if (!items.length) return null
+  const small = size === 'sm'
   const open = viewing && (catalog ?? []).find(s => s.id === viewing)
   return (
     <>
-      <ul className={`flex flex-wrap gap-2 ${className}`} aria-label={t.obsCornerSpecies} data-testid="species-pills">
+      <ul className={`flex gap-2 ${small ? `flex-nowrap overflow-x-auto -mx-4 px-4 pb-1.5 ${SCROLL_THIN}` : 'flex-wrap'} ${className}`} aria-label={t.obsCornerSpecies} data-testid="species-pills">
         {items.map(r => (
-          <li key={r.id} className={`inline-flex items-center rounded-full glass text-sm text-cream max-w-full ${onRemove ? 'pl-3 pr-1 py-1' : 'px-3 py-1'}`}>
+          <li key={r.id} className={`inline-flex items-center rounded-full glass text-cream max-w-full ${small ? 'shrink-0 text-xs' : 'text-sm'} ${onRemove ? 'pl-3 pr-1 py-1' : small ? 'px-2.5 py-0.5' : 'px-3 py-1'}`}>
             <button
               type="button"
               onClick={() => setViewing(r.id)}
               title={r.scientific || r.name}
               aria-label={t.obsCornerSpeciesOpen.replace('{name}', r.name)}
-              className="truncate outline-none hover:underline underline-offset-2 focus-visible:underline"
+              className={`${small ? 'whitespace-nowrap' : 'truncate'} outline-none hover:underline underline-offset-2 focus-visible:underline`}
             >
               {r.name}
             </button>

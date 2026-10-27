@@ -146,7 +146,7 @@ export function Thermometer({ snap, note = null }) {
           aria-expanded={open}
           aria-controls={detailId}
           onClick={() => setOpen(o => !o)}
-          className="px-4 py-2 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+          className="px-4 py-2 rounded-xl glass obs-btn text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
         >
           {open ? t.obsThHideBtn : t.obsThWhyBtn}
         </button>

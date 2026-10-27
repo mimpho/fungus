@@ -12,7 +12,7 @@ const isImage = f => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.nam
 
 const SLOT = 'shrink-0 w-[150px] aspect-[4/3] rounded-2xl overflow-hidden'
 /** The thumbnails row runs edge to edge of its container (negative margin = the container's padding); the first one starts where the content does (the same padding on the row). */
-const BLEED = { card: '-mx-4 px-4', form: '-mx-6 px-6', strip: '-mx-3 px-3' }
+const BLEED = { card: '-mx-4 px-4', form: '-mx-6 px-6', strip: '-mx-4 px-4' }
 const SLOT_SMALL = 'shrink-0 w-[133px] h-[100px] rounded-xl overflow-hidden'
 
 /**
@@ -23,8 +23,8 @@ const SLOT_SMALL = 'shrink-0 w-[133px] h-[100px] rounded-xl overflow-hidden'
  * how many were left out when there are more than fit. A thumbnail opens the viewer, where the photo's mushrooms
  * are tagged and the photo deleted. Takes the corner's `onChanged` to keep its count and species.
  * `variant` 'card' sits in the corner's card (the row bleeds to its edges); 'form' is a section of
- * the edit dialog, with the label the other fields have; 'strip' is the map panel's: small read-only
- * thumbnails (nothing for a corner without photos) that open the viewer, with no way to add, tag or delete.
+ * the edit dialog, with the label the other fields have; 'strip' is the map panel's: small
+ * thumbnails (nothing for a corner without photos) that open the same viewer, where they are tagged and deleted (adding is in the card and the edit dialog).
  */
 export function CornerPhotos({ corner, onChanged, variant = 'card' }) {
   const { t } = useApp()
@@ -132,7 +132,17 @@ export function CornerPhotos({ corner, onChanged, variant = 'card' }) {
           ))}
         </ul>
         {viewing !== null && photos[viewing] && (
-          <PhotoViewer photos={photos} index={viewing} onIndex={setViewing} onClose={() => setViewing(null)} />
+          <PhotoViewer
+            photos={photos}
+            index={viewing}
+            onIndex={setViewing}
+            onClose={() => setViewing(null)}
+            onTag={tag}
+            onDelete={async id => {
+              await remove(id)
+              setViewing(null)
+            }}
+          />
         )}
       </>
     )

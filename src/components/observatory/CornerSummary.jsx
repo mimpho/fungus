@@ -13,14 +13,14 @@ export function notesAreSpeciesNames(notes, names) {
 
 /**
  * What a corner has, for the map's small panel: its species as tag pills (the name opens the
- * species' sheet) and, when it has photos, a strip of small thumbnails that open the viewer. The
+ * species' sheet) and, when it has photos, a strip of small thumbnails that open the viewer (the same one as the card's, with tagging and deleting). The
  * kind is not written here: the pin before the corner's name says it.
  */
-export function CornerSummary({ corner }) {
+export function CornerSummary({ corner, onChanged }) {
   return (
-    <div className="space-y-2" data-testid="corner-summary">
-      <SpeciesPills ids={corner.species_ids} />
-      <CornerPhotos corner={corner} variant="strip" />
+    <div className="space-y-3.5" data-testid="corner-summary">
+      <SpeciesPills ids={corner.species_ids} size="sm" />
+      <CornerPhotos corner={corner} variant="strip" onChanged={onChanged} />
     </div>
   )
 }

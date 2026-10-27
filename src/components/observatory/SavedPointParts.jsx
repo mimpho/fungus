@@ -5,7 +5,7 @@ import { KINDS, kindMeta, pinSvg, suggestKind } from '../../lib/cornerKinds'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { CornerSpeciesPicker } from './CornerSpeciesPicker'
 
-const BTN_PRIMARY = 'px-4 py-2 rounded-xl bg-bar hover:bg-[#a0834d] disabled:opacity-60 disabled:hover:bg-bar text-white text-sm font-medium transition-all'
+export const BTN_PRIMARY = 'px-4 py-2 rounded-xl bg-bar hover:bg-[#a0834d] disabled:opacity-60 disabled:hover:bg-bar text-white text-sm font-medium transition-all'
 export const BTN_SECONDARY = 'px-4 py-2 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] disabled:opacity-60 transition-all'
 const LABEL = 'block text-xs font-medium text-cream/70 mb-2'
 const FIELD = 'w-full rounded-xl bg-cream/[0.08] px-3 py-2.5 text-base md:text-sm text-cream placeholder:text-cream/40 outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
@@ -50,7 +50,7 @@ function KindField({ value, onChange, uid }) {
             >
               <input type="radio" name={`${uid}-kind`} value={k} checked={selected} onChange={() => onChange(k)} className="sr-only" />
               {/* Static markup built from the kind's code: no user text in it */}
-              <span aria-hidden="true" className="shrink-0 [&>svg]:w-[18px] [&>svg]:h-[23px]" dangerouslySetInnerHTML={{ __html: pinSvg(k) }} />
+              <span aria-hidden="true" className="shrink-0 [&>svg]:w-[18px] [&>svg]:h-[23px] [&>svg]:!filter-none" dangerouslySetInnerHTML={{ __html: pinSvg(k) }} />
               <span className="truncate">{t[kindMeta(k).labelKey]}</span>
             </label>
           )
@@ -149,8 +149,7 @@ export function SavePointForm({ initial, suggestedName, submitLabel, onSubmit, o
       <SaveError error={error} />
       <div className="flex items-center gap-3 pt-4 border-t border-cream/10">
         {onRemove && (
-          <button type="button" onClick={onRemove} disabled={busy} className={`${BTN_SECONDARY} mr-auto inline-flex items-center gap-2`}>
-            <BrokenHeart />
+          <button type="button" onClick={onRemove} disabled={busy} className="mr-auto px-3 py-2 rounded-xl text-sm font-medium text-cream/70 hover:text-cream hover:bg-white/10 disabled:opacity-60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40">
             {t.obsSavedRemove}
           </button>
         )}
