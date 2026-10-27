@@ -243,7 +243,7 @@ export default function Observatory() {
             </button>
             <button
               onClick={() => setAuthModal('login')}
-              className="px-6 py-3 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+              className="px-6 py-3 rounded-xl glass obs-btn text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
             >
               {t.iniciarSesion}
             </button>

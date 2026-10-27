@@ -20,7 +20,7 @@ const ARROW = 'hidden sm:flex absolute top-1/2 -translate-y-1/2 z-10 w-12 h-12 r
  * the whole viewer, so the photo is not left half done by closing it. Left and right arrows
  * (and the buttons) move between the corner's photos. `onTag(id, ids)` and `onDelete(id)` return
  * promises; if one throws, the error is shown here and nothing changes. Without them the viewer only
- * shows the photos (the map's panel).
+ * shows the photos (the card and the map's panel both pass them).
  * It is drawn above the dialogs of the Observatory (z 200) and below the species' sheet (z 300),
  * so a tagged mushroom's sheet can open over it. Esc goes back from tagging or deleting to the
  * photo, and from the photo closes the viewer; the dialog under it does not hear it.

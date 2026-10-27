@@ -16,7 +16,7 @@ export const FOREST_TYPES = [
   { key: 'encinar',  hex: '#a855f7', label: 'obsFtEncinar' },
   { key: 'hayedo',   hex: '#22d3ee', label: 'obsFtHayedo' },
   { key: 'robledal', hex: '#f472b6', label: 'obsFtRobledal' },
-  { key: 'otro',     hex: '#e5e7eb', label: 'obsMacroOtro' },
+  { key: 'otro',     hex: '#475569', label: 'obsMacroOtro' },
 ]
 
 // Same noise floor as the point's forest list and the probability layer (FOREST_MIN)

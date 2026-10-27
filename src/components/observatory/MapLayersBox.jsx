@@ -1,4 +1,5 @@
-import { useId } from 'react'
+import { ChevronRight, Layers } from 'lucide-react'
+import { useId, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 
 // Layers the map will have. Corners and probability exist; the others are listed, off, so that
@@ -30,14 +31,46 @@ function Row({ id, checked, disabled = false, onChange, label, hint }) {
  * The map's layers box: a checkbox per layer. «Mis rincones» (the user's own pins) comes first and starts on. Switching one on opens its own controls (the
  * probability layer: the species search, the day, the legend) in `children`; off, the map goes
  * back to the plain basemap. Layers not built yet are listed, disabled.
+ * The box collapses (chevron pointing right beside the title) into a round-cornered button with the layers icon
+ * at the right edge; it starts expanded. Collapsing only hides it: each layer keeps its state.
  */
 export function MapLayersBox({ corners = true, onCorners, probability, onProbability, forest = false, onForest, forestChildren = null, children, className = '' }) {
   const { t } = useApp()
   const uid = useId()
+  const [open, setOpen] = useState(true)
+  if (!open) {
+    // The wrapper keeps the box's position but lets the map through; only the button takes clicks
+    return (
+      <div className={`${className} flex justify-end pointer-events-none`}>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={t.obsLayersExpand}
+          title={t.obsLayersExpand}
+          aria-expanded="false"
+          className="pointer-events-auto p-2.5 rounded-xl backdrop-blur-sm bg-modal/85 shadow-lg text-cream hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
+        >
+          <Layers size={20} aria-hidden="true" />
+        </button>
+      </div>
+    )
+  }
   return (
     <div className={className} role="group" aria-label={t.obsLayersTitle}>
       <div className="backdrop-blur-sm bg-modal/85 rounded-2xl p-2.5 space-y-1.5 shadow-lg">
-        <p className="px-1 text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">{t.obsLayersTitle}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="px-1 text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">{t.obsLayersTitle}</p>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label={t.obsLayersCollapse}
+            title={t.obsLayersCollapse}
+            aria-expanded="true"
+            className="p-1 rounded-lg text-cream/60 hover:text-cream hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
+          >
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+        </div>
         <Row id={`${uid}-corners`} checked={corners} onChange={onCorners} label={t.obsLayerCorners} />
         <Row id={`${uid}-prob`} checked={probability} onChange={onProbability} label={t.obsLayerProbability} />
         {probability && <div className="pb-1">{children}</div>}

@@ -524,7 +524,7 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [], ta
         <h3 id={`${uid}-h`} className="font-display text-[27px] leading-tight text-cream">{t.obsChTitle}</h3>
       </div>
 
-      <div className="overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&_button]:whitespace-nowrap [&>div]:w-max" role="group" aria-label={t.obsChTabsLabel}>
+      <div className="overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&_button]:whitespace-nowrap [&>div]:w-max [[data-theme=light]_&>div]:!bg-[var(--ui-surface-input)]" role="group" aria-label={t.obsChTabsLabel}>
         <Tabs options={TABS.map(id => ({ id, label: t[TAB_KEY[id]] }))} selected={tab} onChange={setTab} size="md" />
       </div>
 
@@ -584,7 +584,7 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [], ta
             type="button"
             onClick={() => setShowTable(true)}
             aria-haspopup="dialog"
-            className="px-4 py-2 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+            className="px-4 py-2 rounded-xl glass obs-btn text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
           >
             {t.obsChShowTable}
           </button>

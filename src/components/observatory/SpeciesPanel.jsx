@@ -11,7 +11,7 @@ import { SpeciesPreview } from './SpeciesPreview'
 
 const MARK = { met: '✓', pending: '…', not_met: '✗' }
 const ALL = 'all'
-const FIELD = 'rounded-xl bg-cream/[0.08] px-3 py-2 text-base md:text-sm text-cream placeholder:text-cream/40 outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
+const FIELD = 'rounded-xl bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-filter-pill-bg)] px-3 py-2 text-base md:text-sm text-cream [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] placeholder:text-cream/40 [[data-theme=light]_&]:placeholder:text-[rgb(136_133_87/0.65)] outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
 
 function Row({ row, selected, onSelect, onOpenCard }) {
   const { t } = useApp()
@@ -19,7 +19,7 @@ function Row({ row, selected, onSelect, onOpenCard }) {
   const edib = getEdibilityColor(row.edibility)
   const detailsId = `obs-sp-${row.id}`
   return (
-    <li data-testid="species-row" className={`obs-card relative rounded-xl overflow-hidden ${selected ? 'bg-bar/10' : 'bg-cream/[0.08]'}`}>
+    <li data-testid="species-row" className={`obs-card [[data-theme=light]_&]:shadow-none relative rounded-xl overflow-hidden ${selected ? 'bg-bar/10' : `bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-filter-pill-bg)]`}`}>
       {/* Selection outline drawn inside the card (above the photo) so the list never clips it */}
       {selected && <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 rounded-xl ring-2 ring-inset ring-bar" />}
       <div className="flex items-stretch">
@@ -48,11 +48,11 @@ function Row({ row, selected, onSelect, onOpenCard }) {
           </span>
           <span className="pointer-events-none relative flex-1 min-w-0 flex items-center gap-2.5 pl-3 pr-1 py-2.5">
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-cream truncate">
+              <span className="block text-sm font-medium text-cream [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] truncate">
                 {row.followed && <span aria-label={t.obsSpFollowed} title={t.obsSpFollowed}>★ </span>}
                 {row.name}
               </span>
-              <span className="block text-xs text-cream/60 truncate italic">{row.scientific}</span>
+              <span className="block text-xs text-cream/60 [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] opacity-80 truncate italic">{row.scientific}</span>
               <span className="mt-0.5 flex items-center gap-1.5">
                 <span className={`inline-block text-[11px] px-1.5 py-px rounded-full ${edib.bg} ${edib.text}`}>{t[edib.tKey]}</span>
                 <button
@@ -60,7 +60,7 @@ function Row({ row, selected, onSelect, onOpenCard }) {
                   onClick={() => onOpenCard(row.id)}
                   title={t.ver_ficha}
                   aria-label={t.obsCornerSpeciesOpen.replace('{name}', row.name)}
-                  className="pointer-events-auto relative z-10 inline-flex items-center justify-center size-6 -my-1 rounded-full text-cream/60 hover:text-cream hover:bg-cream/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+                  className="pointer-events-auto relative z-10 inline-flex items-center justify-center size-6 -my-1 rounded-full text-cream/60 [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] [[data-theme=light]_&]:hover:text-[var(--ui-filter-pill-text)] hover:text-cream hover:bg-cream/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
                 >
                   {/* A file card with lines */}
                   <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -81,7 +81,7 @@ function Row({ row, selected, onSelect, onOpenCard }) {
           aria-expanded={open}
           aria-controls={detailsId}
           aria-label={`${open ? t.obsSpHide : t.obsSpDetails}: ${row.name}`}
-          className="shrink-0 px-3 text-cream/60 hover:text-cream transition-colors"
+          className="shrink-0 px-3 text-cream/60 [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] [[data-theme=light]_&]:hover:text-[var(--ui-filter-pill-text)] hover:text-cream transition-colors"
         >
           <span aria-hidden="true">{open ? '▾' : '▸'}</span>
         </button>
@@ -213,7 +213,7 @@ export function SpeciesPanel({ state, selected, onSelect }) {
             </div>
             <div className="flex items-center gap-2">
               <label htmlFor={`${uid}-edib`} className="text-xs text-cream/60 shrink-0">{t.obsSpEdib}</label>
-              <ObsSelect id={`${uid}-edib`} value={group} onChange={e => setGroup(e.target.value)} className="flex-1 min-w-0">
+              <ObsSelect id={`${uid}-edib`} value={group} onChange={e => setGroup(e.target.value)} className="flex-1 min-w-0 [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)] [[data-theme=light]_&_select]:!text-[var(--ui-filter-pill-text)] [[data-theme=light]_&_svg]:!text-[var(--ui-filter-pill-text)]">
                 <option value={ALL}>{t.obsSpAll} ({rows.length})</option>
                 {groups.map(g => <option key={g} value={g}>{t[g]} ({counts[g]})</option>)}
               </ObsSelect>

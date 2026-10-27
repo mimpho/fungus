@@ -54,7 +54,7 @@ export function ObservatoryNotice({ error, onRetry }) {
       {RETRYABLE.has(kind) && onRetry && (
         <button
           onClick={onRetry}
-          className="px-4 py-2 rounded-xl glass text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+          className="px-4 py-2 rounded-xl glass obs-btn text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
         >
           {t.obsRetry}
         </button>
