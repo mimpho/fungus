@@ -712,3 +712,12 @@ On 2026-10-24 `seed_catalog.py` ran against production because the terminal had 
 ## The lightbox's history entry keeps the query (2026-10-27)
 
 `ModalRenderer` pushes a history entry when the lightbox opens so Back closes it. It used the bare pathname, which dropped the query string; the Observatory keeps its view state in the URL (`?lat=…&lon=…`), so the zone being observed, and the edit dialog open over it, closed. The entry now carries pathname, search and hash.
+
+## Observatory — closing the clicked point's card closes the zone (2026-10-27)
+
+Closing the point panel on the map (× or Esc outside fullscreen) also clears the observed zone and scrolls to the top, the same as «Eliminar rincón» already did. The panel and the zone below it are one reading of the same place; leaving the zone open after the card is gone left a page with no way back except the strip of map. Known edge: with zone A observed, clicking point B and closing B's card also closes A. A «Ver zona» button at the bottom of the map (a way down to the zone) was tried and dropped the same day.
+
+## Observatory — corner dialogs (2026-10-27)
+
+«Eliminar rincón» lives in the edit dialog's footer, not on the card (a destructive action out of the way), and the form has no «Cancelar»: the dialog's × already closes it. Closing it by the × or Esc asks nothing even with unsaved changes (it never did). The remove dialog is reached from the edit dialog by switching mode, so edits not saved are lost.
+
