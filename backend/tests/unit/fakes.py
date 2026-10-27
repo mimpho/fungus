@@ -97,6 +97,14 @@ class FakePhotoStore:
         )
         return self.rows[photo_id]
 
+    async def remove_species(self, point_id, species_ids):
+        import dataclasses
+
+        gone = set(species_ids)
+        for row in await self.list_photos(point_id):
+            kept = tuple(s for s in row.species_ids if s not in gone)
+            self.rows[row.id] = dataclasses.replace(row, species_ids=kept)
+
     async def keys_for_point(self, point_id):
         return [k for r in await self.list_photos(point_id) for k in (r.thumb_key, r.large_key)]
 

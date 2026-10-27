@@ -145,6 +145,19 @@ class SqlPhotoStore:
         await self.db.commit()
         return (await self._records([row]))[0]
 
+    async def remove_species(self, point_id: int, species_ids: Iterable[str]) -> None:
+        ids = list(dict.fromkeys(species_ids))
+        if not ids:
+            return
+        photo_ids = select(SavedPointPhoto.id).where(SavedPointPhoto.saved_point_id == point_id)
+        await self.db.execute(
+            delete(SavedPointPhotoSpecies).where(
+                SavedPointPhotoSpecies.photo_id.in_(photo_ids),
+                SavedPointPhotoSpecies.species_id.in_(ids),
+            )
+        )
+        await self.db.commit()
+
     async def keys_for_point(self, point_id: int) -> list[str]:
         rows = await self.db.execute(
             select(SavedPointPhoto.thumb_key, SavedPointPhoto.large_key).where(

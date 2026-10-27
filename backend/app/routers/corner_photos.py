@@ -13,6 +13,7 @@ from app.routers.saved_points import (
     get_photo_store,
     get_saved_point_store,
     get_usage_log,
+    no_store,
     storage_error,
 )
 from app.schemas.corner_photo import PhotoOut, PhotoSpeciesUpdate, clean_species_ids, to_out
@@ -33,7 +34,7 @@ from app.services.saved_points import SavedPointStore
 router = APIRouter(
     prefix="/observatory/saved-points",
     tags=["Observatory"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_user), Depends(no_store)],
 )
 
 
@@ -41,6 +42,22 @@ async def _check_species(store: SavedPointStore, ids: list[str]) -> None:
     unknown = sorted(set(ids) - await store.known_species(ids))
     if unknown:
         raise HTTPException(422, detail=f"Unknown species: {unknown}")
+
+
+async def _sync_corner(
+    points: SavedPointStore, photos: PhotoStore, user: User, point_id: int,
+    gained: list[str], lost: list[str],
+) -> None:
+    """The corner's species follow its photos': what a photo gains is tagged on the corner too
+    (kept in the order they came); what it loses leaves the corner unless another photo of the
+    corner still has it."""
+    corner = await _found(points, user, point_id)
+    still = {s for p in await photos.list_photos(point_id) for s in p.species_ids}
+    dropped = {s for s in lost if s not in still}
+    current = [s for s in corner.species_ids if s not in dropped]
+    wanted = current + [s for s in dict.fromkeys(gained) if s not in current]
+    if wanted != list(corner.species_ids):
+        await points.update(user.id, point_id, {"species_ids": wanted})
 
 
 async def _signed(storage: PhotoStorage | None, records: list[PhotoRecord]) -> list[PhotoOut]:
@@ -122,6 +139,7 @@ async def upload_photo(
         ) from exc
     except StorageError as exc:
         raise storage_error(exc) from exc
+    await _sync_corner(points, photos, user, point_id, species, [])
     return (await _signed(storage, [record]))[0]
 
 
@@ -135,12 +153,16 @@ async def tag_photo(
     photos: PhotoStore = Depends(get_photo_store),
     storage: PhotoStorage | None = Depends(get_photo_storage),
 ) -> PhotoOut:
-    """Replace the species tagged on a photo."""
+    """Replace the species tagged on a photo. The corner follows: it gains the new ones and loses
+    the ones no photo of it has any more."""
     await _found(points, user, point_id)
-    if await photos.get_photo(point_id, photo_id) is None:
+    before = await photos.get_photo(point_id, photo_id)
+    if before is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Photo not found")
     await _check_species(points, body.species_ids)
     record = await photos.set_photo_species(point_id, photo_id, body.species_ids)
+    lost = [s for s in before.species_ids if s not in record.species_ids]
+    await _sync_corner(points, photos, user, point_id, list(record.species_ids), lost)
     return (await _signed(storage, [record]))[0]
 
 

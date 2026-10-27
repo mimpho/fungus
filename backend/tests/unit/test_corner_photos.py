@@ -366,6 +366,132 @@ class TestPhotoSpecies:
         assert body["all_species_ids"] == ["esp-001", "esp-002"]
 
 
+# ── Nothing of a user's corners is cached ─────────────────────────────────────
+
+class TestNoCaching:
+    """The global middleware gives every GET a public hour of cache; a corner and its photos
+    change as they are used (a tag added from a photo must show at once), and are the user's."""
+
+    async def test_corners_and_photos_are_never_cached(self, env):
+        point = await _corner(env)
+        await _upload(env, point)
+        async with _client(env.app) as c:
+            for path in (BASE, f"{BASE}/{point}", f"{BASE}/{point}/photos"):
+                r = await c.get(path)
+                assert r.status_code == 200, path
+                assert r.headers["cache-control"] == "private, no-store", path
+
+
+# ── The corner's species follow its photos' ───────────────────────────────────
+
+class TestCornerSpeciesFollowPhotos:
+    """The corner's species mirror its photos': tagging a mushroom on a photo tags it on the
+    corner too, and taking it off a photo takes it off the corner unless another photo still has
+    it; taking it off the corner takes it off every photo (the photos stay). Agreed 2026-10-27."""
+
+    async def _corner_species(self, env, point):
+        return list((await env.points.get(1, point)).species_ids)
+
+    async def test_uploading_a_tagged_photo_adds_the_species_to_the_corner(self, env):
+        point = await _corner(env)
+        await env.points.update(1, point, {"species_ids": ["esp-001"]})
+        await _upload(env, point, species=["esp-002", "esp-001"])
+        assert await self._corner_species(env, point) == ["esp-001", "esp-002"]
+
+    async def test_tagging_a_photo_adds_the_species_to_the_corner(self, env):
+        point = await _corner(env)
+        photo = (await _upload(env, point)).json()["id"]
+        async with _client(env.app) as c:
+            r = await c.patch(f"{BASE}/{point}/photos/{photo}", json={"species_ids": ["esp-003"]})
+        assert r.status_code == 200
+        assert await self._corner_species(env, point) == ["esp-003"]
+
+    async def test_a_species_the_corner_already_has_is_not_repeated(self, env):
+        point = await _corner(env)
+        await env.points.update(1, point, {"species_ids": ["esp-001", "esp-002"]})
+        photo = (await _upload(env, point)).json()["id"]
+        async with _client(env.app) as c:
+            await c.patch(f"{BASE}/{point}/photos/{photo}", json={"species_ids": ["esp-002"]})
+        assert await self._corner_species(env, point) == ["esp-001", "esp-002"]
+
+    async def test_untagging_a_photo_removes_the_species_from_the_corner(self, env):
+        point = await _corner(env)
+        photo = (await _upload(env, point, species=["esp-001", "esp-002"])).json()["id"]
+        async with _client(env.app) as c:
+            r = await c.patch(f"{BASE}/{point}/photos/{photo}", json={"species_ids": ["esp-002"]})
+        assert r.status_code == 200
+        assert await self._corner_species(env, point) == ["esp-002"]
+        async with _client(env.app) as c:
+            await c.patch(f"{BASE}/{point}/photos/{photo}", json={"species_ids": []})
+        assert await self._corner_species(env, point) == []
+
+    async def test_a_species_another_photo_still_has_stays_on_the_corner(self, env):
+        point = await _corner(env)
+        a = (await _upload(env, point, species=["esp-001"])).json()["id"]
+        await _upload(env, point, species=["esp-001", "esp-003"])
+        async with _client(env.app) as c:
+            await c.patch(f"{BASE}/{point}/photos/{a}", json={"species_ids": []})
+        assert await self._corner_species(env, point) == ["esp-001", "esp-003"]
+
+    async def test_untagging_leaves_the_other_corner_tags_and_other_corners_alone(self, env):
+        a, b = await _corner(env), await _corner(env, lat=41.8)
+        await env.points.update(1, a, {"species_ids": ["esp-003"]})  # tagged by hand, on no photo
+        photo = (await _upload(env, a, species=["esp-001"])).json()["id"]
+        await _upload(env, b, species=["esp-001"])
+        async with _client(env.app) as c:
+            await c.patch(f"{BASE}/{a}/photos/{photo}", json={"species_ids": []})
+        assert await self._corner_species(env, a) == ["esp-003"]
+        assert await self._corner_species(env, b) == ["esp-001"]
+
+    async def test_replacing_the_tags_of_a_photo_adds_and_removes_in_one_go(self, env):
+        point = await _corner(env)
+        photo = (await _upload(env, point, species=["esp-001"])).json()["id"]
+        async with _client(env.app) as c:
+            await c.patch(f"{BASE}/{point}/photos/{photo}", json={"species_ids": ["esp-002"]})
+        assert await self._corner_species(env, point) == ["esp-002"]
+
+    async def test_a_rejected_tag_changes_nothing_on_the_corner(self, env):
+        point = await _corner(env)
+        photo = (await _upload(env, point)).json()["id"]
+        async with _client(env.app) as c:
+            r = await c.patch(f"{BASE}/{point}/photos/{photo}", json={"species_ids": ["nope"]})
+        assert r.status_code == 422
+        assert await self._corner_species(env, point) == []
+        assert (await _upload(env, point, data=b"not an image", species=["esp-002"])
+                ).status_code == 415
+        assert await self._corner_species(env, point) == []
+
+    async def test_removing_a_species_from_the_corner_removes_it_from_its_photos(self, env):
+        point = await _corner(env)
+        a = (await _upload(env, point, species=["esp-001", "esp-002"])).json()["id"]
+        b = (await _upload(env, point, species=["esp-002"])).json()["id"]
+        async with _client(env.app) as c:
+            r = await c.patch(f"{BASE}/{point}", json={"species_ids": ["esp-001"]})
+        assert r.status_code == 200 and r.json()["species_ids"] == ["esp-001"]
+        assert env.photos.rows[a].species_ids == ("esp-001",)
+        assert env.photos.rows[b].species_ids == ()
+        assert set(env.photos.rows) == {a, b}  # the photos themselves stay
+        assert len(env.storage.objects) == 4
+
+    async def test_clearing_the_corner_species_clears_every_photo(self, env):
+        point = await _corner(env)
+        photo = (await _upload(env, point, species=["esp-001", "esp-003"])).json()["id"]
+        async with _client(env.app) as c:
+            await c.patch(f"{BASE}/{point}", json={"species_ids": []})
+        assert env.photos.rows[photo].species_ids == ()
+
+    async def test_other_corners_photos_and_other_edits_are_untouched(self, env):
+        a, b = await _corner(env), await _corner(env, lat=41.8)
+        mine = (await _upload(env, a, species=["esp-001"])).json()["id"]
+        theirs = (await _upload(env, b, species=["esp-001"])).json()["id"]
+        async with _client(env.app) as c:
+            await c.patch(f"{BASE}/{a}", json={"name": "Otro nombre"})  # no species in the body
+            assert env.photos.rows[mine].species_ids == ("esp-001",)
+            await c.patch(f"{BASE}/{a}", json={"species_ids": []})
+        assert env.photos.rows[mine].species_ids == ()
+        assert env.photos.rows[theirs].species_ids == ("esp-001",)
+
+
 # ── Delete ────────────────────────────────────────────────────────────────────
 
 class TestDeletePhoto:

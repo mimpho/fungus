@@ -44,10 +44,17 @@ from app.services.saved_points import (
 
 log = logging.getLogger(__name__)
 
+def no_store(response: Response) -> None:
+    """A corner and its photos are the user's and change as they are used (a tag added from a
+    photo must show at once): never cached, unlike the public hour the middleware gives every
+    GET."""
+    response.headers["Cache-Control"] = "private, no-store"
+
+
 router = APIRouter(
     prefix="/observatory/saved-points",
     tags=["Observatory"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(get_current_user), Depends(no_store)],
 )
 
 
@@ -169,15 +176,20 @@ async def update_point(
     body: SavedPointUpdate,
     user: User = Depends(get_current_user),
     store: SavedPointStore = Depends(get_saved_point_store),
+    photos: PhotoStore = Depends(get_photo_store),
 ) -> SavedPointOut:
+    """Edit a corner. A species taken off its tags is taken off its photos too (they stay)."""
     changes = body.model_dump(exclude_unset=True)
     if not changes:
         raise HTTPException(
             422,
             detail="Send at least one of name, notes, kind, species_ids",
         )
+    dropped: set[str] = set()
     if "species_ids" in changes:
         await _check_species(store, changes["species_ids"])
+        before = await _found(store, user, point_id)
+        dropped = set(before.species_ids) - set(changes["species_ids"])
     if changes.get("name") == "":  # blank name: the default one again, as when it was saved
         current = await _found(store, user, point_id)
         changes["name"] = default_name(
@@ -186,6 +198,9 @@ async def update_point(
     record = await store.update(user.id, point_id, changes)
     if record is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Saved point not found")
+    if dropped:
+        await photos.remove_species(point_id, dropped)
+        record = await store.get(user.id, point_id) or record
     return to_out(record)
 
 
