@@ -318,6 +318,13 @@ For the disposable database put the URL in front of the command: `DATABASE_URL="
 ### ⚠️ The user menu shows the generator only to `role = 'admin'`, and it opens the gallery
 `/admin/generator` is the hub: it shows the gallery, and the generator loads only with `?especie=…&generar=1` (a species picked in the gallery). A local user is not an admin until `users.role` is set: `UPDATE users SET role = 'admin' WHERE email = '…';` on the disposable database (`docker exec -it fungus-ingest-test psql -U postgres -d fungus -c "…"`), then reload so `/me` returns the role.
 
+### ⚠️ `seed_catalog.py` wrote to production (2026-10-24)
+
+Run without `DATABASE_URL` it used `backend/.env`, which points at production. It overwrote the name, coordinates, altitude, forest type and description of every zone in the mock, and replaced the `extra_data` of all 202 species (synonyms, confusions, translations, fruiting conditions, `antiConfusion`). Restored from `migrations/*.sql` and checked against the Supabase snippets: the only things the SQL files could not give back were `antiConfusion` of `esp-062` (restored by hand) and the altitudes of the 17 moved zones (recomputed with `zone_elevation_ranges.py`). Eleven species whose fruiting conditions the 2026-03-14 audit had cleared got them back from the `015` session-B files; clear them again if they should stay without. Now guarded (see the changelog), but **any other writing script still trusts `backend/.env`**: put `DATABASE_URL` in front of every command that writes, and check it with `echo`.
+
+### ⚠️ What the Supabase tools can and cannot tell you about past SQL
+
+The free plan has **no backups**. The SQL editor's saved snippets keep only the **last content of each tab**, and `supabase snippets list` shows only the first page (10) with no way to ask for the next one; the API takes a `cursor`. A token with the scoped permission «SQL Snippets (read)» is refused (403): that capability enables no endpoint yet; a full-access token works. Treat the `migrations/` folder as the only record of data changes.
 
 ### ⚠️ Every GET except `/species` is cached by the browser for an hour
 `add_cache_control` (`app/main.py`) sets `Cache-Control: public, max-age=3600` on any 200 GET whose **path** has no `/species`; the query string does not count. `/observatory/point/species` is `no-store`, but `/observatory/point/snapshot?species=…`, `/series` and `/calendar` are kept: after a change of catalogue data the species list shows the new score and the thermometer the old one. Found 2026-10-26 (a thermometer stuck at 2 while the list said 16). While debugging: DevTools → Network → «Disable cache» and a hard reload. `public` on responses that need login is also wrong; a fix (`private, max-age=60` under `/observatory/`) is pending.
@@ -330,3 +337,12 @@ Production is at Alembic 016 until the epic is deployed, so a backend started on
 
 ### ⚠️ The soil class comes from the bedrock, the pH that matters is the topsoil's
 `substrate_classes.py` maps the ICGC lithology (1:250,000) to three classes with typical pH ranges; carbonated rock is «calcáreo» (7.0–8.3). Under forest the topsoil on limestone is often decarbonated and acid (black trumpets are recorded on calcareous bedrock with bilberry), so a species with an acid range can be penalised on a point that is acid where it grows. The 46 % soil factor of a *B. edulis* at a point near La Molina came from a pure acid class and a catalogue range of 5.5–6.5.
+
+### ⚠️ A modal that closes its parent: React events cross portals, Esc crosses dialogs
+Two ways a dialog opened over another closed both: (1) a click that React bubbles from a portal up its React parent (a × inside a clickable area opens that area: stop the propagation in the button); (2) one Esc press heard by every `keydown` listener on `document`, the dialog above first, which unmounts it before the next listener looks (`useDialogAboveObsModal` now gives its slot back with a `setTimeout(0)` so the dialog under still sees it open). Any new overlay over an `ObsModal` should call that hook.
+
+### ⚠️ A history entry without the query string resets the Observatory
+`navigate(location.pathname, …)` drops `?lat=…&lon=…`, which is the Observatory's view state, and the observed zone (with whatever is open over it) closes. Keep `search` and `hash` when pushing an entry on the same page.
+
+### ⚠️ A local database one migration behind answers 500, not a clear error
+`fungus-ingest-test` was at Alembic 020, and the first photo upload failed with a 500 on the missing `corner_usage_events`. After pulling a branch with a migration, `alembic current` against the local database (with `DATABASE_URL` in front) tells which one is missing.

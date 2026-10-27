@@ -3,6 +3,7 @@ SQLAlchemy models. Import here so Alembic detects them during autogenerate.
 """
 from app.models.climate_cell import Cell, CellLookup, ClimateCellHistory
 from app.models.climate_history import ClimateHistory
+from app.models.corner_usage import CornerUsageEvent
 from app.models.mushroom_visual_prompt import MushroomVisualPrompt
 from app.models.saved_point import (
     SavedPoint,
@@ -24,6 +25,7 @@ __all__ = [
     "Species",
     "ClimateHistory",
     "Cell",
+    "CornerUsageEvent",
     "CellLookup",
     "ClimateCellHistory",
     "SavedPoint",

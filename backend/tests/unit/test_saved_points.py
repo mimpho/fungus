@@ -35,6 +35,7 @@ from app.services.saved_points import (
     all_species_ids,
     create_saved_point,
 )
+from tests.unit.fakes import FakePhotoStore, FakeUsageLog
 from tests.unit.test_cell_provider import TODAY, _provider
 from tests.unit.test_observatory_router import SANTA_FE, _StoreWithHistory
 
@@ -156,6 +157,9 @@ def env(monkeypatch):
     app.dependency_overrides[obs.get_cell_store] = lambda: cells
     app.dependency_overrides[obs.get_cell_provider] = lambda: provider
     app.dependency_overrides[sp.get_saved_point_store] = lambda: points
+    app.dependency_overrides[sp.get_photo_store] = FakePhotoStore
+    app.dependency_overrides[sp.get_photo_storage] = lambda: None
+    app.dependency_overrides[sp.get_usage_log] = FakeUsageLog
     monkeypatch.setattr(obs, "_today", lambda: TODAY)
     monkeypatch.setattr(sp.settings, "observatory_max_saved_points_per_user", 0)
 
@@ -678,4 +682,5 @@ class TestModel:
 
     def test_the_migration_is_the_next_after_019_and_nothing_else_claims_020(self):
         revisions = {p.name[:3] for p in VERSIONS.glob("0*.py")}
-        assert "019" in revisions and "020" in revisions and "021" not in revisions
+        assert "019" in revisions and "020" in revisions
+        assert len([p for p in VERSIONS.glob("020_*.py")]) == 1

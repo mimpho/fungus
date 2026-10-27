@@ -1,34 +1,29 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
+import { resolveUrl } from '../../lib/helpers'
 import { buildPickerRows, matchesQuery } from '../../lib/speciesList'
 import { SPECIES_MAX } from '../../lib/cornerKinds'
-import { SpeciesCard } from './SpeciesCard'
-import { SpeciesPreview } from './SpeciesPreview'
+import { SpeciesPills } from './SpeciesPills'
 
 // Cards drawn in the search list at once: the catalogue is long and every card has a photo.
 const VISIBLE_MAX = 30
-// One row: the cards share the modal's whole width equally and, when it gets too narrow for them, the row scrolls sideways
-const SLOT = 'flex-1 basis-0 min-w-[110px]'
-const SLOTS = 5 // the card grid always shows this many places (a corner's photos will be five too): the free ones are dashed outlines
 
 /**
  * Species selector of a corner. A search box over the whole catalogue (scientific name, common
  * names in the app language, Latin synonyms — the same match as the layer's picker); its matches
- * open as a plain list (names only, no photos) laid over the form, so nothing below moves. The
- * chosen species stay under the box as cards with their photo and a ×, and empty dashed cards
- * of the same size fill the five places that are still free. The row takes the whole width and scrolls sideways when narrow. `value` is the list of ids.
+ * open as a plain list laid over the form, so nothing below moves. The chosen species stay under
+ * the box as tag pills (name and ×; the name opens the species' sheet). `value` is the list of
+ * ids. `withPhotos` gives each match of the list a small photo to help tell them apart.
  */
-export function CornerSpeciesPicker({ value, onChange, max = SPECIES_MAX }) {
+export function CornerSpeciesPicker({ value, onChange, max = SPECIES_MAX, withPhotos = false }) {
   const { t, lang } = useApp()
   const { species: catalog } = useSpecies()
   const listId = useId()
   const rows = useMemo(() => buildPickerRows(catalog, lang), [catalog, lang])
-  const byId = useMemo(() => new Map(rows.map(r => [r.id, r])), [rows])
   const [text, setText] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
-  const [viewing, setViewing] = useState(null) // id of the species whose catalogue modal is open
   const rootRef = useRef(null)
   const inputRef = useRef(null)
   const full = value.length >= max
@@ -126,12 +121,28 @@ export function CornerSpeciesPicker({ value, onChange, max = SPECIES_MAX }) {
                       onPointerDown={e => e.preventDefault()}
                       onClick={() => add(o)}
                       onMouseEnter={() => setActive(i)}
-                      className={`px-3 py-2 cursor-pointer ${i === active ? 'bg-white/10' : ''}`}
+                      className={`px-3 py-2 cursor-pointer ${withPhotos ? 'flex items-center gap-3' : ''} ${i === active ? 'bg-white/10' : ''}`}
                     >
-                      <span className="block text-sm text-cream truncate">{o.name}</span>
-                      {o.scientific && o.scientific !== o.name && (
-                        <span className="block text-xs text-cream/55 italic truncate">{o.scientific}</span>
+                      {withPhotos && (
+                        <span className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-cream/[0.08]">
+                          {o.photo && (
+                            <img
+                              src={resolveUrl(o.photo)}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              onError={e => { e.currentTarget.style.visibility = 'hidden' }}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </span>
                       )}
+                      <span className="block min-w-0">
+                        <span className="block text-sm text-cream truncate">{o.name}</span>
+                        {o.scientific && o.scientific !== o.name && (
+                          <span className="block text-xs text-cream/55 italic truncate">{o.scientific}</span>
+                        )}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -144,33 +155,7 @@ export function CornerSpeciesPicker({ value, onChange, max = SPECIES_MAX }) {
         </div>
       )}
 
-      {(value.length > 0 || !full) && (
-        <ul className="flex gap-2 overflow-x-auto py-1" aria-label={t.obsCornerSpeciesChosen}>
-          {value.map(id => {
-            const row = byId.get(id) ?? { id, name: id, scientific: '', photo: null }
-            return (
-              <li key={id} className={SLOT}>
-                <SpeciesCard
-                  row={row}
-                  onOpen={() => setViewing(id)}
-                  openLabel={t.obsCornerSpeciesOpen.replace('{name}', row.name)}
-                  onRemove={() => remove(id)}
-                  removeLabel={t.obsCornerSpeciesRemove.replace('{name}', row.name)}
-                />
-              </li>
-            )
-          })}
-          {Array.from({ length: Math.max(0, SLOTS - value.length) }, (_, i) => (
-            <li key={`free-${i}`} className={SLOT}>
-              <SpeciesCard placeholder />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {viewing && (catalog ?? []).some(s => s.id === viewing) && (
-        <SpeciesPreview species={catalog.find(s => s.id === viewing)} onClose={() => setViewing(null)} />
-      )}
+      <SpeciesPills ids={value} onRemove={remove} />
     </div>
   )
 }

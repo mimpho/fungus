@@ -10,7 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User, UserFavSpecies, UserFollowedZone
+from app.routers.saved_points import get_photo_storage, get_photo_store
 from app.schemas.auth import UserOut
+from app.services.corner_photos import PhotoStore, purge_user_photos
+from app.services.photo_storage import PhotoStorage, StorageError
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -71,8 +74,19 @@ async def update_profile(
 async def delete_account(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    photos: PhotoStore = Depends(get_photo_store),
+    storage: PhotoStorage | None = Depends(get_photo_storage),
 ) -> None:
-    """Permanently delete the authenticated user and all associated data."""
+    """Permanently delete the authenticated user and all associated data, the objects of their
+    corner photos included (the database cascade does not reach the storage). If the storage
+    fails nothing is deleted: the call can be repeated."""
+    try:
+        await purge_user_photos(photos, storage, current_user.id)
+    except StorageError as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail="Your photos could not be removed; try deleting the account again later",
+        ) from exc
     await db.delete(current_user)
     await db.commit()
 

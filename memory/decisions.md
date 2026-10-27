@@ -658,6 +658,19 @@ useEffect(() => {
 - **Ensemble caveat:** with several species the score is the mean of each species' product, and the rows are the means of their factors; the product of the means is not the mean of the products. The points are rescaled to the real score and the footnote says so.
 - **Corner cards:** a corner with exactly one tagged mushroom is scored as that mushroom; with none or several it shows the excellent-edibles mean as «Condiciones ahora». `/point/snapshot` scores one species per request; several tagged species would need the endpoint to accept a list (not done).
 
+## Observatory — corner photos, first iteration (2026-10-24)
+
+- **The server makes the images.** Whatever the user uploads is decoded, rotated by its EXIF orientation and re-encoded as two WebP copies with no metadata; the original is never kept. Dropping the EXIF is the point: a photo of a mushroom spot must not carry where it was taken. HEIC is accepted through `pillow-heif`, so the client does no conversion.
+- **Private bucket, signed URLs, no keys in the API.** The client receives short-lived (1 h) signed URLs and never the object keys. An image that fails to load asks for fresh URLs once. The service key lives only in Render and in a local `.env`, never in the front end.
+- **Daily limits count events, not rows.** `corner_usage_events` records each upload and each new corner, so deleting something does not give the slot back (counting `created_at` would have been easy to dodge). Check-then-record is atomic per process only, like the cell limits; with several workers a user can pass the limit by a few.
+- **Deleting goes storage first.** A photo, a corner or an account removes its objects before the rows; if the storage fails nothing else is deleted and the call can be repeated. An orphan object is invisible, a row pointing to a missing object is a broken image.
+- **Photos act at once, not with «Guardar cambios».** They are a section of the edit dialog, but upload, tagging and delete are immediate. The create dialog has no uploader: photos need the corner's id, so they come after saving. Staging files to upload right after creating is possible later.
+- **A dev bucket for local runs** (the local `.env` points at production). The same code runs against any bucket; only the name changes.
+- **Open for the iteration:** several species per photo vs the corner score (`/point/snapshot` scores one species per request), the photo count in the saved list, the mobile pass, and the weight of `photo_url` in the species list.
+
+## Rules proposed after the `seed_catalog` incident (2026-10-24) — not applied yet
+
+On 2026-10-24 `seed_catalog.py` ran against production because the terminal had no `DATABASE_URL` and `backend/.env` points there. There are no backups on the free plan. Proposed, in order of value: (1) keep the production URL out of `backend/.env` (a local default there, production in Render and in a separate file loaded on purpose); (2) give every script that writes (`ingest_cells`, `backfill`, `zone_relocate`, `zone_elevation_ranges`, `fix_species_colors`, `make_admin`, `seed_visual_prompts`, `generate_visual_dna`) the same `check_target` guard; (3) a backup routine (Supabase Pro, or a periodic `pg_dump` of `zones`, `species`, `users`, `saved_points`) and a dump of the table before any data migration; (4) a read-only role for everyday local use. Every data change goes into `migrations/` before it is run: the Supabase SQL editor keeps no usable history.
 
 ## Observatory — forest affinity per species (2026-10-26)
 
@@ -681,3 +694,30 @@ useEffect(() => {
 **Why this raster and not the zones' `forest_type`:** the map shows what is around each point (the same 500 m mean the model judges), so the user sees why a species scores as it does. The raster is the client-smoothed one, so small patches blur; the dominant class is only an overview.
 
 **Limits worth knowing:** five classes only («otro» still mixes chestnut, birch, hazel, riparian trees); a ~250 m pixel from a 2009 map; no composition on click (that is `feat/observatory-composition`). Colours were chosen to tell the five apart over satellite imagery and have to be checked on the other basemaps and the light theme.
+
+## Observatory — corner species mirror the photo tags (2026-10-27)
+
+**Decision:** a corner's tagged species and its photos' tags are kept in step by the API. Tagging a photo adds the species to the corner; removing it from a photo removes it from the corner unless another photo of the corner still has it; removing it from the corner removes it from all its photos (the photos stay). Deleting a photo does not touch the corner's tags.
+
+**Why:** the user sees one list of mushrooms (the pills) and the photos' own tags; letting them drift apart (a pill with no photo behind it, or a photo tagged with something the corner does not list) was confusing, and saving the edit form would have silently stripped photo-only tags. `all_species_ids` (the union) stays in the answers, now equal to `species_ids` for new data.
+
+**Where it lives:** in the routers, over the store protocols (so the fakes test it), not in SQL: `_sync_corner` in `corner_photos.py`, the dropped species in `update_point`, one new `PhotoStore.remove_species`. The steps are separate commits, not one transaction; a failure between them leaves a tag the next edit repairs.
+
+**Left open:** a manual tag on no photo disappears when a photo that carried the same species is untagged and no other photo has it (the rule cannot tell them apart); deleting a photo is left alone on purpose.
+
+## Corners and photos are never cached (2026-10-27)
+
+`Cache-Control: private, no-store` on `/observatory/saved-points…` through a router dependency (the middleware does not override a header a route set). The global `public, max-age=3600` made the browser serve the corner as it was before a tag was added, and these answers are the user's own. The rest of `/observatory/` keeps the hour; `fix/observatory-cache-control` (`private, max-age=60`) is still open for it.
+
+## The lightbox's history entry keeps the query (2026-10-27)
+
+`ModalRenderer` pushes a history entry when the lightbox opens so Back closes it. It used the bare pathname, which dropped the query string; the Observatory keeps its view state in the URL (`?lat=…&lon=…`), so the zone being observed, and the edit dialog open over it, closed. The entry now carries pathname, search and hash.
+
+## Observatory — closing the clicked point's card closes the zone (2026-10-27)
+
+Closing the point panel on the map (× or Esc outside fullscreen) also clears the observed zone and scrolls to the top, the same as «Eliminar rincón» already did. The panel and the zone below it are one reading of the same place; leaving the zone open after the card is gone left a page with no way back except the strip of map. Known edge: with zone A observed, clicking point B and closing B's card also closes A. A «Ver zona» button at the bottom of the map (a way down to the zone) was tried and dropped the same day.
+
+## Observatory — corner dialogs (2026-10-27)
+
+«Eliminar rincón» lives in the edit dialog's footer, not on the card (a destructive action out of the way), and the form has no «Cancelar»: the dialog's × already closes it. Closing it by the × or Esc asks nothing even with unsaved changes (it never did). The remove dialog is reached from the edit dialog by switching mode, so edits not saved are lost.
+

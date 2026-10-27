@@ -37,6 +37,7 @@ from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
 from app.routers import (
     auth,
+    corner_photos,
     health,
     me,
     observatory,
@@ -354,6 +355,7 @@ app.include_router(me.router, prefix=API_PREFIX)
 app.include_router(observatory.router, prefix=API_PREFIX)
 app.include_router(observatory_layer.router, prefix=API_PREFIX)
 app.include_router(saved_points.router, prefix=API_PREFIX)
+app.include_router(corner_photos.router, prefix=API_PREFIX)
 
 # Static assets (logo for emails, etc.) — served at /static/<filename>
 # URL in production: https://fungus-api.onrender.com/static/logoFungusPortrait.png

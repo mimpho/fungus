@@ -137,7 +137,7 @@ backend/
 │   ├── base.py
 │   └── open_meteo.py
 ├── migrations/
-│   └── versions/            ← 001…020 Alembic migrations
+│   └── versions/            ← 001…021 Alembic migrations
 ├── scripts/
 │   ├── generate_visual_dna.py   ← Gemini 2.5 Flash offline, resume-safe
 │   ├── refine_visual_dna.py     ← Gemini Vision multimodal
@@ -456,6 +456,12 @@ GET    /api/v1/observatory/saved-points/{id}
 PATCH  /api/v1/observatory/saved-points/{id}   ← name, notes, kind, species_ids (responses carry species_ids and all_species_ids)
 DELETE /api/v1/observatory/saved-points/{id}
 GET    /api/v1/observatory/saved-points/{id}/species
+GET    /api/v1/observatory/saved-points/{id}/photos           ← a corner's photos with signed URLs (login, owner only)
+POST   /api/v1/observatory/saved-points/{id}/photos           ← multipart file + species_ids; WebP thumb + large, no EXIF; max 5
+PATCH  /api/v1/observatory/saved-points/{id}/photos/{photo_id} ← replaces the photo's species; the corner gains the new ones and loses those no photo has any more
+DELETE /api/v1/observatory/saved-points/{id}/photos/{photo_id}
+       (objects in a private Supabase bucket; limits: 5 photos/corner, 30 uploads and 50 new corners per user and UTC day;
+        a species taken off the corner via PATCH saved-points/{id} also leaves its photos; all these routes: Cache-Control private, no-store)
 ```
 
 **Outbreak Index (OI)** — backend algorithm (`app/services/scoring.py`):

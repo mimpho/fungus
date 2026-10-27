@@ -28,7 +28,7 @@ export function SavePointControls({ point, suggestedName, saved, lead }) {
           </div>
         )}
       </div>
-      <CornerModals mode={mode} onClose={() => setMode('idle')} point={point} saved={saved} suggestedName={suggestedName} />
+      <CornerModals mode={mode} setMode={setMode} onClose={() => setMode('idle')} point={point} saved={saved} suggestedName={suggestedName} />
     </>
   )
 }

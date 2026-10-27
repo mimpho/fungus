@@ -62,12 +62,17 @@ export function ModalRenderer() {
   }, [selectedFamily?.nombre ?? selectedFamily?.name])
 
   // ── Lightbox → history entry ──────────────────────────────────────────────
-  // Al abrir el lightbox empujamos una entrada nueva en el historial (mismo
-  // pathname, state con _lightbox: true). Así el back button del browser lo
+  // Al abrir el lightbox empujamos una entrada nueva en el historial (misma
+  // URL completa, state con _lightbox: true). Así el back button del browser lo
   // cierra igual que los modales normales.
   useEffect(() => {
     if (!lightbox) return
-    navigate(location.pathname, { state: { ...location.state, _lightbox: true } })
+    // Con su search y su hash: el Observatorio guarda el estado de la vista en la URL (?lat=…), y
+    // una entrada sin ellos la cambia (y con ella se cerraba el diálogo abierto debajo del lightbox)
+    navigate(
+      { pathname: location.pathname, search: location.search, hash: location.hash },
+      { state: { ...location.state, _lightbox: true } },
+    )
   }, [!!lightbox]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Si el usuario navega hacia atrás mientras el lightbox está abierto,

@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { IC, resolveUrl } from '../../lib/helpers'
+import { useDialogAboveObsModal } from '../observatory/ObsModal'
 
 export function Lightbox({ photos, initialIndex = 0, onClose }) {
+  useDialogAboveObsModal() // while it is open, Esc is its own: a dialog of the Observatory under it stays
   const [idx, setIdx] = useState(initialIndex)
   const touchStartX = useRef(null)
   const touchStartY = useRef(null)

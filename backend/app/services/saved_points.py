@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Protocol
 
 from app.models.saved_point import DEFAULT_KIND, KINDS
+from app.services.corner_photos import EVENT_CORNER_CREATE, UsageLog, check_daily_limit
 from app.services.point_forest import Toponym
 
 NAME_MAX = 80
@@ -53,6 +54,7 @@ class SavedPointRecord:
     species_ids: tuple[str, ...] = ()
     # ... and the ones tagged on its photos (read only here)
     photo_species_ids: tuple[str, ...] = ()
+    photo_count: int = 0  # read only here; the photos themselves are /{id}/photos
     id: int | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -107,20 +109,28 @@ async def create_saved_point(
     context: Callable[[float, float], Awaitable[PointContext]],
     *,
     max_per_user: int,
+    usage: UsageLog | None = None,
+    max_new_per_day: int = 0,
 ) -> SavedPointRecord:
-    """Save a point. Duplicates and the limit are checked before asking any service."""
+    """Save a point. Duplicates and the limits are checked before asking any service. The daily
+    limit counts corners created today, deleted ones included (`usage`); 0 = no limit."""
     lat, lon = round(point.lat, COORD_DECIMALS), round(point.lon, COORD_DECIMALS)
     existing = await store.find_at(user_id, lat, lon)
     if existing is not None:
         raise DuplicatePoint(existing.id)
     if max_per_user > 0 and await store.count_for_user(user_id) >= max_per_user:
         raise SavedPointLimitExceeded(max_per_user)
+    if usage is not None:
+        await check_daily_limit(usage, user_id, EVENT_CORNER_CREATE, max_new_per_day)
 
     ctx = await context(lat, lon)
     name = point.name or default_name(lat, lon, ctx.toponym)
-    return await store.add(
+    saved = await store.add(
         SavedPointRecord(
             user_id=user_id, lat=lat, lon=lon, name=name, notes=point.notes, kind=point.kind,
             elevation_m=ctx.elevation_m, species_ids=point.species_ids,
         )
     )
+    if usage is not None:
+        await usage.record(user_id, EVENT_CORNER_CREATE)
+    return saved

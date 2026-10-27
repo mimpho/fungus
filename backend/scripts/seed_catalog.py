@@ -9,6 +9,16 @@ Usage:
     python -m scripts.seed_catalog                         # default: ../src/data
     python -m scripts.seed_catalog --mock-dir ../src/data  # explicit path
     python -m scripts.seed_catalog --dry-run               # print without writing
+
+Guard rails (2026-10-24: a run from a terminal without DATABASE_URL read backend/.env, which
+points at production, and overwrote the curated zones and wiped the species' extra_data):
+  * It writes only to a LOCAL database (localhost / 127.0.0.1 / ::1). A remote one needs
+    --allow-remote, and the host it is about to write to is always printed first.
+  * Zones are insert-only: an existing zone is left as it is. --overwrite-zones replaces the
+    mock's fields (name, coordinates, elevation, forest type, description) of the zones it lists.
+  * A species' extra_data is merged over the stored one: keys the mock does not have (synonyms,
+    confusions, translations, fruiting conditions) are kept. The numeric columns still come
+    from the mock.
 """
 import argparse
 import asyncio
@@ -18,8 +28,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from sqlalchemy import cast, func, literal
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.engine import make_url
 
+from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models.species import Species
 from app.models.zone import Zone
@@ -71,11 +85,60 @@ def _export_mock_to_json(mock_dir: Path) -> tuple[list[dict], list[dict]]:
     return zones_data, species_data
 
 
+# ── Guard rails ────────────────────────────────────────────────────────────────
+
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+
+def check_target(database_url: str, allow_remote: bool) -> str:
+    """Name the database about to be written (host and name only, never user or password) and
+    refuse a remote one unless `allow_remote`. A URL without a host is a local socket."""
+    url = make_url(database_url)
+    host = url.host or "local socket"
+    where = f"{host}/{url.database or ''}"
+    local = url.host is None or url.host in LOCAL_HOSTS
+    if local:
+        log.info("Target database: %s (local)", where)
+        return host
+    if not allow_remote:
+        log.error(
+            "Refusing to write to a REMOTE database (%s). Point DATABASE_URL at a local one, "
+            "or pass --allow-remote if you really mean it.", where,
+        )
+        raise SystemExit(2)
+    log.warning("Target database: %s (REMOTE, --allow-remote given)", where)
+    return host
+
+
+def zone_statement(values: dict, overwrite: bool):
+    """Insert a zone; an existing one is left alone unless `overwrite`."""
+    stmt = pg_insert(Zone).values(**values)
+    if not overwrite:
+        return stmt.on_conflict_do_nothing(index_elements=["id"])
+    fields = ("name", "province", "region", "lat", "lon", "elevation_m", "forest_type",
+              "description")
+    return stmt.on_conflict_do_update(
+        index_elements=["id"], set_={f: values[f] for f in fields}
+    )
+
+
+def species_statement(values: dict):
+    """Upsert a species. `extra_data` is merged over the stored one (the mock's keys win, any
+    other key survives); the other columns come from the mock."""
+    stmt = pg_insert(Species).values(**values)
+    set_ = {k: v for k, v in values.items() if k not in ("id", "extra_data")}
+    empty = cast(literal("{}"), JSONB)
+    set_["extra_data"] = func.coalesce(Species.extra_data, empty).op("||")(stmt.excluded.extra_data)
+    return stmt.on_conflict_do_update(index_elements=["id"], set_=set_)
+
+
 # ── Seeders ────────────────────────────────────────────────────────────────────
 
-async def seed_zones(db, zones_data: list[dict], dry_run: bool = False) -> int:
+async def seed_zones(
+    db, zones_data: list[dict], dry_run: bool = False, overwrite: bool = False
+) -> int:
     """
-    Upsert zones from mock data.
+    Insert zones from mock data (existing ones untouched unless `overwrite`).
 
     Field mapping (mock → DB):
       id          → id
@@ -105,23 +168,7 @@ async def seed_zones(db, zones_data: list[dict], dry_run: bool = False) -> int:
         if dry_run:
             log.info("[DRY-RUN] zone %s — %s", values["id"], values["name"])
         else:
-            stmt = (
-                pg_insert(Zone)
-                .values(**values)
-                .on_conflict_do_update(
-                    index_elements=["id"],
-                    set_={
-                        "name": values["name"],
-                        "province": values["province"],
-                        "region": values["region"],
-                        "lat": values["lat"],
-                        "lon": values["lon"],
-                        "elevation_m": values["elevation_m"],
-                        "forest_type": values["forest_type"],
-                        "description": values["description"],
-                    },
-                )
-            )
+            stmt = zone_statement(values, overwrite)
             await db.execute(stmt)
         count += 1
 
@@ -200,14 +247,7 @@ async def seed_species(db, species_data: list[dict], dry_run: bool = False) -> i
                 values["cycle_days"],
             )
         else:
-            stmt = (
-                pg_insert(Species)
-                .values(**values)
-                .on_conflict_do_update(
-                    index_elements=["id"],
-                    set_={k: v for k, v in values.items() if k != "id"},
-                )
-            )
+            stmt = species_statement(values)
             await db.execute(stmt)
         count += 1
 
@@ -218,7 +258,9 @@ async def seed_species(db, species_data: list[dict], dry_run: bool = False) -> i
 
 # ── Entrypoint ─────────────────────────────────────────────────────────────────
 
-async def main(mock_dir: Path, dry_run: bool) -> None:
+async def main(
+    mock_dir: Path, dry_run: bool, allow_remote: bool = False, overwrite_zones: bool = False
+) -> None:
     log.info("Reading mock data from %s", mock_dir)
     zones_data, species_data = _export_mock_to_json(mock_dir)
     log.info("Loaded %d zones, %d species from mock", len(zones_data), len(species_data))
@@ -229,8 +271,9 @@ async def main(mock_dir: Path, dry_run: bool) -> None:
         await seed_species(None, species_data, dry_run=True)
         return
 
+    check_target(settings.database_url, allow_remote)
     async with AsyncSessionLocal() as db:
-        z_count = await seed_zones(db, zones_data)
+        z_count = await seed_zones(db, zones_data, overwrite=overwrite_zones)
         s_count = await seed_species(db, species_data)
 
     log.info("✓ Seeded %d zones and %d species", z_count, s_count)
@@ -248,5 +291,17 @@ if __name__ == "__main__":
         action="store_true",
         help="Print what would be seeded without touching the DB",
     )
+    parser.add_argument(
+        "--allow-remote",
+        action="store_true",
+        help="Allow writing to a database that is not local (default: refused)",
+    )
+    parser.add_argument(
+        "--overwrite-zones",
+        action="store_true",
+        help="Replace the mock's fields of zones that already exist (default: leave them)",
+    )
     args = parser.parse_args()
-    asyncio.run(main(Path(args.mock_dir).resolve(), args.dry_run))
+    asyncio.run(
+        main(Path(args.mock_dir).resolve(), args.dry_run, args.allow_remote, args.overwrite_zones)
+    )

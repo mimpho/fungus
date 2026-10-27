@@ -80,3 +80,11 @@
 - Saved points evolve into corners: a manual kind (setal, paraje, aparcamiento, unspecified), species tagged from the catalogue, up to five own photos with their own species tags, and a «Mis rincones» layer on the interactive map, with a tab in the profile.
 - Rule: exact foraging coordinates never go into the repo (tests and docs use fake ones).
 - Work, branches and open items live in `memory/pending.md` (6c) and `memory/observatory-corners-plan.md`.
+
+## 8. Zones as a layer of highlighted places in the Observatory (Marcos, 2026-10-24; idea only, not a task)
+
+- **Thought:** the Zones section is a fixed catalogue (about 200 curated points with their own daily climate, score and sheet), while the Observatory reaches any coordinate in Catalonia through the same score v2 and the ~423 stored cells, and corners («Mis rincones») already cover «my zones» for each user. The two overlap more and more; the Zones section will probably fade out.
+- **Direction, if it happens:** the curated zones become a **layer of highlighted places** on the interactive map (one named pin each, opening the same point panel), and «follow a zone» becomes a corner. The Observatory PRD kept curated zones out of the first version on purpose; this would reopen that, later.
+- **What Zones still has that the Observatory lacks:** the curated names (the book routes), following a zone, and the «Cerca / Seguidas» ranking (already deprecated in favour of the Top 10 layer, 7f).
+- **What keeping both costs:** two sources of truth for the same places (the frontend mock and the database, synchronised by `seed_catalog.py`), a per-zone daily ingest that spends Open-Meteo quota the cells already cover, and the duplicated scoring of the app (phase 2).
+- **Suggested stance (no decision yet):** stop investing in Zones (no more curation or new zones) and revisit once the Observatory has the Top 10 layer, a way to follow or be alerted, and a view of named places. No removal is announced: the section can fade as the Observatory improves.
