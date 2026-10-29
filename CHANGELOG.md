@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Corners browser: search, filters and order; «Mis rincones» in the profile (2026-10-29, `feat/profile-corners-tab`)
+
+Front end only (no back end, no migration). The «Mis rincones» dialog of the Observatory and the profile now share one list.
+
+- **One list, two entrances** (`SavedPoints.jsx`, `SavedPointsList`): search, filters, chips, count and cards are the dialog's content, in the Observatory and in the profile. `onSelect(corner)` is what a click does: the Observatory observes the point and closes the dialog; the profile goes to `/observatorio?lat=&lon=`. Editing and removing stay in the Observatory.
+- **Profile** (`components/profile/ProfileCorners.jsx`): a «Mis rincones (N)» card in the «Siguiendo» tab with the three latest corners and «Ver todas →», which opens the dialog. No new tab (the plan said a tab; see `observatory-corners-plan.md`). `Profile.jsx` loads the corners with `useSavedPoints`.
+- **Search and filters, no «apply»** (every change shows at once): a search over the corner's name and the toponym (name, label, municipality), accent and case insensitive; filters by kind (checkboxes), comarca (select) and forest (checkboxes, a corner passes if ANY of its forest classes is ticked); order by best conditions (default), alphabetical, altitude and most recent (radios, the unknown last). Active filters show as removable chips and the dialog says «N de M rincones». Pure logic in `lib/cornerFilters.js`.
+- **Data from the browser** (`hooks/useCornerInsights.js`): toponym, forest shares and score are not stored with the corner, so each one's `/point/forest` and `/point/snapshot` are asked four at a time and kept ten minutes in the session (a failure is tried again after one minute); the filters fill in as the answers arrive («Calculando… n/m»), and a corner whose place or forest is still unknown cannot pass a filter that needs it. The score is the tagged mushroom's own when exactly one is tagged, else the mean of the excellent ones (as before). `forestKeys` added to `lib/habitat.js`.
+- **One card** (replaces the Observatory's own card and the profile's): name, pin with kind, toponym and comarca (coordinates until they arrive), altitude, the two main forest classes, the score bar and the picture of the main forest behind (`forest-type/<class>.webp`, as the zones' card). The mushroom count, notes, last night's minimum and soil water left the card: they are in the corner.
+- **Dialog layout** (`ObsModal.jsx`): `wide` is now `max-w-7xl`; on desktop the header is a row with the title, a slot and the ×, and from 1024px the slot is centred on the dialog (it holds the search). The slot is `ObsModalHeaderSlot` (a context the content portals into); on a phone sheet there is no slot and the search sits under the title. The filter panel is in line, not the zones' bottom sheet, which would hide under the dialog (z-index) and be a sheet inside a sheet. Cards in 1/2/3/4 columns (`md`/`lg`/`xl`); the filter options in 2 columns, 4 when the panel is wide (container query, see `gotchas.md`).
+- i18n: `obsCorner*` (search, kind title, most recent, computing, results, no match, clear) and `profileCornersEmpty/Go` in ES/CA/EN; removed `obsCornerCount`, `obsSavedNightMin`, `obsSavedSoilWater`.
+- **Verified:** `vite build`; the filter and sort logic with a throwaway script (not in the repo). **Not verified on screen:** any of the above, on desktop or phone, in dark or light theme, nor against a real database. Every corner's snapshot is asked when the dialog opens; one in a cell not loaded yet counts against the per-user new-cell limit (429: it stays without a score).
+
+### Changed — Corner card on the map, collapsible layers box and light theme (2026-10-28, `feat/observatory-ui-polish-3`, #149)
+
+Front end only.
+
+- **Map panel:** the saved corner uses the «Mi rincón» card style, with smaller pills in one scrolling line, a pencil icon to edit and no pin shadow; the photo viewer opened from the map's strip has the tag and delete actions.
+- **«Mi rincón» card and edit dialog:** primary edit button; kind icons without shadow; the remove button is plain text with hover only.
+- **Layers box** collapses into a layers button (it starts expanded). Habitat pills (forest, soil) in two columns. The «otro» colour of the forest layer is darker so it reads on the relief basemap.
+- **Light theme:** lighter corner card with olive pills, olive secondary buttons (`obs-btn`), olive search, select and rows in the species filter card, grey tabs switch in the chart card, no shadow on the species rows.
+- **Not verified:** `vite build` and the visual check on desktop and phone, dark and light.
+
 ### Changed — Corner photos, second iteration (2026-10-27, `feat/observatory-corners-photos`)
 
 Back end (no migration), front end and three fixes to shared dialogs.

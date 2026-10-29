@@ -346,3 +346,9 @@ Two ways a dialog opened over another closed both: (1) a click that React bubble
 
 ### ⚠️ A local database one migration behind answers 500, not a clear error
 `fungus-ingest-test` was at Alembic 020, and the first photo upload failed with a 500 on the missing `corner_usage_events`. After pulling a branch with a migration, `alembic current` against the local database (with `DATABASE_URL` in front) tells which one is missing.
+
+### ⚠️ Tailwind breakpoints are the window's, not the dialog's
+`lg:` and `xl:` look at the browser window; a dialog (`ObsModal`, `max-w-7xl` with its margins and padding) and the panel inside it are narrower, so a grid that should change «when there is room» changes late. For a part inside a dialog use a container query with an arbitrary variant (Tailwind 3.4 has no container plugin here): `[container-type:inline-size]` on the parent and `[@container(min-width:56rem)]:grid-cols-4` on the grid (the filter panel of `SavedPointsList`). The cards' grid still uses the window's `xl:` and is only 4 columns when the window is at least 1280px.
+
+### ⚠️ A search in the dialog's title line is a portal, not a child
+The desktop `ObsModal` header has a slot (`ObsModalHeaderSlot`); the content portals into it. The slot is null on the first render (it is set by a ref callback) and on a phone sheet, so the content must draw the same element inline in that case.
