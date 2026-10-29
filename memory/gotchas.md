@@ -352,3 +352,13 @@ Two ways a dialog opened over another closed both: (1) a click that React bubble
 
 ### ⚠️ A search in the dialog's title line is a portal, not a child
 The desktop `ObsModal` header has a slot (`ObsModalHeaderSlot`); the content portals into it. The slot is null on the first render (it is set by a ref callback) and on a phone sheet, so the content must draw the same element inline in that case.
+
+### ⚠️ A `fixed` child of the Observatory page is placed against the page, not the screen
+The page is wrapped in `anim-up` (a transform): a `position: fixed` descendant is then measured against it, so a full-screen map inside it started below the site's header and its bottom sheet ran off the screen. Anything that must cover the viewport (the phone's map, the zone screen) is drawn with `createPortal(…, document.body)`, like `ObsModal`. `inPortal` in `pages/Observatory.jsx`.
+
+### ⚠️ A horizontally scrolling row widens its grid's implicit column
+`grid` without a template has one `auto` column sized by the content; a `flex` row with `overflow-x-auto` still contributes its full min-content width, so the column (and the cards sharing it, the calendar beside the forecast) overflowed the screen. Give the grid `grid-cols-[minmax(0,1fr)]` (and `min-w-0` to the cards in it) wherever a slider lives in one.
+
+### ⚠️ A CSS-hidden first child still takes `space-y`
+`space-y-*` skips only `[hidden]` siblings, not `display: none` from a class (`lg:hidden`): the next sibling got the column's top margin and the desktop's left column started 16px lower than the right one. Draw the variant only when it applies (`useMediaQuery`) instead of hiding it.
+
