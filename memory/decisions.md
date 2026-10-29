@@ -736,3 +736,18 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 **Filter panel in line:** not the zones' `FilterPanel`: its phone sheet is under the dialog (z-index) and would be a sheet in a sheet.
 
 **`ObsModal` header:** a row with the title, a slot (`ObsModalHeaderSlot`) and the ×, in three columns from 1024px so a search in the slot is centred on the dialog. Every desktop `ObsModal` has it; those with nothing in the slot look as before.
+
+## Observatory — phone layout (2026-10-30)
+
+**Decision:** under 640px the Observatory page has no map on it. «Ver mapa» opens the map as a full screen and an observed zone is a full screen of its own; both are portals on `document.body`, not fixed children of the page. On a phone the map has one floating layers panel (view + layers) and a non-modal bottom sheet for the clicked point; only one of them is open at a time.
+
+**Why:** the map took most of a small screen and left the zone below it out of reach; the desktop's fullscreen button, view tabs and corner panel did not fit. A non-modal sheet (as in a maps app) lets the person tap another point without closing it; the map re-centres the point in the strip above the sheet, which can be up to 80% of the screen.
+
+**Rules that came out of it:**
+- Opening the layers closes the point's sheet but does not clear an observed zone (closing the card on the desktop does); a tap on the map while the layers are open only closes them.
+- «Observar» closes the map and shows the zone; the zone's «Volver al mapa» reopens the map on that point; × leaves the zone. Browser Back is the URL's (the point is in it).
+- Page layout below `lg` is one column, so the corner's card goes first and the species filter is a button with a dropdown above the thermometer; from `lg` the right-hand column is as before. The two layouts are drawn, not hidden with CSS (`useMediaQuery`).
+- «Guardar rincón» is the title row's `action` at every width (heart only on a phone), `items-center`.
+- The chart on a phone drops the timeline (dragging the chart moves the window) and its tabs become a select; the Open-Meteo pills of the forecast and calendar cards are gone because the credit is `Attribution.jsx` (CC BY 4.0) and the forecast card names its source in a note.
+- Cards with several parts that slide (thermometer tiles, forecast days) are horizontal snap rows under `sm`.
+

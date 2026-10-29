@@ -75,14 +75,14 @@ export function CalendarSection({ cal, speciesName }) {
   const shown = vm ?? (cal.status === 'loading' ? lastRef.current : null)
 
   return (
-    <section aria-labelledby="obs-cal-title" aria-busy={cal.status === 'loading'} className="space-y-3">
+    <section aria-labelledby="obs-cal-title" aria-busy={cal.status === 'loading'} className="space-y-3 min-w-0">
       {cal.status === 'loading' && !shown && <Skeleton />}
       {cal.status === 'error' && <ObservatoryNotice error={cal.error} onRetry={cal.retry} />}
       {cal.status === 'ready' && !vm && (
         <p role="note" className="glass obs-card rounded-2xl px-4 py-3 text-sm text-cream/80">{t.obsCalEmpty}</p>
       )}
       {shown && (
-        <article className={`glass obs-card rounded-2xl p-5 space-y-4 transition-opacity ${vm ? '' : 'opacity-60'}`}>
+        <article className={`glass obs-card rounded-2xl p-5 space-y-4 min-w-0 transition-opacity ${vm ? '' : 'opacity-60'}`}>
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
             <div className="min-w-0">
               <h3 id="obs-cal-title" className="font-display text-2xl text-cream">{t.obsCalTitle}</h3>
@@ -90,9 +90,6 @@ export function CalendarSection({ cal, speciesName }) {
                 {speciesName ? t.obsCalSubSpecies.replace('{name}', speciesName) : t.obsCalSubGeneric}
               </p>
             </div>
-            <span className="text-xs text-cream/70 rounded-full bg-cream/[0.08] px-3 py-1">
-              {shown.hasForecast ? t.obsCalBadgeForecast : t.obsCalBadgeNoForecast}
-            </span>
           </div>
 
           <p data-testid="calendar-summary" className="text-[15px] text-cream">{shown.summary}</p>

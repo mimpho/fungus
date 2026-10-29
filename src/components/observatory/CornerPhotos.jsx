@@ -111,7 +111,19 @@ export function CornerPhotos({ corner, onChanged, variant = 'card' }) {
   }
 
   if (strip) {
-    if (photos.length === 0) return null
+    if (photos.length === 0) {
+      // The corner says how many photos it has before they are read: while they load the row keeps its
+      // height with empty slots, so the panel does not jump when the thumbnails arrive
+      const waiting = corner.photo_count > 0 && (status === 'idle' || status === 'loading')
+      if (!waiting) return null
+      return (
+        <ul aria-hidden="true" className={`flex gap-2 overflow-x-auto pb-1.5 ${BLEED.strip} ${SCROLL_THIN}`} data-testid="corner-photos-placeholder">
+          {Array.from({ length: Math.min(corner.photo_count, PHOTOS_MAX) }, (_, i) => (
+            <li key={i} className={`${SLOT_SMALL} bg-cream/[0.08] animate-pulse`} />
+          ))}
+        </ul>
+      )
+    }
     return (
       <>
         <ul className={`flex gap-2 overflow-x-auto pb-1.5 ${BLEED.strip} ${SCROLL_THIN}`} aria-label={t.obsPhotos} data-testid="corner-photos-strip">
