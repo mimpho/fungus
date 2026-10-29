@@ -114,7 +114,7 @@ function Row({ row, selected, onSelect, onOpenCard }) {
  * types the author gave decide): ObservedZone asks it, because the chart needs the selected
  * species' thermal range too.
  */
-export function SpeciesPanel({ state, selected, onSelect }) {
+export function SpeciesPanel({ state, selected, onSelect, className = '' }) {
   const { t, lang } = useApp()
   const uid = useId()
   const { species: catalog } = useSpecies()
@@ -144,9 +144,9 @@ export function SpeciesPanel({ state, selected, onSelect }) {
   const groups = EDIB_GROUPS.filter(g => counts[g] > 0 || g === group)
 
   return (
-    <aside aria-labelledby="obs-sp-title" className={`glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:h-[36rem] transition-opacity ${state.stale ? 'opacity-70' : ''}`}>
+    <aside aria-labelledby={`${uid}-title`} className={`glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:h-[36rem] transition-opacity ${state.stale ? 'opacity-70' : ''} ${className}`}>
       <div className="flex items-center justify-between gap-2">
-        <h3 id="obs-sp-title" className="font-display text-2xl text-cream">{t.obsSpTitle}</h3>
+        <h3 id={`${uid}-title`} className="font-display text-2xl text-cream">{t.obsSpTitle}</h3>
         <div
           className="relative"
           onMouseEnter={() => setInfoHover(true)}
@@ -158,7 +158,7 @@ export function SpeciesPanel({ state, selected, onSelect }) {
             onFocus={() => setInfoHover(true)}
             onBlur={() => { setInfoHover(false); setInfoOpen(false) }}
             aria-expanded={infoOpen}
-            aria-describedby="obs-sp-info"
+            aria-describedby={`${uid}-info`}
             aria-label={t.obsSpInfoLabel}
             className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-cream/80 hover:text-cream hover:bg-cream/10 transition-colors"
           >
@@ -169,7 +169,7 @@ export function SpeciesPanel({ state, selected, onSelect }) {
             </svg>
           </button>
           <p
-            id="obs-sp-info"
+            id={`${uid}-info`}
             role="tooltip"
             hidden={!(infoOpen || infoHover)}
             className="absolute right-0 top-full mt-1 z-30 w-72 max-w-[80vw] rounded-xl px-3 py-2.5 text-[13px] leading-relaxed text-cream bg-modal/95 backdrop-blur-sm border border-cream/20 shadow-lg"

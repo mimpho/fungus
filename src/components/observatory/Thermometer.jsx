@@ -3,6 +3,7 @@ import { useApp } from '../../contexts/AppContext'
 import { getScoreBand } from '../../lib/scoreBands'
 import { buildThermometer, fill } from '../../lib/thermometer'
 import { InfoTip } from './InfoTip'
+import { SCROLL_THIN } from './scrollStyles'
 
 // Same five bands and proportions as the score scale everywhere else (30/25/15/15/15)
 const SEGMENTS = [
@@ -22,8 +23,8 @@ export function ThermometerSkeleton() {
       <p className="text-sm text-cream/60 animate-pulse">{t.obsThLoading}</p>
       <div className="h-14 w-2/3 rounded-xl bg-white/10 animate-pulse" />
       <div className="h-5 w-full rounded-full bg-white/10 animate-pulse" />
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {[0, 1, 2].map(i => <div key={i} className="h-20 rounded-xl bg-white/10 animate-pulse" />)}
+      <div className="flex gap-3 overflow-hidden sm:grid sm:grid-cols-3">
+        {[0, 1, 2].map(i => <div key={i} className="w-[10.5rem] shrink-0 sm:w-auto sm:shrink h-20 rounded-xl bg-white/10 animate-pulse" />)}
       </div>
     </div>
   )
@@ -44,7 +45,7 @@ export function Thermometer({ snap, note = null }) {
   const forOnes = vm.conditions.filter(c => c.sign === '+')
 
   return (
-    <article aria-labelledby={headingId} className="glass obs-card rounded-2xl p-5 space-y-5">
+    <article aria-labelledby={headingId} className="glass obs-card rounded-2xl p-5 space-y-5 min-w-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h3 id={headingId} className="font-display text-2xl text-cream">{t.obsThTitle}</h3>
         {vm.day && <p className="text-xs text-cream/50">{fill(t.obsThDataDate, { fecha: vm.day }, lang)}</p>}
@@ -89,9 +90,10 @@ export function Thermometer({ snap, note = null }) {
       </div>
 
       {vm.tiles.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))] gap-3">
+        // On a phone the tiles (state, soil water, temperature) are a row that slides sideways, bleeding to the card's edges; from sm up, the grid
+        <div className={`flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-5 -mx-5 px-5 pb-1.5 ${SCROLL_THIN} sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:overflow-visible sm:snap-none sm:grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))]`}>
           {vm.tiles.map(tile => (
-            <div key={tile.key} className="rounded-xl bg-cream/[0.05] p-3">
+            <div key={tile.key} className="w-[10.5rem] shrink-0 snap-start sm:w-auto sm:shrink sm:snap-align-none rounded-xl bg-cream/[0.05] p-3">
               <p className="text-xs text-cream/60">{tile.label}</p>
               <p className="font-display text-3xl font-bold leading-tight text-cream">{tile.value}</p>
               {tile.sub && <p className="text-xs text-cream/60">{tile.sub}</p>}
@@ -146,7 +148,7 @@ export function Thermometer({ snap, note = null }) {
           aria-expanded={open}
           aria-controls={detailId}
           onClick={() => setOpen(o => !o)}
-          className="px-4 py-2 rounded-xl glass obs-btn text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+          className="px-4 py-2 rounded-xl bg-transparent border border-cream/40 text-cream text-sm font-medium hover:bg-cream/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
         >
           {open ? t.obsThHideBtn : t.obsThWhyBtn}
         </button>

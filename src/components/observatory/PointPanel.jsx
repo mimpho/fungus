@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Binoculars } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { fetchPointForest } from '../../services/observatoryService'
@@ -21,6 +21,72 @@ const MACRO_KEY = {
 }
 
 /**
+ * The point's panel on a phone: a bottom sheet over the map, without a backdrop so the map keeps
+ * answering (another tap picks another point, a drag moves it). It rises on mount, has a handle that
+ * can be dragged down to close it (the same gesture as the dialogs' sheets) and never covers more
+ * than 80% of the screen: its content scrolls.
+ */
+function PointSheet({ label, onClose, onHeight, children }) {
+  const [entered, setEntered] = useState(false)
+  const [dragY, setDragY] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const startY = useRef(0)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    let inner = 0
+    const outer = requestAnimationFrame(() => { inner = requestAnimationFrame(() => setEntered(true)) })
+    return () => { cancelAnimationFrame(outer); cancelAnimationFrame(inner) }
+  }, [])
+
+  // The page is told how tall the sheet is, so the map can keep the picked point in the strip above it
+  const onHeightRef = useRef(onHeight)
+  useEffect(() => { onHeightRef.current = onHeight }, [onHeight])
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    const ro = new ResizeObserver(() => onHeightRef.current?.(el.offsetHeight))
+    ro.observe(el)
+    return () => { ro.disconnect(); onHeightRef.current?.(0) }
+  }, [])
+
+  const onTouchStart = e => { startY.current = e.touches[0].clientY; setDragY(0); setDragging(true) }
+  const onTouchMove = e => setDragY(Math.max(0, e.touches[0].clientY - startY.current))
+  const onTouchEnd = () => {
+    const h = ref.current?.offsetHeight || 300
+    setDragging(false)
+    if (dragY > Math.min(h * 0.4, 120)) onClose()
+    setDragY(0)
+  }
+
+  return (
+    <div
+      ref={ref}
+      role="dialog"
+      aria-label={label}
+      data-testid="point-sheet"
+      className="absolute z-[1100] inset-x-0 bottom-0 flex flex-col max-h-[80dvh] overflow-hidden glass-olive-80 rounded-t-2xl shadow-xl"
+      style={{
+        transform: dragging ? `translateY(${dragY}px)` : entered ? 'translateY(0)' : 'translateY(100%)',
+        transition: dragging ? 'none' : 'transform 0.3s cubic-bezier(0.32,0.72,0,1)',
+      }}
+    >
+      <div
+        className="shrink-0 pt-3 pb-2 flex justify-center touch-none cursor-grab select-none"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="w-10 h-1 rounded-full bg-cream/25" />
+      </div>
+      <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pt-1 space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/**
  * What the map click found: the nearest toponym, altitude and forest at the point, with the
  * «Observar esta zona» button. Asking this costs no climate data (no new cell), so every click
  * can ask; the answer is context, and the button works even while it loads or if it fails.
@@ -29,7 +95,7 @@ const MACRO_KEY = {
  * `onGoToZone` scrolls to the observed zone: the «Observando» button stays active and takes you there (the zone is below the map, out of reach in fullscreen).
  * `saved` is the user's corners: if this point is one, its pin, name, species and notes show under the title, with «Editar».
  */
-export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false }) {
+export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, sheet = false, onSheetHeight }) {
   const { t } = useApp()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [attempt, setAttempt] = useState(0)
@@ -70,12 +136,8 @@ export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onCl
     else forestLine = t.obsForestUnknown
   }
 
-  return (
-    <div
-      role="dialog"
-      aria-label={title}
-      className="absolute z-[1100] left-3 right-16 bottom-14 md:bottom-3 md:right-auto md:w-[22rem] max-h-[calc(100%-11.5rem)] md:max-h-[calc(100%-6rem)] overflow-y-auto glass-olive-80 rounded-2xl p-4 space-y-3 shadow-xl"
-    >
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-display text-xl text-cream leading-tight break-words">{title}</p>
@@ -159,7 +221,7 @@ export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onCl
         </div>
       )}
 
-      <PointHabitat habitat={d?.habitat} compact />
+      <PointHabitat habitat={d?.habitat} compact loading={state.status === 'loading'} />
 
       {/* The two things to do with a point: look at it (the zone below the map) and keep it. Saved already: the corner above has its own «Editar». */}
       <div className={`grid gap-2 ${corner ? '' : 'grid-cols-2'}`}>
@@ -184,6 +246,18 @@ export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onCl
       </div>
 
       <CornerModals mode={mode} setMode={setMode} onClose={() => setMode('idle')} point={point} saved={saved} suggestedName={d?.toponym?.name ?? d?.toponym?.label} />
+    </>
+  )
+
+  // On a phone: a bottom sheet that leaves the map usable above it (no backdrop)
+  if (sheet) return <PointSheet label={title} onClose={onClose} onHeight={onSheetHeight}>{content}</PointSheet>
+  return (
+    <div
+      role="dialog"
+      aria-label={title}
+      className="absolute z-[1100] left-3 right-16 bottom-14 md:bottom-3 md:right-auto md:w-[22rem] max-h-[calc(100%-11.5rem)] md:max-h-[calc(100%-6rem)] overflow-y-auto glass-olive-80 rounded-2xl p-4 space-y-3 shadow-xl"
+    >
+      {content}
     </div>
   )
 }

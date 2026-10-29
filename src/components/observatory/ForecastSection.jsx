@@ -5,6 +5,7 @@ import { fetchPointForecast } from '../../services/observatoryService'
 import { buildForecast } from '../../lib/forecastData'
 import { localIso } from '../../lib/calendarData'
 import { ObservatoryNotice } from './ObservatoryNotice'
+import { SCROLL_THIN } from './scrollStyles'
 
 const ICON = {
   sun: 'M12 4v2M12 18v2M4 12h2M18 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M6.3 17.7l1.4-1.4M16.3 7.7l1.4-1.4M12 8.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7z',
@@ -25,7 +26,7 @@ function Skeleton() {
 
 function DayCard({ d }) {
   return (
-    <li aria-label={d.aria} className="rounded-xl bg-cream/[0.05] p-3 min-[1440px]:p-2.5 flex flex-col items-start gap-2 min-[1440px]:gap-1.5 min-w-0">
+    <li aria-label={d.aria} className="w-[9.5rem] shrink-0 snap-start sm:w-auto sm:shrink sm:snap-align-none rounded-xl bg-cream/[0.05] p-3 min-[1440px]:p-2.5 flex flex-col items-start gap-2 min-[1440px]:gap-1.5 min-w-0">
       <span aria-hidden="true" className="text-base min-[1440px]:text-sm font-semibold text-cream capitalize">
         {d.weekday} <span className="font-normal text-cream/60 whitespace-nowrap">{d.dayMonth}</span>
       </span>
@@ -74,32 +75,32 @@ export function ForecastSection({ point, zoneName }) {
   )
 
   return (
-    <section aria-labelledby="obs-fc-title" aria-busy={fc.status === 'loading'} className="space-y-3">
+    <section aria-labelledby="obs-fc-title" aria-busy={fc.status === 'loading'} className="space-y-3 min-w-0">
       {fc.status === 'loading' && <Skeleton />}
       {fc.status === 'error' && <ObservatoryNotice error={fc.error} onRetry={fc.retry} />}
       {fc.status === 'ready' && !vm && (
         <p role="note" className="glass obs-card rounded-2xl px-4 py-3 text-sm text-cream/80">{t.obsFcEmpty}</p>
       )}
       {vm && (
-        <article className="glass obs-card rounded-2xl p-5 space-y-4">
+        <article className="glass obs-card rounded-2xl p-5 space-y-4 min-w-0">
           <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
             <div className="min-w-0">
               <h3 id="obs-fc-title" className="font-display text-2xl text-cream">{t.obsFcTitle.replace('{name}', zoneName)}</h3>
               <p data-testid="forecast-summary" className="text-[13px] text-cream/60">{vm.summary}</p>
             </div>
-            <span title={t.obsFcBadgeTitle} className="text-xs text-cream/70 rounded-full bg-cream/[0.08] px-3 py-1">{t.obsFcBadge}</span>
           </div>
 
-          <ol aria-label={t.obsFcNear} className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          {/* On a phone the days are a row that slides sideways (it bleeds to the card's edges); from sm up they are the grid */}
+          <ol aria-label={t.obsFcNear} className={`flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-5 -mx-5 px-5 pb-1.5 ${SCROLL_THIN} sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:overflow-visible sm:snap-none sm:grid-cols-4 lg:grid-cols-7`}>
             {vm.near.map(d => <DayCard key={d.iso} d={d} />)}
           </ol>
 
           {vm.late.length > 0 && (
             <div className="space-y-1.5">
               <p className="text-[11px] uppercase tracking-[1px] text-cream/60">{t.obsFcLate}</p>
-              <ol className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-1 opacity-80">
+              <ol className={`flex gap-1 overflow-x-auto snap-x scroll-px-5 -mx-5 px-5 pb-1.5 opacity-80 ${SCROLL_THIN} sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:overflow-visible sm:snap-none sm:grid-cols-5 lg:grid-cols-9`}>
                 {vm.late.map(d => (
-                  <li key={d.iso} aria-label={d.aria} className="flex flex-col items-center gap-1 rounded-lg bg-cream/[0.05] px-1 py-1.5 text-[11px] text-cream/60">
+                  <li key={d.iso} aria-label={d.aria} className="w-[4.75rem] shrink-0 snap-start sm:w-auto sm:shrink flex flex-col items-center gap-1 rounded-lg bg-cream/[0.05] px-1 py-1.5 text-[11px] text-cream/60">
                     <span aria-hidden="true">{d.dayMonth}</span>
                     <span aria-hidden="true" className="h-[22px] flex items-end">
                       <span className="w-2 rounded-t-sm bg-[var(--ui-rain-text)]" style={{ height: d.smallBar }} />

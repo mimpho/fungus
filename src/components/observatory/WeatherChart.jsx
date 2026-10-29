@@ -1,6 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { Tabs } from '../ui/Tabs'
+import { ObsSelect } from './ObsSelect'
+import { useIsPhone } from '../../hooks/useIsPhone'
 import { ObsModal } from './ObsModal'
 import { Timeline } from './Timeline'
 import { SCORE_BANDS, getScoreBand } from '../../lib/scoreBands'
@@ -32,7 +34,7 @@ const tempColor = t => {
 const TEMP_BAND_OPACITY = 0.55
 // Middle of each score band (see scoreBands.js), bottom to top; the ends repeat the first and last colour
 const SCORE_STOPS = [[0, 'low'], [15, 'low'], [42.5, 'mid'], [62.5, 'ok'], [77.5, 'good'], [92.5, 'high'], [100, 'high']]
-const HEIGHT = 300, TOP = 30, BOTTOM = 272, LEFT = 40
+const HEIGHT = 300, TOP = 30, BOTTOM = 272, LEFT_DEFAULT = 40
 const RAIN_MAX_MM = 40
 
 const stroke = (color, width, dash, opacity = 1) => ({ stroke: color, strokeWidth: width, strokeDasharray: dash, strokeOpacity: opacity, fill: 'none', strokeLinejoin: 'round', strokeLinecap: 'round' })
@@ -100,8 +102,11 @@ function legendFor(tab, layers, species, t, future = []) {
 }
 
 /** The drawing itself: one SVG per tab, with the events of the window on top. */
-function Chart({ vm, tab, layers, range, width, future, tail, pan }) {
+function Chart({ vm, tab, layers, range, width, future, tail, pan, compact = false }) {
   const { t, lang } = useApp()
+  // Compact (phone): no gutter for the axis numbers; they are written inside the plot, at its left, and
+  // the names of the bands go at its right, so the plot starts where the card's content starts
+  const LEFT = compact ? 0 : LEFT_DEFAULT
   const svgRef = useRef(null)
   const gid = `g${useId().replace(/:/g, '')}`
   const [hover, setHover] = useState(null)
@@ -318,7 +323,7 @@ function Chart({ vm, tab, layers, range, width, future, tail, pan }) {
           return (
             <g key={b.key}>
               <rect x={LEFT} y={y(hi)} width={plotW} height={y(lo) - y(hi)} style={{ fill: `var(--ui-score-${b.key}-bar)` }} fillOpacity="0.1" />
-              <text x={LEFT + 8} y={y(hi) + 14} fontSize="10.5" fontWeight="600" letterSpacing="0.4" style={{ fill: `var(--ui-score-${b.key}-text)` }}>{t[b.obsKey]}</text>
+              <text x={compact ? LEFT + plotW - 8 : LEFT + 8} y={y(hi) + 14} textAnchor={compact ? 'end' : 'start'} fontSize="10.5" fontWeight="600" letterSpacing="0.4" style={{ fill: `var(--ui-score-${b.key}-text)` }}>{t[b.obsKey]}</text>
             </g>
           )
         })}
@@ -341,14 +346,20 @@ function Chart({ vm, tab, layers, range, width, future, tail, pan }) {
         {gridValues.map(v => (
           <g key={v}>
             <line x1={LEFT} x2={LEFT + plotW} y1={y(v)} y2={y(v)} style={stroke(CREAM, 1, undefined, v === 0 && g.lo < 0 ? 0.45 : 0.12)} />
-            <text x={LEFT - 6} y={y(v) + 4} textAnchor="end" fontSize="11" style={{ fill: CREAM, fillOpacity: 0.6 }}>{v}{unit}</text>
+            {compact ? (
+              // Inside the plot: under its line on the score tab (where the band names used to be), over it elsewhere or at the bottom
+              <text x={LEFT + 8} y={tab === 'score' && y(v) + 14 <= BOTTOM - 4 ? y(v) + 14 : y(v) - 4} fontSize="11" style={{ fill: CREAM, fillOpacity: 0.6 }}>{v}{unit}</text>
+            ) : (
+              <text x={LEFT - 6} y={y(v) + 4} textAnchor="end" fontSize="11" style={{ fill: CREAM, fillOpacity: 0.6 }}>{v}{unit}</text>
+            )}
           </g>
         ))}
         {rightAxis && ticks(0, g.accMax, 60).map(v => (
           <text key={v} x={LEFT + plotW + 6} y={yAcc(v) + 4} fontSize="11" style={{ fill: CREAM, fillOpacity: 0.6 }}>{v}</text>
         ))}
         {xLabels.map(i => (
-          <text key={i} x={cx(i)} y={BOTTOM + 17} textAnchor="middle" fontSize="11" style={{ fill: CREAM, fillOpacity: 0.6 }}>{formatDay(dateAt(i), lang)}</text>
+          // Without the gutter the first and last labels could be cut: they lean inwards at the edges
+          <text key={i} x={cx(i)} y={BOTTOM + 17} textAnchor={compact && cx(i) < 24 ? 'start' : compact && cx(i) > width - 24 ? 'end' : 'middle'} fontSize="11" style={{ fill: CREAM, fillOpacity: 0.6 }}>{formatDay(dateAt(i), lang)}</text>
         ))}
 
         {tab === 'rain' && layers.acc && yAcc && accPeak > 0 && (
@@ -370,7 +381,8 @@ function Chart({ vm, tab, layers, range, width, future, tail, pan }) {
           <g>
             <rect x={LEFT + step * N} y={TOP} width={step * F} height={BOTTOM - TOP} fill={CREAM} fillOpacity="0.035" />
             <line x1={LEFT + step * N} x2={LEFT + step * N} y1={TOP} y2={BOTTOM} style={stroke(CREAM, 1, '4 4', 0.5)} />
-            <text x={LEFT + step * N + 8} y={TOP + 14} fontSize="11" fontWeight="600" style={{ fill: CREAM, fillOpacity: 0.7 }}>{t.obsChFutureLabel}</text>
+            {/* On a phone one line lower: the band name «Excelente» is now at the right of the top line */}
+            <text x={LEFT + step * N + 8} y={compact ? TOP + 28 : TOP + 14} fontSize="11" fontWeight="600" style={{ fill: CREAM, fillOpacity: 0.7 }}>{t.obsChFutureLabel}</text>
             {fcRuns.fcN > 0 && <path d={smoothPath(fcRuns.fc, cx, y)} style={stroke(`url(#${gid}s)`, 3, '2 6')} />}
             {fcRuns.fcN < F && <path d={smoothPath(fcRuns.es, cx, y)} style={stroke(`url(#${gid}s)`, 3, '2 6', 0.5)} />}
           </g>
@@ -499,6 +511,9 @@ function DataTable({ days }) {
 export function WeatherChart({ vm, timeline, speciesName, range, future = [], tail = [] }) {
   const { t } = useApp()
   const uid = useId()
+  // On a phone the card keeps the page's side margin like the others, but its padding is smaller and the plot itself runs out into that padding (almost to the card's edges), so it is as wide as it can be,
+  // the tabs are a selector and there is no timeline: dragging the chart moves the window
+  const phone = useIsPhone()
   const [tab, setTab] = useState('score')
   const [layers, setLayers] = useState({ events: true, limit: false, acc: true })
   const [showTable, setShowTable] = useState(false)
@@ -519,14 +534,23 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [], ta
   const showEventKinds = layers.events && available.includes('events') && vm.events.length > 0
 
   return (
-    <article aria-labelledby={`${uid}-h`} className="glass obs-card rounded-2xl p-[22px] space-y-4 min-w-0">
+    <article aria-labelledby={`${uid}-h`} className={`glass obs-card rounded-2xl space-y-4 min-w-0 ${phone ? 'p-4' : 'p-[22px]'}`}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h3 id={`${uid}-h`} className="font-display text-[27px] leading-tight text-cream">{t.obsChTitle}</h3>
       </div>
 
-      <div className="overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&_button]:whitespace-nowrap [&>div]:w-max [[data-theme=light]_&>div]:!bg-[var(--ui-surface-input)]" role="group" aria-label={t.obsChTabsLabel}>
-        <Tabs options={TABS.map(id => ({ id, label: t[TAB_KEY[id]] }))} selected={tab} onChange={setTab} size="md" />
-      </div>
+      {phone ? (
+        <div>
+          <label htmlFor={`${uid}-tab`} className="sr-only">{t.obsChTabsLabel}</label>
+          <ObsSelect id={`${uid}-tab`} value={tab} onChange={e => setTab(e.target.value)} className="w-full [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)] [[data-theme=light]_&_select]:!text-[var(--ui-filter-pill-text)] [[data-theme=light]_&_svg]:!text-[var(--ui-filter-pill-text)]">
+            {TABS.map(id => <option key={id} value={id}>{t[TAB_KEY[id]]}</option>)}
+          </ObsSelect>
+        </div>
+      ) : (
+        <div className="overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&_button]:whitespace-nowrap [&>div]:w-max [[data-theme=light]_&>div]:!bg-[var(--ui-surface-input)]" role="group" aria-label={t.obsChTabsLabel}>
+          <Tabs options={TABS.map(id => ({ id, label: t[TAB_KEY[id]] }))} selected={tab} onChange={setTab} size="md" />
+        </div>
+      )}
 
       <p className="text-[13px] text-cream/70 !mt-2">
         {title}
@@ -534,15 +558,15 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [], ta
       </p>
 
       <div className="space-y-3">
-        <div ref={boxRef} className="w-full min-w-0">
+        <div ref={boxRef} className={phone ? '-mr-3 min-w-0' : 'w-full min-w-0'}>
           {vm.hasData ? (
-            <Chart vm={vm} tab={tab} layers={layers} range={range} width={width} future={future} tail={tail} pan={pan} />
+            <Chart vm={vm} tab={tab} layers={layers} range={range} width={width} future={future} tail={tail} pan={pan} compact={phone} />
           ) : (
             <p className="text-sm text-cream/70 py-8 text-center">{t.obsChNoDataWindow}</p>
           )}
         </div>
 
-        <Timeline tab={tab} {...timeline} />
+        {!phone && <Timeline tab={tab} {...timeline} />}
 
         {vm.hasData && (
           <div className="border-t border-cream/10 pt-3 space-y-3">

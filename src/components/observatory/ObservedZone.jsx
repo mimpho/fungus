@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Crosshair } from 'lucide-react'
+import { ChevronDown, Crosshair } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
+import { IC } from '../../lib/helpers'
 import { useSpecies } from '../../hooks/useSpecies'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { speciesName } from '../../lib/speciesList'
 import { fill } from '../../lib/thermometer'
 import { usePointData } from '../../hooks/usePointData'
@@ -40,6 +42,9 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
   const { t, lang } = useApp()
   // Starts on the species the map layer shows, so the thermometer and the map speak of the same one
   const [speciesId, setSpeciesId] = useState(initialSpecies)
+  // One column (under lg): the corner's card goes first, above the filter pills and the species filter
+  const single = !useMediaQuery('(min-width: 1024px)')
+  const [filterOpen, setFilterOpen] = useState(false) // below lg the species filter is a button with a dropdown above the thermometer
   const { species: catalog } = useSpecies()
   // The thermometer and the species list are those of the window's last day (null = the last day
   // with data). Held back a moment so that stepping with the keyboard does not ask for every day.
@@ -105,10 +110,14 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
         point={point}
         suggestedName={d?.toponym?.name ?? d?.toponym?.label}
         saved={saved}
-        lead={(
+        lead={action => (
           <>
             <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">{t.obsObservedTitle}</p>
-            <h2 data-testid="zone-title" className="font-display font-bold text-[clamp(38px,5vw,56px)] leading-[1.02] tracking-[0.3px] text-cream break-words mt-1">{title}</h2>
+            {/* The save button is the `action`, to the right of the title (heart only on a phone); items-center keeps it level with the title */}
+            <div className="flex items-center justify-between gap-3 mt-1">
+              <h2 data-testid="zone-title" className="min-w-0 font-display font-bold text-[clamp(38px,5vw,56px)] leading-[1.02] tracking-[0.3px] text-cream break-words">{title}</h2>
+              {action}
+            </div>
             <p data-testid="zone-facts" className="text-[13px] text-cream/70 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
               {facts.map((f, i) => (
                 <span key={f.key} className="inline-flex items-center gap-1.5">
@@ -130,6 +139,10 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
 
       <PointHabitat habitat={habitat} />
 
+      {single && (
+        <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} onRemoved={onRemoved} />
+      )}
+
       <FilterPills
         speciesName={chosenName}
         onClearSpecies={() => setSpeciesId(null)}
@@ -142,8 +155,38 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
           thermometer and the chart, on the right the corner, the species filter and the events list */}
       <ChartSection point={point} species={activeId} speciesName={activeName} range={chosenRange} until={until} days={days} onWindow={onWindow} calendar={calendar}>
         {({ chart, events }) => (
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_clamp(20rem,30%,30rem)] items-start">
+      <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_clamp(20rem,30%,30rem)] items-start">
         <div className="space-y-4 min-w-0">
+          {/* Where the page is one column (under lg) the species filter is this button with the panel as its dropdown, above the thermometer; from lg up it is the card of the right column.
+              (Drawn only then, not hidden with CSS: a hidden first child would still give the thermometer the column's top margin.) */}
+          {single && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setFilterOpen(o => !o)}
+              aria-expanded={filterOpen}
+              aria-controls="obs-sp-dropdown"
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl glass obs-btn text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <span aria-hidden="true" className="shrink-0">{IC.filter}</span>
+                <span className="shrink-0">{t.obsSpFilterBtn}</span>
+                {chosenName && <span className="truncate text-cream/60 font-normal">· {chosenName}</span>}
+              </span>
+              <ChevronDown size={18} aria-hidden="true" className={`shrink-0 transition-transform ${filterOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {filterOpen && (
+              <div id="obs-sp-dropdown" className="mt-2">
+                <SpeciesPanel
+                  state={speciesList}
+                  selected={speciesId}
+                  // Choosing closes the dropdown so the thermometer below shows the change
+                  onSelect={id => { setSpeciesId(id); setFilterOpen(false); onSpeciesPick?.() }}
+                />
+              </div>
+            )}
+          </div>
+          )}
           {/* Moving the window asks for another day: the last thermometer stays, dimmed, until it arrives */}
           {snap.data == null && snap.status === 'loading' && <ThermometerSkeleton />}
           {snap.status === 'error' && <ObservatoryNotice error={snap.error} onRetry={snap.retry} />}
@@ -155,14 +198,14 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
           {chart}
         </div>
         <div className="flex flex-col gap-4 min-w-0">
-          <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} onRemoved={onRemoved} />
-          <SpeciesPanel
+          {!single && <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} onRemoved={onRemoved} />}
+          {!single && <SpeciesPanel
             state={speciesList}
             selected={speciesId}
             // Choosing (or unchoosing) a species re-asks the thermometer and the cards: bring the
             // top of the zone into view so the person sees them change
             onSelect={id => { setSpeciesId(id); onSpeciesPick?.() }}
-          />
+          />}
           {events}
         </div>
       </div>
@@ -170,7 +213,7 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
       </ChartSection>
 
       {/* From 1440 px up the forecast and the calendar sit side by side */}
-      <div className="grid gap-4 min-[1440px]:grid-cols-2 items-start">
+      <div className="grid gap-4 grid-cols-[minmax(0,1fr)] min-[1440px]:grid-cols-2 items-start">
         <ForecastSection point={point} zoneName={title} />
 
         <CalendarSection cal={calendar} speciesName={activeName} />

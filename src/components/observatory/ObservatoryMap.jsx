@@ -61,6 +61,18 @@ function cornerMarker(sp, pinLabel, onPick) {
   return marker
 }
 
+// With a bottom sheet over the map (phone) a picked point must not end up under it: if it is not
+// clearly in the strip left above the sheet (`area` = { top, bottomPx }), the map moves it to the middle of that strip
+function keepClear(map, point, area) {
+  if (!area) return
+  const size = map.getSize()
+  const visibleBottom = size.y - area.bottomPx
+  const p = map.latLngToContainerPoint([point.lat, point.lon])
+  if (p.y < area.top + 24 || p.y > visibleBottom - 40) {
+    map.panBy([0, p.y - (area.top + visibleBottom) / 2], { animate: true })
+  }
+}
+
 /**
  * Map of Catalonia. A click only reports the coordinates (onPick); what to do with them is the
  * page's. `observed` is the point being observed (green), `pending` the one just picked (dashed).
@@ -70,7 +82,7 @@ function cornerMarker(sp, pinLabel, onPick) {
  * coloured by its score. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
  * the forest is not one the species fits or the soil pH is not its own. Neither takes clicks, so picking a point works over the layer.
  */
-export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, className = '' }) {
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
   const observedRef = useRef(null)
@@ -80,8 +92,11 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
   const layerRef    = useRef(null)
   const forestRef   = useRef(null)
   const onPickRef  = useRef(onPick)
+  const onViewRef  = useRef(onViewChange)
+  const centerRef  = useRef(centerAbove)
   const initial    = useRef(observed ?? startAt)
   useEffect(() => { onPickRef.current = onPick }, [onPick])
+  useEffect(() => { onViewRef.current = onViewChange; centerRef.current = centerAbove }, [onViewChange, centerAbove])
 
   // Create the map once
   useEffect(() => {
@@ -96,9 +111,10 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     map.createPane(LAYER_PANE).style.zIndex = 350
     map.createPane(LABELS_PANE).style.zIndex = 360
     L.control.zoom({ position: 'bottomright' }).addTo(map)
-    if (initial.current) map.setView([initial.current.lat, initial.current.lon], OBSERVED_ZOOM)
+    if (initial.current) map.setView([initial.current.lat, initial.current.lon], initial.current.zoom ?? OBSERVED_ZOOM)
     else map.fitBounds(BOUNDS)
     map.on('click', e => onPickRef.current?.(e.latlng.lat, e.latlng.lng))
+    map.on('moveend', () => { const c = map.getCenter(); onViewRef.current?.({ lat: c.lat, lon: c.lng, zoom: map.getZoom() }) })
     mapRef.current = map
 
     // The container changes size with the viewport and the panel: Leaflet must be told.
@@ -243,7 +259,16 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     pendingRef.current = null
     if (!pending) return
     pendingRef.current = L.circleMarker([pending.lat, pending.lon], { ...PENDING_STYLE, interactive: false }).addTo(map)
+    // With a bottom sheet over the map (phone) the point must not end up under it: if it is not
+    // clearly in the strip left above the sheet, the map moves it to the middle of that strip
+    keepClear(map, pending, centerRef.current)
   }, [pending?.lat, pending?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The sheet grows as its content arrives (up to 80% of the screen): the point is kept clear of it
+  useEffect(() => {
+    const map = mapRef.current
+    if (map && pending) keepClear(map, pending, centerRef.current)
+  }, [centerAbove?.bottomPx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={elRef} role="region" aria-label={label} className={className} />
 }
