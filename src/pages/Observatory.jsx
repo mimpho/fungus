@@ -208,7 +208,7 @@ export default function Observatory() {
   }
 
   const savedToggle = <SavedPointsToggle saved={saved} onToggle={() => setSavedOpen(o => !o)} />
-  const savedList = <SavedPointsList saved={saved} observed={observed} onObserve={handleObserve} open={savedOpen} />
+  const savedList = <SavedPointsList saved={saved} observed={observed} onSelect={handleObserve} />
 
   if (authLoading) {
     return (

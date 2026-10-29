@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { IC, getScoreColor, resolveUrl } from '../lib/helpers'
 import { Tabs } from '../components/ui/Tabs'
+import { ProfileCorners } from '../components/profile/ProfileCorners'
+import { useSavedPoints } from '../hooks/useSavedPoints'
 import { EditProfileModal } from '../components/modals/EditProfileModal'
 import { apiResendVerification } from '../services/authService'
 
@@ -17,6 +19,7 @@ export default function Profile() {
     setAuthModal,
   } = useApp()
 
+  const corners = useSavedPoints(isAuthenticated)
   const [form, setForm] = useState(profile)
   const [saved, setSaved] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
@@ -272,6 +275,9 @@ export default function Profile() {
               </div>
             )}
           </section>
+
+          {/* Mis rincones */}
+          <ProfileCorners saved={corners} />
 
           {/* Especies favoritas */}
           <section className="glass rounded-2xl p-5">

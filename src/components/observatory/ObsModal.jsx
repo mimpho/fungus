@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, createContext } from 'react'
 import { createPortal } from 'react-dom'
 import { useApp } from '../../contexts/AppContext'
 import { IC } from '../../lib/helpers'
@@ -37,6 +37,13 @@ function usePhone(active) {
   return active && phone
 }
 
+/**
+ * On a desktop modal, the element in the title's line (between the title and the ×) that content can
+ * portal into, so a search can sit level with the title. null on a phone sheet and outside a modal:
+ * the content then draws that part in its own place.
+ */
+export const ObsModalHeaderSlot = createContext(null)
+
 // ObsModals open at once (the photo viewer opens over the edit dialog): only the last one answers Esc
 const openStack = []
 
@@ -56,6 +63,7 @@ export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = fa
   const startY = useRef(0)
   const sheetRef = useRef(null)
   const phone = usePhone(sheet)
+  const [headerSlot, setHeaderSlot] = useState(null)
 
   useEffect(() => {
     if (!sheet || !phone) return undefined
@@ -151,19 +159,25 @@ export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = fa
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative rounded-2xl w-full ${wide ? 'max-w-5xl' : size === 'lg' ? 'max-w-2xl' : 'max-w-md'} p-6 anim-scale max-h-[90vh] overflow-y-auto`}
+        className={`relative rounded-2xl w-full ${wide ? 'max-w-7xl' : size === 'lg' ? 'max-w-2xl' : 'max-w-md'} p-6 anim-scale max-h-[90vh] overflow-y-auto`}
         style={{ background: MODAL.bg }}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t.obsPointClose}
-          className="absolute top-4 right-4 text-cream/40 hover:text-cream transition-colors p-1"
-        >
-          {IC.close}
-        </button>
-        <h2 id={titleId} className="font-display text-2xl font-semibold text-cream mb-5 pr-8">{title}</h2>
-        {children}
+        {/* Three columns so that whatever goes in the slot (a search) is centred on the dialog, not on the space left by the title */}
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] lg:grid-cols-[1fr_minmax(0,32rem)_1fr] items-center gap-4 mb-5">
+          <h2 id={titleId} className="font-display text-2xl font-semibold text-cream">{title}</h2>
+          <div ref={setHeaderSlot} className="min-w-0" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t.obsPointClose}
+            className="justify-self-end -mr-1 text-cream/40 hover:text-cream transition-colors p-1"
+          >
+            {IC.close}
+          </button>
+        </div>
+        <ObsModalHeaderSlot.Provider value={headerSlot}>
+          {children}
+        </ObsModalHeaderSlot.Provider>
       </div>
     </div>,
     document.body,

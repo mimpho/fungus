@@ -23,6 +23,12 @@ export const FOREST_ICONS = new Set(['pinar', 'encinar', 'hayedo', 'robledal'])
 /** Forest classes present around the point, biggest first: [{ key, label, pct }]. */
 export const forestParts = (habitat, t) => parts(habitat?.forest, FOREST_LABEL, t)
 
+/** Forest class keys around the point, biggest first (the same shares as `forestParts`, without labels). */
+export const forestKeys = habitat => Object.entries(habitat?.forest ?? {})
+  .filter(([, share]) => share >= MIN_SHARE)
+  .sort((a, b) => b[1] - a[1])
+  .map(([key]) => key)
+
 /** Soil acidity classes present, biggest first: [{ key, label, pct, ph }] (ph = typical range text). */
 export const soilParts = (habitat, t, lang) => parts(habitat?.soil, SOIL_LABEL, t).map(p => {
   const range = habitat?.soil_ph?.[p.key]

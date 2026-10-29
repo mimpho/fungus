@@ -721,3 +721,18 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 
 «Eliminar rincón» lives in the edit dialog's footer, not on the card (a destructive action out of the way), and the form has no «Cancelar»: the dialog's × already closes it. Closing it by the × or Esc asks nothing even with unsaved changes (it never did). The remove dialog is reached from the edit dialog by switching mode, so edits not saved are lost.
 
+## Observatory — one corners list for the dialog and the profile (2026-10-29)
+
+**Decision:** the «Mis rincones» dialog is a single component (`SavedPointsList`) used by the Observatory and by the profile; a click calls `onSelect`. The profile has no tab: a card in «Siguiendo» (count, three latest, «Ver todas →») opens the dialog. Editing and removing happen only in the Observatory. This replaces decision 6's «tab in the profile» in `observatory-corners-plan.md`.
+
+**Why:** two near-identical lists (the Observatory's card and a profile row) meant two filters to keep in step; a tab that only opened a dialog added nothing, and four tabs do not fit a phone.
+
+**Filters from the browser, not the back end:** comarca, toponym, forest and score are not stored with a corner (plan decision 1) and the API gives them one point at a time, so `useCornerInsights` asks `/point/forest` and `/point/snapshot` of each corner, four at a time, with a ten-minute session cache. Chosen over a new endpoint because a person has tens of corners, not thousands, and it needs no API change. Cost: the filters fill in as answers arrive, and each snapshot of a corner in a cell not loaded yet counts against the per-user new-cell limit. If that bites, the endpoint is the next step.
+
+**Forest filter is «any»:** a corner passes if any of its forest classes (5 % or more of the pixel, the same cut as the card) is ticked, so a mixed place shows under each of its types. Kind and forest are checkboxes, order is a radio, comarca a select; they combine with and.
+
+**Card:** name, kind, place, altitude, two main forests, score bar and the main forest's picture behind. The mushroom count, notes and last night's minimum and soil water are left to the corner (opening it is the way to more detail).
+
+**Filter panel in line:** not the zones' `FilterPanel`: its phone sheet is under the dialog (z-index) and would be a sheet in a sheet.
+
+**`ObsModal` header:** a row with the title, a slot (`ObsModalHeaderSlot`) and the ×, in three columns from 1024px so a search in the slot is centred on the dialog. Every desktop `ObsModal` has it; those with nothing in the slot look as before.
