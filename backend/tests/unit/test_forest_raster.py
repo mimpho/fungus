@@ -32,7 +32,7 @@ def _extent():
 
 def test_class_tables_map_codes_and_leave_the_rest_without_class():
     cls, weight = class_tables(["bph20", "m", "bqi5"])
-    assert [CLASSES[c] for c in cls[[1, 3]]] == ["pinar", "encinar"]
+    assert [CLASSES[c] for c in cls[[1, 3]]] == ["pinar_carrasco", "encinar"]
     assert cls[2] == 255 and cls[0] == 255
     assert list(weight) == [0, 1.0, 0, 0.5]
 
@@ -42,7 +42,7 @@ def test_a_forest_covering_everything_gives_full_share_of_its_class():
     tiles, codes = _tiles_with((_rect(x0, y0, x1, y1), "bph20"))
     out = forest_fractions(tiles, codes, BOUNDS, W, H)
     assert out.shape == (len(CLASSES), H, W)
-    assert (out[CLASSES.index("pinar")] == 255).all()
+    assert (out[CLASSES.index("pinar_carrasco")] == 255).all()
     assert out.sum() == 255 * W * H  # nothing in the other classes
 
 
@@ -50,7 +50,7 @@ def test_half_the_area_gives_half_the_share_and_the_west_is_where_it_is():
     x0, y0, x1, y1 = _extent()
     xmid = (x0 + x1) / 2
     tiles, codes = _tiles_with((_rect(x0, y0, xmid, y1), "bqi20"), (_rect(xmid, y0, x1, y1), "m"))
-    pinar, enc = CLASSES.index("pinar"), CLASSES.index("encinar")
+    pinar, enc = CLASSES.index("pinar_carrasco"), CLASSES.index("encinar")
     out = forest_fractions(tiles, codes, BOUNDS, W, H)
     assert (out[enc][:, 0] == 255).all() and (out[enc][:, W - 1] == 0).all()
     assert out[pinar].sum() == 0
@@ -67,7 +67,7 @@ def test_cells_without_data_do_not_dilute_the_share():
     x0, y0, x1, y1 = _extent()
     xmid = (x0 + x1) / 2
     tiles, codes = _tiles_with((_rect(x0, y0, xmid, y1), "bph20"))  # east: no data at all
-    pinar = CLASSES.index("pinar")
+    pinar = CLASSES.index("pinar_carrasco")
     out = forest_fractions(tiles, codes, BOUNDS, W, H)
     assert (out[pinar][:, 0] == 255).all()
     assert (out[pinar][:, W - 1] == 0).all()

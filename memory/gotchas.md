@@ -362,3 +362,8 @@ The page is wrapped in `anim-up` (a transform): a `position: fixed` descendant i
 ### ⚠️ A CSS-hidden first child still takes `space-y`
 `space-y-*` skips only `[hidden]` siblings, not `display: none` from a class (`lg:hidden`): the next sibling got the column's top margin and the desktop's left column started 16px lower than the right one. Draw the variant only when it applies (`useMediaQuery`) instead of hiding it.
 
+### ⚠️ The forest raster's class order is `CLASSES`'s order: change one, rebuild the other
+The `.bin` holds one byte plane per class in the order of `forest_classes.CLASSES`, and `forest-catalonia.json` lists them; the client reads the planes by `meta.classes`. Adding or renaming a class without running `build_forest_raster.py` (and uploading the result) leaves the back end and the map reading different layouts.
+
+### ⚠️ Group keys in `forest_affinity` (`pinar`, `otro`) are not classes
+`clean_affinity` expands a group weight to each of its classes that has no number of its own, so `{"pinar": 0.3}` and the five pine classes at 0.3 are the same; a class set to 0 stays out even if its group has a weight. A species that already has per-class weights and a new class is not listed there gets nothing for it. Migration `046` must run after the new back end is deployed: the old one only knows the five old keys and falls back to `forest_types` for a species whose affinity it cannot read.

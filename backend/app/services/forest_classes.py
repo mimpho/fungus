@@ -1,9 +1,13 @@
 """Forest classes of the probability layer: MCSC-4 codes -> five classes, and which classes a
 species fits.
 
-The classes are the catalogue's forest types the map can tell apart: pinar (every conifer),
-encinar (evergreen oaks, strawberry tree), hayedo (beech), robledal (deciduous oaks) and "otro"
-(other broadleaves: riparian, birch, ash, chestnut...). Pure functions, no I/O.
+The classes are the forest types the map can tell apart. Five are pine and conifer woods
+(carrasco = Aleppo pine, silvestre = Scots pine, pinassa = Austrian pine, negro = mountain pine,
+otros = stone pine, maritime pine, fir and other conifers), then encinar (evergreen oaks,
+strawberry tree), hayedo (beech), robledal (deciduous oaks) and three of the other broadleaves:
+castanar (chestnut), ribera (riparian) and caducifolio_otro (birch, ash, hazel and the rest).
+The catalogue and `forest_affinity` still speak of `pinar` and `otro`: those are the *groups*
+(`GROUPS`) and stand for all their classes. Pure functions, no I/O.
 
 An MCSC-4 level-5 code is a base (`bph` = pi blanc) plus an optional canopy cover suffix (`20`
 = at least 20 %, `5` = 5-20 %) or a variant letter (`f` protection strip, `p` plantation, `r`
@@ -15,14 +19,32 @@ from __future__ import annotations
 import re
 from collections.abc import Collection, Iterable, Mapping
 
-CLASSES = ("pinar", "encinar", "hayedo", "robledal", "otro")
+CLASSES = (
+    "pinar_carrasco", "pinar_silvestre", "pinar_pinassa", "pinar_negro", "pinar_otros",
+    "encinar", "hayedo", "robledal",
+    "castanar", "ribera", "caducifolio_otro",
+)
+
+# Groups of classes the catalogue and `forest_affinity` can name as a whole: a weight on the
+# group counts for every class of it that has no weight of its own.
+GROUPS: dict[str, tuple[str, ...]] = {
+    "pinar": CLASSES[:5],
+    "otro": CLASSES[8:],
+}
+GROUP_OF: dict[str, str] = {c: g for g, members in GROUPS.items() for c in members}
 
 _BASES: dict[str, str] = {
-    **dict.fromkeys(("bph", "bps", "bpn", "bpu", "bpp", "bpm", "baa", "bcon"), "pinar"),
+    "bph": "pinar_carrasco",
+    "bps": "pinar_silvestre",
+    "bpn": "pinar_pinassa",
+    "bpu": "pinar_negro",
+    **dict.fromkeys(("bpp", "bpm", "baa", "bcon"), "pinar_otros"),
     **dict.fromkeys(("bqi", "bqs", "barb", "bap"), "encinar"),
     "bfs": "hayedo",
     **dict.fromkeys(("bqh", "bqf", "bqp", "bqr", "bqc", "bqpy"), "robledal"),
-    **dict.fromkeys(("bribc", "bcad", "bcs", "bfe", "bbp", "bca"), "otro"),
+    "bcs": "castanar",
+    "bribc": "ribera",
+    **dict.fromkeys(("bcad", "bfe", "bbp", "bca"), "caducifolio_otro"),
 }
 _VARIANTS = "fpr"
 _COVER = re.compile(r"^(?P<base>[a-z]+?)(?P<cover>20|5)?$")
@@ -30,12 +52,14 @@ SPARSE_WEIGHT = 0.5
 
 # Catalogue forest types (species.forest_types) that fit each class. "mixto" fits any forest;
 # the other broadleaves fit the two broadleaf types, as the point's macrotype rule does.
+_PINE_FITS = frozenset({"pinar", "mixto"})
+_OTHER_BROADLEAF_FITS = frozenset({"robledal", "hayedo", "mixto"})
 _FITS: dict[str, frozenset[str]] = {
-    "pinar": frozenset({"pinar", "mixto"}),
+    **dict.fromkeys(GROUPS["pinar"], _PINE_FITS),
     "encinar": frozenset({"encinar", "mixto"}),
     "hayedo": frozenset({"hayedo", "mixto"}),
     "robledal": frozenset({"robledal", "mixto"}),
-    "otro": frozenset({"robledal", "hayedo", "mixto"}),
+    **dict.fromkeys(GROUPS["otro"], _OTHER_BROADLEAF_FITS),
 }
 _JUDGED = frozenset({"pinar", "encinar", "hayedo", "robledal", "mixto"})
 
@@ -58,18 +82,25 @@ def clean_affinity(
     affinity: Mapping[str, object] | Iterable[tuple[str, object]] | None,
 ) -> dict[str, float]:
     """The usable part of a species' `forest_affinity`: known classes with a weight over 0
-    (clamped to 1), in `CLASSES` order. Anything else is dropped."""
+    (clamped to 1), in `CLASSES` order. Anything else is dropped. A weight on a group (`pinar`,
+    `otro`) stands for each of its classes that has no number of its own; a class with its own
+    weight, even 0, keeps it."""
     try:
         items = dict(affinity or ())
     except (TypeError, ValueError):
         return {}
+
+    def number(key: str) -> float | None:
+        w = items.get(key)
+        return None if isinstance(w, bool) or not isinstance(w, int | float) else float(w)
+
     out: dict[str, float] = {}
     for cls in CLASSES:
-        w = items.get(cls)
-        if isinstance(w, bool) or not isinstance(w, int | float):
-            continue
-        if w > 0:
-            out[cls] = min(1.0, float(w))
+        w = number(cls)
+        if w is None and cls in GROUP_OF:
+            w = number(GROUP_OF[cls])
+        if w is not None and w > 0:
+            out[cls] = min(1.0, w)
     return out
 
 

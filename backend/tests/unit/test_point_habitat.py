@@ -49,9 +49,9 @@ class TestFit:
         assert round(forest_factor(0.25), 3) == 0.5
 
     def test_forest_fit_sums_the_classes_the_species_fits(self):
-        fit = forest_fit(("encinar",), {"pinar": 0.5, "encinar": 0.3, "hayedo": 0.2})
+        fit = forest_fit(("encinar",), {"pinar_silvestre": 0.5, "encinar": 0.3, "hayedo": 0.2})
         assert fit["classes"] == ["encinar"] and fit["share"] == 0.3
-        assert forest_fit(("pradera",), {"pinar": 1.0}) is None
+        assert forest_fit(("pradera",), {"pinar_silvestre": 1.0}) is None
         assert forest_fit(("pinar",), None) is None
 
     def test_soil_fit_weights_each_class_by_its_share(self):
@@ -126,18 +126,18 @@ class TestFitWithAffinity:
         assert fit["share"] == 0.6 and fit["factor"] == 1.0
 
     def test_a_minority_of_the_lesser_host_weighs_less(self):
-        fit = forest_fit(("robledal",), {"hayedo": 0.3, "pinar": 0.7}, self.AFFINITY)
+        fit = forest_fit(("robledal",), {"hayedo": 0.3, "pinar_silvestre": 0.7}, self.AFFINITY)
         assert fit["share"] == 0.18
         assert round(fit["factor"], 2) == 0.27
 
     def test_hosts_add_up_with_their_weights(self):
-        shares = {"robledal": 0.1, "hayedo": 0.2, "pinar": 0.7}
+        shares = {"robledal": 0.1, "hayedo": 0.2, "pinar_silvestre": 0.7}
         fit = forest_fit(("robledal",), shares, self.AFFINITY)
         assert fit["share"] == 0.22
         assert fit["weights"] == {"robledal": 1.0, "hayedo": 0.6}
 
     def test_without_affinity_the_answer_is_what_it_was(self):
-        fit = forest_fit(("encinar",), {"pinar": 0.5, "encinar": 0.3, "hayedo": 0.2})
+        fit = forest_fit(("encinar",), {"pinar_silvestre": 0.5, "encinar": 0.3, "hayedo": 0.2})
         assert fit["share"] == 0.3 and fit["weights"] == {"encinar": 1.0}
 
     def test_the_share_never_goes_over_one(self):

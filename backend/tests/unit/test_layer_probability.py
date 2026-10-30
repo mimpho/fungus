@@ -26,6 +26,9 @@ from tests.unit.test_point_series import TODAY, _rows
 REF = TODAY - timedelta(days=1)  # last day with data
 
 
+
+PINES = ["pinar_carrasco", "pinar_silvestre", "pinar_pinassa", "pinar_negro", "pinar_otros"]
+
 def _sp(**kw) -> SpeciesRecord:
     base = dict(
         id="esp-1", scientific_name="Boletus edulis", edibility="good",
@@ -276,7 +279,8 @@ class TestEndpoint:
 class TestForestClasses:
     def test_the_species_says_which_forest_classes_it_fits(self):
         out = species_layer(CELLS, TODAY, _sp(forest_types=("pinar", "hayedo")))
-        assert out["species"]["forest_classes"] == ["pinar", "hayedo", "otro"]
+        assert out["species"]["forest_classes"] == [
+            *PINES, "hayedo", "castanar", "ribera", "caducifolio_otro"]
 
     def test_a_species_the_forest_cannot_judge_has_no_filter(self):
         out = species_layer(CELLS, TODAY, _sp(forest_types=("prados",)))
@@ -359,7 +363,7 @@ class TestExcellent:
     def test_it_carries_what_the_client_needs_to_judge_a_pixel(self):
         res = excellent_layer(CELLS, TODAY, [_sp(ph_min=4.5, ph_max=6.0)])
         sp = res["species"][0]
-        assert sp["forest_classes"] == ["pinar"] and len(sp["substrate_factors"]) == 3
+        assert sp["forest_classes"] == PINES and len(sp["substrate_factors"]) == 3
         assert res["substrate_classes"] == ["acid", "mixed", "calcareous"]
         assert res["band_step_m"] == BAND_STEP_M
 
@@ -460,7 +464,7 @@ class TestForestWeightsInTheLayer:
 
     def test_without_affinity_every_class_weighs_one(self):
         out = species_layer(CELLS, TODAY, _sp(forest_types=("pinar",)))
-        assert out["species"]["forest_class_weights"] == {"pinar": 1.0}
+        assert out["species"]["forest_class_weights"] == dict.fromkeys(PINES, 1.0)
         none = species_layer(CELLS, TODAY, _sp(forest_types=("prados",)))
         assert none["species"]["forest_class_weights"] is None
 
@@ -469,4 +473,4 @@ class TestForestWeightsInTheLayer:
         b = _sp(id="b", forest_types=(), forest_affinity=(("hayedo", 0.8),))
         res = excellent_layer(CELLS, TODAY, [a, b])
         assert [s["forest_class_weights"] for s in res["species"]] == [
-            {"pinar": 1.0}, {"hayedo": 0.8}]
+            dict.fromkeys(PINES, 1.0), {"hayedo": 0.8}]
