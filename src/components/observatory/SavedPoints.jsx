@@ -9,7 +9,7 @@ import { getScoreBand } from '../../lib/scoreBands'
 import { formatCoords, samePoint } from '../../lib/observatoryView'
 import { applyCornerFilters, comarcasOf, DEFAULT_SORT, forestOf, forestsOf, SORTS } from '../../lib/cornerFilters'
 import { DEFAULT_KIND, KINDS, kindMeta, pinSvg } from '../../lib/cornerKinds'
-import { FOREST_ICONS, forestParts } from '../../lib/habitat'
+import { forestIcon, forestParts } from '../../lib/habitat'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { ObsModalHeaderSlot } from './ObsModal'
 import { SearchFilterBar } from '../ui/SearchFilterBar'
@@ -111,7 +111,7 @@ function Card({ sp, info, observed, onSelect }) {
             )}
             {forestTypes.map(f => (
               <span key={f.key} data-testid="saved-forest" className="flex items-center gap-1.5">
-                {FOREST_ICONS.has(f.key) && <img src={`/assets/images/icons/forest-type-${f.key}.png`} alt="" height="16" width="16" />}
+                {forestIcon(f.key) && <img src={`/assets/images/icons/forest-type-${forestIcon(f.key)}.png`} alt="" height="16" width="16" />}
                 {f.label}
               </span>
             ))}
@@ -260,7 +260,7 @@ export function SavedPointsList({ saved, observed, onSelect }) {
                   <OptionGrid role="group" aria-label={t.tipoBosque}>
                     {forestOptions.map(k => (
                       <Option key={k} type="checkbox" checked={activeForests.includes(k)} onChange={() => setForests(toggled(forests, k))}>
-                        {FOREST_ICONS.has(k) && <img src={`/assets/images/icons/forest-type-${k}.png`} alt="" height="16" width="16" />}
+                        {forestIcon(k) && <img src={`/assets/images/icons/forest-type-${forestIcon(k)}.png`} alt="" height="16" width="16" />}
                         {t[FOREST_LABEL_KEY[k]]}
                       </Option>
                     ))}

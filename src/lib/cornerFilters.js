@@ -6,7 +6,7 @@
 // as `info` ({ toponym, forest: {class: share}, score }), or null while unknown.
 // =====================================================
 import { DEFAULT_KIND } from './cornerKinds'
-import { forestKeys } from './habitat'
+import { forestGroup, forestKeys } from './habitat'
 
 export const SORTS = ['score', 'alfa', 'elevation', 'recent']
 export const DEFAULT_SORT = 'score'
@@ -15,8 +15,9 @@ export const FOREST_ORDER = ['pinar', 'hayedo', 'robledal', 'encinar', 'otro']
 
 const norm = s => (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 
-/** Forest classes around the corner (biggest first), or [] while unknown. */
-export const forestOf = info => forestKeys({ forest: info?.forest })
+/** Forest types around the corner (biggest first), or [] while unknown. The classes of a group
+ * (the pine woods, the other broadleaves) count as one: the filter offers `pinar` and `otro`. */
+export const forestOf = info => [...new Set(forestKeys({ forest: info?.forest }).map(forestGroup))]
 
 /** Text the search looks in: the corner's own name and the place name the geocoder gave. */
 export function searchText(sp, info) {

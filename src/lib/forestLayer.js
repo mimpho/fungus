@@ -2,7 +2,8 @@
 // Forest type layer — the CREAF forest raster painted by the dominant type of each pixel
 //
 // The class raster of 'forest' (see classRaster.js) holds, for every ~250 m pixel, the share of
-// each forest class (pinar, encinar, hayedo, robledal, otro). This layer paints each pixel with the
+// each forest class (five pine woods, encinar, hayedo, robledal, castanar, ribera and other
+// deciduous: the order of `CLASSES` in the backend's forest_classes.py). This layer paints each pixel with the
 // colour of its biggest class; a class can be switched off (the legend is the filter), and then the
 // pixel takes the biggest of the classes still on. Where the forest is thin the colour fades out.
 // Pure functions: no React, no Leaflet. Colours are literal hex (Leaflet rule, agents.spec.md #10).
@@ -10,13 +11,21 @@
 
 /** Forest types the map can tell apart, in legend order, with their colour and label key. */
 // The colours stay out of red, orange, yellow and green: those are the score bands of the
-// conditions layer, and with both layers on a forest colour must not read as a score.
+// conditions layer, and with both layers on a forest colour must not read as a score. The pine woods
+// are one blue ramp in the order of the altitude they grow at (carrasco, pinassa, silvestre, negro),
+// any two legend colours are at least 23 apart in CIELAB (dE76), and 40 or more from the score bands.
 export const FOREST_TYPES = [
-  { key: 'pinar',    hex: '#3b82f6', label: 'obsFtPinar' },
-  { key: 'encinar',  hex: '#a855f7', label: 'obsFtEncinar' },
-  { key: 'hayedo',   hex: '#22d3ee', label: 'obsFtHayedo' },
-  { key: 'robledal', hex: '#f472b6', label: 'obsFtRobledal' },
-  { key: 'otro',     hex: '#475569', label: 'obsMacroOtro' },
+  { key: 'pinar_carrasco',   hex: '#93c5fd', label: 'obsFtPinarCarrasco' },
+  { key: 'pinar_silvestre',  hex: '#1d4ed8', label: 'obsFtPinarSilvestre' },
+  { key: 'pinar_pinassa',    hex: '#3b82f6', label: 'obsFtPinarPinassa' },
+  { key: 'pinar_negro',      hex: '#1e3a8a', label: 'obsFtPinarNegro' },
+  { key: 'pinar_otros',      hex: '#94a3b8', label: 'obsFtPinarOtros' },
+  { key: 'encinar',          hex: '#a855f7', label: 'obsFtEncinar' },
+  { key: 'hayedo',           hex: '#22d3ee', label: 'obsFtHayedo' },
+  { key: 'robledal',         hex: '#f472b6', label: 'obsFtRobledal' },
+  { key: 'castanar',         hex: '#831843', label: 'obsFtCastanar' },
+  { key: 'ribera',           hex: '#e879f9', label: 'obsFtRibera' },
+  { key: 'caducifolio_otro', hex: '#475569', label: 'obsFtCaducifolioOtro' },
 ]
 
 // Same noise floor as the point's forest list and the probability layer (FOREST_MIN)

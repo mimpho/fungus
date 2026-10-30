@@ -10,7 +10,7 @@ import { fill } from '../../lib/thermometer'
 import { usePointData } from '../../hooks/usePointData'
 import { fetchPointCalendar, fetchPointForest, fetchPointSnapshot, fetchPointSpecies, fetchSavedPointSpecies } from '../../services/observatoryService'
 import { speciesRange } from '../../lib/chartData'
-import { FOREST_ICONS, forestParts } from '../../lib/habitat'
+import { forestIcon, forestParts } from '../../lib/habitat'
 import { ENSEMBLE } from '../../lib/speciesList'
 import { formatCoords } from '../../lib/observatoryView'
 import { ObservatoryNotice } from './ObservatoryNotice'
@@ -99,7 +99,7 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
     { key: 'elevation', icon: 'mountain', text: Number.isFinite(elevation) ? `${Math.round(elevation)} m` : null },
     {
       key: 'terrain',
-      icon: FOREST_ICONS.has(mainForest) ? `forest-type-${mainForest}` : null,
+      icon: forestIcon(mainForest) ? `forest-type-${forestIcon(mainForest)}` : null,
       text: hasForest ? [t.obsForestYes, macro].filter(Boolean).join(' · ') : null,
     },
   ].filter(f => f.text)
