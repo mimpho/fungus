@@ -253,12 +253,12 @@ class TestHabitat:
         sp = _sp(forest_types=("pinar",))
         # the land cover says pinar, the MCSC raster says almost no pinar here
         res = _run([sp], forest_types={"pinar"},
-                   habitat=_habitat(forest={"pinar": 0.05, "encinar": 0.9}))
+                   habitat=_habitat(forest={"pinar_silvestre": 0.05, "encinar": 0.9}))
         assert res["species"] == []
 
     def test_a_partial_forest_lowers_the_score_in_proportion(self):
         base = _item(_run([_sp()]))["score"]
-        half = _run([_sp()], habitat=_habitat(forest={"pinar": 0.25}))  # factor 0.5
+        half = _run([_sp()], habitat=_habitat(forest={"pinar_silvestre": 0.25}))  # factor 0.5
         item = _item(half)
         assert item["conditions"]["forest"]["values"]["share"] == 0.25
         assert item["habitat"]["forest_factor"] == 0.5
@@ -289,7 +289,7 @@ class TestHabitat:
 
     def test_species_the_forest_cannot_judge_keep_the_land_cover_logic(self):
         sp = _sp(forest_types=("pradera",))
-        res = _run([sp], forest_types={"pinar"}, habitat=_habitat(forest={"pinar": 1.0}))
+        res = _run([sp], forest_types={"pinar"}, habitat=_habitat(forest={"pinar_silvestre": 1.0}))
         assert res["species"] == []  # land cover pinar vs meadow species, as before
 
 
@@ -321,7 +321,7 @@ class TestFitParts:
         from app.services.point_species import fit_parts
 
         sp = _sp(forest_types=("pinar",), ph_min=4.5, ph_max=7.2)
-        habitat = _habitat(forest={"pinar": 0.25},
+        habitat = _habitat(forest={"pinar_silvestre": 0.25},
                            soil={"acid": 0.0, "mixed": 0.0, "calcareous": 1.0})
         parts = dict(fit_parts(sp, 667, habitat))
         assert parts["altitude"] == 1.0 and parts["forest"] == 0.5 and 0 < parts["soil"] < 0.5
@@ -339,7 +339,7 @@ class TestFitParts:
         from app.services.point_species import fit_parts
 
         sp = _sp()
-        habitat = _habitat(forest={"pinar": 0.25})
+        habitat = _habitat(forest={"pinar_silvestre": 0.25})
         listed = _item(_run([sp], habitat=habitat))["score"]
         params = replace(sp.params, fit_parts=fit_parts(sp, 667, habitat))
         snap = build_snapshot(_rows(), TODAY, 667, 667, species=params)
@@ -371,7 +371,8 @@ class TestForestAffinityInTheRecord:
         assert isinstance(hash(rec), int)
 
     def test_a_beech_forest_no_longer_zeroes_a_species_that_fruits_there(self):
-        beech = Habitat(forest={"hayedo": 0.9, "pinar": 0.1}, soil=None, forest_radius_m=500)
+        beech = Habitat(
+            forest={"hayedo": 0.9, "pinar_silvestre": 0.1}, soil=None, forest_radius_m=500)
         without = SpeciesRecord.from_row(self._row())
         affinity = {"hayedo": 1.0, "robledal": 0.6}
         with_it = SpeciesRecord.from_row(self._row(forest_affinity=affinity))
