@@ -404,7 +404,7 @@ timezone:   Europe/Madrid
   elevationMax: 2000,
   extra_data: {
     confusions: [{ with_species_id, diff }],
-    forest_affinity: { pinar: 1.0, hayedo: 0.6 }, // optional: weight 0-1 per forest class; replaces forestTypes in the Observatory's forest factor
+    forest_affinity: { pinar: 1.0, hayedo: 0.6 }, // optional: weight 0-1 per forest class (11 classes; `pinar` and `otro` are groups that stand for their classes); replaces forestTypes in the Observatory's forest factor
     ph_suelo_min: 5.5, ph_suelo_max: 6.5,        // soil pH range, judged against the ICGC substrate class
     // cond_temp_es/ca/en, cond_precip_es/ca/en, cond_suelo_es/ca/en, cond_req_es/ca/en
   }

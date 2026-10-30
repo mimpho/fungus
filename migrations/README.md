@@ -72,6 +72,7 @@ NNN_short_description.sql
 | `043_forest_affinity_multi_source.sql` | `forest_affinity` for seven species whose hosts several sources agree on (*edulis*, *reticulatus*, *Imleria badia*, *Craterellus cornucopioides*, *A. caesarea*, *T. melanosporum*, *B. regius*) | ✅ Run 2026-10-25 |
 | `044_edulis_pinar_affinity.sql` | *B. edulis* pinar weight 0.8 → 1.0 (correction of 043) | ✅ Run 2026-10-27 |
 | `045_edulis_ph_range.sql` | *B. edulis* soil pH 5.5–6.5 → 4.5–6.5 | ✅ Run 2026-10-27 |
+| `046_forest_affinity_split.sql` | Per-class `forest_affinity` for 11 species after the forest raster split into 11 classes (five pine woods, three other broadleaves); run after the back end and the raster are deployed | ⏳ Not run yet |
 | `audit_cond_fruct*.sql` | Read-only diagnostic queries — not migrations, do not run | 🔍 Audit only |
 
 ## Adding a new migration
