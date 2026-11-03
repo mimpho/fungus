@@ -10,7 +10,8 @@ obligation and destination.
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `DATABASE_URL` | **Yes** | `postgresql+asyncpg://postgres:postgres@localhost:5432/fungus` | Async PostgreSQL connection string |
-| `SECRET_KEY` | **Yes** (prod) | `dev-secret-key-change-in-production` | Signs JWT tokens (Phase 3+). Any non-empty string works locally |
+| `JWT_SECRET_KEY` | **Yes** (prod) | `dev-jwt-secret-change-in-production` | Signs the session tokens. Anything works locally; with `ENVIRONMENT=production` the API refuses to start if it is missing, is the default or is shorter than 32 characters |
+| `SECRET_KEY` | No | `dev-secret-key-change-in-production` | Legacy, not used by the code. Nothing to set |
 | `ENVIRONMENT` | No | `development` | `development` enables SQL echo and relaxed CORS. Set to `production` on Render |
 | `LOG_LEVEL` | No | `INFO` | Python log level: `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `CORS_ORIGINS` | No | `http://localhost:5173` | Comma-separated allowed origins. Add Vercel URL in production |
@@ -37,7 +38,7 @@ with the Docker Compose database:
 
 ```
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/fungus
-SECRET_KEY=dev-secret-key-change-in-production   # fine for local
+JWT_SECRET_KEY=dev-jwt-secret-change-in-production   # fine for local
 ENVIRONMENT=development
 CORS_ORIGINS=http://localhost:5173
 ```
@@ -51,7 +52,7 @@ Set these in the Render dashboard → Service → Environment:
 | Variable | Value |
 |---|---|
 | `DATABASE_URL` | Supabase connection string (Transaction mode, port 5432) |
-| `SECRET_KEY` | `openssl rand -hex 32` — generate once, store securely |
+| `JWT_SECRET_KEY` | `openssl rand -hex 32` — generate once, store securely. Without it the API does not start |
 | `ENVIRONMENT` | `production` |
 | `CORS_ORIGINS` | `https://fungus-git-feat-vite-migration-mimphos-projects.vercel.app,https://fungus.vercel.app` |
 | `METEOCAT_API_KEY` | When available |
@@ -114,6 +115,6 @@ GitHub Actions (CI)
 
 - **Never commit `.env`** — it is in `.gitignore`. Committing it exposes credentials in the git history permanently.
 - **Never hardcode secrets** in source code — always read from `settings.*`.
-- **Rotate `SECRET_KEY` immediately** if it is ever accidentally exposed. All existing JWT tokens become invalid when it changes (acceptable in Phase 3).
+- **Rotate `JWT_SECRET_KEY` immediately** if it is ever accidentally exposed. All sessions become invalid when it changes: everybody has to log in again.
 - **P1/P2 keys are optional forever** — the system is fully functional on Open-Meteo alone. Add them when available without any code changes.
 - **Supabase connection string** — use Transaction mode (port 5432), not Session mode, to be compatible with the async connection pool.
