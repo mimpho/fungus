@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Soil pH ranges and forest weights for seven excellent species (2026-11-03, `feat/observatory-species-data`)
+
+Data only: two migrations (`047`, `048`), **neither run yet**; no code.
+
+- **Migration `047_ph_ranges_excellent.sql`** (can be run at any time): soil pH ranges of *B. aereus* 5.5–7.0 → 4.5–7.0, *L. deliciosus* 5.0–6.5 → 5.0–7.5, *L. sanguifluus* 5.0–7.0 → 5.0–8.0, *C. cibarius* 5.0–6.5 → 4.0–6.5 and *C. cornucopioides* 5.0–6.5 → 4.5–7.5. *B. pinophilus* is left at 5.0–6.0 (its only field value, a strain soil of pH 5.2 from a chestnut stand, is already inside the range) and the audit's minimum of 5.5 for *sanguifluus* is not applied (no source; it would lower the soil factor of mountain-pine woods from 0.82 to 0.73). Each range was checked against the substrate and forest rasters: *aereus* in chestnut woods (84 % acid substrate) 0.54 → 0.99, *deliciosus* under Aleppo pine 0.34 → 0.78 (half of its pixels were under 0.15), *cornucopioides* in beech woods 0.51 → 0.87.
+- **Migration `048_forest_affinity_russula_chanterelle.sql`** (**run with `046`, after the back end and the rasters are deployed**): base `forest_affinity` and its split over the 11 classes for *R. virescens* (oak 1.0, beech 0.4, holm oak 0.6, chestnut 0.8, other broadleaves 0.5, riparian 0.2), *R. cyanoxantha* (beech 1.0, oak 0.8, chestnut 0.5, other broadleaves 0.5, riparian 0.2) and *C. cibarius* (Scots pine 1.0, *P. nigra* and mountain and other pines 0.6, Aleppo pine 0.3, holm oak 0.4, beech 1.0, oak 1.0, chestnut 0.9, other broadleaves 0.8, riparian 0.2). `forest_types` is not touched. Evidence per weight is in the migration header.
+- **Safety:** both match species by id, name and current value, raise an error that changes nothing if the catalogue differs from the audit, can be re-run and carry a commented rollback.
+- **Not measured:** the weights are estimates (the Aleppo-pine 0.3 of *cibarius* is consistency with *pinophilus* and *I. badia*, not evidence) and the pH ranges are in vitro or single-site values. Not audited yet: *reticulatus* and *caesarea* (`castanar` 0.9 with a range that leaves acid soil at 0.46).
+- **Verified:** both migrations on a disposable Postgres 16 (first run, re-run, abort on a catalogue that differs, rollback); every `048` class key accepted by `clean_affinity`. Not applied to any database.
+- **Asked:** CREAF, about the licence, the credit, the derived raster and commercial use of MCSC-4 (2026-11-03; see `decisions.md`).
+
 ### Changed — Forest raster split into 11 classes: five pine woods and three other broadleaves (2026-10-31, `feat/observatory-forest-split`)
 
 Back end, front end, data and one migration (`046`, **not run yet**).
@@ -97,7 +108,7 @@ The forest factor of a species is no longer all-or-nothing by forest type. No AP
 - **Layer:** `species` carries `forest_class_weights` (per species in the ensemble answer); `reliefLayer.js` uses it in the three places that sum the forest share (per pixel, ensemble, point value). `forest_classes` stays and is derived from the weights.
 - **`SpeciesRecord.forest_affinity`** (pairs, keeps the record hashable, so the layer cache key changes when it changes) read from `extra_data`.
 - **Data (`migrations/`):** `042` *B. aereus* (adds `hayedo` to `forest_types` and its weights), `043` seven species with several sources agreeing on their hosts, `044` *B. edulis* pinar 0.8 → 1.0 (a mistake of `043`: it penalised pine sites), `045` *B. edulis* soil pH 5.5–6.5 → 4.5–6.5 (acid substrates scored 0.46). `species.js` and `seed_catalog.py` carry the same fields.
-- **Not measured:** the weights are a split made from host information in the literature, not data. A GBIF probe (`backend/scripts/gbif_forest_affinity.py`) found too few precise records in Catalonia to measure them (394 for *B. edulis* in all, 90 at 1 km). A draft audit of the pH ranges lives in the Project (`ph_audit_borrador.xlsx`); only *B. edulis* is applied.
+- **Not measured:** the weights are a split made from host information in the literature, not data. A GBIF probe (`backend/scripts/gbif_forest_affinity.py`) found too few precise records in Catalonia to measure them (394 for *B. edulis* in all, 90 at 1 km). The audit of the pH ranges lives in the Project (`claude/auditoria-ph-excelentes.md`) and the weights in `claude/pesos-bosque-excelentes.md`; see the 2026-11-03 entry for what was applied.
 
 ### Added — Corner photos, first iteration (2026-10-24, `feat/observatory-corners-photos`)
 
