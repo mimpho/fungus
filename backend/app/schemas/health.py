@@ -15,3 +15,7 @@ class HealthResponse(BaseModel):
     stale_zones: list[str] = []        # zone ids with no recent climate data
     # active zones without current weather younger than WEATHER_MAX_AGE_HOURS
     weather_outdated: int = 0
+    # Class rasters (forest, soil): 'off' (no bucket configured), 'ok' or 'degraded' (some failed
+    # to download: scores run without that habitat factor until a retry succeeds)
+    rasters: str = "off"
+    rasters_missing: list[str] = []

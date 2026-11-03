@@ -50,6 +50,7 @@ from app.routers import (
 from app.services.cell_ingest import refresh_all
 from app.services.cell_store import SqlCellStore
 from app.services.ingest import run_backfill, run_daily_ingest
+from app.services.raster_loader import retry_missing, startup_load
 from app.services.weather_refresh import get_outdated_weather_zones, refresh_weather_cache
 
 # Single source of truth for version — reads from pyproject.toml at runtime
@@ -214,6 +215,10 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     # by default — see _startup_migrations).
     await _startup_migrations()
 
+    # 1b. Class rasters from the private bucket (no bucket configured = nothing happens). Before
+    # serving, so no request sees a half-loaded state.
+    await startup_load()
+
     # Register daily cron: 05:00 UTC → 07:00 Madrid
     scheduler.add_job(
         _scheduled_ingest,
@@ -238,6 +243,15 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         trigger="cron",
         **WEATHER_REFRESH_CRON,
         id="weather_refresh",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        retry_missing,
+        trigger="interval",
+        minutes=5,
+        id="raster_retry",
         replace_existing=True,
         max_instances=1,
         coalesce=True,

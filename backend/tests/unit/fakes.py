@@ -8,10 +8,22 @@ class FakePhotoStorage:
     def __init__(self) -> None:
         self.objects: dict[str, bytes] = {}
         self.fail = False
+        self.get_failures = 0  # the next N `get` calls raise StorageError, then it works again
+        self.get_calls: list[str] = []
 
     def _check(self) -> None:
         if self.fail:
             raise StorageError("fake storage is down")
+
+    async def get(self, key: str) -> bytes:
+        self.get_calls.append(key)
+        self._check()
+        if self.get_failures > 0:
+            self.get_failures -= 1
+            raise StorageError("storage unreachable (fake)")
+        if key not in self.objects:
+            raise StorageError("storage answered 404")
+        return self.objects[key]
 
     async def put(self, key: str, data: bytes, content_type: str) -> None:
         self._check()

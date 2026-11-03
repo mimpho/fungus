@@ -119,6 +119,17 @@ class Settings(BaseSettings):
     # (build_substrate_raster.py). Missing folder = layer without soil.
     substrate_raster_dir: str = "../local-data/substrate"
 
+    # Class rasters from a PRIVATE Supabase bucket (same SUPABASE_URL / SUPABASE_SERVICE_KEY as the
+    # photos). With a bucket, start-up downloads forest/forest-catalonia.{bin,json} and
+    # substrate/substrate-catalonia.{bin,json} into `rasters_cache_dir` and points the two raster
+    # dirs above at it. Empty bucket = off: the dirs above are read as they are (local runs).
+    # `rasters_required`: abort the start-up if the download fails (default: start without them,
+    # say so in the log and in /health, and retry every few minutes).
+    rasters_bucket: str = ""
+    rasters_required: bool = False
+    # Empty = <system temp dir>/fungus-rasters
+    rasters_cache_dir: str = ""
+
     # Versión de la API
     api_version: str = "v1"
 
@@ -161,6 +172,10 @@ class Settings(BaseSettings):
     @property
     def has_photo_storage(self) -> bool:
         return bool(self.supabase_url and self.supabase_service_key)
+
+    @property
+    def has_raster_bucket(self) -> bool:
+        return bool(self.rasters_bucket)
 
     @property
     def has_resend(self) -> bool:
