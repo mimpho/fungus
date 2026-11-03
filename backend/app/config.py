@@ -6,6 +6,12 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The session tokens are signed with JWT_SECRET_KEY. Its default is a public string (it is in the
+# repo), so a host that forgets to set it would not fail: anyone could forge a token.
+# `check_production_secrets` makes production refuse to start in that case.
+DEFAULT_JWT_SECRET = "dev-jwt-secret-change-in-production"
+MIN_JWT_SECRET_LENGTH = 32  # `openssl rand -hex 32` gives 64
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -22,7 +28,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-key-change-in-production"
 
     # JWT Auth (v5)
-    jwt_secret_key: str = "dev-jwt-secret-change-in-production"
+    jwt_secret_key: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60        # 1 hour
     refresh_token_expire_days: int = 30          # 30 days
@@ -124,6 +130,23 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    def check_production_secrets(self) -> None:
+        """Refuse to run in production with a signing key anyone can read.
+
+        Raises RuntimeError when `ENVIRONMENT=production` and JWT_SECRET_KEY is the public
+        default or shorter than `MIN_JWT_SECRET_LENGTH` (this also catches the placeholder of
+        `.env.example`). The message never includes the key. Nothing happens outside production.
+        """
+        if not self.is_production:
+            return
+        key = self.jwt_secret_key
+        if key == DEFAULT_JWT_SECRET or len(key) < MIN_JWT_SECRET_LENGTH:
+            raise RuntimeError(
+                "JWT_SECRET_KEY is not set, is the public default or is shorter than "
+                f"{MIN_JWT_SECRET_LENGTH} characters. Set a random one in the environment "
+                "(openssl rand -hex 32). Refusing to start in production."
+            )
 
     @property
     def should_run_migrations_on_startup(self) -> bool:

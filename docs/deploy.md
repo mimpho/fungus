@@ -68,7 +68,7 @@ Verify in Supabase → Table Editor that the tables exist: `zones`, `species`,
 | Key | Value |
 |---|---|
 | `DATABASE_URL` | The `postgresql+asyncpg://` string from Supabase |
-| `SECRET_KEY` | Run `openssl rand -hex 32` locally and paste the result |
+| `JWT_SECRET_KEY` | Run `openssl rand -hex 32` locally and paste the result. **Required**: with `ENVIRONMENT=production` the API refuses to start if it is missing, is the public default or is shorter than 32 characters. `SECRET_KEY` is legacy and unused |
 | `ENVIRONMENT` | `production` |
 | `RUN_MIGRATIONS_ON_STARTUP` | `true` (optional — unset already means on when `ENVIRONMENT=production`) |
 | `CORS_ORIGINS` | `https://fungus-ashen.vercel.app` |

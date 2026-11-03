@@ -207,6 +207,9 @@ async def _startup_weather_refresh() -> None:
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     log.info("Starting Fungus API v4 (environment: %s)", settings.environment)
 
+    # 0. Never serve production with a session-signing key anyone can read (see Settings).
+    settings.check_production_secrets()
+
     # 1. Apply pending DB migrations before serving any traffic (production only
     # by default — see _startup_migrations).
     await _startup_migrations()
