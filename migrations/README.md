@@ -73,7 +73,7 @@ NNN_short_description.sql
 | `044_edulis_pinar_affinity.sql` | *B. edulis* pinar weight 0.8 → 1.0 (correction of 043) | ✅ Run 2026-10-27 |
 | `045_edulis_ph_range.sql` | *B. edulis* soil pH 5.5–6.5 → 4.5–6.5 | ✅ Run 2026-10-27 |
 | `046_forest_affinity_split.sql` | Per-class `forest_affinity` for 11 species after the forest raster split into 11 classes (five pine woods, three other broadleaves); run after the back end and the raster are deployed | ⏳ Not run yet |
-| `047_ph_ranges_excellent.sql` | Soil pH ranges of five excellent species (*aereus*, *deliciosus*, *sanguifluus*, *cibarius*, *C. cornucopioides*); aborts without changes if the catalogue differs from the audit | ⏳ Not run yet |
+| `047_ph_ranges_excellent.sql` | Soil pH ranges of five excellent species (*aereus*, *deliciosus*, *sanguifluus*, *cibarius*, *C. cornucopioides*); aborts without changes if the catalogue differs from the audit | ✅ Run 2026-11-03 |
 | `048_forest_affinity_russula_chanterelle.sql` | Per-class `forest_affinity` for *R. virescens*, *R. cyanoxantha* and *C. cibarius*; run with 046, after the back end and the raster are deployed | ⏳ Not run yet |
 | `audit_cond_fruct*.sql` | Read-only diagnostic queries — not migrations, do not run | 🔍 Audit only |
 
