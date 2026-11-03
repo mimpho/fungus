@@ -370,3 +370,6 @@ The `.bin` holds one byte plane per class in the order of `forest_classes.CLASSE
 
 ### ⚠️ The mock catalogue must follow every SQL data migration of the species
 `seed_catalog.py` merges the mock's `extra_data` over the stored one and the mock's keys win (`forest_affinity` is replaced whole, `ph_suelo_min/max` one by one). A migration that changes those keys in the database but not in `src/data/species.js` is undone by the next seed run (it now needs `--allow-remote` against production, but it can still happen). Change both in the same branch; `047` and `048` did, and `046` was brought in line with them on 2026-11-03.
+
+### ⚠️ Packing `backend/` for the cloud tests also packs `backend/.env`
+`backend/.env` points at production. A plain `tar` of `backend/` takes it, and it ended up in the cloud environment on 2026-11-03 (removed there and from the staged copy). Always exclude it: `tar czf … --exclude=.venv --exclude=__pycache__ --exclude=.pytest_cache --exclude=.ruff_cache --exclude=backend/.env backend`, and check with `tar tzf … | grep -c 'backend/\.env$'` (it must print 0). The package goes in `local-data/_to_delete/` (out of git; the device shell cannot delete there).
