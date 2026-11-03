@@ -780,3 +780,13 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 **Discarded:** a paid Render disk (a monthly cost for 17 MB); the files in git or in `public/` (licence unconfirmed); holding the deploy until CREAF answers (the use is non-commercial and credited).
 
 **Limits worth knowing:** the served raster is ~250 m (the 25 m grid is an internal intermediate). Render's free instance has an ephemeral disk, so the download repeats at every start. `JWT_SECRET_KEY` has to be checked in Render before anything else (see `pending.md` 6g).
+
+## Production refuses to start with a public or weak JWT secret (2026-11-03)
+
+**Decision:** with `ENVIRONMENT=production`, the back end raises at the start of the lifespan if `JWT_SECRET_KEY` is the default or shorter than 32 characters (`Settings.check_production_secrets()`), instead of starting with it.
+
+**Why:** the default is a public string and a missing variable gave no error, so production signed its sessions with a key anyone could read until 2026-11-03; the tokens carry only the user id, so a forged one impersonates any user, an admin included. A failed start-up fails Render's health check and the previous version keeps serving, which is safer than serving unprotected.
+
+**Discarded:** a log warning (nobody reads the logs of a free instance); validating when the settings are built (it would also block local runs and the tests, which use the default on purpose); guarding `SECRET_KEY` too (legacy, nothing signs with it); an entropy check (a long key chosen by hand is the owner's call).
+
+**Limits worth knowing:** the guard depends on `ENVIRONMENT=production` being set in Render. A long but weak key passes. It cannot tell whether a token was forged before the rotation; on 2026-11-03 the users table showed only Marcos's admin account and no account in the previous 60 days. Rotating the key logs everybody out.

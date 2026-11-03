@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Security — Production refuses to start with a public or weak JWT secret (2026-11-03, `fix/observatory-jwt-secret-guard`)
+
+Back end and docs; no migration.
+
+- **What was wrong:** production did not have `JWT_SECRET_KEY` set, so the back end signed the sessions with the public default (`dev-jwt-secret-change-in-production`, which is in the repo) and a token could be forged for any user id (the tokens carry only the id; the role is read from the database). Nothing failed or warned. Checked on 2026-11-03: the only admin account is Marcos's and no account had been created in the previous 60 days. The key was set in Render the same day (every session was invalidated; Google login works).
+- **Guard:** `Settings.check_production_secrets()` (`config.py`), called first in the lifespan (`main.py`): with `ENVIRONMENT=production` it raises when the key is the default or shorter than 32 characters (`MIN_JWT_SECRET_LENGTH`; `openssl rand -hex 32` gives 64), which also catches the placeholder of `.env.example`. The message never includes the key. Nothing changes outside production. On Render a failed start-up fails the health check, so the previous version keeps serving.
+- **Docs:** `docs/deploy.md` and `docs/environments.md` described only `SECRET_KEY`, which is legacy and unused; they now describe `JWT_SECRET_KEY`.
+- **Verified:** 12 new tests (`test_config_secrets.py`); full unit suite 1027 passed, 4 skipped; ruff clean on the changed files; a real `uvicorn` start-up in production without the variable exits with code 3 and the error. **Not verified:** a deploy of this branch (the guard acts only with `ENVIRONMENT=production`, which still has to be checked in Render).
+
 ### Changed — Soil pH ranges and forest weights for seven excellent species (2026-11-03, `feat/observatory-species-data`)
 
 Data only: two migrations (`047`, `048`; run status in `migrations/README.md`) and the mock catalogue; no application code.
