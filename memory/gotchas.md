@@ -367,3 +367,6 @@ The `.bin` holds one byte plane per class in the order of `forest_classes.CLASSE
 
 ### ⚠️ Group keys in `forest_affinity` (`pinar`, `otro`) are not classes
 `clean_affinity` expands a group weight to each of its classes that has no number of its own, so `{"pinar": 0.3}` and the five pine classes at 0.3 are the same; a class set to 0 stays out even if its group has a weight. A species that already has per-class weights and a new class is not listed there gets nothing for it. Migration `046` must run after the new back end is deployed: the old one only knows the five old keys and falls back to `forest_types` for a species whose affinity it cannot read.
+
+### ⚠️ The mock catalogue must follow every SQL data migration of the species
+`seed_catalog.py` merges the mock's `extra_data` over the stored one and the mock's keys win (`forest_affinity` is replaced whole, `ph_suelo_min/max` one by one). A migration that changes those keys in the database but not in `src/data/species.js` is undone by the next seed run (it now needs `--allow-remote` against production, but it can still happen). Change both in the same branch; `047` and `048` did, and `046` was brought in line with them on 2026-11-03.
