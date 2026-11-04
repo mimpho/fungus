@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Documentation — Raster compression: findings and decision to wait (2026-11-04, docs only)
+
+No code, no migration. `feat/observatory-raster-gzip` was cut and left empty: the design was drawn up and the decision is to see the real transfer size after the deploy before building anything.
+
+- **Findings:** the client's `request()` uses the browser's HTTP cache (no `cache` option) and the rasters carry `private, max-age=86400`; Render's proxy compresses JSON with brotli (checked with `curl` on `/api/v1/zones`), and whether it does the same with the `.bin` is unknown; zlib on the real files gives 0.79 MB + 0.29 MB at level 6 (82 ms of CPU for both) and 0.78 MB + 0.27 MB at level 9 (~0.9 s); Starlette's `GZipMiddleware` defaults to level 9.
+- **Decision and design on hold:** see `memory/decisions.md` ("Raster compression: wait for the real transfer size before building it") and item 6g of `memory/pending.md`.
+
 ### Added — Class rasters from a private Supabase bucket, downloaded at start-up (2026-11-04, `feat/observatory-raster-storage`)
 
 Back end and docs; no migration. Production has no `local-data/`, and a missing raster folder silently leaves forest and soil out of every score.
