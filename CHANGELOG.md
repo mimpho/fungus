@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Epic summary — Observatory (web) (2026-10-10 → 2026-11-05, `epic/observatory`, to be released as v7.2.0 when merged into `main`)
+
+The epic gathers the PRs #124–#158. What it delivers:
+
+- **Scoring:** Outbreak Index v2 as the zone score (five bands, zone altitude as a range), v1 kept in `score_detail.v1`; a 16-day forecast stored per zone by the daily ingest.
+- **Free map by coordinates:** the Open-Meteo cells that touch Catalonia are ingested on the server (423 cells, with a daily refresh job) and new cells have a per-user daily limit; point API (`/observatory/point/*`: forest, series, snapshot, species, calendar); forest context from the ICGC land cover 2024 and the CREAF MCSC-4 grid.
+- **Observatory page:** map, thermometer, charts, calendar and forecast, with its state in the URL; entry in the header and in the avatar menu; full-screen view on phones with one layers panel.
+- **Layers:** conditions layer with species selector and forecast up to today + 7, relief bands and per-pixel altitude, forest and soil factors; «Tipo de bosque» layer in 11 classes; satellite, street and relief basemaps.
+- **«Mis rincones»:** saved points with a kind and species tags from the catalogue, up to five photos each in a private bucket, a browser with search, filters and order, and a tab in the profile.
+- **Species data:** soil pH ranges and forest weights per species for the excellent mycorrhizal species (migrations `042`–`048`).
+- **Production readiness:** class rasters downloaded at start-up from the private bucket `geo-rasters`; the API refuses to start in production with a weak JWT secret; one credits modal.
+- **Removed on the way:** the fixed-grid territory rain map, the Público/Admin toggle and the stored provenance of saved points.
+
+**Manual steps at release:** Alembic `017`–`021` apply on Render's start-up (production is at `016`); `046` and `048` by hand in Supabase once the back end is up (`047` is already applied); load of the 423 cells in about two days with `ingest_cells.py load`, run by Marcos against production with `DATABASE_URL` in front of the command; private buckets `geo-rasters` and `corner-photos`; variables in Render (`ENVIRONMENT`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `RASTERS_BUCKET`, `CORNER_PHOTOS_BUCKET`, `FRONTEND_URL`, `CORS_ORIGINS`, `GOOGLE_CLIENT_ID`, `RESEND_API_KEY`, `EMAIL_FROM`, `ALERT_EMAIL`, `STALE_ZONE_DAYS`) and in Vercel (`VITE_CARTO_KEY`, `VITE_GOOGLE_CLIENT_ID`, `VITE_API_BASE`).
+
+**Not verified:** no deployment against production has run yet; migrations `017`–`021` were exercised only on the disposable database `fungus-ingest-test`.
+
+### Changed — Workflow: retrospective of `epic/observatory` (2026-11-05, `chore/observatory-epic-close-docs`)
+
+Docs and version only.
+
+- **`system/workflows.spec.md`:** new PRD section «Deployment readiness» (licences, variables, buckets, migration order, quota plan), part of the kick-off gate; the title of a squashed PR must be a Conventional Commit; epics are merged into `main` at least every two to three weeks; how to sync an epic with `main` (merge, never rebase); the documentation checklist also runs when a branch is declared finished, not only on the keyword «integra».
+- **`CLAUDE.md` and `system/agents.spec.md`:** Claude may run `fetch`, `pull --ff-only` and, when asked, `add <explicit paths>` and `commit` on `feat/*`, `fix/*`, `chore/*` and `docs/*`; `push`, merges, tags and anything on `epic/*` or `main` stay with the human.
+- **Version:** `backend/pyproject.toml` 7.1.0 → 7.2.0 (the API reports it in `/health`).
+- **Docs of the deployment:** `docs/environments.md` lists the Render and Vercel variables as they are set for the first deployment of the epic.
+
 ### Added — Unified credits modal and map attribution (2026-11-04, `feat/observatory-attributions`)
 
 Front end only; no migration, no new variable.

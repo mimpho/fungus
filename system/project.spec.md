@@ -9,7 +9,7 @@
 
 Fungus is a mycological prediction web app for Catalonia/Spain. It combines real meteorological data, soil conditions and a scoring algorithm with a seasonal factor to predict the best zones and timing for mushroom foraging.
 
-**Current version**: v7.1 frontend · v7.1 backend
+**Current version**: v7.2 frontend · v7.2 backend (on release of `epic/observatory`)
 **Frontend deploy**: Vercel → `fungus-ashen.vercel.app` (branch `main`)
 **Backend deploy**: Render → `https://fungus-api.onrender.com`
 **Database**: Supabase — PostgreSQL + PostGIS (Ireland region)
@@ -515,13 +515,15 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v6.0 | ✅ Done | OpenSpecs migration — structured SSOT, IDE-agnostic |
 | v7.0 | ✅ Done | Social login: Google OAuth2 |
 | v7.1 | ✅ Done | Email confirmation on registration (Resend) |
+| v7.2 | ✅ Done | Observatory (web): scoring v2, free map by coordinates, conditions and forest layers, «Mis rincones» with photos (`epic/observatory`) |
 
 **Next epics** — ordered by priority, no version number (assigned when the epic is merged into `main`; see `system/workflows.spec.md`):
 
 | # | Epic | Status | Scope |
 |---|---|---|---|
-| 1 | `epic/observatory` | 🚧 In progress | Observatory (web): scoring v2 · daily series · date/species scores · Observatory page |
+| 1 | Product epic: Observatory and zones base map | 🗂 Next | PRD `prd-observatorio-mapa-base` (Fungus project); opens first |
+| 2 | `epic/observatory-layers` | 🗂 Next | Layers left from the Observatory: rain, temperature, wind, Top 10 |
 | — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ Paused | Android app (React Native + Expo SDK 54 · MapLibre · EAS Build). Paused 2026-10-10; merged into `main` without tag |
-| 2 | Shared package | 🗂 Backlog | Scoring, constants, types, i18n as monorepo internal packages |
-| 3 | SEO | 🗂 Backlog | Static prerendering + Core Web Vitals |
+| 3 | Shared package | 🗂 Backlog | Scoring, constants, types, i18n as monorepo internal packages |
+| 4 | SEO | 🗂 Backlog | Static prerendering + Core Web Vitals |
 | — | Hardening | 🗂 No date | Move generator API keys to backend FastAPI |

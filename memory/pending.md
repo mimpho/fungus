@@ -4,7 +4,38 @@ Completed items are removed from this file — history lives in `CHANGELOG.md`.
 
 ---
 
-## 🔴 Priority — Observatory (web), phase 1 (`epic/observatory`) — 2026-10-10
+## 🔴 Priority — Deploy `epic/observatory` as v7.2.0 (decided 2026-11-05)
+
+The epic is closed in the retrospective of 2026-11-05 (changes in `system/workflows.spec.md`). Done on 2026-11-04/05: variables in Render and Vercel, private bucket `corner-photos`, dump of `zones`, `species`, `users` and `alembic_version` (in `local-data/`, outside git). In order:
+
+1. Merge `chore/observatory-epic-close-docs` into the epic; then PR `epic/observatory` → `main` with a merge commit (not squash) and tag `v7.2.0` (`backend/pyproject.toml` already says 7.2.0). The merge deploys Render and Vercel at the same time and Alembic 017–021 apply on the back end's start-up.
+2. `/api/v1/health` must say `rasters: ok`, and the log must show `Raster forest loaded from the bucket`.
+3. Apply `046` and `048` in Supabase (`047` is applied) and check with the one-column-per-migration query.
+4. Cells: `ingest_cells.py load --limit 10` to measure the real cost, then the 423 cells in about two days (`load --max-calls`), run by Marcos with `DATABASE_URL` in front of the command; afterwards the daily `cell_refresh` job must be running.
+5. DevTools → Network on `forest-raster` and `substrate-raster` ("transferred" vs "size", second visit "(disk cache)"): ~1 MB, drop the gzip branch; ~13 MB, build option C (see 6g).
+6. Log in with email and password after the JWT rotation; upload one photo in «Mis rincones» (production bucket `corner-photos`).
+
+## 🔶 Next epics (decided 2026-11-05)
+
+1. The product epic of the PRD «Observatorio y zonas — mapa base» (`prd-observatorio-mapa-base` in the Fungus project): opens first, with its own PRD and the gate of `system/workflows.spec.md`.
+2. `epic/observatory-layers` (small): the layers left from item 7 below — 7c rain, 7d temperature, 7e wind, 7f Top 10 — with a short PRD that includes «Deployment readiness».
+
+## 🟡 Chore from `main` — dev environment and safety nets (decided 2026-11-05, outside the epic)
+
+Why: `backend/.env` pointed at production and `seed_catalog.py` overwrote data on 2026-10-24. Done on 2026-11-05: `DATABASE_URL` in the local `.env` points to the disposable `fungus-ingest-test` (port 55432). To do, from `main`:
+
+- Second Supabase project for development (Storage only; the database stays in Docker) with a private photos bucket; then replace or empty `SUPABASE_*` in the local `.env` and delete `corner-photos-dev` from the production project.
+- Local `.env`: its own random `JWT_SECRET_KEY` (never production's) and an empty `RESEND_API_KEY`. Fix the comment of `.env.example` that says to use Render's values; add a rule to `system/agents.spec.md` (the local `.env` never holds production credentials); update `docs/environments.md` and `docs/deploy.md`.
+- One shared guard for every script that writes to a database (refuse a remote host unless an explicit flag is given), dry run by default (`--apply`), and a test that fails if a script of `backend/scripts/` writes without it. Today only `seed_catalog.py` has an explicit one; `backfill`, `fix_species_colors`, `make_admin`, `seed_visual_prompts`, `zone_elevation_ranges`, `forecast_qa`, `generate_visual_dna` and `refine_visual_dna` match write patterns without it.
+- Read-only role in production for local queries and dumps.
+- Weekly dump of the critical tables from Marcos's Mac (the free plan has no backups). Not as GitHub Actions artifacts: the repository is public.
+- CI: a frontend job (`npm ci && npm run build`, Node from `.nvmrc`); today `ci.yml` only runs backend tests and ruff.
+- GitHub: push protection against secrets and protect `epic/*` like `main`.
+- Credits: the Copernicus DEM notice («produced using …») and its liability sentence in `CreditsModal` (copy both from the licence PDF); ICGC enquiry (reverse geocoder limits, licence of the `ombres_tfosc` relief service); CC BY link for the relief once confirmed.
+
+## 🔴 Closing — Observatory (web), phase 1 (`epic/observatory`) — 2026-10-10 (epic closed 2026-11-05)
+
+> Items below marked ✅ that still carry a post-deploy check stay until the check is done after the deployment; prune them then.
 
 Product re-prioritised on 2026-10-10: the web Observatory comes first and the Android app is paused (see `memory/decisions.md`). Source of truth: the Observatory design document (includes scoring v2 and its task list). Hand-off: `observatorio-paso-a-desarrollo` in the Fungus project. Epic: `epic/observatory` (no version number until it is merged into `main`, see `system/workflows.spec.md`). Kick-off done on 2026-10-10: product contract in `memory/observatory-prd.md` (all open questions answered), technical plan with Gherkin scenarios per branch in `memory/observatory-plan.md`. Branches, cut from the epic and squash-merged into it, in this order:
 
