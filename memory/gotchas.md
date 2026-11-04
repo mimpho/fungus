@@ -385,3 +385,9 @@ The `.bin` holds one byte plane per class in the order of `forest_classes.CLASSE
 
 ### ⚠️ Compressing responses: Render's proxy already does, and Starlette's `GZipMiddleware` defaults to level 9
 Render's proxy compresses JSON with brotli when the origin does not (`content-encoding: br` on `/api/v1/zones`, 2026-11-04); whether it does for `application/octet-stream` (the rasters) is unknown. Starlette's `GZipMiddleware` compresses at `compresslevel=9` by default (about 11 times the CPU of level 6 for ~2% fewer bytes on the rasters, painful on a 0.1 CPU instance) and, if the server announces the `http.response.pathsend` extension (uvicorn 0.41 does not), silently skips `FileResponse`. If compression is added, set the level explicitly, send `Vary: Accept-Encoding`, and check the result in DevTools: the tests (httpx `ASGITransport`) do not go through Render's proxy. See `decisions.md`.
+
+### ⚠️ The linked device cannot install packages or build the front end
+Its sandbox had 36 MB of free disk on 2026-11-05 (`npm` fails with `ENOSPC`), Node 22 against the `.nvmrc`'s 24, Python 3.10, and `node_modules` built for macOS. The cloud environment can clone the public repository at a pushed branch and run `npm ci && npm run build` (it has no `.env`); for work that is not pushed, pack it excluding `backend/.env`, `.env.local` and `local-data/`. The durable fix is a frontend job in CI (see `pending.md`).
+
+### ⚠️ The repository is public
+`https://github.com/mimpho/fungus` answers without credentials. Anything pushed is public: keep the data derived from CREAF's MCSC-4 in `local-data/` and in the private buckets, never a `.env` or a dump, and do not use GitHub Actions artifacts for anything with user data.

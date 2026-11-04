@@ -824,3 +824,19 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 **Discarded:** a `/credits` route (the modal needs no page and no history entry); a line with every source on the map whenever any layer is on (it stayed on screen and filled the corner on a phone); lifting the map's attribution corner above the phone point sheet (tried; Marcos preferred that the sheet covers it).
 
 **Limits worth knowing:** the CREAF terms are still unknown (enquiry of 2026-11-03), so its mention is a courtesy for now. The «Fuentes» link goes last by deleting a slot of Leaflet's private `_attributions`; revisit it if Leaflet is upgraded.
+
+## Close `epic/observatory` as v7.2.0 and give the remaining layers their own epic (2026-11-05)
+
+**Decision:** the epic is closed with this deployment (retrospective, merge commit, tag `v7.2.0`). The layers still open (7c rain, 7d temperature, 7e wind, 7f Top 10) go to a small `epic/observatory-layers` with its own PRD, after the product epic of the PRD «Observatorio y zonas — mapa base». The retrospective added to `system/workflows.spec.md`: a «Deployment readiness» section in the PRD, Conventional Commit titles for squashed PRs, merging into `main` at least every two to three weeks, and how to sync an epic with `main`.
+
+**Why:** what goes to production is a coherent delivery (free map, corners, photos, rasters, credits); the tag is a point to go back to before the manual migrations and the cell load; the epic had run 25 days without a deployment, so the first one had to carry five migrations, a new bucket and a set of variables at once; licences and the deployment plan were looked at only at the end.
+
+**Discarded:** keeping the epic open and merging without a tag, as `epic/v8-android` did (a long branch, no delivery marker, hotfixes on `main` to bring back by hand); integrating continuously and directly into `main` (it changes the flow of feature branches; the cadence rule solves the same problem inside the existing flow).
+
+## Claude's git scope and production kept out of the local environment (2026-11-05)
+
+**Decision:** `CLAUDE.md` lets Claude run `fetch`, `pull --ff-only` and, when asked or on «integra», `add <explicit paths>` and `commit` on `feat/*`, `fix/*`, `chore/*` and `docs/*`; the human keeps `push`, merges, tags and anything on `epic/*` or `main`. The documentation checklist also runs when a branch is declared finished. The local `backend/.env` points at the disposable database (`fungus-ingest-test`) and, in a task from `main`, gets a development Supabase project, a shared guard for writing scripts, a read-only production role, a weekly dump and a frontend job in CI (see `pending.md`).
+
+**Why:** copying messages and forgetting the documentation cost time, and the incident of 2026-10-24 came from a `.env` that pointed at production. Guards that the database or a test enforce do not depend on remembering.
+
+**Discarded:** giving the linked device a GitHub token to push (a secret in the sandbox; pushing is one command for the human); granting folder-wide delete permission to make git's lock files work (the folder holds `local-data/` with the original field photos and the dumps); backups as GitHub Actions artifacts (the repository is public); running `vite build` on the linked device (36 MB of free disk) instead of a CI job.
