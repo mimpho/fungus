@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Unified credits modal and map attribution (2026-11-04, `feat/observatory-attributions`)
+
+Front end only; no migration, no new variable.
+
+- **One credits modal** (`components/CreditsModal.jsx`, formerly `observatory/Attribution.jsx`; the credit texts `obsAttr*` are unchanged, MCSC-4 / CREAF included), on `ObsModal`, rendered by `Layout` and opened with `creditsOpen` / `setCreditsOpen` from `AppContext`. A bottom sheet without backdrop on a phone, the usual centred modal otherwise.
+- **Links to it, in as few places as possible:** a footer in `Layout` with one «Fuentes y créditos» link on every page (this also credits Open-Meteo outside the Observatory), and the «Fuentes» link of the map. The Observatory page keeps only the disclaimer line; the phone zone view gets no extra link (it already has the `obsHabSource` line).
+- **Map credits** (`ObservatoryMap`): the basemap's tile credits, `Datos: Open-Meteo` while «Condiciones» is on, `Datos: CREAF` while «Tipo de bosque» is on, and the «Fuentes» link always last. Olive background with white text (`styles/map.css`, literal colours). On a phone the point's sheet may cover the corner; closing it shows it again (a lift with `sheetH` was tried and dropped).
+- **`ObsModal`:** new props `sheetBackdrop` (default `true`; `false` = no dimming and the map behind stays tappable) and `titleNowrap` (the title was split in three lines by the 32 rem middle column of the `lg` grid).
+- **Texts:** `creditsTitle`, `creditsLink`, `creditsLinkShort`, `creditsMapData` in es / ca / en.
+- **Verified:** syntax of the changed files only. **Not verified:** `vite build` (the sandbox has the macOS rollup), a real phone (sheet without backdrop, drag to close, the credits line with both layers on), Esc / Back with the modal over the fullscreen map, the order of the credits when switching basemap, light and dark theme.
+
 ### Documentation — Raster compression: findings and decision to wait (2026-11-04, docs only)
 
 No code, no migration. `feat/observatory-raster-gzip` was cut and left empty: the design was drawn up and the decision is to see the real transfer size after the deploy before building anything.

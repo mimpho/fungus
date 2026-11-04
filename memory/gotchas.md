@@ -93,6 +93,12 @@ window.L = L  // ← MUST go here, before any dynamic import()
 const heat = await import('leaflet.heat')
 ```
 
+### ⚠️ Overriding Leaflet's CSS: `leaflet.css` is imported after `styles.css`
+`main.jsx` imports `leaflet/dist/leaflet.css` after `./styles.css`, so a rule in `src/styles/map.css` with the same specificity as Leaflet's loses (the attribution kept its white background while the colour worked). Raise the specificity, e.g. `.leaflet-container .leaflet-control-attribution.leaflet-control`, instead of relying on order or `!important`.
+
+### ⚠️ `attributionControl.removeAttribution()` keeps the slot of the credit
+Leaflet only lowers the count of a removed credit to 0 and keeps its key, so a credit added again takes its old place in the line (the «Fuentes» link came before «Datos»). To keep an order, delete the slot after removing (`delete ctl._attributions[text]` when it is 0; private API of Leaflet 1.x). Done in `ObservatoryMap`.
+
 ### ⚠️ `FOREST_COLORS` and Leaflet colors → always hex, never CSS vars
 Leaflet's SVG markers and HTML popups are rendered outside React's DOM. CSS custom properties (`var(--color-coffee)`) don't resolve in that context. Always use literal hex values.
 
