@@ -105,6 +105,12 @@ def _load(folder: str, stem: str) -> ClassRaster | None:
     return raster
 
 
+def clear_raster_cache() -> None:
+    """Forget what was read, including a cached "not there": a raster that arrives late (see
+    raster_loader) must not stay shadowed by it."""
+    _load.cache_clear()
+
+
 def load_raster(folder: Path | str, stem: str) -> ClassRaster | None:
     """The class raster `stem` in `folder`, read once; None if it is not there or is malformed."""
     return _load(str(folder), stem)

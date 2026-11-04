@@ -1,6 +1,6 @@
-"""Corner photos: object storage behind a small protocol.
+"""Object storage behind a small protocol: corner photos and, with `get`, the class rasters.
 
-Production uses a private Supabase Storage bucket reached by REST with the service key (never
+Production uses private Supabase Storage buckets reached by REST with the service key (never
 in the frontend). Tests use an in-memory fake (tests/unit/fakes.py). The key is only ever sent
 in the Authorization header and never ends up in an error message.
 """
@@ -11,6 +11,8 @@ from typing import Protocol
 import httpx
 
 TIMEOUT = httpx.Timeout(20.0, connect=5.0)
+# Reading a whole raster (up to ~14 MB) takes longer than a photo call: more time to read.
+DOWNLOAD_TIMEOUT = httpx.Timeout(60.0, connect=5.0)
 
 
 class StorageError(Exception):
@@ -19,6 +21,9 @@ class StorageError(Exception):
 
 class PhotoStorage(Protocol):
     async def put(self, key: str, data: bytes, content_type: str) -> None: ...
+    async def get(self, key: str) -> bytes:
+        """The whole object. A missing key or a truncated download raises StorageError."""
+        ...
     async def delete(self, keys: list[str]) -> None:
         """Missing keys are not an error (deleting is idempotent: a retry is safe)."""
         ...
@@ -66,6 +71,21 @@ class SupabasePhotoStorage:
             "POST", f"{self._base}/object/{self._bucket}/{key}", content=data,
             headers={"Content-Type": content_type, "x-upsert": "false"},
         )
+
+    async def get(self, key: str) -> bytes:
+        response = await self._send(
+            "GET", f"{self._base}/object/authenticated/{self._bucket}/{key}",
+            timeout=DOWNLOAD_TIMEOUT,
+        )
+        declared = response.headers.get("content-length", "")
+        # Compare only when the body was not transcoded (then the sizes legitimately differ)
+        if (
+            declared.isdigit()
+            and "content-encoding" not in response.headers
+            and int(declared) != len(response.content)
+        ):
+            raise StorageError("download truncated")
+        return response.content
 
     async def delete(self, keys: list[str]) -> None:
         if not keys:

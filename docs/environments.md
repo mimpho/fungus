@@ -17,6 +17,11 @@ obligation and destination.
 | `CORS_ORIGINS` | No | `http://localhost:5173` | Comma-separated allowed origins. Add Vercel URL in production |
 | `INGEST_CRON_HOUR` | No | `5` | UTC hour for the daily ingest cron (05:00 UTC = 07:00 Madrid) |
 | `INGEST_MAX_CONCURRENCY` | No | `6` | Parallel Open-Meteo requests during ingest |
+| `SUPABASE_URL` | Prod | *(empty)* | Supabase project URL, for Storage (corner photos, rasters). Empty with the key = photos off |
+| `SUPABASE_SERVICE_KEY` | Prod | *(empty)* | Secret/service key of that project. Back end only: never in the front end or in git |
+| `RASTERS_BUCKET` | Prod | *(empty = off)* | Private bucket with `forest/` and `substrate/` rasters, downloaded at start-up into a temp folder. Empty: `FOREST_RASTER_DIR` / `SUBSTRATE_RASTER_DIR` are read as they are (`local-data/` locally). `/health` shows `rasters` |
+| `RASTERS_REQUIRED` | No | `false` | `true` = refuse to start if the rasters cannot be downloaded (default: start without them, log an ERROR and retry every 5 minutes) |
+| `RASTERS_CACHE_DIR` | No | *(system temp dir)/fungus-rasters* | Where the rasters are downloaded |
 | `METEOCAT_API_KEY` | No | *(empty)* | P1 provider for Catalan zones. App falls back to Open-Meteo if absent |
 | `AEMET_API_KEY` | No | *(empty)* | P2 provider for national zones. App falls back to Open-Meteo if absent |
 
@@ -55,6 +60,8 @@ Set these in the Render dashboard → Service → Environment:
 | `JWT_SECRET_KEY` | `openssl rand -hex 32` — generate once, store securely. Without it the API does not start |
 | `ENVIRONMENT` | `production` |
 | `CORS_ORIGINS` | `https://fungus-git-feat-vite-migration-mimphos-projects.vercel.app,https://fungus.vercel.app` |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | The production Supabase project's URL and secret key (Storage) |
+| `RASTERS_BUCKET` | `geo-rasters` — the private bucket with the forest and soil rasters |
 | `METEOCAT_API_KEY` | When available |
 | `AEMET_API_KEY` | When available |
 
