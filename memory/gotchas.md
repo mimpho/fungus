@@ -285,7 +285,10 @@ A cell is ~0.0703° × 0.1272° near 41.6° N, the width in degrees changes with
 ## Observatory — conditions layer
 
 ### ⚠️ Rasters are raw `.bin` files built by scripts, not committed (except elevation)
-Forest and substrate rasters live in `local-data/` (out of git) and are built with `scripts/build_forest_raster.py` / `build_substrate_raster.py`; the elevation raster is in `frontend/public/data/`. Their endpoints are private (login) because the MCSC-4 and relief licences are unconfirmed. Production needs a private bucket. Tests redirect the raster dirs to tmp (`conftest.py`).
+Forest and substrate rasters live in `local-data/` (out of git) and are built with `scripts/build_forest_raster.py` / `build_substrate_raster.py`; the elevation raster is in `frontend/public/data/`. Their endpoints are private (login) because the MCSC-4 and relief licences are unconfirmed. In production they come from the private bucket `geo-rasters` (`forest/`, `substrate/`), downloaded at start-up by `services/raster_loader.py` when `RASTERS_BUCKET` is set. Tests redirect the raster dirs to tmp (`conftest.py`).
+
+### ⚠️ Rebuilt a raster? Upload the `.bin` and the `.json` together
+`raster_loader.py` accepts a raster only if the `.bin` has exactly `classes x width x height` bytes of its `.json`. Uploading one without the other (or after changing the classes) makes the download fail the check; the API then starts with `rasters: degraded` in `/health` and an ERROR in the log, and scores leave out forest or soil. After a deploy, look at `/health` (`rasters`, `rasters_missing`): `status` stays `ok`. The download repeats at every start (Render's free disk is ephemeral) and `RASTERS_REQUIRED=true` turns a failure into an aborted start.
 
 ### ⚠️ Layer cache is per process
 `layer_cache.py` is an in-memory LRU; it invalidates through `SqlCellStore.data_signature()`, so a cell refresh changes the key. Several workers do not share it.

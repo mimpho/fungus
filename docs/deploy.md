@@ -72,6 +72,8 @@ Verify in Supabase → Table Editor that the tables exist: `zones`, `species`,
 | `ENVIRONMENT` | `production` |
 | `RUN_MIGRATIONS_ON_STARTUP` | `true` (optional — unset already means on when `ENVIRONMENT=production`) |
 | `CORS_ORIGINS` | `https://fungus-ashen.vercel.app` |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | URL and secret key of the production Supabase project (Storage for corner photos and rasters) |
+| `RASTERS_BUCKET` | `geo-rasters` — private bucket with `forest/` and `substrate/` rasters, downloaded at start-up. After a deploy check that `/api/v1/health` says `rasters: ok` |
 
 6. Click **Deploy Web Service** — Render will build and deploy automatically.
 

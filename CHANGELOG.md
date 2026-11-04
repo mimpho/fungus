@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Class rasters from a private Supabase bucket, downloaded at start-up (2026-11-04, `feat/observatory-raster-storage`)
+
+Back end and docs; no migration. Production has no `local-data/`, and a missing raster folder silently leaves forest and soil out of every score.
+
+- **Loader** (`services/raster_loader.py`, called from the lifespan after the migrations and before serving): with `RASTERS_BUCKET` set it downloads `forest/forest-catalonia.{bin,json}` and `substrate/substrate-catalonia.{bin,json}` into `RASTERS_CACHE_DIR` (default `<system temp dir>/fungus-rasters`) and points `forest_raster_dir` / `substrate_raster_dir` at it, so `point_habitat` and the layer router keep reading plain folders. With the bucket empty (the default) nothing happens, even if `SUPABASE_URL` and the key are set: local runs read `local-data/` as before.
+- **Checks:** a raster is used only if its description parses and its `.bin` has exactly `classes x width x height` bytes (the same test `point_habitat` applies when reading; it also catches a `.bin` that was not rebuilt after the classes changed) and, when the answer carries no transcoding, the body matches `Content-Length`. Files are written as `.part` and renamed, the `.json` last. No hash: the bucket is private and only the owner writes it.
+- **When a download fails:** 3 attempts with a doubling pause, 60 s for all downloads together. Then the API starts without that raster, logs `RASTERS MISSING` at ERROR, `/health` reports `rasters: degraded` and `rasters_missing` (`status` is not changed), and a scheduler job retries every 5 minutes until it recovers. `RASTERS_REQUIRED=true` aborts the start-up instead. A raster that loads late clears `point_habitat`'s cache, which also kept a cached "not there".
+- **Storage:** `PhotoStorage` gains `get` (`GET /storage/v1/object/authenticated/{bucket}/{key}`, 60 s read timeout instead of 20 s, truncation check); the loader uses a second `SupabasePhotoStorage` on the raster bucket with the same `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` as the photos.
+- **New variables:** `RASTERS_BUCKET` (empty = off), `RASTERS_REQUIRED` (default `false`), `RASTERS_CACHE_DIR`; documented in `.env.example`, `docs/environments.md` and `docs/deploy.md`.
+- **Bucket (done 2026-11-04):** private bucket `geo-rasters` in the production Supabase project, with `forest/` and `substrate/` uploaded from `local-data/`. Checked with the service key: the four objects answer 200 with 13,443,100, 466, 3,666,300 and 338 bytes, equal to the local files; without a key, the public URL answers 400.
+- **Verified:** 31 new tests (`test_raster_loader.py`: validation, atomic write, retries, degraded mode, `RASTERS_REQUIRED`, late recovery, the retry job, `/health` state and the REST `get` on a mocked transport); full unit suite 1058 passed, 4 skipped; a start-up against a local HTTP server with real-size files (ok in 0.2 s; a wrong key degrades without failing); the real private bucket answers the same authenticated GET the loader uses. **Not verified:** a deploy: the download time from Render, a writable temp dir there and that the health check tolerates the longer start-up. Ruff reports three problems in `test_scoring.py` and `test_point_forecast.py`, which this branch does not touch.
+- **Not done:** the browser still downloads the rasters uncompressed (13.4 + 3.7 MB; gzip would make them ~1.1 MB). Planned as `feat/observatory-raster-gzip`.
+
 ### Security — Production refuses to start with a public or weak JWT secret (2026-11-03, `fix/observatory-jwt-secret-guard`)
 
 Back end and docs; no migration.

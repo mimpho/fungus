@@ -447,7 +447,7 @@ GET    /api/v1/observatory/layer/probability            ← conditions per cell/
 GET    /api/v1/observatory/layer/probability-excellent  ← mean of excellent species (login)
        (both: `date` up to today+7, forecast from today on; answer has `date`, `last_data_date`,
         `max_date`, `forecast_from`, `basis` real|forecast, `clamped`)
-GET    /api/v1/observatory/layer/forest-raster[/meta]   ← private forest class raster
+GET    /api/v1/observatory/layer/forest-raster[/meta]   ← private forest class raster (in production from the `RASTERS_BUCKET` bucket)
 GET    /api/v1/observatory/layer/substrate-raster[/meta] ← private substrate class raster
        (point/snapshot, series and calendar accept species=excellent → ensemble mean)
 GET    /api/v1/observatory/saved-points        ← my saved points
@@ -479,6 +479,7 @@ OI = PA21_score    × 0.30   (accumulated precipitation 21 days)
 - Auto-migrate on startup: `await asyncio.to_thread(_run_db_migrations)` in lifespan.
 - `Cache-Control: public, max-age=3600` on all GET 200 responses via middleware.
 - CORS: `allow_origin_regex` automatically covers all Vercel preview URLs.
+- Class rasters (forest, soil) in production come from the private bucket named in `RASTERS_BUCKET`, downloaded at start-up (`services/raster_loader.py`); if that fails the API starts without them and `/health` shows `rasters: degraded`. Empty bucket = the raster dirs are read as they are.
 
 See `docs/backend_architecture.md` for the full specification.
 
