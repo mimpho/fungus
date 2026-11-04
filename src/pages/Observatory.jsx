@@ -25,7 +25,6 @@ import { SavedPointsList, SavedPointsToggle } from '../components/observatory/Sa
 import { ObsModal, isDialogAbove } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
 import { ObservatoryNotice } from '../components/observatory/ObservatoryNotice'
-import { Attribution } from '../components/observatory/Attribution'
 
 const BASEMAPS = ['satellite', 'streets', 'relief']
 
@@ -342,6 +341,7 @@ export default function Observatory() {
               flyTo={flyTo}
               startAt={phone ? (viewRef.current ?? lastObserved.current) : lastObserved.current}
               onViewChange={phone ? v => { viewRef.current = v } : null}
+              dataSources={[Boolean(layerId) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
               centerAbove={phone ? { top: 72, bottomPx: sheetH || Math.round(window.innerHeight * 0.45) } : null}
               className="h-full"
             />
@@ -480,7 +480,7 @@ export default function Observatory() {
         </ObsModal>
       )}
 
-      <div className={pad}><Attribution /></div>
+      <div className={pad}><p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p></div>
     </div>
   )
 }

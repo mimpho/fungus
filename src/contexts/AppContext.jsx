@@ -87,6 +87,7 @@ export function AppProvider({ children }) {
   const [selectedSpecies, setSelectedSpecies] = useState(null)
   const [selectedFamily, setSelectedFamily]   = useState(null)
   const [lightbox, setLightbox]               = useState(null)
+  const [creditsOpen, setCreditsOpen]         = useState(false) // sources and credits modal (Layout renders it)
 
   // ── Persist lang + themeMode + guest follows/favs to localStorage ───────────
   // When authenticated, follows/favs are in the DB — we still keep localStorage
@@ -256,6 +257,7 @@ export function AppProvider({ children }) {
       selectedSpecies, setSelectedSpecies,
       selectedFamily, setSelectedFamily,
       lightbox, setLightbox,
+      creditsOpen, setCreditsOpen,
     }}>
       {children}
     </AppContext.Provider>

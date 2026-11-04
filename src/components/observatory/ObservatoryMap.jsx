@@ -10,6 +10,7 @@ import { cellFill, ALPHA_SCALE_BY_BASEMAP } from '../../lib/layerColors'
 import { reliefOverlay } from '../../lib/reliefLayer'
 import { forestTypeOverlay } from '../../lib/forestLayer'
 import { pinSvg } from '../../lib/cornerKinds'
+import { useApp } from '../../contexts/AppContext'
 
 // leaflet.markercluster is UMD and looks for `L` as a global: expose it before importing it
 // (same as LeafletMap.jsx does for leaflet.heat), and import it only when the layer is shown.
@@ -82,7 +83,8 @@ function keepClear(map, point, area) {
  * coloured by its score. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
  * the forest is not one the species fits or the soil pH is not its own. Neither takes clicks, so picking a point works over the layer.
  */
-export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, dataSources = null, className = '' }) {
+  const { t, setCreditsOpen } = useApp()
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
   const observedRef = useRef(null)
@@ -154,6 +156,41 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     tilesRef.current = L.tileLayer(ICGC_HYBRID_TILES_URL, { attribution: ICGC_ATTRIBUTION, maxZoom: 19 })
     tilesRef.current.addTo(map).bringToBack()
   }, [basemap])
+
+  // Credits on the map: tile credits (set by the basemap), a «Sources» link that opens the credits modal
+  // and, while a data layer is on, the short credit of that data. The full list lives in the modal.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const ctl = map.attributionControl
+    ctl.setPrefix(false)
+    // Leaflet keeps a removed credit's slot (count 0), so a credit added again would keep its old place:
+    // forget the slot too, to make the link the last thing in the line
+    const dataText = dataSources ? `${t.creditsMapData} ${dataSources.split('|').join(' · ')}` : null
+    const linkHtml = `<a href="#" data-credits>${t.creditsLinkShort}</a>`
+    if (dataText) ctl.addAttribution(dataText)
+    ctl.addAttribution(linkHtml)
+    return () => {
+      for (const text of [dataText, linkHtml]) {
+        if (!text) continue
+        ctl.removeAttribution(text)
+        if (ctl._attributions?.[text] === 0) delete ctl._attributions[text]
+      }
+    }
+  }, [dataSources, t, basemap])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const el = map.attributionControl.getContainer()
+    const onClick = e => {
+      if (!e.target.closest?.('[data-credits]')) return
+      e.preventDefault()
+      setCreditsOpen(true)
+    }
+    el.addEventListener('click', onClick)
+    return () => el.removeEventListener('click', onClick)
+  }, [setCreditsOpen])
 
   // On the shaded relief the layer multiplies the grey shading instead of covering it: the pane is
   // blended with the tiles under it (the pane is a sibling of the tile pane, so it sees them)
