@@ -14,7 +14,7 @@
 **Limits**:
 - No direct push to `main` (branch protection). Always via PR.
 - Does not run SQL migrations directly on Supabase. Prepares them; the admin applies them.
-- Does not commit without the user explicitly requesting it.
+- Does not commit without the user explicitly requesting it. The exact git scope is defined in `CLAUDE.md` (Git section).
 - Does not make product/business decisions without consulting first.
 
 ### Claude / Chat (quick consultation)
