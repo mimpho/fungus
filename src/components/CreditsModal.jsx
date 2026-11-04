@@ -1,18 +1,19 @@
-import { useApp } from '../../contexts/AppContext'
+import { useApp } from '../contexts/AppContext'
+import { ObsModal } from './observatory/ObsModal'
 
 const LINK = 'underline underline-offset-2 hover:text-cream transition-colors'
 
 /**
- * Credits required by the data licences (CC BY 4.0, ODbL, Copernicus) plus the standing disclaimer.
- * Second line: the data behind the probability layer (elevation, lithology, forest) and the relief basemap.
- * Always rendered with the page, signed in or not: the data it credits is on screen
- * whenever the page shows a result.
+ * The one place for the credits the data licences ask for (CC BY 4.0, ODbL, Copernicus).
+ * Opened from the footer link of every page and from the «Sources» link of the observatory map
+ * (where the map itself shows the short credit of the data on screen).
  */
-export function Attribution() {
-  const { t } = useApp()
+export function CreditsModal() {
+  const { t, creditsOpen, setCreditsOpen } = useApp()
+  if (!creditsOpen) return null
   return (
-    <footer className="text-xs text-cream/50 space-y-1 pt-4 border-t border-white/[0.06]">
-      <p>{t.obsDisclaimer}</p>
+    <ObsModal title={t.creditsTitle} onClose={() => setCreditsOpen(false)} sheet sheetBackdrop={false} titleNowrap>
+    <div className="text-sm text-cream/70 space-y-3">
       <p>
         {t.obsAttrWeather}{' '}
         <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" className={LINK}>Open-Meteo.com</a>
@@ -43,6 +44,7 @@ export function Attribution() {
         {t.obsAttrReliefMap}{' '}
         <a href="https://www.icgc.cat/" target="_blank" rel="noopener noreferrer" className={LINK}>ICGC</a>
       </p>
-    </footer>
+    </div>
+    </ObsModal>
   )
 }

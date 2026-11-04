@@ -53,7 +53,7 @@ const openStack = []
  * and never gets taller than the screen less 50px (its content scrolls). From 640px up it is the
  * usual centred modal, of the size `size` says.
  */
-export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = false, children }) {
+export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = false, sheetBackdrop = true, titleNowrap = false, children }) {
   const { t } = useApp()
   const titleId = useId()
   const token = useRef({})
@@ -102,8 +102,8 @@ export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = fa
   if (sheet && phone) {
     return createPortal(
       <div
-        className="fixed inset-0 z-[200] flex items-end justify-center modal-outer"
-        style={{ background: MODAL.overlay, backdropFilter: 'blur(8px)' }}
+        className={`fixed inset-0 z-[200] flex items-end justify-center modal-outer ${sheetBackdrop ? '' : 'pointer-events-none'}`}
+        style={sheetBackdrop ? { background: MODAL.overlay, backdropFilter: 'blur(8px)' } : undefined}
         onClick={e => { if (e.target === e.currentTarget) onClose() }}
       >
         <div
@@ -111,9 +111,10 @@ export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = fa
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
-          className="relative w-full rounded-t-2xl overflow-y-auto"
+          className="relative w-full rounded-t-2xl overflow-y-auto pointer-events-auto"
           style={{
             background: MODAL.bg,
+            boxShadow: sheetBackdrop ? undefined : '0 -8px 32px rgba(0,0,0,0.35)',
             maxHeight: 'calc(100dvh - 50px)',
             transform: dragging ? `translateY(${dragY}px)` : entered ? 'translateY(0)' : 'translateY(100%)',
             transition: dragging ? 'none' : 'transform 0.35s cubic-bezier(0.32,0.72,0,1)',
@@ -164,7 +165,7 @@ export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = fa
       >
         {/* Three columns so that whatever goes in the slot (a search) is centred on the dialog, not on the space left by the title */}
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] lg:grid-cols-[1fr_minmax(0,32rem)_1fr] items-center gap-4 mb-5">
-          <h2 id={titleId} className="font-display text-2xl font-semibold text-cream">{title}</h2>
+          <h2 id={titleId} className={`font-display text-2xl font-semibold text-cream ${titleNowrap ? 'whitespace-nowrap' : ''}`}>{title}</h2>
           <div ref={setHeaderSlot} className="min-w-0" />
           <button
             type="button"

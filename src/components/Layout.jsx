@@ -3,9 +3,10 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { IC } from '../lib/helpers'
 import UserMenu from './UserMenu'
+import { CreditsModal } from './CreditsModal'
 
 export default function Layout() {
-  const { followedZones, t } = useApp()
+  const { followedZones, t, setCreditsOpen } = useApp()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // ── Header fixed + spacer ──────────────────────────────────────────────────
@@ -181,6 +182,14 @@ export default function Layout() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         <Outlet />
       </main>
+
+      <footer className="max-w-7xl mx-auto px-4 pb-6 text-center">
+        <button type="button" onClick={() => setCreditsOpen(true)}
+          className="text-xs text-cream/50 underline underline-offset-2 hover:text-cream transition-colors">
+          {t.creditsLink}
+        </button>
+      </footer>
+      <CreditsModal />
     </div>
   )
 }

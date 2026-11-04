@@ -72,3 +72,15 @@
   width: 18px;
   height: 18px;
 }
+
+/* Map credits (leaflet.css is imported after this file, hence the extra class to win on specificity): Fungus olive with white text (literal colours: they must not follow the theme, the map is dark in both) */
+.leaflet-container .leaflet-control-attribution.leaflet-control {
+  background: rgba(63, 73, 59, 0.88);
+  color: #fff;
+  padding: 3px 10px;
+}
+.leaflet-container .leaflet-control-attribution.leaflet-control a {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
