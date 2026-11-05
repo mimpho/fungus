@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Maximize, Minimize, ChevronUp, ChevronLeft, X, Map as MapIcon } from 'lucide-react'
+import { ChevronUp, ChevronLeft, X, Maximize, Minimize } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
 import { useSavedPoints } from '../hooks/useSavedPoints'
@@ -29,7 +29,8 @@ import { ObservatoryNotice } from '../components/observatory/ObservatoryNotice'
 const BASEMAPS = ['satellite', 'streets', 'relief']
 
 /**
- * /observatorio — the Observatory of any point in Catalonia (login required).
+ * /observatorio — the Observatory of any point in Catalonia (login required). The map is the page:
+ * it fills the viewport under the header (Layout gives this route the full width).
  * Built in steps (see memory/pending.md, item 6). The view state (the observed point) lives in
  * the URL; the point just picked on the map, still without observing it, is local.
  */
@@ -96,29 +97,52 @@ export default function Observatory() {
   }, [pending, elevation, layer.data])
   // The map stays on the page when a zone is observed: the page scrolls down to the zone and only
   // a strip of the map stays above it (peeking). Clicking the strip scrolls back up to the map.
-  const mapBoxRef = useRef(null) // keeps the map's place in the page (it is out of the flow while fullscreen)
-  const pageRef = useRef(null) // the whole page goes fullscreen (it keeps scrolling to the observed zone), not just the map
-  // On a phone (under 640px) the map is not on the page: a button opens it over everything, and an
-  // observed zone is its own full screen. The desktop keeps the map on the page with its fullscreen.
+  const mapBoxRef = useRef(null)
+  // On a phone (under 640px) an observed zone is its own full screen over the map; «Volver al mapa» hides it
+  // without leaving the zone. The desktop keeps the zone below the map.
   const phone = useIsPhone()
-  const [mapOpen, setMapOpen] = useState(false)
+  const [zoneHidden, setZoneHidden] = useState(false)
+  // Phone only: the map over the whole screen (the site's header too) and, where the browser allows it, the browser's own
+  // fullscreen (iPhone Safari has none: there only the header goes). The state follows the browser leaving fullscreen by itself.
+  const [fullscreenState, setFullscreenState] = useState(false)
+  const fullscreen = fullscreenState && phone
+  useEffect(() => { setZoneHidden(false) }, [observed?.lat, observed?.lon])
   const [layersOpen, setLayersOpen] = useState(false) // the phone's layers panel; closed whenever the point's sheet opens, and the other way round
   const [sheetH, setSheetH] = useState(0) // height of the point's sheet on the phone, for the map to keep the point above it
-  const viewRef = useRef(null) // where the phone's map was left, to come back to it
-  const [fullscreenState, setFullscreenState] = useState(false)
-  const fullscreen = fullscreenState && !phone
-  const showMap = !phone || mapOpen
-  // The page is wrapped in an animated element (anim-up): a fixed child of it is placed against it, not the screen.
-  // On a phone the map and the zone are screens of their own, so they go to the body (as ObsModal does)
+  // The phone's zone screen goes to the body (as ObsModal does): a fixed child of the animated page wrapper is placed against it, not the screen
   const inPortal = node => (phone ? createPortal(node, document.body) : node)
-  const mapPhone = phone && mapOpen
-  const pad = fullscreen ? 'px-4' : '' // the map goes edge to edge in fullscreen; what is below keeps a side margin
+  const nativeFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement
+  function enterFullscreen() {
+    setFullscreenState(true)
+    const el = document.documentElement
+    const request = el.requestFullscreen ?? el.webkitRequestFullscreen
+    try { request?.call(el)?.catch?.(() => {}) } catch (_e) { /* the page-level fullscreen is enough */ }
+  }
+  function exitFullscreen() {
+    setFullscreenState(false)
+    if (!nativeFullscreen()) return
+    const exit = document.exitFullscreen ?? document.webkitExitFullscreen
+    try { exit?.call(document)?.catch?.(() => {}) } catch (_e) { /* already out */ }
+  }
+  useEffect(() => {
+    const onChange = () => { if (!nativeFullscreen()) setFullscreenState(false) }
+    document.addEventListener('fullscreenchange', onChange)
+    document.addEventListener('webkitfullscreenchange', onChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange)
+      document.removeEventListener('webkitfullscreenchange', onChange)
+    }
+  }, [])
+  // The page behind must not scroll under the full-screen map
+  useEffect(() => {
+    if (!fullscreen) return undefined
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previous }
+  }, [fullscreen])
   const zoneRef = useRef(null)
   const firstScroll = useRef(true)
   const [peeking, setPeeking] = useState(false)
-  // Where the map starts when it comes back after observing a point
-  const lastObserved = useRef(null)
-  if (observed) lastObserved.current = observed
   const [basemap, setBasemap] = useState(() => {
     try {
       const saved = localStorage.getItem('fungus-obs-basemap')
@@ -131,19 +155,7 @@ export default function Observatory() {
     try { localStorage.setItem('fungus-obs-basemap', value) } catch (_e) { /* per-viewer convenience only */ }
   }
 
-  // Fullscreen: the page covers the viewport (fixed). The browser's own Fullscreen API is not used
-  // on purpose: it takes Esc for itself and leaves fullscreen whatever the page does, so closing a
-  // modal with Esc would also leave it. This way Esc is always the page's.
-  // The page inside is the same one, scrolling to the observed zone as usual, without the site's
-  // header and wrapper; the only way out is the button or Esc (observing or saving does not leave it).
-  function exitFullscreen() {
-    setFullscreenState(false)
-  }
-  function toggleFullscreen() {
-    setFullscreenState(f => !f)
-  }
-
-  // Esc leaves fullscreen first; otherwise it closes the point panel (through a ref: the listener must see the current zone)
+  // Esc leaves the phone's fullscreen first; otherwise it closes the point panel (through a ref: the listener must see the current zone)
   const closePanelRef = useRef(() => {})
   useEffect(() => {
     if (!pending && !fullscreen) return
@@ -177,7 +189,7 @@ export default function Observatory() {
   }, [hasObserved, phone])
 
   function goToZone() {
-    if (phone) { setMapOpen(false); return } // the zone is its own screen
+    if (phone) { setZoneHidden(false); return } // the zone is its own screen
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     zoneRef.current?.scrollIntoView({ behavior: reduce ? 'instant' : 'smooth', block: 'start' })
   }
@@ -185,8 +197,7 @@ export default function Observatory() {
   function backToMap() {
     if (phone) return // there the zone is a screen of its own: it has its own way back to the map
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    const scroller = fullscreen ? pageRef.current : window
-    scroller?.scrollTo({ top: 0, behavior: reduce ? 'instant' : 'smooth' })
+    window.scrollTo({ top: 0, behavior: reduce ? 'instant' : 'smooth' })
   }
 
   // Closing the clicked point's card also closes the observed zone below the map and goes back to the top
@@ -221,14 +232,6 @@ export default function Observatory() {
     if (open) setPending(null) // one panel at a time: the point's sheet gives way to the layers
   }
 
-  // Closing the phone's map goes back to where it was opened from: the page, or the zone being read
-  function closeMap() {
-    setMapOpen(false)
-    setLayersOpen(false)
-    setPickError(null)
-    setPending(observed ? { lat: observed.lat, lon: observed.lon } : null)
-  }
-
   // Leaving the zone on the phone: back to the page
   function leaveZone() {
     clear()
@@ -247,20 +250,10 @@ export default function Observatory() {
     // The point's panel stays on the map (it then reads «Observing»), with its score and habitat
     setPending({ lat: point.lat, lon: point.lon })
     setSavedOpen(false)
-    if (phone) { setMapOpen(false); setLayersOpen(false) } // the zone takes the screen
+    setZoneHidden(false)
+    if (phone) setLayersOpen(false) // the zone takes the screen
   }
 
-  const savedToggle = <SavedPointsToggle saved={saved} onToggle={() => setSavedOpen(o => !o)} />
-  const mapToggle = (
-    <button
-      type="button"
-      onClick={() => setMapOpen(true)}
-      className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px] text-cream text-sm font-medium hover:bg-coffee/35 transition-all"
-    >
-      <MapIcon size={18} aria-hidden="true" />
-      <span>{t.obsViewMap}</span>
-    </button>
-  )
   // The observed zone: on the page below the map (desktop), or as a screen of its own (phone)
   const zoneEl = observed && (
     <ObservedZone
@@ -287,18 +280,15 @@ export default function Observatory() {
   }
 
   return (
-    <div ref={pageRef} className={fullscreen ? 'fixed inset-0 z-[150] overflow-y-auto bg-modal pb-20 space-y-6' : 'space-y-6 anim-up pb-20'}>
-      {/* The title and the list button are left out in fullscreen: the map takes the screen.
-          (Not just hidden: space-y would still push the map down by the hidden row's margin.) */}
-      {!fullscreen && <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0">
-          <h2 className="font-display text-4xl font-semibold text-cream">{t.obsTitle}</h2>
-          <p className="text-muted text-sm mt-1">{t.obsSubtitle}</p>
-        </div>
-        {isAuthenticated && (phone ? <div className="flex flex-wrap gap-2">{mapToggle}{savedToggle}</div> : savedToggle)}
-      </div>}
-
+    // No `anim-up` on the map page: its opacity animation (fill `both`) leaves a stacking context around the page, which
+    // traps the fullscreen map (fixed, z-150) under the site's header (z-40). Only the login card fades in.
+    <div className={isAuthenticated ? undefined : 'anim-up'}>
       {!isAuthenticated ? (
+        <div className="max-w-7xl mx-auto px-4 py-8 space-y-6 pb-20">
+          <div className="min-w-0">
+            <h2 className="font-display text-4xl font-semibold text-cream">{t.obsTitle}</h2>
+            <p className="text-muted text-sm mt-1">{t.obsSubtitle}</p>
+          </div>
         <section className="glass rounded-2xl p-8 text-center max-w-2xl mx-auto">
           <h3 className="font-display text-2xl text-cream mb-2">{t.obsLoginTitle}</h3>
           <p className="text-cream/60 text-sm mb-6 max-w-sm mx-auto">{t.obsLoginBody}</p>
@@ -317,14 +307,12 @@ export default function Observatory() {
             </button>
           </div>
         </section>
+        </div>
       ) : (
         <>
-          {pickError && !mapPhone && <div className={fullscreen ? 'absolute z-[1200] top-3 left-4 right-4' : ''}><ObservatoryNotice error={pickError} /></div>}
-
-          {showMap && inPortal(
-          <div className={phone ? 'fixed inset-0 z-[150] bg-modal' : undefined}>
-          <div ref={mapBoxRef} className={fullscreen || phone ? 'h-dvh' : 'h-[62vh] min-h-[420px] md:h-[65vh]'}>
-          <div className={`relative h-full isolate overflow-hidden ${fullscreen || phone ? '' : 'rounded-2xl border border-white/[0.08]'}`}>
+          {/* The map fills the viewport under the header (--header-h is published by Layout) */}
+          <div ref={mapBoxRef} className="h-[calc(100dvh-var(--header-h,5.5rem))] min-h-[420px]">
+          <div className={`${fullscreen ? 'fixed inset-0 z-[150]' : 'relative h-full'} isolate overflow-hidden`}>
             <ObservatoryMap
               observed={observed}
               pending={pending}
@@ -339,20 +327,18 @@ export default function Observatory() {
               label={t.obsMapLabel}
               basemap={basemap}
               flyTo={flyTo}
-              startAt={phone ? (viewRef.current ?? lastObserved.current) : lastObserved.current}
-              onViewChange={phone ? v => { viewRef.current = v } : null}
               dataSources={[Boolean(layerId) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
               centerAbove={phone ? { top: 72, bottomPx: sheetH || Math.round(window.innerHeight * 0.45) } : null}
               className="h-full"
             />
-            {pickError && mapPhone && <div className="absolute z-[1200] top-[4.75rem] left-3 right-3"><ObservatoryNotice error={pickError} /></div>}
+            {pickError && <div className="absolute z-[1200] top-[7.5rem] left-3 right-3 md:right-auto md:w-[30rem]"><ObservatoryNotice error={pickError} /></div>}
             {!pending && !observed && (
               <p className="absolute z-[1100] bottom-10 left-3 right-16 md:bottom-3 md:right-auto md:max-w-sm glass-olive rounded-xl px-3 py-2 text-xs text-cream/80 pointer-events-none">
                 {t.obsMapHint}
               </p>
             )}
-            {/* View selector (same look as Zonas / Mapa de calor on the zones map) and, to its right, fullscreen */}
-            {!phone && <div className="absolute z-[1100] top-[4.75rem] right-3 md:top-3 flex items-stretch gap-1.5">
+            {/* View selector (same look as Zonas / Mapa de calor on the zones map). On a phone it lives in the layers panel */}
+            {!phone && <div className="absolute z-[1100] top-[4.75rem] right-3 md:top-3">
               <div
                 role="group"
                 aria-label={t.obsBasemapLabel}
@@ -365,29 +351,24 @@ export default function Observatory() {
                   size="md"
                   variant="compact" />
               </div>
-              <button
-                type="button"
-                onClick={toggleFullscreen}
-                aria-pressed={fullscreen}
-                aria-label={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
-                title={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
-                className="px-3 flex items-center justify-center backdrop-blur-sm bg-modal/80 rounded-xl text-cream hover:bg-white/10 transition-colors"
-              >
-                {fullscreen ? <Minimize size={18} aria-hidden="true" /> : <Maximize size={18} aria-hidden="true" />}
-              </button>
             </div>}
-            {/* Phone: the map is closed with a × (there is no fullscreen to leave), level with the search */}
+            {/* Phone: the map's fullscreen, level with the search */}
             {phone && (
               <button
                 type="button"
-                onClick={closeMap}
-                aria-label={t.obsMapClose}
-                title={t.obsMapClose}
+                onClick={fullscreen ? exitFullscreen : enterFullscreen}
+                aria-pressed={fullscreen}
+                aria-label={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
+                title={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
                 className="absolute z-[1100] top-3 right-3 w-[52px] h-[52px] rounded-full glass-search search-light-text shadow-lg flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
               >
-                <X size={20} aria-hidden="true" />
+                {fullscreen ? <Minimize size={20} aria-hidden="true" /> : <Maximize size={20} aria-hidden="true" />}
               </button>
             )}
+            {/* Provisional (until the pills): the way into the corners list, under the search */}
+            <div className="absolute z-[1100] top-[4.25rem] left-3">
+              <SavedPointsToggle saved={saved} onToggle={() => setSavedOpen(o => !o)} compact />
+            </div>
             {/* Under the basemap tabs on the right, so it never covers the clicked point's panel (bottom left). Before the search in the DOM so the search list opens over it on mobile */}
             <MapLayersBox
               corners={cornersOn}
@@ -434,53 +415,52 @@ export default function Observatory() {
             )}
           </div>
           </div>
-          </div>
+
+          {observed && phone && !zoneHidden && inPortal(
+            <div className="fixed inset-0 z-[150] overflow-y-auto overscroll-contain bg-modal">
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-3 py-2 bg-modal/95 backdrop-blur-sm">
+                <button
+                  type="button"
+                  onClick={() => setZoneHidden(true)}
+                  className="inline-flex items-center gap-1.5 pl-2 pr-4 py-2.5 rounded-xl text-cream text-sm font-medium hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
+                >
+                  <ChevronLeft size={20} aria-hidden="true" />
+                  {t.obsBackToMap}
+                </button>
+                <button
+                  type="button"
+                  onClick={leaveZone}
+                  aria-label={t.obsZoneClose}
+                  title={t.obsZoneClose}
+                  className="p-2.5 rounded-xl text-cream/70 hover:text-cream hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
+                >
+                  <X size={20} aria-hidden="true" />
+                </button>
+              </div>
+              <div ref={zoneRef} className="px-4 pt-2 pb-24">
+                {zoneEl}
+              </div>
+            </div>
           )}
+
+          {/* What is below the map keeps the site's width */}
+          <div className="max-w-7xl mx-auto px-4 pt-8 pb-20 space-y-6">
+            {observed && !phone && (
+              <div ref={zoneRef} className="scroll-mt-[9.5rem] min-h-[calc(100vh-9.5rem)]">
+                {zoneEl}
+              </div>
+            )}
+            <TerritorySection active={observed} onObserve={handleObserve} />
+            <p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p>
+          </div>
         </>
       )}
-
-      {isAuthenticated && observed && phone && !mapOpen && inPortal(
-        <div className="fixed inset-0 z-[150] overflow-y-auto overscroll-contain bg-modal">
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-3 py-2 bg-modal/95 backdrop-blur-sm">
-            <button
-              type="button"
-              onClick={() => setMapOpen(true)}
-              className="inline-flex items-center gap-1.5 pl-2 pr-4 py-2.5 rounded-xl text-cream text-sm font-medium hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
-            >
-              <ChevronLeft size={20} aria-hidden="true" />
-              {t.obsBackToMap}
-            </button>
-            <button
-              type="button"
-              onClick={leaveZone}
-              aria-label={t.obsZoneClose}
-              title={t.obsZoneClose}
-              className="p-2.5 rounded-xl text-cream/70 hover:text-cream hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
-            >
-              <X size={20} aria-hidden="true" />
-            </button>
-          </div>
-          <div ref={zoneRef} className="px-4 pt-2 pb-24">
-            {zoneEl}
-          </div>
-        </div>
-      )}
-
-      {isAuthenticated && observed && !phone && (
-            <div ref={zoneRef} className={fullscreen ? 'px-4 pt-4 scroll-mt-0 min-h-dvh' : 'scroll-mt-[9.5rem] min-h-[calc(100vh-9.5rem)]'}>
-              {zoneEl}
-            </div>
-      )}
-
-      {isAuthenticated && <div className={pad}><TerritorySection active={observed} onObserve={handleObserve} /></div>}
 
       {savedOpen && (
         <ObsModal title={t.obsSavedListTitle} onClose={() => setSavedOpen(false)} wide sheet>
           {savedList}
         </ObsModal>
       )}
-
-      <div className={pad}><p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p></div>
     </div>
   )
 }
