@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "source": "Copernicus DEM GLO-30, averaged to a coarser grid",
+  "encoding": "uint8, row-major from the north-west corner; elevation_m = byte * step_m",
+  "bounds": {
+    "north": 42.95045,
+    "south": 40.448198,
+    "west": 0.099099,
+    "east": 3.402402
+  },
+  "width": 1100,
+  "height": 1111,
+  "pixel_size_m": [
+    250,
+    251
+  ],
+  "step_m": 16
+}

@@ -6,6 +6,12 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The session tokens are signed with JWT_SECRET_KEY. Its default is a public string (it is in the
+# repo), so a host that forgets to set it would not fail: anyone could forge a token.
+# `check_production_secrets` makes production refuse to start in that case.
+DEFAULT_JWT_SECRET = "dev-jwt-secret-change-in-production"
+MIN_JWT_SECRET_LENGTH = 32  # `openssl rand -hex 32` gives 64
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -22,7 +28,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-key-change-in-production"
 
     # JWT Auth (v5)
-    jwt_secret_key: str = "dev-jwt-secret-change-in-production"
+    jwt_secret_key: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60        # 1 hour
     refresh_token_expire_days: int = 30          # 30 days
@@ -59,6 +65,8 @@ class Settings(BaseSettings):
     ingest_max_concurrency: int = 6
     # Days re-fetched on every daily run (ending yesterday) to fill missed days
     ingest_lookback_days: int = 7
+    # Forecast days stored per zone by the daily run (today included). Open-Meteo allows 16.
+    forecast_days: int = 16
     # A zone is "stale" when its latest climate_history day is older than this
     stale_zone_days: int = 2
     # Ops alerts (stale zones after the daily ingest). Empty = no email.
@@ -70,6 +78,57 @@ class Settings(BaseSettings):
     # Max Open-Meteo calls per UTC day for weather_cache (refresh job + live card
     # fetches). The free limit (10,000/day) is shared with the ingest and backfills.
     weather_daily_call_budget: int = 3000
+
+    # Observatory free map: max NEW cells loaded per UTC day (each costs ~7 weighted
+    # Open-Meteo calls for its first 280 days). Cached cells are never limited.
+    observatory_max_new_cells_per_day: int = 60
+    # Same, per user (cells they are the first to open). Over it: 429 until midnight UTC, for
+    # new cells only. 0 = no per-user limit (the global one above still applies).
+    observatory_max_new_cells_per_user_per_day: int = 10
+    # Saved points per user. Over it: 409 on creating. 0 = no limit (the default: the Observatory
+    # is not born limited); the knob exists in case the limit is wanted later.
+    observatory_max_saved_points_per_user: int = 0
+    # Daily job that refreshes the last days and the forecast of EVERY stored cell (weighted
+    # Open-Meteo calls it may spend; ~3 per cell). 0 = job off. Shares the 10,000/day free quota
+    # with the zone ingest and the weather cache.
+    observatory_cell_refresh_budget: int = 1500
+
+    # New corners per user and UTC day (abuse guard, not a product limit). Over it: 429 until
+    # midnight UTC. 0 = no limit.
+    observatory_max_new_corners_per_user_per_day: int = 50
+
+    # Corner photos: private Supabase Storage bucket, reached by REST with the service key (never
+    # in the frontend). Local runs use a DEV bucket: the local .env points at production.
+    # Empty url or key = photos off (uploads answer 503).
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+    corner_photos_bucket: str = "corner-photos"
+    corner_photos_max_per_corner: int = 5
+    # Abuse guards, 0 = off: bytes of one upload, pixels of the decoded image, uploads per user
+    # and UTC day (a deleted photo is not refunded)
+    corner_photo_max_bytes: int = 15 * 1024 * 1024
+    corner_photo_max_pixels: int = 60_000_000
+    corner_photo_uploads_per_user_per_day: int = 30
+    corner_photo_url_ttl_seconds: int = 3600
+
+    # Forest raster of the probability layer (build_forest_raster.py): folder with
+    # forest-catalonia.bin/.json. Derived from CREAF MCSC-4 (licence unconfirmed): never in
+    # public/ or git; the API serves it behind login. Missing folder = layer without forest.
+    forest_raster_dir: str = "../local-data/forest"
+    # Substrate (soil acidity) raster, from the ICGC lithological groups (CC BY 4.0), same layout
+    # (build_substrate_raster.py). Missing folder = layer without soil.
+    substrate_raster_dir: str = "../local-data/substrate"
+
+    # Class rasters from a PRIVATE Supabase bucket (same SUPABASE_URL / SUPABASE_SERVICE_KEY as the
+    # photos). With a bucket, start-up downloads forest/forest-catalonia.{bin,json} and
+    # substrate/substrate-catalonia.{bin,json} into `rasters_cache_dir` and points the two raster
+    # dirs above at it. Empty bucket = off: the dirs above are read as they are (local runs).
+    # `rasters_required`: abort the start-up if the download fails (default: start without them,
+    # say so in the log and in /health, and retry every few minutes).
+    rasters_bucket: str = ""
+    rasters_required: bool = False
+    # Empty = <system temp dir>/fungus-rasters
+    rasters_cache_dir: str = ""
 
     # Versión de la API
     api_version: str = "v1"
@@ -83,6 +142,23 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.environment == "production"
 
+    def check_production_secrets(self) -> None:
+        """Refuse to run in production with a signing key anyone can read.
+
+        Raises RuntimeError when `ENVIRONMENT=production` and JWT_SECRET_KEY is the public
+        default or shorter than `MIN_JWT_SECRET_LENGTH` (this also catches the placeholder of
+        `.env.example`). The message never includes the key. Nothing happens outside production.
+        """
+        if not self.is_production:
+            return
+        key = self.jwt_secret_key
+        if key == DEFAULT_JWT_SECRET or len(key) < MIN_JWT_SECRET_LENGTH:
+            raise RuntimeError(
+                "JWT_SECRET_KEY is not set, is the public default or is shorter than "
+                f"{MIN_JWT_SECRET_LENGTH} characters. Set a random one in the environment "
+                "(openssl rand -hex 32). Refusing to start in production."
+            )
+
     @property
     def should_run_migrations_on_startup(self) -> bool:
         if self.run_migrations_on_startup is None:
@@ -92,6 +168,14 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",")]
+
+    @property
+    def has_photo_storage(self) -> bool:
+        return bool(self.supabase_url and self.supabase_service_key)
+
+    @property
+    def has_raster_bucket(self) -> bool:
+        return bool(self.rasters_bucket)
 
     @property
     def has_resend(self) -> bool:

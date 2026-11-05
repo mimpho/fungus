@@ -228,7 +228,7 @@ export function SpeciesModal({ species, onClose }) {
               className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'text-cream/50 hover:text-red-400 hover:[background-color:var(--ui-surface-hover)]'}`}>
               {IC.heart(isFav)}
             </button>
-            <button onClick={onClose} className="p-2 rounded-xl text-cream/50 hover:text-cream hover:[background-color:var(--ui-surface-hover)] transition-all">{IC.close}</button>
+            <button onClick={(e) => { e.stopPropagation(); onClose() }} className="p-2 rounded-xl text-cream/50 hover:text-cream hover:[background-color:var(--ui-surface-hover)] transition-all">{IC.close}</button>
           </div>
         </div>
 
@@ -258,7 +258,7 @@ export function SpeciesModal({ species, onClose }) {
               className={`p-2 rounded-xl transition-all ${isFav ? 'bg-red-500/20 text-red-400' : 'bg-black/40 text-white/50 hover:text-red-400'}`}>
               {IC.heart(isFav)}
             </button>
-            <button onClick={onClose} className="p-2 rounded-xl bg-black/40 text-white/80 hover:text-white transition-all">{IC.close}</button>
+            <button onClick={(e) => { e.stopPropagation(); onClose() }} className="p-2 rounded-xl bg-black/40 text-white/80 hover:text-white transition-all">{IC.close}</button>
           </div>
         </div>
 

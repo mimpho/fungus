@@ -7,7 +7,8 @@ but runs server-side, aggregates hourly data to daily, and supports full date ra
 API docs: https://open-meteo.com/en/docs
 """
 import logging
-from datetime import date, timedelta
+from collections.abc import Sequence
+from datetime import UTC, date, datetime, timedelta
 
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -30,19 +31,37 @@ DAILY_VARS = (
     "temperature_2m_max,temperature_2m_min,temperature_2m_mean,"
     "precipitation_sum,windspeed_10m_max"
 )
+# Only the forecast endpoint has it; the archive API rejects it.
+FORECAST_DAILY_VARS = DAILY_VARS + ",precipitation_probability_max"
 HOURLY_VARS = "soil_temperature_0cm,relativehumidity_2m"
 # The archive API has no surface (0 cm) soil temperature; 0–7 cm is the closest layer.
 ARCHIVE_HOURLY_VARS = "soil_temperature_0_to_7cm,relativehumidity_2m"
 SOIL_KEYS = ("soil_temperature_0cm", "soil_temperature_0_to_7cm")
 
 
+def _utc_today() -> date:
+    return datetime.now(UTC).date()
+
+
+def forecast_last_day(forecast_days: int) -> date:
+    """Last forecast day we may ask for. Open-Meteo counts the 16-day limit from the UTC date,
+    so between 00:00 and 02:00 in Madrid the local date is one day ahead of it and asking for
+    the 16th day is a 400 ("end_date is out of allowed range")."""
+    return min(date.today(), _utc_today()) + timedelta(days=forecast_days - 1)
+
+
 class OpenMeteoConnector(WeatherConnector):
     SOURCE = "open-meteo"
 
-    def __init__(self, zone_id: str, lat: float, lon: float) -> None:
+    def __init__(
+        self, zone_id: str, lat: float, lon: float, elevation: float | str | None = None
+    ) -> None:
         self.zone_id = zone_id
         self.lat = lat
         self.lon = lon
+        # None = Open-Meteo's own DEM at the point. "nan" = the grid cell's mean elevation.
+        # A number pins it (cells use their stored mean so the series do not drift).
+        self.elevation = elevation
 
     # ── Public interface ──────────────────────────────────────────────────────
 
@@ -50,6 +69,23 @@ class OpenMeteoConnector(WeatherConnector):
         yesterday = date.today() - timedelta(days=1)
         results = await self.fetch_range(yesterday, yesterday)
         return results[0]
+
+    async def resolve_grid(self) -> tuple[float, float, float]:
+        """
+        Grid cell Open-Meteo snaps this point to: (grid_lat, grid_lon, mean elevation).
+        One cheap request (a single archive day, elevation=nan).
+        """
+        previous = self.elevation
+        self.elevation = "nan"
+        try:
+            day = date.today() - timedelta(days=ARCHIVE_CUTOFF_DAYS + 2)
+            raw = await self._request(day, day, archive=True)
+        finally:
+            self.elevation = previous
+        try:
+            return float(raw["latitude"]), float(raw["longitude"]), float(raw["elevation"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderUnavailable("Open-Meteo returned no grid cell") from exc
 
     async def fetch_range(self, start: date, end: date) -> list[DailyWeatherData]:
         """
@@ -69,6 +105,33 @@ class OpenMeteoConnector(WeatherConnector):
             results.extend(self._parse(raw, fc_start, end))
         return results
 
+    async def fetch_range_and_forecast(
+        self, start: date, end: date, forecast_days: int = 0
+    ) -> tuple[list[DailyWeatherData], list[DailyWeatherData]]:
+        """
+        History for [start, end] plus the forecast for the days after `end`, up to
+        today + forecast_days - 1, in the same request that already fetched the recent
+        days (the forecast API serves both), so the daily call count does not change.
+        """
+        fc_end = forecast_last_day(forecast_days)
+        # A forecast only makes sense right after the observed days (end = yesterday or later).
+        if forecast_days <= 0 or fc_end <= end or end < date.today() - timedelta(days=1):
+            return await self.fetch_range(start, end), []
+        cutoff = date.today() - timedelta(days=ARCHIVE_CUTOFF_DAYS)
+        history: list[DailyWeatherData] = []
+        if start <= cutoff:
+            arch_end = min(end, cutoff)
+            raw = await self._request(start, arch_end, archive=True)
+            history.extend(self._parse(raw, start, arch_end))
+        if end > cutoff:
+            fc_start = max(start, cutoff + timedelta(days=1))
+        else:
+            fc_start = end + timedelta(days=1)
+        raw = await self._request(fc_start, fc_end, archive=False)
+        parsed = self._parse(raw, fc_start, fc_end)
+        history.extend(r for r in parsed if r.date <= end)
+        return history, [r for r in parsed if r.date > end]
+
     # ── Internal ──────────────────────────────────────────────────────────────
 
     @retry(
@@ -81,12 +144,14 @@ class OpenMeteoConnector(WeatherConnector):
         params = {
             "latitude": self.lat,
             "longitude": self.lon,
-            "daily": DAILY_VARS,
+            "daily": DAILY_VARS if archive else FORECAST_DAILY_VARS,
             "hourly": ARCHIVE_HOURLY_VARS if archive else HOURLY_VARS,
             "start_date": start.isoformat(),
             "end_date": end.isoformat(),
             "timezone": "Europe/Madrid",
         }
+        if self.elevation is not None:
+            params["elevation"] = self.elevation
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(ARCHIVE_URL if archive else BASE_URL, params=params)
@@ -100,8 +165,12 @@ class OpenMeteoConnector(WeatherConnector):
                     exc.response.status_code, self.zone_id,
                 )
                 raise
+            reason = exc.response.text[:200].strip()
+            log.warning(
+                "Open-Meteo HTTP %s for %s: %s", exc.response.status_code, self.zone_id, reason
+            )
             raise ProviderUnavailable(
-                f"Open-Meteo HTTP {exc.response.status_code} for zone {self.zone_id}"
+                f"Open-Meteo HTTP {exc.response.status_code} for zone {self.zone_id}: {reason}"
             ) from exc
         except httpx.HTTPError as exc:
             log.warning("Open-Meteo request failed for %s: %s", self.zone_id, exc)
@@ -118,6 +187,7 @@ class OpenMeteoConnector(WeatherConnector):
         temp_avg = daily.get("temperature_2m_mean", [])
         precip = daily.get("precipitation_sum", [])
         wind = daily.get("windspeed_10m_max", [])
+        precip_prob = daily.get("precipitation_probability_max", [])
 
         # Hourly data: aggregate to daily averages
         hourly_times = hourly.get("time", [])
@@ -155,6 +225,7 @@ class OpenMeteoConnector(WeatherConnector):
                     else None,
                     wind_kmh=round(_safe_float(wind, i) or 0),
                     source=self.SOURCE,
+                    precip_prob_pct=_safe_int(precip_prob, i),
                 )
             )
 
@@ -169,3 +240,61 @@ def _safe_float(lst: list, idx: int) -> float | None:
         return float(val) if val is not None else None
     except (IndexError, TypeError):
         return None
+
+
+def _safe_int(lst: list, idx: int) -> int | None:
+    val = _safe_float(lst, idx)
+    return None if val is None else round(val)
+
+
+@retry(
+    retry=retry_if_exception_type(httpx.HTTPError),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True,
+)
+async def resolve_grid_batch(
+    points: Sequence[tuple[float, float]],
+) -> list[tuple[float, float, float]]:
+    """Grid cell of each (lat, lon): [(grid_lat, grid_lon, mean elevation), ...], in order.
+
+    One request for all the points (one archive day, elevation=nan), so it costs one call per
+    point. Used to discover which cells exist; see app.services.cell_ingest."""
+    if not points:
+        return []
+    day = date.today() - timedelta(days=ARCHIVE_CUTOFF_DAYS + 2)
+    params = {
+        "latitude": ",".join(f"{lat:.4f}" for lat, _ in points),
+        "longitude": ",".join(f"{lon:.4f}" for _, lon in points),
+        "daily": "temperature_2m_max",
+        "start_date": day.isoformat(),
+        "end_date": day.isoformat(),
+        "timezone": "UTC",
+        # One value per coordinate: with several locations a single "nan" is a 400.
+        "elevation": ",".join(["nan"] * len(points)),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(ARCHIVE_URL, params=params)
+            resp.raise_for_status()
+            raw = resp.json()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code in RETRYABLE_STATUS:
+            log.warning("Open-Meteo HTTP %s resolving %d points: retrying",
+                        exc.response.status_code, len(points))
+            raise
+        raise ProviderUnavailable(
+            f"Open-Meteo HTTP {exc.response.status_code}: {exc.response.text[:200].strip()}"
+        ) from exc
+    answers = raw if isinstance(raw, list) else [raw]  # one location comes back as an object
+    if len(answers) != len(points):
+        raise ProviderUnavailable(
+            f"Open-Meteo answered {len(answers)} locations for {len(points)} points"
+        )
+    try:
+        return [
+            (float(a["latitude"]), float(a["longitude"]), float(a["elevation"]))
+            for a in answers
+        ]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ProviderUnavailable("Open-Meteo returned an answer with no grid cell") from exc

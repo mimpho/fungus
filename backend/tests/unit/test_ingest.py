@@ -11,7 +11,7 @@ import pytest
 from tenacity import wait_none
 
 from app.connectors import open_meteo
-from app.connectors.base import DailyWeatherData
+from app.connectors.base import DailyWeatherData, WeatherConnector
 from app.connectors.open_meteo import ARCHIVE_CUTOFF_DAYS, OpenMeteoConnector
 from app.services import ingest
 
@@ -148,9 +148,14 @@ class _StrictSession:
         pass
 
 
-class _FakeConnector:
+class _FakeConnector(WeatherConnector):
+    SOURCE = "open-meteo"
+
     def __init__(self, zone_id):
         self.zone_id = zone_id
+
+    async def fetch_yesterday(self):
+        raise NotImplementedError
 
     async def fetch_range(self, start, end):
         await asyncio.sleep(0)

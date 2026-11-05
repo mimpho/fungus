@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { IC, getScoreColor, resolveUrl } from '../lib/helpers'
 import { Tabs } from '../components/ui/Tabs'
+import { ProfileCorners } from '../components/profile/ProfileCorners'
+import { useSavedPoints } from '../hooks/useSavedPoints'
 import { EditProfileModal } from '../components/modals/EditProfileModal'
 import { apiResendVerification } from '../services/authService'
 
@@ -15,9 +17,9 @@ export default function Profile() {
     setSelectedZone, setSelectedSpecies,
     user, isAuthenticated, authLoading, logout, deleteAccount,
     setAuthModal,
-    isAdminView, setIsAdminView,
   } = useApp()
 
+  const corners = useSavedPoints(isAuthenticated)
   const [form, setForm] = useState(profile)
   const [saved, setSaved] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
@@ -149,17 +151,6 @@ export default function Profile() {
       <div>
         <div className="flex items-center justify-between gap-4">
           <h2 className="font-display text-4xl font-semibold text-cream">{greeting}</h2>
-          {user.role === 'admin' && (
-            <Tabs
-              options={[
-                { id: 'user', label: t.modoPublico ?? 'Público' },
-                { id: 'admin', label: t.modoAdmin ?? 'Admin' },
-              ]}
-              selected={isAdminView ? 'admin' : 'user'}
-              onChange={(val) => setIsAdminView(val === 'admin')}
-              size="sm"
-            />
-          )}
         </div>
         <p className="text-muted text-sm mt-1">
           {followedZones.length} {t.followedZones.toLowerCase()} · {favoriteSpecies.length} {t.favoriteSpecies.toLowerCase()}
@@ -284,6 +275,9 @@ export default function Profile() {
               </div>
             )}
           </section>
+
+          {/* Mis rincones */}
+          <ProfileCorners saved={corners} />
 
           {/* Especies favoritas */}
           <section className="glass rounded-2xl p-5">

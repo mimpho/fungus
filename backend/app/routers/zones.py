@@ -11,7 +11,15 @@ from app.database import get_db
 from app.models.scores_cache import ScoresCache
 from app.models.weather_cache import WeatherCache
 from app.models.zone import Zone
-from app.schemas.zone import MapPoint, ScoreDetail, ZoneDetail, ZoneListItem, ZoneScore, ZoneWeather
+from app.schemas.zone import (
+    MapPoint,
+    ScoreDetail,
+    ScoreV2,
+    ZoneDetail,
+    ZoneListItem,
+    ZoneScore,
+    ZoneWeather,
+)
 from app.services.scoring import score_label
 
 log = logging.getLogger(__name__)
@@ -47,17 +55,23 @@ def _build_zone_score(cache: ScoresCache | None) -> ZoneScore | None:
     if cache is None:
         return None
     detail = cache.score_detail or {}
+    # Rows written before migration 015 hold the v1 fields flat; newer ones, one key per model.
+    v1 = detail.get("v1", detail if "pa21" in detail else {})
+    v2 = detail.get("v2")
     return ZoneScore(
         score_oi=cache.score_oi,
+        model_version=cache.model_version or "1",
         score_detail=ScoreDetail(
-            pa21=detail.get("pa21", 0),
-            thermal=detail.get("thermal", 0),
-            seasonal=detail.get("seasonal", 0),
-            ripening=detail.get("ripening", 0),
-            humidity=detail.get("humidity", 0),
-            pa21_mm=detail.get("pa21_mm", 0.0),
-            days_since_rain=detail.get("days_since_rain", 0),
+            pa21=v1.get("pa21", 0),
+            thermal=v1.get("thermal", 0),
+            seasonal=v1.get("seasonal", 0),
+            ripening=v1.get("ripening", 0),
+            humidity=v1.get("humidity", 0),
+            pa21_mm=v1.get("pa21_mm", 0.0),
+            days_since_rain=v1.get("days_since_rain", 0),
         ),
+        score_v1=v1.get("score", cache.score_oi if not cache.model_version else None),
+        v2=ScoreV2.model_validate(v2) if v2 else None,
         label=score_label(cache.score_oi),
         calculated_at=cache.calculated_at,
         valid_until=cache.valid_until,

@@ -21,7 +21,9 @@ class ScoresCache(Base):
     score_oi: Mapped[int] = mapped_column(Integer, nullable=False)  # Outbreak Index 0-100
     score_detail: Mapped[dict] = mapped_column(
         JSONB, nullable=False
-    )  # {pa21, thermal, ripening, seasonal, humidity}
+    )  # one key per model version: {"v1": {...}, "v2": {...}} (older rows: flat v1 fields)
+    # Model of score_oi ("2.1", "1"); null on rows written before migration 015 (= v1)
+    model_version: Mapped[str | None] = mapped_column(String, nullable=True)
     calculated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     valid_until: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False

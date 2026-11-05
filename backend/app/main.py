@@ -27,15 +27,30 @@ from alembic.util import CommandError as AlembicCommandError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
 from app.config import settings
 from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
-from app.routers import auth, health, me, species, weather, zones
+from app.routers import (
+    auth,
+    corner_photos,
+    health,
+    me,
+    observatory,
+    observatory_layer,
+    saved_points,
+    species,
+    weather,
+    zones,
+)
+from app.services.cell_ingest import refresh_all
+from app.services.cell_store import SqlCellStore
 from app.services.ingest import run_backfill, run_daily_ingest
+from app.services.raster_loader import retry_missing, startup_load
 from app.services.weather_refresh import get_outdated_weather_zones, refresh_weather_cache
 
 # Single source of truth for version — reads from pyproject.toml at runtime
@@ -119,6 +134,20 @@ async def _scheduled_ingest() -> None:
             log.exception("Scheduled ingest failed: %s", exc)
 
 
+async def _scheduled_cell_refresh() -> None:
+    """Refresh the last days and the forecast of every stored Observatory cell, within the
+    daily call budget (the cells load at first click or with scripts/ingest_cells.py)."""
+    budget = settings.observatory_cell_refresh_budget
+    if budget <= 0:
+        return
+    async with AsyncSessionLocal() as db:
+        try:
+            stats = await refresh_all(SqlCellStore(db), observatory.get_cell_provider(), budget)
+            log.info("Cell refresh finished: %s", stats.summary())
+        except Exception as exc:
+            log.exception("Cell refresh failed: %s", exc)
+
+
 async def _startup_ingest_if_empty() -> None:
     """
     On startup, run the ingest if scores_cache is empty.
@@ -179,9 +208,16 @@ async def _startup_weather_refresh() -> None:
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     log.info("Starting Fungus API v4 (environment: %s)", settings.environment)
 
+    # 0. Never serve production with a session-signing key anyone can read (see Settings).
+    settings.check_production_secrets()
+
     # 1. Apply pending DB migrations before serving any traffic (production only
     # by default — see _startup_migrations).
     await _startup_migrations()
+
+    # 1b. Class rasters from the private bucket (no bucket configured = nothing happens). Before
+    # serving, so no request sees a half-loaded state.
+    await startup_load()
 
     # Register daily cron: 05:00 UTC → 07:00 Madrid
     scheduler.add_job(
@@ -193,10 +229,29 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         replace_existing=True,
     )
     scheduler.add_job(
+        _scheduled_cell_refresh,
+        trigger="cron",
+        hour=settings.ingest_cron_hour,
+        minute=45,
+        id="cell_refresh",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
         _scheduled_weather_refresh,
         trigger="cron",
         **WEATHER_REFRESH_CRON,
         id="weather_refresh",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        retry_missing,
+        trigger="interval",
+        minutes=5,
+        id="raster_retry",
         replace_existing=True,
         max_instances=1,
         coalesce=True,
@@ -226,10 +281,37 @@ app = FastAPI(
     title="Fungus API",
     description="Mushroom foraging prediction for Spain — Outbreak Index engine",
     version=APP_VERSION,
-    docs_url="/docs" if not settings.is_production else None,
+    docs_url=None,  # /docs is served below, only outside production, with a dark theme
     redoc_url="/redoc" if not settings.is_production else None,
     lifespan=lifespan,
 )
+
+# ── /docs (development only) ──────────────────────────────────────────────────
+# Swagger UI has no dark theme, so the page is served here with a small stylesheet that inverts
+# it (and puts code and images back). Production exposes no docs at all.
+
+_DARK_DOCS_CSS = """<style>
+html, body { background: #1a1a1a; }
+.swagger-ui { filter: invert(0.9) hue-rotate(180deg); }
+.swagger-ui .microlight, .swagger-ui img { filter: invert(1) hue-rotate(180deg); }
+</style>"""
+
+if not settings.is_production:
+
+    @app.get("/docs", include_in_schema=False)
+    async def swagger_ui_dark() -> HTMLResponse:
+        page = get_swagger_ui_html(
+            openapi_url=app.openapi_url,
+            title=f"{app.title} - Swagger UI",
+            oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        )
+        html = page.body.decode().replace("</head>", f"{_DARK_DOCS_CSS}</head>", 1)
+        return HTMLResponse(html)
+
+    @app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+    async def swagger_ui_oauth2_redirect() -> HTMLResponse:
+        return get_swagger_ui_oauth2_redirect_html()
+
 
 # CORS — allow the Vite dev server, Vercel production URL and Vercel preview deployments
 # allow_origin_regex cubre:
@@ -242,6 +324,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],  # PATCH for profile update
     allow_headers=["*"],
+    # Without this the browser hides Retry-After (429/503 of the Observatory) from the page
+    expose_headers=["Retry-After"],
 )
 
 # Catch-all exception handler — ensures CORS headers are present even on
@@ -265,7 +349,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 @app.middleware("http")
 async def add_cache_control(request, call_next):
     response = await call_next(request)
-    if request.method == "GET" and response.status_code == 200:
+    ok = request.method == "GET" and response.status_code == 200
+    if ok and "cache-control" not in response.headers:  # a route that sets its own keeps it
         # Species data changes after admin edits — never cache in browser or CDN
         if "/species" in request.url.path:
             response.headers["Cache-Control"] = "no-store"
@@ -284,6 +369,10 @@ app.include_router(species.router, prefix=API_PREFIX)
 app.include_router(weather.router, prefix=API_PREFIX)
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(me.router, prefix=API_PREFIX)
+app.include_router(observatory.router, prefix=API_PREFIX)
+app.include_router(observatory_layer.router, prefix=API_PREFIX)
+app.include_router(saved_points.router, prefix=API_PREFIX)
+app.include_router(corner_photos.router, prefix=API_PREFIX)
 
 # Static assets (logo for emails, etc.) — served at /static/<filename>
 # URL in production: https://fungus-api.onrender.com/static/logoFungusPortrait.png

@@ -3,7 +3,7 @@
 > Defines the lifecycle of changes: from idea to production.
 > Covers git, documentation and session close protocol.
 
-> **Claude trigger**: whenever the user says "integra", "squash", "merge a epic", "prepara la PR", or similar — Claude's first action is to run the doc checklist in the Integration section. Code comes second.
+> **Claude trigger**: whenever the user says "integra", "squash", "merge a epic", "prepara la PR", or similar — Claude's first action is to run the doc checklist in the Integration section. Code comes second. The same goes when the user says a branch is finished or its QA passed: the checklist runs without waiting for the keyword. Commits are only made when the human asks explicitly.
 
 ---
 
@@ -38,22 +38,32 @@ Backlog (pending.md)
 
 | Type | Pattern | Target | Description |
 |---|---|---|---|
-| Epic | `epic/<name>` | `main` | Covers a full MINOR (vX.Y). E.g. `epic/v7-oauth` |
-| Feature | `feat/vX-Y-<name>` | epic branch | One PATCH. E.g. `feat/v7-0-google-signin` |
-| Fix | `fix/vX-Y-<name>` | epic branch | One fix PATCH |
-| Chore (code) | `chore/vX-Y-<name>` | epic branch | One maintenance PATCH |
-| Chore (project) | `chore/<name>` | `main` via PR | Docs, config, no feature version |
+| Epic | `epic/<name>` | `main` | Covers a full MINOR. Named by what it does, no version. E.g. `epic/observatory` |
+| Feature | `feat/<epic>-<topic>` | epic branch | One feature. E.g. `feat/observatory-scoring-v2` |
+| Fix (epic) | `fix/<epic>-<topic>` | epic branch | One fix inside the epic |
+| Chore (code) | `chore/<epic>-<topic>` | epic branch | One maintenance task inside the epic |
+| Fix / Chore (project) | `fix/<name>`, `chore/<name>` | `main` via PR | Cross-cutting fixes, docs, config; not part of any epic |
 
-**Rule**: `feat/`, `fix/` and `chore/vX-Y-*` branches are always cut from the epic branch, not from `main`. This avoids conflicts when the epic branch has changes that `main` does not yet have.
+**Rule**: branches that belong to an epic are always cut from the epic branch, not from `main`; the epic slug in the name says which one. This avoids conflicts when the epic branch has changes that `main` does not yet have.
+
+### Versioning
+
+Epics are **not numbered while they are planned or in development**: the roadmap is ordered by priority and reprioritising is just moving a row. The version is assigned **when the epic is merged into `main`**: next free MINOR, tag `vX.Y.0` right after the merge. The version therefore reflects delivery order, not planning order.
+
+Legacy: `epic/v8-android` and its `feat/v8-*` branches keep their names (v8.x stays reserved for the Android app). Epics created from 2026-10-10 follow the rule above.
 
 **`main` has branch protection** — never direct push. Every change, including one-line doc fixes, goes through a PR.
+
+### Cadence
+
+An epic is merged into `main` (and so deployed) at least every two to three weeks. If its scope is bigger than that, it is closed at the last coherent delivery and the rest moves to a follow-up epic with its own PRD (see Epic lifecycle). Reason: `epic/observatory` ran for 25 days (2026-10-10 → 2026-11-04) before its first deployment, which then had to put five migrations, a new bucket and a set of new environment variables in production at once.
 
 ### Integration
 
 ```
-feat/vX-Y-*          ──squash──▶  epic/vX-Y  ──merge --no-ff──▶  main
-fix/vX-Y-*           ──squash──▶
-chore/vX-Y-* (code)  ──squash──▶
+feat/<epic>-*          ──squash──▶  epic/<epic>  ──merge --no-ff──▶  main
+fix/<epic>-*           ──squash──▶
+chore/<epic>-* (code)  ──squash──▶
 
 chore/* (project-wide)  ──squash──▶  main (directly)
 ```
@@ -70,17 +80,19 @@ chore/* (project-wide)  ──squash──▶  main (directly)
 4. `memory/decisions.md` — record any new architectural decision
 5. Commit doc changes on the feature branch: `docs: update changelog and pending for feat/…`
 
-Only after those file edits are in place, Claude's job is done. **Claude never runs git commands** — not commits, not merges. The sandbox cannot write to `.git/`. The human runs all git operations from their terminal. Claude provides:
-1. The edited doc files (ready to `git add`)
-2. The exact commit message to use: `docs: update changelog and pending for feat/…`
+Only after those file edits are in place, Claude's job is done. Git follows the scope in `CLAUDE.md` (Git section): when the human asks explicitly, or says «integra», Claude stages explicit paths and makes the commits (code and docs in separate commits). It never pushes, merges or tags. Claude provides:
+1. The edited doc files, committed on request (or ready to `git add`)
+2. The exact commit message: `docs: update changelog and pending for feat/…`
 3. The PR title and body as copy-pasteable blocks (see PR preparation section)
+
+The human pushes and merges.
 
 **Epic → main**: `--no-ff` merge commit. Creates a visible boundary in the graph.
 
 ```bash
 git checkout main
-git merge --no-ff epic/v7-oauth -m "chore: merge epic/v7-oauth — release v7.0.0"
-git tag -a v7.0.0 -m "v7.0.0: Google OAuth2 complete"
+git merge --no-ff epic/observatory -m "chore: merge epic/observatory — release vX.Y.0"
+git tag -a vX.Y.0 -m "vX.Y.0: Observatory complete"
 git push origin main --tags
 ```
 
@@ -88,7 +100,13 @@ git push origin main --tags
 
 ```bash
 git fetch origin
-git rebase epic/v7-oauth
+git rebase epic/observatory
+```
+
+**Syncing an epic with `main`** (only when `main` has a change the epic lacks, such as a hotfix): merge `main` into the epic, never rebase, from a clean working tree and before the epic's own PR. The merge commit is expected in the epic's history.
+
+```bash
+git checkout epic/observatory && git merge main
 ```
 
 ### Invariable rules
@@ -98,34 +116,34 @@ git rebase epic/v7-oauth
 | Never rebase `epic/*` or `main` | Shared branches — rewriting history breaks everyone's local copy |
 | Never `push --force` to `epic/*` or `main` | Same reason |
 | QA before squash | `git checkout <branch>` for manual QA. Only provide the squash+delete block after QA is confirmed |
-| Tag after every MINOR merge to main | `git tag -a vX.Y.0` immediately after the merge |
+| Tag after every epic merged into main | `git tag -a vX.Y.0` immediately after the merge, with the next free MINOR (the version is assigned here, not before) |
 | Delete feature branches after merge | Use `git branch -D` (force) — squash leaves the tip unreachable |
 
 ### Cheatsheet
 
-> All commands below are for the **human** to run in their terminal. Claude edits files but cannot write to `.git/` — so Claude never runs git commands of any kind (add, commit, checkout, merge). Claude's output is: edited files + commit message suggestion + PR title/body blocks.
+> Commands below are for the **human** to run in their terminal, except what `CLAUDE.md` (Git section) lets Claude do: read-only commands, `fetch`, `pull --ff-only`, and `add <explicit paths>` + `commit` on feature, fix, chore and docs branches when asked. `push`, `merge`, `checkout`, `rebase`, `tag` and `branch -D` always stay with the human.
 
 ```bash
 # New feature
-git checkout epic/v7-oauth
-git checkout -b feat/v7-0-google-signin
+git checkout epic/observatory
+git checkout -b feat/observatory-scoring-v2
 
 # Sync while working
-git fetch origin && git rebase epic/v7-oauth
+git fetch origin && git rebase epic/observatory
 
 # QA — checkout for manual inspection
-git checkout feat/v7-0-google-signin
+git checkout feat/observatory-scoring-v2
 
 # After QA passes — squash + delete (paste the whole block)
-git checkout epic/v7-oauth && \
-git merge --squash feat/v7-0-google-signin && \
-git commit -m "feat(auth): add Google OAuth2 signin flow" && \
-git branch -D feat/v7-0-google-signin
+git checkout epic/observatory && \
+git merge --squash feat/observatory-scoring-v2 && \
+git commit -m "feat(scoring): add scoring v2 (pure functions)" && \
+git branch -D feat/observatory-scoring-v2
 
 # Phase close — merge to main + tag
 git checkout main && \
-git merge --no-ff epic/v7-oauth -m "chore: merge epic/v7-oauth — release v7.0.0" && \
-git tag -a v7.0.0 -m "v7.0.0: Google OAuth2 complete" && \
+git merge --no-ff epic/observatory -m "chore: merge epic/observatory — release vX.Y.0" && \
+git tag -a vX.Y.0 -m "vX.Y.0: Observatory complete" && \
 git push origin main --tags
 ```
 
@@ -141,6 +159,8 @@ git push origin main --tags
 
 **Types**: `feat` · `fix` · `chore` · `docs` · `refactor` · `test` · `perf`
 **Scopes**: `ingest` · `scoring` · `api` · `db` · `connector` · `frontend` · `auth` · `admin` · `config`
+
+**Squash titles:** the title of a PR is the commit that stays in `epic/*` and `main`, so it is a Conventional Commit like any other. Never a branch name (`Feat/observatory-…`), a shell command or a merge message.
 
 ```
 feat(auth): add Google OAuth2 signin with One Tap
@@ -171,10 +191,11 @@ Produce two documents in `memory/`:
 | User flows | The 2–4 primary flows in plain language (not technical) |
 | Open questions | Unresolved product decisions that would block development — must all be answered before the first commit |
 | Definition of Done | Measurable criteria to declare the epic complete |
+| Deployment readiness | What must be true to put it in production: licence and attribution of every external source and dataset, new environment variables (name, where they are set, expected value), new buckets or services, the order of the migrations and who applies each one, and the quota plan for any bulk load against an external API |
 
 **`memory/<epic-slug>-plan.md`** — the technical plan. Can be started during kick-off and refined early in development. Sections: stack decisions, folder structure, API endpoints, risks. See `memory/v8-android-plan.md` as reference.
 
-**Gate:** no feature branch is opened until all Open questions in the PRD are answered and the DoD is written.
+**Gate:** no feature branch is opened until all Open questions in the PRD are answered and the DoD and the Deployment readiness section are written.
 
 ---
 
@@ -333,7 +354,7 @@ Inline code comments in source files may use Spanish where the domain language i
 
 This is the expanded reference for the doc checklist summarised in the Integration section above. Same rules, more detail.
 
-**Claude must not skip this checklist.** Triggers: "integra", "squash", "merge a epic", "prepara la PR". First action is always docs — not git.
+**Claude must not skip this checklist.** Triggers: "integra", "squash", "merge a epic", "prepara la PR". First action is always docs — not git. Also when the user says a branch is finished or its QA passed.
 
 | # | Item | Applies to |
 |---|---|---|

@@ -47,10 +47,12 @@
 .score-text-high  { color: var(--ui-score-high-text); }
 .score-text-good  { color: var(--ui-score-good-text); }
 .score-text-ok    { color: var(--ui-score-ok-text); }
+.score-text-mid   { color: var(--ui-score-mid-text); }
 .score-text-low   { color: var(--ui-score-low-text); }
 .score-bar-high   { background-color: var(--ui-score-high-bar); }
 .score-bar-good   { background-color: var(--ui-score-good-bar); }
 .score-bar-ok     { background-color: var(--ui-score-ok-bar); }
+.score-bar-mid    { background-color: var(--ui-score-mid-bar); }
 .score-bar-low    { background-color: var(--ui-score-low-bar); }
 
 /* ── Star / follow accent ─────────────────────────────────────────────────── */

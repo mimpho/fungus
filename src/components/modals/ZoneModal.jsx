@@ -5,6 +5,7 @@ import { useSpecies } from '../../hooks/useSpecies'
 import { MODAL, MONTHS } from '../../lib/constants'
 import { LeafletMap } from '../map/LeafletMap'
 import { useApiZoneConditions } from '../../hooks/useWeatherConditions'
+import { rainOnTheWayText } from '../../lib/rainOnTheWay'
 
 const EDIBILITY_FILTERS = [
   { id: 'todas',         tKey: 'filterTodas',       emoji: '🍄' },
@@ -16,7 +17,7 @@ const EDIBILITY_FILTERS = [
 ]
 
 export function ZoneModal({ zone, onClose }) {
-  const { t, followedZones, toggleFollow, setSelectedSpecies } = useApp()
+  const { t, lang, followedZones, toggleFollow, setSelectedSpecies } = useApp()
   const isFollowed = followedZones.some(z => z.id === zone.id)
   const { species: allSpecies } = useSpecies()
   const zoneSpecies = allSpecies.filter(e => e.forestTypes?.includes(zone.forestType))
@@ -29,6 +30,7 @@ export function ZoneModal({ zone, onClose }) {
     : 'Open-Meteo'
   const currentMonth = new Date().getMonth() + 1
   const sc = getScoreColor(conditions.overallScore)
+  const rainTxt = rainOnTheWayText(conditions.overallScore, conditions.rainOnTheWay, t, lang)
   const [availFilter, setAvailFilter] = useState('excelente')
   const [calFilter, setCalFilter] = useState('excelente')
   const [scrolled, setScrolled] = useState(false)
@@ -167,6 +169,9 @@ export function ZoneModal({ zone, onClose }) {
                 <div className="progress-bar h-[8px]">
                   <div className={`progress-fill ${sc.bar}`} style={{ width: `${conditions.overallScore}%`, height: '8px' }} />
                 </div>
+                {rainTxt && (
+                  <p className="mt-2 text-xs text-cream/70">{rainTxt}</p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mt-3">

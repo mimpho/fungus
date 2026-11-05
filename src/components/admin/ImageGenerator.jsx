@@ -9,7 +9,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from 'jszip';
 import { useSpecies } from '../../hooks/useSpecies';
-import { useApp } from '../../contexts/AppContext';
 import { API_BASE } from '../../services/apiService';
 import { invalidateSpeciesListCache, patchSpeciesPhotoInCache } from '../../hooks/useSpecies';
 import { authHeaders } from '../../services/authService';
@@ -538,10 +537,6 @@ function App() {
   // ── Gallery-first mode (v5.4): arrived from AdminGeneratorHub via ?generar=1 ─────────
   // Hides selector, ID field, Nuevo/CSV, and reference panel; shows species title instead.
   const isGalleryFirst = searchParams.get('generar') === '1'
-
-  // ── Admin nav — ensure generator always shows admin nav items ─────────────
-  const { setIsAdminView } = useApp()
-  useEffect(() => { setIsAdminView(true) }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Species from API ──────────────────────────────────────────────────────
   const { species: apiSpecies } = useSpecies()

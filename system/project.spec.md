@@ -9,7 +9,7 @@
 
 Fungus is a mycological prediction web app for Catalonia/Spain. It combines real meteorological data, soil conditions and a scoring algorithm with a seasonal factor to predict the best zones and timing for mushroom foraging.
 
-**Current version**: v7.1 frontend · v7.1 backend
+**Current version**: v7.2 frontend · v7.2 backend (on release of `epic/observatory`)
 **Frontend deploy**: Vercel → `fungus-ashen.vercel.app` (branch `main`)
 **Backend deploy**: Render → `https://fungus-api.onrender.com`
 **Database**: Supabase — PostgreSQL + PostGIS (Ireland region)
@@ -95,7 +95,8 @@ src/
 │   ├── Micologia.jsx
 │   └── Profile.jsx
 ├── components/
-│   ├── Layout.jsx           ← Desktop sidebar nav + mobile hamburger
+│   ├── Layout.jsx           ← Header: five sections (Inicio, Zonas, Observatorio, Catálogo, Micología) + mobile hamburger
+│   ├── UserMenu.jsx         ← Avatar dropdown: Perfil, Generador de imágenes (admins), Cerrar sesión / Iniciar sesión
 │   ├── admin/
 │   │   ├── AdminGeneratorHub.jsx   ← Admin hub: gallery + AI generator
 │   │   ├── SpeciesAdminModal.jsx
@@ -136,7 +137,7 @@ backend/
 │   ├── base.py
 │   └── open_meteo.py
 ├── migrations/
-│   └── versions/            ← 001…009 Alembic migrations
+│   └── versions/            ← 001…021 Alembic migrations
 ├── scripts/
 │   ├── generate_visual_dna.py   ← Gemini 2.5 Flash offline, resume-safe
 │   ├── refine_visual_dna.py     ← Gemini Vision multimodal
@@ -193,7 +194,7 @@ backend/
 | `/micologia` | `Micologia` | Article listing |
 | `/micologia/:slug` | `Micologia` | Article open |
 | `/perfil` | `Profile` | User profile |
-| `/admin/generator` | `AdminGeneratorHub` | Admin hub: gallery + AI generator |
+| `/admin/generator` | `AdminGeneratorHub` | Admin hub: gallery + AI generator (opened from the user menu; the generator itself needs `?especie=…&generar=1`) |
 
 `slugify()` in `helpers.jsx` converts names to URL-safe slugs (NFD + lowercase + hyphens).
 `resolveUrl()` in `helpers.jsx` ensures a leading `/` in asset URLs (critical in nested routes).
@@ -403,6 +404,8 @@ timezone:   Europe/Madrid
   elevationMax: 2000,
   extra_data: {
     confusions: [{ with_species_id, diff }],
+    forest_affinity: { pinar: 1.0, hayedo: 0.6 }, // optional: weight 0-1 per forest class (11 classes; `pinar` and `otro` are groups that stand for their classes); replaces forestTypes in the Observatory's forest factor
+    ph_suelo_min: 5.5, ph_suelo_max: 6.5,        // soil pH range, judged against the ICGC substrate class
     // cond_temp_es/ca/en, cond_precip_es/ca/en, cond_suelo_es/ca/en, cond_req_es/ca/en
   }
 }
@@ -432,6 +435,35 @@ GET  /api/v1/auth/verify-email?token=   ← consumes single-use token, sets emai
 POST /api/v1/auth/resend-verification   ← authenticated; re-sends verification email
 ```
 
+Observatory (login required; lat/lon limited to Catalonia):
+
+```
+GET    /api/v1/observatory/point/forest        ← toponym, elevation, land cover, forest
+GET    /api/v1/observatory/point/series        ← daily climate, v1/v2 and factors, events
+GET    /api/v1/observatory/point/snapshot      ← thermometer, conditions, rains on the way
+GET    /api/v1/observatory/point/species       ← compatible species with score and window
+GET    /api/v1/observatory/point/calendar      ← 7 real days and 35 ahead
+GET    /api/v1/observatory/layer/probability            ← conditions per cell/band for one species (login)
+GET    /api/v1/observatory/layer/probability-excellent  ← mean of excellent species (login)
+       (both: `date` up to today+7, forecast from today on; answer has `date`, `last_data_date`,
+        `max_date`, `forecast_from`, `basis` real|forecast, `clamped`)
+GET    /api/v1/observatory/layer/forest-raster[/meta]   ← private forest class raster (in production from the `RASTERS_BUCKET` bucket)
+GET    /api/v1/observatory/layer/substrate-raster[/meta] ← private substrate class raster
+       (point/snapshot, series and calendar accept species=excellent → ensemble mean)
+GET    /api/v1/observatory/saved-points        ← my saved points
+POST   /api/v1/observatory/saved-points
+GET    /api/v1/observatory/saved-points/{id}
+PATCH  /api/v1/observatory/saved-points/{id}   ← name, notes, kind, species_ids (responses carry species_ids and all_species_ids)
+DELETE /api/v1/observatory/saved-points/{id}
+GET    /api/v1/observatory/saved-points/{id}/species
+GET    /api/v1/observatory/saved-points/{id}/photos           ← a corner's photos with signed URLs (login, owner only)
+POST   /api/v1/observatory/saved-points/{id}/photos           ← multipart file + species_ids; WebP thumb + large, no EXIF; max 5
+PATCH  /api/v1/observatory/saved-points/{id}/photos/{photo_id} ← replaces the photo's species; the corner gains the new ones and loses those no photo has any more
+DELETE /api/v1/observatory/saved-points/{id}/photos/{photo_id}
+       (objects in a private Supabase bucket; limits: 5 photos/corner, 30 uploads and 50 new corners per user and UTC day;
+        a species taken off the corner via PATCH saved-points/{id} also leaves its photos; all these routes: Cache-Control private, no-store)
+```
+
 **Outbreak Index (OI)** — backend algorithm (`app/services/scoring.py`):
 ```
 OI = PA21_score    × 0.30   (accumulated precipitation 21 days)
@@ -447,6 +479,7 @@ OI = PA21_score    × 0.30   (accumulated precipitation 21 days)
 - Auto-migrate on startup: `await asyncio.to_thread(_run_db_migrations)` in lifespan.
 - `Cache-Control: public, max-age=3600` on all GET 200 responses via middleware.
 - CORS: `allow_origin_regex` automatically covers all Vercel preview URLs.
+- Class rasters (forest, soil) in production come from the private bucket named in `RASTERS_BUCKET`, downloaded at start-up (`services/raster_loader.py`); if that fails the API starts without them and `/health` shows `rasters: degraded`. Empty bucket = the raster dirs are read as they are.
 
 See `docs/backend_architecture.md` for the full specification.
 
@@ -482,8 +515,15 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v6.0 | ✅ Done | OpenSpecs migration — structured SSOT, IDE-agnostic |
 | v7.0 | ✅ Done | Social login: Google OAuth2 |
 | v7.1 | ✅ Done | Email confirmation on registration (Resend) |
-| v8.0 | ⏸ Paused | Android mobile app (React Native + Expo SDK 54 · MapLibre · EAS Build). Paused 2026-10-10; merged into `main` without tag |
-| v9.0 | 🚧 In progress | Observatory (web): scoring v2 · daily series · date/species scores · Observatory page (`epic/v9-observatory`) |
-| v8.5 | 🗂 Backlog | Shared package — scoring, constants, types, i18n as monorepo internal packages |
-| v10.0 | 🗂 Backlog | SEO: static prerendering + Core Web Vitals |
-| — | 🗂 No date | Hardening: move generator API keys to backend FastAPI |
+| v7.2 | ✅ Done | Observatory (web): scoring v2, free map by coordinates, conditions and forest layers, «Mis rincones» with photos (`epic/observatory`) |
+
+**Next epics** — ordered by priority, no version number (assigned when the epic is merged into `main`; see `system/workflows.spec.md`):
+
+| # | Epic | Status | Scope |
+|---|---|---|---|
+| 1 | Product epic: Observatory and zones base map | 🗂 Next | PRD `prd-observatorio-mapa-base` (Fungus project); opens first |
+| 2 | `epic/observatory-layers` | 🗂 Next | Layers left from the Observatory: rain, temperature, wind, Top 10 |
+| — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ Paused | Android app (React Native + Expo SDK 54 · MapLibre · EAS Build). Paused 2026-10-10; merged into `main` without tag |
+| 3 | Shared package | 🗂 Backlog | Scoring, constants, types, i18n as monorepo internal packages |
+| 4 | SEO | 🗂 Backlog | Static prerendering + Core Web Vitals |
+| — | Hardening | 🗂 No date | Move generator API keys to backend FastAPI |

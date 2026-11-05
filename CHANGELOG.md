@@ -9,10 +9,443 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Epic summary — Observatory (web) (2026-10-10 → 2026-11-05, `epic/observatory`, to be released as v7.2.0 when merged into `main`)
+
+The epic gathers the PRs #124–#158. What it delivers:
+
+- **Scoring:** Outbreak Index v2 as the zone score (five bands, zone altitude as a range), v1 kept in `score_detail.v1`; a 16-day forecast stored per zone by the daily ingest.
+- **Free map by coordinates:** the Open-Meteo cells that touch Catalonia are ingested on the server (423 cells, with a daily refresh job) and new cells have a per-user daily limit; point API (`/observatory/point/*`: forest, series, snapshot, species, calendar); forest context from the ICGC land cover 2024 and the CREAF MCSC-4 grid.
+- **Observatory page:** map, thermometer, charts, calendar and forecast, with its state in the URL; entry in the header and in the avatar menu; full-screen view on phones with one layers panel.
+- **Layers:** conditions layer with species selector and forecast up to today + 7, relief bands and per-pixel altitude, forest and soil factors; «Tipo de bosque» layer in 11 classes; satellite, street and relief basemaps.
+- **«Mis rincones»:** saved points with a kind and species tags from the catalogue, up to five photos each in a private bucket, a browser with search, filters and order, and a tab in the profile.
+- **Species data:** soil pH ranges and forest weights per species for the excellent mycorrhizal species (migrations `042`–`048`).
+- **Production readiness:** class rasters downloaded at start-up from the private bucket `geo-rasters`; the API refuses to start in production with a weak JWT secret; one credits modal.
+- **Removed on the way:** the fixed-grid territory rain map, the Público/Admin toggle and the stored provenance of saved points.
+
+**Manual steps at release:** Alembic `017`–`021` apply on Render's start-up (production is at `016`); `046` and `048` by hand in Supabase once the back end is up (`047` is already applied); load of the 423 cells in about two days with `ingest_cells.py load`, run by Marcos against production with `DATABASE_URL` in front of the command; private buckets `geo-rasters` and `corner-photos`; variables in Render (`ENVIRONMENT`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `RASTERS_BUCKET`, `CORNER_PHOTOS_BUCKET`, `FRONTEND_URL`, `CORS_ORIGINS`, `GOOGLE_CLIENT_ID`, `RESEND_API_KEY`, `EMAIL_FROM`, `ALERT_EMAIL`, `STALE_ZONE_DAYS`) and in Vercel (`VITE_CARTO_KEY`, `VITE_GOOGLE_CLIENT_ID`, `VITE_API_BASE`).
+
+**Not verified:** no deployment against production has run yet; migrations `017`–`021` were exercised only on the disposable database `fungus-ingest-test`.
+
+### Changed — Workflow: retrospective of `epic/observatory` (2026-11-05, `chore/observatory-epic-close-docs`)
+
+Docs and version only.
+
+- **`system/workflows.spec.md`:** new PRD section «Deployment readiness» (licences, variables, buckets, migration order, quota plan), part of the kick-off gate; the title of a squashed PR must be a Conventional Commit; epics are merged into `main` at least every two to three weeks; how to sync an epic with `main` (merge, never rebase); the documentation checklist also runs when a branch is declared finished, not only on the keyword «integra».
+- **`CLAUDE.md` and `system/agents.spec.md`:** Claude may run `fetch`, `pull --ff-only` and, when asked, `add <explicit paths>` and `commit` on `feat/*`, `fix/*`, `chore/*` and `docs/*`; `push`, merges, tags and anything on `epic/*` or `main` stay with the human.
+- **Version:** `backend/pyproject.toml` 7.1.0 → 7.2.0 (the API reports it in `/health`).
+- **Docs of the deployment:** `docs/environments.md` lists the Render and Vercel variables as they are set for the first deployment of the epic.
+
+### Added — Unified credits modal and map attribution (2026-11-04, `feat/observatory-attributions`)
+
+Front end only; no migration, no new variable.
+
+- **One credits modal** (`components/CreditsModal.jsx`, formerly `observatory/Attribution.jsx`; the credit texts `obsAttr*` are unchanged, MCSC-4 / CREAF included), on `ObsModal`, rendered by `Layout` and opened with `creditsOpen` / `setCreditsOpen` from `AppContext`. A bottom sheet without backdrop on a phone, the usual centred modal otherwise.
+- **Links to it, in as few places as possible:** a footer in `Layout` with one «Fuentes y créditos» link on every page (this also credits Open-Meteo outside the Observatory), and the «Fuentes» link of the map. The Observatory page keeps only the disclaimer line; the phone zone view gets no extra link (it already has the `obsHabSource` line).
+- **Map credits** (`ObservatoryMap`): the basemap's tile credits, `Datos: Open-Meteo` while «Condiciones» is on, `Datos: CREAF` while «Tipo de bosque» is on, and the «Fuentes» link always last. Olive background with white text (`styles/map.css`, literal colours). On a phone the point's sheet may cover the corner; closing it shows it again (a lift with `sheetH` was tried and dropped).
+- **`ObsModal`:** new props `sheetBackdrop` (default `true`; `false` = no dimming and the map behind stays tappable) and `titleNowrap` (the title was split in three lines by the 32 rem middle column of the `lg` grid).
+- **Texts:** `creditsTitle`, `creditsLink`, `creditsLinkShort`, `creditsMapData` in es / ca / en.
+- **Verified:** syntax of the changed files only. **Not verified:** `vite build` (the sandbox has the macOS rollup), a real phone (sheet without backdrop, drag to close, the credits line with both layers on), Esc / Back with the modal over the fullscreen map, the order of the credits when switching basemap, light and dark theme.
+
+### Documentation — Raster compression: findings and decision to wait (2026-11-04, docs only)
+
+No code, no migration. `feat/observatory-raster-gzip` was cut and left empty: the design was drawn up and the decision is to see the real transfer size after the deploy before building anything.
+
+- **Findings:** the client's `request()` uses the browser's HTTP cache (no `cache` option) and the rasters carry `private, max-age=86400`; Render's proxy compresses JSON with brotli (checked with `curl` on `/api/v1/zones`), and whether it does the same with the `.bin` is unknown; zlib on the real files gives 0.79 MB + 0.29 MB at level 6 (82 ms of CPU for both) and 0.78 MB + 0.27 MB at level 9 (~0.9 s); Starlette's `GZipMiddleware` defaults to level 9.
+- **Decision and design on hold:** see `memory/decisions.md` ("Raster compression: wait for the real transfer size before building it") and item 6g of `memory/pending.md`.
+
+### Added — Class rasters from a private Supabase bucket, downloaded at start-up (2026-11-04, `feat/observatory-raster-storage`)
+
+Back end and docs; no migration. Production has no `local-data/`, and a missing raster folder silently leaves forest and soil out of every score.
+
+- **Loader** (`services/raster_loader.py`, called from the lifespan after the migrations and before serving): with `RASTERS_BUCKET` set it downloads `forest/forest-catalonia.{bin,json}` and `substrate/substrate-catalonia.{bin,json}` into `RASTERS_CACHE_DIR` (default `<system temp dir>/fungus-rasters`) and points `forest_raster_dir` / `substrate_raster_dir` at it, so `point_habitat` and the layer router keep reading plain folders. With the bucket empty (the default) nothing happens, even if `SUPABASE_URL` and the key are set: local runs read `local-data/` as before.
+- **Checks:** a raster is used only if its description parses and its `.bin` has exactly `classes x width x height` bytes (the same test `point_habitat` applies when reading; it also catches a `.bin` that was not rebuilt after the classes changed) and, when the answer carries no transcoding, the body matches `Content-Length`. Files are written as `.part` and renamed, the `.json` last. No hash: the bucket is private and only the owner writes it.
+- **When a download fails:** 3 attempts with a doubling pause, 60 s for all downloads together. Then the API starts without that raster, logs `RASTERS MISSING` at ERROR, `/health` reports `rasters: degraded` and `rasters_missing` (`status` is not changed), and a scheduler job retries every 5 minutes until it recovers. `RASTERS_REQUIRED=true` aborts the start-up instead. A raster that loads late clears `point_habitat`'s cache, which also kept a cached "not there".
+- **Storage:** `PhotoStorage` gains `get` (`GET /storage/v1/object/authenticated/{bucket}/{key}`, 60 s read timeout instead of 20 s, truncation check); the loader uses a second `SupabasePhotoStorage` on the raster bucket with the same `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` as the photos.
+- **New variables:** `RASTERS_BUCKET` (empty = off), `RASTERS_REQUIRED` (default `false`), `RASTERS_CACHE_DIR`; documented in `.env.example`, `docs/environments.md` and `docs/deploy.md`.
+- **Bucket (done 2026-11-04):** private bucket `geo-rasters` in the production Supabase project, with `forest/` and `substrate/` uploaded from `local-data/`. Checked with the service key: the four objects answer 200 with 13,443,100, 466, 3,666,300 and 338 bytes, equal to the local files; without a key, the public URL answers 400.
+- **Verified:** 31 new tests (`test_raster_loader.py`: validation, atomic write, retries, degraded mode, `RASTERS_REQUIRED`, late recovery, the retry job, `/health` state and the REST `get` on a mocked transport); full unit suite 1058 passed, 4 skipped; a start-up against a local HTTP server with real-size files (ok in 0.2 s; a wrong key degrades without failing); the real private bucket answers the same authenticated GET the loader uses. **Not verified:** a deploy: the download time from Render, a writable temp dir there and that the health check tolerates the longer start-up. Ruff reports three problems in `test_scoring.py` and `test_point_forecast.py`, which this branch does not touch.
+- **Not done:** the browser still downloads the rasters uncompressed (13.4 + 3.7 MB; gzip would make them ~1.1 MB). Planned as `feat/observatory-raster-gzip`.
+
+### Security — Production refuses to start with a public or weak JWT secret (2026-11-03, `fix/observatory-jwt-secret-guard`)
+
+Back end and docs; no migration.
+
+- **What was wrong:** production did not have `JWT_SECRET_KEY` set, so the back end signed the sessions with the public default (`dev-jwt-secret-change-in-production`, which is in the repo) and a token could be forged for any user id (the tokens carry only the id; the role is read from the database). Nothing failed or warned. Checked on 2026-11-03: the only admin account is Marcos's and no account had been created in the previous 60 days. The key was set in Render the same day (every session was invalidated; Google login works).
+- **Guard:** `Settings.check_production_secrets()` (`config.py`), called first in the lifespan (`main.py`): with `ENVIRONMENT=production` it raises when the key is the default or shorter than 32 characters (`MIN_JWT_SECRET_LENGTH`; `openssl rand -hex 32` gives 64), which also catches the placeholder of `.env.example`. The message never includes the key. Nothing changes outside production. On Render a failed start-up fails the health check, so the previous version keeps serving.
+- **Docs:** `docs/deploy.md` and `docs/environments.md` described only `SECRET_KEY`, which is legacy and unused; they now describe `JWT_SECRET_KEY`.
+- **Verified:** 12 new tests (`test_config_secrets.py`); full unit suite 1027 passed, 4 skipped; ruff clean on the changed files; a real `uvicorn` start-up in production without the variable exits with code 3 and the error. **Not verified:** a deploy of this branch (the guard acts only with `ENVIRONMENT=production`, which still has to be checked in Render).
+
+### Changed — Soil pH ranges and forest weights for seven excellent species (2026-11-03, `feat/observatory-species-data`)
+
+Data only: two migrations (`047`, `048`; run status in `migrations/README.md`) and the mock catalogue; no application code.
+
+- **Migration `047_ph_ranges_excellent.sql`** (can be run at any time): soil pH ranges of *B. aereus* 5.5–7.0 → 4.5–7.0, *L. deliciosus* 5.0–6.5 → 5.0–7.5, *L. sanguifluus* 5.0–7.0 → 5.0–8.0, *C. cibarius* 5.0–6.5 → 4.0–6.5 and *C. cornucopioides* 5.0–6.5 → 4.5–7.5. *B. pinophilus* is left at 5.0–6.0 (its only field value, a strain soil of pH 5.2 from a chestnut stand, is already inside the range) and the audit's minimum of 5.5 for *sanguifluus* is not applied (no source; it would lower the soil factor of mountain-pine woods from 0.82 to 0.73). Each range was checked against the substrate and forest rasters: *aereus* in chestnut woods (84 % acid substrate) 0.54 → 0.99, *deliciosus* under Aleppo pine 0.34 → 0.78 (half of its pixels were under 0.15), *cornucopioides* in beech woods 0.51 → 0.87.
+- **Migration `048_forest_affinity_russula_chanterelle.sql`** (**run with `046`, after the back end and the rasters are deployed**): base `forest_affinity` and its split over the 11 classes for *R. virescens* (oak 1.0, beech 0.4, holm oak 0.6, chestnut 0.8, other broadleaves 0.5, riparian 0.2), *R. cyanoxantha* (beech 1.0, oak 0.8, chestnut 0.5, other broadleaves 0.5, riparian 0.2) and *C. cibarius* (Scots pine 1.0, *P. nigra* and mountain and other pines 0.6, Aleppo pine 0.3, holm oak 0.4, beech 1.0, oak 1.0, chestnut 0.9, other broadleaves 0.8, riparian 0.2). `forest_types` is not touched. Evidence per weight is in the migration header.
+- **Mock catalogue** (`src/data/species.js`) synced with `046`, `047` and `048` (14 species: `forest_affinity` and pH): `seed_catalog.py` merges the mock over the database and the mock's keys win, so a re-run would have undone the migrations. Checked by code: the mock equals the previous mock plus what the three migrations do, and nothing else changed (202 species).
+- **Safety:** both migrations match species by id, name and current value, raise an error that changes nothing if the catalogue differs from the audit, can be re-run and carry a commented rollback.
+- **Not measured:** the weights are estimates (the Aleppo-pine 0.3 of *cibarius* is consistency with *pinophilus* and *I. badia*, not evidence) and the pH ranges are in vitro or single-site values. Not audited yet: *reticulatus* and *caesarea* (`castanar` 0.9 with a range that leaves acid soil at 0.46).
+- **Verified:** both migrations on a disposable Postgres 16 (first run, re-run, abort on a catalogue that differs, rollback); every `048` class key accepted by `clean_affinity`. Not applied to any database.
+- **Asked:** CREAF, about the licence, the credit, the derived raster and commercial use of MCSC-4 (2026-11-03; see `decisions.md`).
+
+### Changed — Forest raster split into 11 classes: five pine woods and three other broadleaves (2026-10-31, `feat/observatory-forest-split`)
+
+Back end, front end, data and one migration (`046`, **not run yet**).
+
+- **Classes** (`forest_classes.py`, `CLASSES`): `pinar` is now `pinar_carrasco` (`bph`, Aleppo pine), `pinar_silvestre` (`bps` Scots pine), `pinar_pinassa` (`bpn`, *P. nigra*), `pinar_negro` (`bpu`, *P. uncinata*) and `pinar_otros` (`bpp` stone pine, `bpm` maritime pine, `baa` fir, `bcon` other conifers); `otro` is now `castanar` (`bcs`), `ribera` (`bribc`) and `caducifolio_otro` (`bcad`, `bfe` ash, `bbp` birch, `bca` hazel). `encinar`, `hayedo` and `robledal` are as before. The code meanings were checked against CREAF's category list by elimination and by where each code lies (median altitude and zone); CREAF does not publish the codes.
+- **Groups:** `pinar` and `otro` stay as *groups* (`GROUPS`, `GROUP_OF`). In a `forest_affinity`, a weight on a group counts for each of its classes that has none of its own; a class with its own weight (even 0) wins. So every species without a per-class weight behaves exactly as before. `forest_types` `pinar` fits the five pine classes; `otro` still fits the other broadleaves for `robledal`, `hayedo` and `mixto`.
+- **Raster:** `build_forest_raster.py` writes 11 classes (13.4 MB, was 6.1). Checked against the old one: `encinar`, `hayedo` and `robledal` identical; the sum of the pines and the sum of the three others equal the old `pinar` and `otro` to within 1 (rounding). Production does not have the rasters yet, so only this one needs uploading.
+- **Migration `046_forest_affinity_split.sql`** (**to run after the back end and the raster are deployed**): per-class weights for 11 species (*edulis*, *aereus*, *pinophilus*, *reticulatus*, *Imleria badia*, *deliciosus*, *sanguifluus*, *cornucopioides*, *caesarea*, *melanosporum*, *regius*). The values are estimates, not measured. *B. edulis*: Aleppo pine 0.1, pinassa 0.7, Scots and mountain pine 1. Others adjusted from field knowledge and two AI-written tables with no sources (taken as hypotheses): *pinophilus* Aleppo 0.3; *deliciosus* Aleppo 0.8 and other pines 1; *sanguifluus* Aleppo 1 and mountain pine 0.5. Not included: *R. virescens*, *R. cyanoxantha* and *C. cibarius* (their base `forest_affinity` was never applied). Table in the Project: `claude/propuesta-clases-bosque.md`.
+- **Front end:** `FOREST_TYPES` (`forestLayer.js`) has 11 entries with their colours (to check on every base map and in the light theme); `habitat.js` has the labels, `FOREST_GROUPS`, `forestGroup` and `forestIcon` (the pine classes share the pine icon), and `forestClassNames` names a group when all its classes are present; the corners' forest filter still offers `pinar` and `otro` as groups (`cornerFilters.js`, `forestOf`). New i18n `obsFtPinarCarrasco`, `obsFtPinarSilvestre`, `obsFtPinarPinassa`, `obsFtPinarNegro`, `obsFtPinarOtros`, `obsFtCastanar`, `obsFtRibera`, `obsFtCaducifolioOtro` in ES/CA/EN.
+- **Verified:** 993 back-end unit tests pass (3 of `test_forecast` fail on fixed dates, not related; `test_cors`, `test_docs_theme` and `test_startup_migrations` could not be collected where it ran) and `vite build`; the layer and the legend were tried locally by Marcos. **Not verified:** the 11 colours on satellite, streets and relief and in the light theme; the migration (not run).
+
+### Changed — Observatory on a phone: full-screen map, one layers panel, point sheet and slider cards (2026-10-30, `feat/observatory-mobile-map`)
+
+Front end only (no back end, no migration). Everything below applies under 640px (`useIsPhone`); the desktop keeps its layout except where it says so.
+
+- **Map as a screen of its own:** the page has no map; «Ver mapa» (beside «Mis rincones») opens it full screen, drawn in a portal on `document.body` (the page is wrapped in the animated `anim-up`, which would offset a `fixed` child). It has the search and a round × to close it; there is no fullscreen button. Closing goes back to where it was opened from (the page, or the zone being read). The map remembers its last view while the page lives (`viewRef`, `startAt.zoom`, `onViewChange`).
+- **One layers panel** (`MapLayersBox`, `mobile`): a layers button that opens a panel with «Vista» (satellite / street / relief as a segmented control) and, under «Capas del mapa», the layers; closed with a ×. The view tabs and the fullscreen button of the desktop are not drawn on a phone. The panel is controlled by the page (`open`, `onOpenChange`).
+- **Point panel as a bottom sheet** (`PointPanel`, `sheet`): no backdrop, the map stays usable above it; handle to drag it down (closes), at most 80% of the screen (`80dvh`), scrolls inside. The sheet reports its height (ResizeObserver, `onSheetHeight`) and the map keeps the picked point in the strip above it (`centerAbove`, `keepClear` in `ObservatoryMap.jsx`), also when the sheet grows as its data arrives.
+- **One panel at a time:** opening the layers closes the point's sheet (without clearing an observed zone) and picking a point or a search result closes the layers; a tap on the map while the layers are open only closes them.
+- **«Observar» on a phone:** closes the map and the zone takes the screen (a portal as well), with «Volver al mapa» (reopens the map) and a × to leave the zone. A URL with a point opens straight on the zone. The «go to the zone» scroll and the peeking band are desktop only.
+- **No jumps while loading:** the corner's photo strip on the map panel reserves its row from `photo_count` (empty pulsing slots until the thumbnails arrive; `CornerPhotos`, `strip`), and the habitat block of the point panel draws its two rows empty while the point loads (`PointHabitat`, `loading`).
+- **Zone, one column** (under `lg`, any tablet in portrait included; `useMediaQuery`): «Mi rincón» goes first, above the filter pills; the species filter is a «Filtrar por seta» button with the panel as its dropdown above the thermometer (it closes when a mushroom is chosen). From `lg` it is the card of the right column, drawn only there (a CSS-hidden first child gave the thermometer a margin: see `gotchas.md`). `SpeciesPanel` ids are per instance (`useId`).
+- **Save button in the title row, at every width:** «Guardar rincón» is the `action` that `SavePointControls` hands to `lead` (now a function) and sits to the right of the title in an `items-center` flex; heart only (`aria-label`, tooltip) on a phone.
+- **Chart card on a phone:** a select (`ObsSelect`) instead of tabs, no timeline (dragging the chart moves the window), smaller padding and a plot that runs out into it; axis numbers inside the plot at the left and the band names at the right (`Chart`, `compact`), the «Desde hoy» label one line lower, the first and last dates leaning inwards. Thermometer tiles (state, soil water, temperature) and the forecast days (next 7 and days 8–16) are horizontal sliders with snap, bleeding to the card's edges; from `sm` they are the grids again.
+- **Thermometer button:** «Desglose de puntuación» (was «Ver por qué: desglose de la puntuación»), transparent with a border, on every width.
+- **Removed:** the «previsión Open-Meteo» pill of the forecast card and the «Con previsión de Open-Meteo / Estimación sin previsión» pill of the calendar card (the credit is `Attribution.jsx`; the forecast card keeps its «Fuente: Open-Meteo…» note and the «Días 8 a 16 · tendencia, menos fiable» label). i18n: removed `obsFcBadge`, `obsFcBadgeTitle`, `obsCalBadgeForecast`, `obsCalBadgeNoForecast`; changed `obsThWhyBtn`; added `obsViewMap`, `obsMapClose`, `obsZoneClose`, `obsLayersView`, `obsLayersClose`, `obsSpFilterBtn` in ES/CA/EN.
+- New hooks: `useIsPhone` (under 640px) and `useMediaQuery(query)`.
+- **Verified:** `vite build`. **Not verified on screen:** anything above, on a phone, in dark or light theme; the sheet's re-centring of the point; the 80% sheet with a long corner block; the chart's compact axis (the «Desde hoy» label against the band names). **Known, not done:** the zone screen and the map screen on a phone do not show `Attribution` (the page's footer is under them; the forecast card's note names the source without a link); `PhotoViewer` uses the cream text token on a near-black backdrop, unreadable in the light theme; the corners list/dialog, the photos and the profile card are still to pass on a phone.
+
+### Added — Corners browser: search, filters and order; «Mis rincones» in the profile (2026-10-29, `feat/profile-corners-tab`)
+
+Front end only (no back end, no migration). The «Mis rincones» dialog of the Observatory and the profile now share one list.
+
+- **One list, two entrances** (`SavedPoints.jsx`, `SavedPointsList`): search, filters, chips, count and cards are the dialog's content, in the Observatory and in the profile. `onSelect(corner)` is what a click does: the Observatory observes the point and closes the dialog; the profile goes to `/observatorio?lat=&lon=`. Editing and removing stay in the Observatory.
+- **Profile** (`components/profile/ProfileCorners.jsx`): a «Mis rincones (N)» card in the «Siguiendo» tab with the three latest corners and «Ver todas →», which opens the dialog. No new tab (the plan said a tab; see `observatory-corners-plan.md`). `Profile.jsx` loads the corners with `useSavedPoints`.
+- **Search and filters, no «apply»** (every change shows at once): a search over the corner's name and the toponym (name, label, municipality), accent and case insensitive; filters by kind (checkboxes), comarca (select) and forest (checkboxes, a corner passes if ANY of its forest classes is ticked); order by best conditions (default), alphabetical, altitude and most recent (radios, the unknown last). Active filters show as removable chips and the dialog says «N de M rincones». Pure logic in `lib/cornerFilters.js`.
+- **Data from the browser** (`hooks/useCornerInsights.js`): toponym, forest shares and score are not stored with the corner, so each one's `/point/forest` and `/point/snapshot` are asked four at a time and kept ten minutes in the session (a failure is tried again after one minute); the filters fill in as the answers arrive («Calculando… n/m»), and a corner whose place or forest is still unknown cannot pass a filter that needs it. The score is the tagged mushroom's own when exactly one is tagged, else the mean of the excellent ones (as before). `forestKeys` added to `lib/habitat.js`.
+- **One card** (replaces the Observatory's own card and the profile's): name, pin with kind, toponym and comarca (coordinates until they arrive), altitude, the two main forest classes, the score bar and the picture of the main forest behind (`forest-type/<class>.webp`, as the zones' card). The mushroom count, notes, last night's minimum and soil water left the card: they are in the corner.
+- **Dialog layout** (`ObsModal.jsx`): `wide` is now `max-w-7xl`; on desktop the header is a row with the title, a slot and the ×, and from 1024px the slot is centred on the dialog (it holds the search). The slot is `ObsModalHeaderSlot` (a context the content portals into); on a phone sheet there is no slot and the search sits under the title. The filter panel is in line, not the zones' bottom sheet, which would hide under the dialog (z-index) and be a sheet inside a sheet. Cards in 1/2/3/4 columns (`md`/`lg`/`xl`); the filter options in 2 columns, 4 when the panel is wide (container query, see `gotchas.md`).
+- i18n: `obsCorner*` (search, kind title, most recent, computing, results, no match, clear) and `profileCornersEmpty/Go` in ES/CA/EN; removed `obsCornerCount`, `obsSavedNightMin`, `obsSavedSoilWater`.
+- **Verified:** `vite build`; the filter and sort logic with a throwaway script (not in the repo). **Not verified on screen:** any of the above, on desktop or phone, in dark or light theme, nor against a real database. Every corner's snapshot is asked when the dialog opens; one in a cell not loaded yet counts against the per-user new-cell limit (429: it stays without a score).
+
+### Changed — Corner card on the map, collapsible layers box and light theme (2026-10-28, `feat/observatory-ui-polish-3`, #149)
+
+Front end only.
+
+- **Map panel:** the saved corner uses the «Mi rincón» card style, with smaller pills in one scrolling line, a pencil icon to edit and no pin shadow; the photo viewer opened from the map's strip has the tag and delete actions.
+- **«Mi rincón» card and edit dialog:** primary edit button; kind icons without shadow; the remove button is plain text with hover only.
+- **Layers box** collapses into a layers button (it starts expanded). Habitat pills (forest, soil) in two columns. The «otro» colour of the forest layer is darker so it reads on the relief basemap.
+- **Light theme:** lighter corner card with olive pills, olive secondary buttons (`obs-btn`), olive search, select and rows in the species filter card, grey tabs switch in the chart card, no shadow on the species rows.
+- **Not verified:** `vite build` and the visual check on desktop and phone, dark and light.
+
+### Changed — Corner photos, second iteration (2026-10-27, `feat/observatory-corners-photos`)
+
+Back end (no migration), front end and three fixes to shared dialogs.
+
+- **Species follow the photos** (`routers/corner_photos.py`, `saved_points.py`; `PhotoStore.remove_species`): tagging a mushroom on a photo (upload or `PATCH`) tags it on the corner too; taking it off a photo takes it off the corner unless another photo of the corner still has it; taking it off the corner (`PATCH /saved-points/{id}` with `species_ids`) takes it off every photo of the corner (the photos stay). Tags set by hand on no photo are not touched by photo changes; deleting a whole photo does not change the corner's tags. Eight scenarios in `TestCornerSpeciesFollowPhotos`.
+- **No cache for corners:** `/observatory/saved-points…` (corners and photos) answer `Cache-Control: private, no-store` (`no_store` dependency on both routers). The middleware's public hour made the page read the corner as it was before a tag was added. The rest of `/observatory/` keeps the hour (see `pending.md`).
+- **Several photos at once, drag and drop** (`CornerPhotos.jsx`): the file chooser and a drop on the photos section take up to the free places, one after another, with «Subiendo n de m…»; when more are chosen than fit, a notice says how many went up and how many were left out (`obsPhotoOverflow`). A file the server cannot take (too large, unreadable) does not stop the others; a full corner, the daily limit, storage or the network does.
+- **Photo viewer in full screen** (`PhotoViewer.jsx`, rewritten): black backdrop like the species' photo viewer, arrows, swipe, Esc; the tag and delete actions are icons at the top right and the tagged mushroom's name is centred under the picture (nothing when there is none). Tagging and deleting are black translucent overlays over the whole viewport (title on the counter's line, content a third of the way down, transparent buttons with a white border). Without `onTag`/`onDelete` it is read only (the map's panel).
+- **Tag pills instead of cards** (`SpeciesPills.jsx`): the species of a corner are pills (name, and a × in the edit dialog; the name opens the species' sheet) in the edit dialog, the «Mi rincón» card and the map panel's block. The picker lost its five dashed places (`slots`); `withPhotos` gives each match of its list a small photo (used in the photo viewer). The map panel's block now shows the corner's photos as read-only thumbnails (`CornerPhotos variant="strip"`).
+- **Edge-to-edge thumbnails** in the edit dialog and the map panel, like the card's: the row bleeds to the container's edges and the first one starts at the content's left margin.
+- **Edit, create and «Mis rincones» dialogs as a bottom sheet on phones** (`ObsModal sheet`): under 640px it rises from the bottom, full width, with a handle to drag it down (max height screen − 50px, like the lists' filters) and the × on the title's line; from 640px up it is the usual centred modal. The edit form takes in the species that appear while it is open (tagged from a photo) so saving does not take them off again; the card's photos are read again after the corner changes. The form has no «Cancelar» (the × closes it); «Eliminar rincón» moved from the card to the edit dialog's footer, on the left (`SavePointForm onRemove`, `CornerModals setMode`).
+- **«Mi rincón» card:** the title «Mi rincón» (`obsCornerCardTitle`) on top, then the pin with the kind above the name (not drawn for «sin especificar») and the toponym muted (60 %); only «Editar» is left at the bottom right. «Mi rincón» and «Qué ha pasado» titles at 27px.
+- **Map:** closing the clicked point's card (× or Esc) also closes the observed zone below and scrolls back to the top (`closePanel`); the point panel's button reads «Observar zona» (`obsPointObserveShort`).
+- **Fixes:** the × of a species' sheet no longer opens its photo viewer (the click reached the hero photo); Esc over a dialog no longer closes the Observatory dialog under it (`useDialogAboveObsModal` gives the slot back a tick later, and the lightbox counts too); opening the lightbox no longer drops the URL's query (`ModalRenderer` pushed the bare path and the Observatory, whose view state lives in `?lat=…`, closed the zone and its open dialog).
+- **Local databases need migration 021** (`corner_usage_events`): without it an upload answers 500. `fungus-ingest-test` was at 020.
+- **Verified:** corner and photo unit tests (158 in the two files, the two migration-chain ones need `migrations/`), ruff, `vite build`. **Not verified on screen:** everything above in the front end, HEIC with real GPS, account deletion and the 429 limits against a real database, the phone layout.
+
+### Added — «Tipo de bosque» map layer (2026-10-27, `feat/observatory-layer-forest`)
+
+Front end only (no API, no migration): it paints the forest raster the page already loads for the conditions layer.
+
+- **Layer:** a new checkbox in the layers box paints every pixel with the colour of its **dominant forest class** (pinar, encinar, hayedo, robledal, otro). Pixels with less than 10 % forest of the classes shown stay transparent, and the colour fades in until 50 % (`paintForestTypes` / `forestTypeOverlay` in `src/lib/forestLayer.js`, pure functions, rows resampled to Web Mercator like `reliefLayer.js`).
+- **Legend as filter** (`ForestTypeLegend.jsx`): one toggle button per type (`aria-pressed`); switching one off removes it from the map and the dominant class is taken among the types still on.
+- **Own pane** (`obsForest`, z-index 340) under the conditions layer (350), so both can be on at once; strength scaled per basemap with `ALPHA_SCALE_BY_BASEMAP`. Colours are literal hex (Leaflet rule). The forest raster is loaded when either layer needs it (`useClassRaster('forest', …)`).
+- **Texts** `obsLayerForest`, `obsForestLegend`, `obsForestHint`, `obsForestLoading` in es / ca / en. The hint names the source (CREAF MCSC-4) and the ~250 m pixel.
+- **Not checked on screen yet:** the colours on the three basemaps (satellite, streets, relief), in the light theme and on a phone.
+
+### Changed — Forest weights per species and data corrections (2026-10-26, `feat/observatory-forest-affinity`)
+
+The forest factor of a species is no longer all-or-nothing by forest type. No API route changes; the layer's `species` block gains a field. Four data migrations (`042`–`045`), no Alembic migration.
+
+- **`species.extra_data.forest_affinity`** (`{ pinar | encinar | hayedo | robledal | otro: 0-1 }`): how well the species fruits under each class of the CREAF raster. When present it replaces what `forest_types` says; without it every class the types fit weighs 1, as before (`forest_classes.class_weights_for`, `clean_affinity`).
+- **Weighted share:** the share of fitting forest around a point is `Σ share × weight` per class, through the same 10 %–40 % ramp (`point_habitat.forest_fit`, which also returns `weights`). A lesser host still gives full factor where it is most of the forest and counts for less where it is a minority. Applies to the point's species list, thermometer, chart and calendar, and to the ensemble of excellent edibles (`counts_in_ensemble` takes the affinity).
+- **Layer:** `species` carries `forest_class_weights` (per species in the ensemble answer); `reliefLayer.js` uses it in the three places that sum the forest share (per pixel, ensemble, point value). `forest_classes` stays and is derived from the weights.
+- **`SpeciesRecord.forest_affinity`** (pairs, keeps the record hashable, so the layer cache key changes when it changes) read from `extra_data`.
+- **Data (`migrations/`):** `042` *B. aereus* (adds `hayedo` to `forest_types` and its weights), `043` seven species with several sources agreeing on their hosts, `044` *B. edulis* pinar 0.8 → 1.0 (a mistake of `043`: it penalised pine sites), `045` *B. edulis* soil pH 5.5–6.5 → 4.5–6.5 (acid substrates scored 0.46). `species.js` and `seed_catalog.py` carry the same fields.
+- **Not measured:** the weights are a split made from host information in the literature, not data. A GBIF probe (`backend/scripts/gbif_forest_affinity.py`) found too few precise records in Catalonia to measure them (394 for *B. edulis* in all, 90 at 1 km). The audit of the pH ranges lives in the Project (`claude/auditoria-ph-excelentes.md`) and the weights in `claude/pesos-bosque-excelentes.md`; see the 2026-11-03 entry for what was applied.
+
+### Added — Corner photos, first iteration (2026-10-24, `feat/observatory-corners-photos`)
+
+Back end, migration 021 and front end. Photos are the last piece of «Mis rincones»; this is a first iteration, to be refined on screen.
+
+- **API** (login; someone else's corner is a 404): `GET /observatory/saved-points/{id}/photos` (list, with signed URLs), `POST …/photos` (multipart `file` + repeated `species_ids`), `PATCH …/photos/{photo_id}` (replaces the species tagged on the photo) and `DELETE …/photos/{photo_id}`. A corner now carries `photo_count`.
+- **Images** (`photo_images.py`, Pillow + `pillow-heif`): any format in, HEIC included. EXIF orientation is applied and all metadata (GPS included) is dropped; two WebP copies come out, thumbnail ≈600 px and large ≈1200 px on the long side, never enlarged; the original is discarded. A file over 15 MB or over 60 Mpx (read from the header, before decoding) is a 413, and one that is not an image a 415.
+- **Storage** (`photo_storage.py`): a `PhotoStorage` protocol. `SupabasePhotoStorage` uses a private Supabase Storage bucket through its REST API with the service key (sent as `apikey` and `Authorization`), never overwrites (`x-upsert: false`) and signs URLs in one batch (1 h). The storage keys never leave the server. Tests use an in-memory fake (`tests/unit/fakes.py`). Without `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` an upload answers 503.
+- **Limits** (all configurable, 0 = off): 5 photos per corner (409); 30 photo uploads and 50 new corners per user and UTC day (429 with `Retry-After` until midnight UTC). They are counted in the new table `corner_usage_events` (migration 021), so deleting a photo or a corner gives no slot back; rows older than a week are pruned when a new one is written.
+- **Cleanup:** deleting a photo, a corner or the account removes the objects first. If the storage fails the call answers 502 and nothing else is deleted, so it can be repeated (deleting a missing object is not an error).
+- **Front end:** a «Fotos» section (`n / 5`) in the edit dialog, between the species and the notes, and in the corner card: thumbnails in a row, a dashed «Añadir foto» slot (several files at once, uploaded one after another), a viewer with arrows and keyboard, species tagging with the same search as the corner's, and delete with confirmation. The create dialog says photos are added from «Editar». In `ObsModal` only the topmost dialog answers Esc.
+- **Scripts:** `check_photo_storage.py` (smoke test against a real bucket) and `qa_corner_photos.py` (end to end against a running backend).
+- **Verified:** 948 unit tests; QA against a disposable Postgres (migrations 001→021 and back one step, upload, list, signed URLs, tag, delete, delete corner) and a dev bucket. **Not verified:** a HEIC photo with real GPS, the account-deletion path and the 429 limits against a real database, the front end on a phone.
+
+### Security — `seed_catalog.py` guard rails (2026-10-24)
+
+A run from a terminal without `DATABASE_URL` read `backend/.env`, which points at production, and overwrote the curated zones and replaced every species' `extra_data`. The data was restored from the SQL files of `migrations/` and checked against the saved Supabase snippets (see `memory/gotchas.md`). Now the script writes only to a local database (`localhost`, `127.0.0.1`, `::1`) unless `--allow-remote` is given, and always names the host and database it is about to write (never the user or the password). Zones are insert-only unless `--overwrite-zones`, and a species' `extra_data` is merged over the stored one instead of replaced. `tests/unit/test_seed_catalog.py`.
+
+### Changed — Observatory interface polish, second round (2026-10-24, `feat/observatory-ui-polish-2`)
+
+Front end only (no API, no migration).
+
+- **Score breakdown** («Ver por qué»): the score is a product of factors, so the rows are multipliers, not shares. Each row now shows the points it takes from 100 (or adds), split in proportion to the logarithm of its multiplier so they add up to exactly the distance to the score. New rows: **Helada** (was hidden inside «Calor y secado») and **Bajada de temperatura ×1,10** (the bonus was applied but never shown). The mean-of-species footnote says the rows are not multiplied together.
+- **«Mis rincones» cards:** the score bar is the tagged mushroom's own when exactly one is tagged (labelled with its name), else the mean of the excellent edibles labelled «Condiciones ahora» (was «Cond. de recolección»). Two-line header (kind and «Mis rincones» link; pin, name and toponym), horizontal species scroll bleeding to the edge, coordinates with the kind, altitude and forest icons, one line with the notes.
+- **Observed zone:** the right column is `clamp(20rem, 30%, 30rem)`. The subtitle reads Lugar · Coordenadas (crosshair) · Altura · Tipo de terreno, each with an icon (`FOREST_ICONS` moved to `habitat.js`). «Quitar rincón» is now «Eliminar rincón».
+
+### Changed — Observatory interface polish (2026-10-23, `feat/observatory-ui-polish`)
+
+Front end only (no API, no migration).
+
+- **Charts** (`WeatherChart`): lines are smooth (monotone Bézier, `smoothPath` / `smoothPoints` / `smoothArea` in `chartData`), no per-day dots. **Condición:** vertical red→green gradient by score (stops at the middle of each band, from the `--ui-score-*` tokens), with a translucent fill down to the axis. **Temperatura:** the max–min band is a gradient by temperature (blue cold, red hot), mean in the theme's cream, soil in dark brown, the species' min/opt/max as red dotted lines. **Lluvia / Humedad / Viento:** accumulated rain, humidity and wind are a smooth line with a fill that goes from transparent at the X axis to full colour at the highest value of the window (recomputed when the timeline moves); wind is light grey and no longer bars.
+- **Condición keeps its width while panning:** the chart has a fixed number of slots after the window: the real days between the window and today, then the forecast, so dragging back no longer rescales it (the real days after the window sit in a lighter band).
+- **Data table** opens in a modal (zebra rows, ochre header, score in its band colour).
+- **Timeline:** the dates and «Volver a hoy» (right) are one line of fixed height, the hint is always the second line.
+- **Layout of the observed zone:** two independent columns (left: thermometer and chart; right: corner card, species filter, «Detonantes y frenos»), so a card never waits for the height of its neighbour. The right column is `clamp(22rem, 38%, 34.5rem)`. Forecast and calendar sit side by side from 1440 px, with smaller text and icons in the forecast cards. On phones the chart now comes before the corner card.
+- **Species filter:** a card icon next to the edibility tag opens the species' catalogue preview; choosing (or unchoosing) a species scrolls smoothly to the top of the zone. The map layer's search says «Filtrar por seta…».
+- **Corner card and buttons:** the saved corner card has an ochre-brown background (`coffee`) and the `ring-2 ring-bar` outline, with a «Mis rincones» link (opens the list modal) at its top right; «Mis rincones» and both «Guardar rincón» buttons share that look.
+- **«Volver al mapa»:** a chevron over small uppercase text on a 100 px gradient of the page's green that ends where the zone starts (replaces the pill button).
+- **Fullscreen** no longer uses the browser's Fullscreen API (it takes Esc for itself and left fullscreen when a modal was closed with Esc): the page just covers the viewport, so Esc is always the page's. A dialog on top (`isDialogAbove`) takes the Esc before the page.
+
+### Added — «Mis rincones», interface (2026-10-23, `feat/observatory-corners-ui`)
+
+- **Corner card** in the observed zone (right column, above the species panel) and a compact block in the map's point panel: pin by kind, name, notes, species as cards (page) or 4:3 photos with a thin horizontal scroll (panel), «Editar» and «Quitar rincón» in dialogs. Notes that only repeat the species' scientific names are hidden.
+- **Create/edit dialog:** kind selector (radio cards), species picker with a search box and an overlay list (up to 5 slots, dashed placeholders), a soft kind suggestion. A species opens its catalogue preview over the dialog.
+- **«Mis rincones» map layer** with `leaflet.markercluster` (pins per kind, first row of the layers box) and a fullscreen mode for the whole page (Fullscreen API, CSS fallback): Observar and Guardar keep it and scroll to the zone.
+- **Species panel** renamed «Filtrar por seta en esta zona» (was «¿Qué seta buscas?»): catalogue photo to the card's edge, edibility tag, score at the right next to the details arrow, themed clear button for the search.
+- **Backend:** a blank name (on create or PATCH) is stored as the nearest toponym, else the coordinates; `name: null` stays a 422.
+- **Dependency:** `leaflet.markercluster` ^1.5.3 (run `npm install`).
+
+### Removed
+- The species rows' grade text (Favorable, Posible…) and the `obsSpGrade_*` keys: the score already says it.
+
+### Added — «Mis rincones», data model (2026-10-22, `feat/observatory-corners-model`)
+
+- **Migration 020:** `saved_points.kind` (`unspecified` default, `mushroom_site`, `prospect`, `parking`; check constraint) and three tables with RLS on and cascade deletes: `saved_point_species` (species tagged on the corner), `saved_point_photos` (up to five per corner, only the storage keys of the thumbnail and the large version) and `saved_point_photo_species` (species tagged on a photo).
+- **API:** `POST` and `PATCH /observatory/saved-points` accept `kind` and `species_ids` (`[]` clears them); unknown species answer 422. Responses carry `kind`, `species_ids` (direct, editable) and `all_species_ids` (direct plus photo tags, deduplicated).
+- **Rule:** only what the user writes plus the coordinates is stored; everything derived is computed when the corner is opened. `elevation_m` stays until the cards can read the elevation model.
+
+### Removed — stored provenance of saved points (2026-10-22, `feat/observatory-corners-model`)
+
+- Migration 020 drops `forest_types`, `cell_id`, `land_cover_layer/code/name/retrieved_at`, `toponym_name`, `toponym_label` and `composition`. The downgrade brings the columns back empty (the data is not recoverable).
+- Service and router code that wrote or read them is gone (`author_forest_types`, `composition_json`, `stored_cover`, author types in `build_species_response`).
+
+### Changed — saved points read their context live (2026-10-22, `feat/observatory-corners-model`)
+
+- `GET /observatory/saved-points/{id}/species` asks land cover and forest live instead of using stored values.
+- The saved-point card shows the coordinates as its label (the toponym is no longer stored).
+
+### Added — Observatory in the header and user menu (2026-10-21, `feat/observatory-header-menu`, step 9 of `feat/observatory-page`)
+
+- **Header with five sections:** Inicio, Zonas, Observatorio (`/observatorio`), Catálogo, Micología. Between `md` and `lg` the items are icons only, with `aria-label` and `title`; from `lg` they show icon and text.
+- **`UserMenu.jsx`:** avatar button on the right (initials, or the user icon) with a dropdown. Signed in: Perfil, Generador de imágenes (admins only, `/admin/generator`) and Cerrar sesión (goes to `/` when it is called from `/perfil` or `/admin/*`). Guest: Perfil and Iniciar sesión (opens `AuthModal`). Closes on Esc, outside press and navigation; arrow keys move between items. On phones the avatar sits next to the hamburger, which now lists only the five sections (with `aria-label`).
+- **`glass-olive-92`** (`glass.css`, `--glass-olive-92` in `tokens.css`): near-opaque variant for the dropdown (0.92 dark, 0.95 light).
+- Icons `IC.observatory`, `IC.logout`, `IC.login`; i18n keys `imageGenerator`, `userMenu`, `menuOpen`, `menuClose` (es, ca, en).
+
+### Removed — Público/Admin toggle (2026-10-21)
+
+- `isAdminView` / `setIsAdminView` (`AppContext`), the toggle in `Profile.jsx`, the `useEffect` in `ImageGenerator.jsx` that forced it, and the admin items of the header (Generador, Galería). Admins reach the generator from the user menu; `AdminGuard` stays.
+- i18n keys `modoPublico`, `modoAdmin`, `adminMode` and `adminGenerator` (replaced by `imageGenerator`). `adminGallery` stays: `AdminGallery.jsx` uses it as its title.
+
+### Added — forecast on the conditions layer (2026-10-21, `feat/observatory-layer-forecast`, 7b-bis)
+
+- **Reference day up to today + 7** (`FORECAST_LAYER_DAYS`) in `GET /observatory/layer/probability` and `/probability-excellent`. From today on the days are the cell's stored forecast, scored with the same v2 model and the same relief bands as the observed days. **No new table and no migration:** the 16 forecast days were already stored per cell in `climate_cell_history` (`source='forecast'`) by the cell load and the daily refresh (7a), in the same Open-Meteo request, so the call budget does not change.
+- **`prepare_climate(..., forecast_until, fresh_since)`** (`services/point_series.py`): continues the observed days with the forecast from today, only if yesterday is observed. The forecast must be continuous: a missing or incomplete day ends it (never filled, the model would invent that day's rain) and the cell has no score for later days. A forecast row fetched before `forecast_fresh_since(today)` (UTC midnight, `FORECAST_MAX_AGE_DAYS` = 2 days before today) does not count.
+- **New answer fields:** `max_date` (last day that can be asked), `forecast_from` (today) and `basis` (`real` | `forecast`; today already counts as forecast). `clamped` now means the date asked is beyond `max_date`. `last_data_date` is still the last observed day.
+- **Slider** (`LayerDayControl.jsx`): reaches `max_date`, a strip under it marks the forecast stretch and the label says «previsión».
+- **Cache signature** (`SqlCellStore.data_signature()`) adds the latest download of forecast rows (`forecast_signature_statement`); `layer_cache` LRU goes from 24 to 64 entries (a day slider fills 24 for one species).
+- **`scripts/ingest_cells.py`:** new `refresh --max-calls` (what the server's daily job does, ~3 weighted calls per cell) and `status` now prints the forecast rows by the UTC day they were downloaded, marking the cells too old for the layer.
+- Tests: `tests/unit/test_layer_forecast.py` (reference day, week limit, holes, freshness, closeness to the calendar, same model over its own window, signature) and two endpoint tests in `test_layer_probability.py`.
+
+### Changed — map look on the dark basemaps (2026-10-21, 7b-bis)
+
+- **Relief basemap:** the conditions layer pane is blended with `mix-blend-mode: multiply`, so the black-and-white shading shows through the colour.
+- **Opacity per basemap** (`ALPHA_SCALE_BY_BASEMAP` in `lib/layerColors.js`, applied in `reliefOverlay`): satellite ×0.8, streets ×1.5, relief ×2 over the band alphas (a pixel's alpha tops out at 1).
+- **Place names above the layer:** streets and relief draw CARTO without labels and the labels in their own pane (`obsLabels`, z-index 360, over the layer at 350 and under the markers). Satellite keeps ICGC's hybrid tile, with the names printed in it. Streets now makes two tile requests per view (relief already did).
+
+### Added — conditions layer on the interactive map (2026-10-20, `feat/observatory-layer-probability`, 7b)
+
+- **Conditions layer** (`GET /observatory/layer/probability`, `routers/observatory_layer.py`, `services/layer_probability.py`): cells are scored at relief bands (every 300 m, spread 900 m) with the species' v2 model; the client paints every pixel from the elevation raster (`lib/reliefLayer.js`, kernel blend of neighbouring cells) so the map gains detail where the relief changes. Species selector over the full catalogue (`SpeciesLayerPicker.jsx`); species range ±150 m around its altitude window.
+- **Mean of excellent species** (`GET /observatory/layer/probability-excellent`, `excellent_layer` + `compute_v2_multi`): with no species chosen the layer shows the mean score of the excellent species present at each pixel (in range, habitat factor ≥ 0.05, in season). Shared computation: 37 species ≈ 3 s on the real database.
+- **Habitat factors per pixel:** forest ramp (0 below 10 % cover, 1 at 40 %) × soil pH factor, from two private rasters (`/observatory/layer/forest-raster[/meta]`, `/substrate-raster[/meta]`) built by `scripts/build_forest_raster.py`, `build_substrate_raster.py`, `build_elevation_raster.py` (raw `.bin` + `.json` in `frontend/public/data/` for elevation; forest and substrate stay in `local-data/`).
+- **Layers box** (`MapLayersBox.jsx`) under the view switch, relief basemap (ICGC), day control (`LayerDayControl.jsx`), value of the clicked point as a big coloured score in the point panel, attributions (Copernicus DEM GLO-30, ICGC lithology CC BY 4.0, CREAF MCSC-4).
+- **Layer cache** (`services/layer_cache.py`, LRU 24): key = kind, day, `SqlCellStore.data_signature()` (cell count, max refreshed/loaded/climate timestamps) and the species record(s). Own `Cache-Control` of a route is now kept by the middleware.
+- **Check script** `scripts/check_layer_probability.py` for the real database (history query 145–263 ms, one species ≈ 1.5 s, 37 excellent ≈ 3 s).
+- `species=excellent` accepted by `/point/snapshot`, `/point/series` and `/point/calendar` (`services/point_ensemble.py`).
+
+### Changed — conditions layer (2026-10-20, 7b)
+
+- **Wording:** the score is an *index of favourable conditions* (weather, altitude, forest, soil), **not** a probability of finding mushrooms; abundance and mycorrhiza are not modelled. UI texts say "conditions".
+- **Forest is judged around the point:** CREAF raster mean within 500 m (`HABITAT_RADIUS_M`), soil from the exact pixel; the ICGC land cover is informative only ("Bajo el punto"). Author forest types of saved points no longer decide anything and were removed from the save form.
+- **Thermometer without species = ensemble:** per-day mean of v2 scores of the excellent species present, the same number the map shows; out of season → 0, conditions list empty; snapshot returns `ensemble:{count}`.
+- Saved points use the same sources as the interactive map, not the points of interest of the zones section.
+- **Thermometer with no excellent species fitting the place** (no forest, altitude or soil out of range): reads the general climate score instead of 0 (`ensemble.climate_only`); the count in the note only includes species in season that day.
+- **The mean of excellent species only includes forest species** (`counts_in_ensemble`): meadow, garden, riparian or untyped species count nothing, so a town lawn does not paint a place green. Applies to the map layer, the thermometer, the chart and the calendar.
+- The point panel stays on the map after «Observe this zone» and when the page opens on a point's URL; it shows the height from the relief raster when the elevation service gives none, and hides the score caption when the layer paints nothing.
+- **Thermometer breakdown now explains the score:** the factors `needs` (what the species asks of frost, drop and humidity) and `fit` (altitude × forest × soil) are returned and shown as rows and in the formula; with no species the formula says it is the mean of N species.
+- Explanations moved into ⓘ tooltips (`InfoTip`): thermometer note, layers box, point panel. Point panel shows a dots loader while the score is calculated and the caption reads «Índice de condiciones» (not «favorables»). Display font uses lining figures; thermometer shows «/ 100».
+- Without a forest around, the species list shows the species the forest cannot judge (meadow, garden, riparian); the thermometer starts on the species chosen on the map.
+- Observatory score bands read as conditions in es/ca («Muy buena», «Mala», «Condiciones excelentes»…); chart tab «Momento» is now «Condición». Zones keep their own labels.
+
+### Fixed — `/point/species` (2026-10-20, 7b)
+
+- The `excelente` edibility value was not recognised when listing compatible species.
+
+---
+
+### Added — server-side ingestion of the Open-Meteo cells (2026-10-18, `feat/observatory-map-ingest`, 7a, in progress)
+
+- **Discovery by probing** (`services/cell_discovery.py`, `cell_ingest.py`, `scripts/ingest_cells.py`): the model grid is not known by arithmetic, so a lattice of 655 probe points finer than a cell (0.06° × 0.10°) is sent to the archive API in batches of 50 locations, each answer names the cell the point falls in, and the distinct answers are the cells. Cells that touch Catalonia are picked with a rectangle-against-outline test (`catalonia_outline.py`, a drawing, not a survey). `holes` / `discover --holes` find neighbours expected but not found and probe only those.
+- **Subcommands:** `plan` (offline), `discover [--max-calls]`, `load [--max-calls --limit]`, `status`. Resumable: each cell is saved when done, a rerun continues with what is left. Paced at 70 calls/min, stops on budget, on a 429 or after 5 failures in a row. A friendly message (exit 2) when the tables do not exist.
+- **Daily refresh job** `cell_refresh` at `ingest_cron_hour`:45 UTC in `main.py`, least recently refreshed first, within `OBSERVATORY_CELL_REFRESH_BUDGET` (default 1500 calls, 0 = off). `refresh_recent` has a caller for the first time.
+- **New connector call** `OpenMeteoConnector.resolve_grid_batch`, `CellProvider.load` made public, `CellInfo.refreshed_at`, `SqlCellStore.known_lookup_keys` / `list_cells`.
+- Tests: discovery geometry on a fake grid that keeps the cell width in kilometres and has an offset per row, ingestion with fake store and loader, and `resolve_grid_batch`. Checked on a disposable Postgres against real Open-Meteo: 444 cells stored, 423 touch Catalonia, all 423 loaded in three runs (cells that failed with a transient 503 loaded on the rerun). Not checked yet: the real cost per cell (the script's `calls~` is an estimate, 21 per cell) and the daily job in `main.py`.
+
+### Removed — fixed-grid territory rain map (2026-10-18, `chore/observatory-remove-territory-rain`)
+
+- **The rain heat map of «Área de territorio» is taken out before any deploy.** It is superseded by the interactive map with data layers (backlog item 7; the rain layer is 7c). Removed: `GET /observatory/territory/rain` and its router, `services/territory_rain.py`, `territory_rain_store.py`, `territory_grid.py`, the `TerritoryRainCache` model, **migration 020** (`territory_rain_cache`; it never reached `main` or Render, so migrations end at 019), the 05:30 UTC rebuild job and its 20 unit tests; in the front `RainHeatMap`, `RainTimeline`, `cataloniaOutline.js`, `fetchTerritoryRain`, the `obsHeat*` strings (ES/CA/EN) and the rain helpers of `territoryData.js`. The zone ranking stays until the Top 10 layer (7f). Avoids ~770 Open-Meteo calls on the first load.
+
+### Added — Observatory page, second block (2026-10-18, `feat/observatory-page`: step 7 and extras)
+
+- **Calendar (step 7)** from `/point/calendar`: 7 real and 35 future days in a Monday-first grid, colour by score band, and the three origins told apart (`real` dashed outline, `forecast` plain fill, `estimate` «≈»; an estimate is never presented as a forecast). Follows the species chosen in «¿Qué seta buscas?». The request is made once in `ObservedZone` and shared with the chart.
+- **New `GET /observatory/point/forecast`** (`services/point_forecast.py`, 5 unit tests): the forecast stored in the point's cell from today, up to 16 days, with temperature shifted to the point's elevation (rain and wind are the cell's); `days` is empty when the cell has no forecast. Front: «Previsión en {zona}» block with seven day cards (icon, max/min, rain bar, wind, tag Helada / Calor / Lluvia útil) and a dimmed strip for days 8–16.
+- **Chart «Momento» looks 21 days ahead** (dotted line, band from today; days with a forecast and days estimated without one are told apart in legend and tooltip) and **can be dragged** with the mouse or finger like the timeline. **Timeline** replaces the 7/20/60/120 selector (drag, stretch 7–180 days, keyboard, «Volver a hoy»); the window lives in the URL as `hasta` and `dias`; the thermometer and species list follow its end date. `usePointData` has a `keepPrevious` option (`stale`), so a new window dims the previous answer instead of collapsing it and shifting the page.
+- **Map stays on the page** when a zone is observed: smooth scroll to the zone (instant on first load or with reduced motion) and a strip of map above it that acts as «Volver al mapa». «Zonas guardadas» is a button next to the title that opens a modal; saving, editing and removing are modals too. Vocabulary: «Guardar esta zona», «Eliminar zona» (broken-heart icon). Removing the observed zone stops showing it and scrolls to the map. Filters (species, window) are pills above the thermometer.
+- **Map search lists the last 5 searches** when focused and empty (browser `localStorage`, key `fungus-obs-recent-searches`; nothing on the server).
+- **«Área de territorio»** (`TerritorySection`, independent of the search; centred on the observed zone when there is one): a ranking of zones («Cerca (20)» / «Seguidas (N)», score, followed heart, lowest factor, «Observar esta zona ↑»; it reuses `/zones`). It had a rain heat map over a 55-point grid; that part was removed before shipping (see «Removed» below).
+- **Fixed:** `/point/snapshot` answered 404 for a date the cell has no row for (a gap, or `hasta` before the first day); it now scores the nearest earlier day, and still answers 404 before the first day.
+- About 130 new strings in ES, CA and EN (`obsCal*`, `obsFc*`, `obsRank*`, `obsTer*`, vocabulary). **Not checked against the real backend**: the heat map and the layout were reviewed with invented data in a test browser; no phone, dark-theme or real-data pass yet (step 10).
+
+### Added — Observatory page, first steps (2026-10-17, `feat/observatory-page`, steps 1–6 and 8 of 10)
+
+- **New route `/observatorio`** (lazy-loaded in `App.jsx`): the page of the Observatory over the free map. Not in the header yet (step 9). The page and the API calls need a session; a 401, a 422 outside Catalonia, a 429 with `Retry-After` and a 503 each have their own notice (`ObservatoryNotice`).
+- **Map and view state in the URL**: Leaflet map with the ICGC orthophoto and the CARTO basemap; a click picks a point. The URL holds `lat` and `lon` (5 decimals); a broken or out-of-Catalonia link falls back to the default view and rewrites the URL, and the browser's back button round-trips. While a zone is observed the map is hidden and «Volver al mapa» brings it back at the last observed position.
+- **Place search** (`geocodingService.js`): Photon (OpenStreetMap data) limited to Catalonia, because Open-Meteo's geocoder does not know passes, peaks or springs. Public instance with fair use and no SLA; the module is the one to swap for a backend endpoint if the app grows.
+- **Thermometer** driven by the backend's codes (never a score without its reason), **point panel** (toponym, forest cover, macrotype), and the standing credits of **Open-Meteo, ICGC, Photon and OpenStreetMap** (`Attribution.jsx`).
+- **Saved points**: save, edit and remove from the observed zone, with name, notes and the author's forest types; «Mis puntos» opens the list of cards under the buttons.
+- **Species list** for the observed zone (edibility filter, chosen species drives the chart's range) from `/point/species`; the list state lives in `ObservedZone`.
+- **Charts** («Qué ha pasado»): score, rain, temperature, humidity and wind over 7, 20, 60 or 120 days (the request asks for `days + 21`, capped at 180, so the 21-day accumulations are complete). Score line with a per-day gradient by band, v1 as a dashed reference, limiting-factor strip, triggers and brakes as numbered events with their list, tooltip per day, filters and legend under the chart, and a data table. Pure logic in `src/lib/chartData.js`.
+- **Design**: cards use `.obs-card` (the same shadow as the zones page), borderless `ObsSelect` and inputs like the rest of the app, custom `.obs-chk` checkboxes. About 850 new strings in ES, CA and EN.
+- **Backend**: `GET /point/species` now returns `synonyms` for each species (`routers/species.py`, `schemas/species.py`).
+- Not in this commit series: calendar (step 7), header entry and avatar menu (step 9), mobile, language and dark-theme pass (step 10). **Not yet checked against the real backend**, only against mocks. The frontend has no automated tests; checked with `npm run build`, manual review and temporary browser scripts.
+
+### Fixed — Retry-After readable from the browser (2026-10-17, `fix/observatory-cors-retry-after`)
+
+- **CORS now lists `Retry-After` in `Access-Control-Expose-Headers`** (`app/main.py`). The 429 (daily limit of new cells) and 503 (provider down or daily budget spent) answers of the Observatory carry it, but a browser on another origin (Vercel to Render, or `localhost:5173` to `localhost:8000`) hides every header that is not exposed, so the page could not tell the user when to try again. New `tests/unit/test_cors.py` (588 unit tests in total).
+
+### Fixed — UTC date in the climate export script (2026-10-17, `fix/observatory-export-climate-utc-date`)
+
+- **`backend/scripts/export_zone_climate.py` computes "today" in UTC** (`datetime.now(UTC).date()`) instead of the local date. Open-Meteo counts days in UTC: between 00:00 and 02:00 in Madrid the local date is a day ahead and its forecast limit rejected the requested range.
+
+### Fixed — Retry-After readable from the browser (2026-10-17, `fix/observatory-cors-retry-after`)
+
+- **CORS now lists `Retry-After` in `Access-Control-Expose-Headers`** (`app/main.py`). The 429 (daily limit of new cells) and 503 (provider down or daily budget spent) answers of the Observatory carry it, but a browser on another origin (Vercel to Render, or `localhost:5173` to `localhost:8000`) hides every header that is not exposed, so the page could not tell the user when to try again. New `tests/unit/test_cors.py` (588 unit tests in total).
+
+### Fixed — UTC date in the climate export script (2026-10-17, `fix/observatory-export-climate-utc-date`)
+
+- **`backend/scripts/export_zone_climate.py` computes "today" in UTC** (`datetime.now(UTC).date()`) instead of the local date. Open-Meteo counts days in UTC: between 00:00 and 02:00 in Madrid the local date is a day ahead and its forecast limit rejected the requested range.
+
+### Added — MCSC-4 grid preprocessing and pure composition (2026-10-17, `feat/observatory-mcsc-grid`)
+
+- **New `app/services/mcsc_grid.py` (pure, stdlib only)**: the tile format of the CREAF MCSC-4 land cover as a 25 m grid, a `Grid` reader over any tile loader and `composition()` / `composition_at()`. Each cell holds the class (`C_SIMPLE` code) of the polygon at its centre as an index into a code table (0 = no data), 1 byte per cell (2 bytes automatically beyond 255 codes), in tiles of 1024×1024 cells (25,600 m) anchored at the UTM 31N origin, compressed with `lzma` and named `{tx}_{ty}.lzma`, next to a `manifest.json` (cell and tile size, CRS `EPSG:25831`, bytes per cell, code table with `confirmed`, sheets). `bqs` and `bqp` carry `confirmed: false`.
+- **`composition(grid, x, y, radius_m)`** returns the share (%) of each code among the cells with data whose centre is within the radius (inclusive), biggest first and ties by code. Cells without data (outside the sheets, a missing tile) are not counted, so a window crossing the grid's edge neither invents forest nor invents «no forest»; no data at all gives `[]`. Its output feeds `composition_json` (saved points). Not wired to any endpoint yet: `/point/forest` still returns `composition: null`.
+- **New `scripts/mcsc_preprocess.py`** (`cd backend && python -m scripts.mcsc_preprocess --dirs <sheets> --out <grid>`): every `.shp` under the folders (UTM 31N required, else an error) becomes tiles with one code table shared by all sheets; where sheets overlap the first one in name order keeps the cell; null shapes and empty codes are skipped and counted. The output is deterministic and an existing grid is only replaced with `--overwrite` (stale tiles are removed). Never commit the sheets or the tiles (CREAF licence unconfirmed).
+- Measured on sheet 36321: 8,628 polygons, 82 codes, one tile of 43,472 bytes. 38 new unit tests (586 in total): synthetic sheets written on the fly run everywhere; those using the real sheet are skipped without `local-data/` (or `MCSC_FIXTURE_DIR`) and compare 300 cells and three compositions against the polygon lookup of `mcsc_lookup.py`.
+
+### Added — saved points (2026-10-16, `feat/observatory-saved-points`)
+
+- **New endpoints under `/api/v1/observatory/saved-points`** (login required; someone else's point, or a missing one, is a 404): `GET` (mine, newest first), `POST` (201), `GET /{id}`, `PATCH /{id}` (only `name`, `notes` and `forest_types`; coordinates cannot change, a moved point is a new point; `forest_types: null` goes back to the derived types), `DELETE /{id}` (204) and `GET /{id}/species` (same answer as `/point/species` for the saved coordinates).
+- **Migration 019** (applies on Render's startup): table `saved_points` with the user's choices (`name` 1–80 characters, `notes` up to 2000, `forest_types` as a list) and the provenance of the derived data: land cover `layer`, class `code`, `name` and retrieval date; toponym `name` and `label`; MCSC-4 `composition` (`{"radius_m": 300, "items": [{"code": "bfs20", "pct": 95.0}]}`, null until the grid exists); `elevation_m`; `cell_id`. Unique `(user_id, lat, lon)` (coordinates rounded to 5 decimals), index `(user_id, created_at)`, RLS on, `ON DELETE CASCADE` from `users`. **No raw texts from the services and no derived macrotype are stored**: the macrotype is derived again from the stored class, so a change in the mapping applies to old points without asking the ICGC again. `cell_id` has no foreign key because cells are a rebuildable cache.
+- **The server records the provenance**, never the client: a body with land cover, toponym, elevation, cell or composition is a 422. Land cover, toponym, elevation and cell are looked up when saving; a failing service leaves its fields null and never blocks the save. Saving never creates a cell nor spends the new-cell budget (`cell_id` comes from `cell_lookup`, or null). The name defaults to the nearest toponym, then to the coordinates.
+- **The author's forest types win** (decided with Marcos: one point can have several): `forest_types` takes `pinar`, `hayedo`, `robledal`, `encinar` (1–4, no repeats). In `/{id}/species` they win over the land cover, even over «no forest»; the catalogue's `mixto` species always fit. Without them, the stored class is read again with the current mapping, and the ICGC is asked only if it had failed when saving.
+- **Setting `OBSERVATORY_MAX_SAVED_POINTS_PER_USER`** (default `0` = no limit, like the per-user cell limit; the Observatory is not born limited). Over it, and for a point already saved at those coordinates, the answer is 409 before any service is asked.
+- **`/point/species` now returns `forest_source`** (`author`, `land_cover` or `null`: which one decided the forest types). Additive.
+- Refactors: `build_species_response` (shared by both species endpoints), `cover_from_class` in `point_forest.py` (also used to read a stored class again), Catalonia's bounding box moved to `services/geo_bounds.py`. 548 unit tests pass.
+- Not in this branch: the composition (MCSC-4 grid), following saved points or notifications, and featured (curated) points: `user_id` is NOT NULL for now.
+
+### Added — per-user daily limit of new cells (2026-10-16, `feat/observatory-user-limit`)
+
+- **A user can open at most 10 new Open-Meteo cells per UTC day.** Beyond that, a point whose cell is not stored yet answers **429** with `Retry-After` (seconds until midnight UTC); points in stored cells keep working, for that user and everybody else. Applies to `/point/series`, `/snapshot`, `/species` and `/calendar`. Configurable with `OBSERVATORY_MAX_NEW_CELLS_PER_USER_PER_DAY` (default 10, `0` disables it); the global `OBSERVATORY_MAX_NEW_CELLS_PER_DAY` (503) still applies, and when both are spent the user's 429 wins. Both caps are ours, not Open-Meteo's: with the Professional plan they are raised or removed.
+- **Migration 018** (applies on Render's startup): `cells.created_by` (nullable FK to `users.id`, `ON DELETE SET NULL`) and index `ix_cells_created_by_created_at`. Existing cells have no creator and cost nobody anything.
+- Only the user whose click creates the cell pays for it. A retry after a provider outage is not a second new cell, and one user's refusal is not shared with another user asking for the same new point at the same time. `CellProvider.get(..., user_id=None)` (jobs) is never limited per user. 476 unit tests pass.
+
+### Added — `/point/forest`, forest-aware species and snapshot (2026-10-15, `feat/observatory-forest`)
+
+- **New `GET /api/v1/observatory/point/forest?lat=&lon=&radius=300`** (login required, Catalonia only). Returns the nearest toponym (ICGC reverse geocoder), the point's elevation, and the forest from the ICGC land cover 2024 (`cobertes_2024`, point query): `forest` true/false (null if the service did not answer), `macrotype` (`conifera`, `esclerofilo`, `caducifolio`, `bosque_otro`), the land-cover class, and `composition: null` until the MCSC-4 grid exists. `radius` accepts 100–1000 m (422 outside) and is echoed; it will size the composition. It never loads a climate cell. A failing ICGC service gives `toponym: null` / `forest: null`, never an error.
+- **`/point/species` with no forest** returns empty `species` and `excellent` with `reason: "no_forest"` and `forest_known: true`; the cell still loads, so the climate endpoints keep answering. In a forest, species are filtered by the land cover's macrotype through the catalogue's forest types (`conifera` → `pinar`, `esclerofilo` → `encinar`, `caducifolio` → `robledal`/`hayedo`; `mixto` fits any); with the forest unknown nobody is excluded and the forest condition stays `pending`.
+- **`/point/snapshot` stays one thermometer per point** (decided 2026-10-15: the climate does not change with the forest around the point; where several forest types are present, the species list is what is split by type). The flat response replaces the temporary `entries` list of `feat/observatory-api` and carries `forest`.
+- **Source data and provenance travel with the answer.** `land_cover` (in `/point/forest`, `/point/species` and `/point/snapshot`) carries the ICGC's class `code` and `name` as received, plus `provider`, `service`, `layer` (`cobertes_2024`), `licence` (CC BY 4.0) and `retrieved_at`, next to the macrotype we derive. The toponym carries the same provenance (its licence is `null`: the geocoder declares none). `/point/forest?raw=true` also returns `raw`: the land-cover text answer and the geocoder feature exactly as the services sent them (debugging and audits; off by default, it adds ~1 KB per call and nothing a client needs).
+- New `services/point_forest.py` (parsing separated from HTTP, ~10 m LRU cache for the land cover, failures not cached). Tests with real ICGC answers recorded on 2026-10-15; 435 unit tests pass.
+- Findings from the ICGC probe: the geocoder lists `topo1` before `topo2`, so the nearest is chosen by `distancia` across both; buildings, historic buildings and facilities (`Edificació`, `Edificació Històrica`, `Equipament`) are skipped so in a town the name is the town's; the WMS answers only `text/plain` (`application/json` is a ServiceException); outside Catalonia the geocoder returns an empty collection and the WMS "no results"; the sea is class 0 "Sense dades" (forest null, not false).
+
+### Added — Observatory API by coordinates (2026-10-15, `feat/observatory-api`)
+
+- **New endpoints under `/api/v1/observatory/point`, login required (401 without a token), lat/lon limited to Catalonia (422 outside)**: `series` (7–180 days; climate, v1, v2 and factors per day, plus events and the coldest night), `snapshot` (thermometer, limiting factor, key facts, every active condition with code, sign, values and hint, explanation code, v1), `species` (compatible species with score, grade, conditions and best window; followed first; excellent edibles in their own list) and `calendar` (7 real days and 35 ahead, each one `real`, `forecast` or `estimate`; best day and days at 55 or more). The backend returns codes and values, the front writes the sentences.
+- **Cells are the base unit.** New tables `cells`, `cell_lookup` and `climate_cell_history` (migration 017, RLS on). A click is resolved to its Open-Meteo grid cell (memory LRU, then `cell_lookup` by ~500 m buckets, then one cheap API call); the cell's 280 days plus the 16-day forecast load on the first request (`source: live`, ~1 s) and later requests are served from the database (`source: stored`, ~30 ms). Simultaneous first requests share one load, a failed load stays retryable, an archive day is never replaced by a forecast day, and a daily budget of new cells (`OBSERVATORY_MAX_NEW_CELLS_PER_DAY`, default 60) answers 503 with `Retry-After` while cached cells keep working.
+- **Altitude correction to the point** (`services/elevation_correction.py`): temperature and soil −0.65 °C per 100 m, humidity −0.13 points per 100 m; rain and wind are the cell's regional value. The point's elevation comes from the Open-Meteo elevation API; if it fails the response says `elevation_corrected: false`.
+- New services `cell_provider`, `cell_store`, `point_series`, `point_events`, `point_species`, `point_calendar`, `point_elevation` and router `routers/observatory.py`; setting `observatory_max_new_cells_per_day`.
+- Not in this branch yet: the per-user limit of new cells (429), `compare_years`, and saved points.
+
+### Fixed — Forecast request past Open-Meteo's UTC limit (2026-10-15, `feat/observatory-api`)
+
+- Open-Meteo counts the 16-day forecast limit from the UTC date. Between 00:00 and 02:00 in Madrid the local date is a day ahead, so asking for the 16th day returned HTTP 400. `OpenMeteoConnector` now stops at `min(local, UTC) + 15` and keeps the provider's reason in the error and the log. The daily ingest (05:00) was never affected.
+
+### Added — Probes and tools for the free-map design (2026-10-14, `epic/observatory`)
+
+- **New `memory/observatory-free-map-prd.md`**: repo copy of the free-map PRD (the Claude Doc stays the source of truth). `memory/observatory-prd.md` remains the phase-1 record and now points to it.
+- **Design decisions only, no app change.** The Observatorio will work for any coordinate in Catalonia (map click, login required, cells loaded on demand, forest composition, index per forest type). The API plan is in `memory/observatory-plan.md` («Update 2026-10-14») and the backlog in `memory/pending.md`.
+- **New `backend/scripts/probe_open_meteo.py` and `audit_zone_climate.py`**: grid, altitude correction, forecast/archive seam and consistency of the stored climate against the archive. Read-only.
+- **New `backend/scripts/probe_geo.py`**: probes the ICGC reverse geocoder, the ICGC land-cover WMS (`cobertes_*`) and the MFE WMS (not usable: broken certificate chain and server error). `--cobertes-check` compares the land-cover macrotype with the stored forest type.
+- **New `backend/scripts/suggest_forest_points.py`**: proposes corrected coordinates for zones whose point is not in a stand of the stored forest type. Writes a CSV only.
+- **New `backend/scripts/mcsc_lookup.py` and `inspect_dbf.py`**: read the CREAF MCSC-4 shapefile sheets (stdlib only), decode the level-5 species code in `C_SIMPLE` and print the species composition around a point (`--radius`).
+
+### Added — 16-day forecast stored per zone (2026-10-11, `epic/observatory`)
+
+- **New table `zone_forecast`** (migration 016, RLS on): the Open-Meteo forecast per zone and target day (temperatures, soil, rain, max rain probability, humidity, wind). Kept apart from `climate_history`, which only holds observed days. Each daily run replaces the zone's rows; days before today are deleted.
+- **No extra Open-Meteo calls**: the daily ingest already asked the forecast endpoint for the last 7 days; `OpenMeteoConnector.fetch_range_and_forecast` extends that same request to today + 15 and splits observed from forecast days. The archive API never gets the forecast variable (it rejects it) and backfills store no forecast.
+- A failing forecast write is logged and never loses the observed days. New setting `forecast_days` (default 16); the ingest summary reports `forecast_rows`.
+- **New `backend/app/services/forecast.py`**: `load_zone_forecast` and `build_forecast_days` (first 7 days as cards, the rest as a trend row) with warning codes `frost` (min < 0 °C), `heat` (max > 25 °C) and `useful_rain` (≥ 10 mm); the front builds the sentences. Used by the API branch.
+- **New `backend/scripts/forecast_qa.py`**: runs the real ingest path on a few zones and checks what was stored (16 consecutive days from today, nothing future in `climate_history`, rain probability present).
+- Also in this branch: `backend/scripts/zone_forecast.py` and `app/services/zone_projection.py` (v2 projection per zone, writes nothing) and `backend/scripts/export_zone_climate.py` (climate + forecast to JSON for the prototype).
+
+### Changed — The zone score is now Outbreak Index v2 (2026-10-10, `epic/observatory`)
+
+- **`score_oi` is v2** everywhere it is shown (zone list and card, dashboard, map, `min_score` filter). New `scores_cache.model_version` (migration 015) says which model it is; `score_detail` keeps every version under its own key (`{"v1": …, "v2": …}`), so a future model never renames a column.
+- **New `backend/app/services/zone_scores.py`** (pure): v1 exactly as the ingest always computed it (parity with `scores_cache`: 58, 75, 76, 81), v2 on the last day with climate data — the archive runs 1–2 days behind, so the ingest's "today" usually has no row yet — and the cache row. Falls back to v1 only if v2 cannot be computed. The ingest reads 100 days instead of 21.
+- **Zones API**: `model_version`, `score_v1` and `v2` (factors, limiting factor, zone state, rains on the way, scored day); old rows with flat v1 fields still read.
+- **"Rain on the way"** next to a score below "Bueno" in the zone list and card: "Lluvia del 4 oct (27 mm) en camino: se notará hacia el 18 oct" (ES/CA/EN). Check of 2026-10-10: 193 of 214 zones score "Malo" right after the 3–8 Oct rains, 200 have rain on the way.
+- **New `backend/scripts/compare_v1_v2.py`**: v1 and v2 per zone and day as CSV, read-only, for calibration with the field-trip log.
+
+### Added — Five score bands and zone altitude ranges (2026-10-10, `epic/observatory`)
+
+- **Five-band scale** everywhere a score is shown: Malo (< 30), Regular (30–54), Bueno (55–69), Muy bueno (70–84), Excelente (≥ 85). New `src/lib/scoreBands.js` is the only place with the thresholds; `getScoreColor` delegates to it, so the zone list, card, dashboard and profile follow it without changes. New `--ui-score-mid-*` tokens (orange) for Regular in both themes; the light theme gains the "good" tokens it was missing. i18n key `malo` (ES/CA/EN). Backend `score_label` returns the same five bands (adds "Fair").
+- **Zone altitude as a range**: migration 014 adds nullable `zones.elevation_min_m` / `elevation_max_m` (applied to Supabase on 2026-10-10).
+- **New `backend/scripts/zone_elevation_ranges.py`**: computes each zone's band from a grid of points around it, kept only where OpenStreetMap has forest (Overpass), with altitudes from the Open-Meteo Elevation API; p10–p90, capped by forest type, always containing the zone point. Dry run by default, `--apply` to save. Setcases uses a 6 km radius to reach down the valley. Checked against field knowledge: La Molina 1,500–1,850 m, Costabona 1,450–1,900 m, Setcases 1,400–2,200 m.
+- **New `backend/app/services/altitude_fit.py`**: species × zone altitude fit — overlap fits (with the altitudes where to look), within 150 m "at the limit" (score × 0.85), beyond does not fit, missing data never filters.
+- **Docs**: `docs/content-guide.md` lists the source of every zone value (static or dynamic, how it is obtained, how often it is refreshed) and the new-zone steps with computed altitude and climate backfill.
+
 ### Fixed — Map basemap shows "API KEY REQUIRED" (2026-10-10)
 
 - **`src/components/map/LeafletMap.jsx`**: since 25 Sep 2026 CARTO serves basemap tiles only with an API key, so every map showed the watermark instead of the base map. Tiles now use `rastertiles/dark_all` with `?key=` from `VITE_CARTO_KEY`, and the console warns when the key is missing.
 - Two keys, one per environment: production (restricted to the production domain) in Vercel, development (restricted to `localhost`) in the local `.env`. Documented in `docs/environments.md`. Free tier: 5M requests/month non-commercial; a commercial key is needed when premium launches.
+
+### Added — Outbreak Index v2.1, scoring engine (2026-10-10, `epic/observatory`)
+
+- **New `backend/app/services/scoring_v2.py`**: pure functions, no database access. Rain counts when it starts producing mushrooms (two-speed fruiting curve: cold zone peak on day 21, zone already producing peak on day 12), only while the shaded soil keeps moisture; two-bucket soil water balance (sunny and shaded slope); air and soil temperature against an optimum; season by altitude band; drying, heat and frost penalties; experimental bonus for a temperature drop after rain. Also returns the rains on the way (when they would start to show and peak), fills missing days and marks the score as estimated when data is short. Per-species parameters supported. `model_version` "2.1".
+- Port of the Observatory prototype's `v2Series`, which stays the reference: same numbers on every day compared (1,424 days, generic model and cep, Jul–Oct 2025 and 2026).
+- **Tests** (`tests/unit/test_scoring_v2.py`, 51): the design document's cases (Montseny 49, La Molina 7, Setcases 16, Costabona 20 on 2026-10-06), factor-by-factor behaviour, rains on the way, gaps and species. Fixtures in `tests/fixtures/climate/`, an export of `climate_history` for the four zones.
+- A 100-day data window gives the same scores as starting the water balance on 1 April, so the ingest will read 100 days.
+- Not wired yet: the zone score (`score_oi`) is still v1 until `feat/observatory-ingest-v2`.
+- Docs: Observatory kick-off (`memory/observatory-prd.md`, `memory/observatory-plan.md`).
 
 ### Fixed — App logs missing on Render after startup migrations (2026-10-10)
 

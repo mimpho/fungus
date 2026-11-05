@@ -15,6 +15,9 @@ import { ModalRenderer } from './components/modals/ModalRenderer'
 // AdminGeneratorHub = galería + modal especie + generador simplificado (v5.4)
 const AdminGeneratorHub = lazy(() => import('./pages/AdminGeneratorHub'))
 
+// Observatorio: carga bajo demanda (mapa y servicio propios, no pesan en el resto de páginas)
+const Observatory = lazy(() => import('./pages/Observatory'))
+
 // Scroll to top on page navigation — EXCEPTO rutas de modal.
 // Las rutas de modal (con segundo segmento) son /zonas/:id, /especies/:id,
 // /familia/:slug, /micologia/:slug. Abrir un modal no debe resetear el scroll:
@@ -44,6 +47,11 @@ export default function App() {
           <Route path="familia/:slug"   element={<Family />} />
           <Route path="micologia"       element={<Articles />} />
           <Route path="micologia/:slug" element={<Articles />} />
+          <Route path="observatorio" element={
+            <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#4a7c59] border-t-transparent rounded-full animate-spin" /></div>}>
+              <Observatory />
+            </Suspense>
+          } />
           <Route path="perfil"          element={<Profile />} />
           <Route path="verificar-email" element={<VerifyEmail />} />
           {/* /admin/generator = hub galería-first (v5.4): galería → modal → generador */}

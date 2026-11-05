@@ -13,6 +13,7 @@ from app.models.scores_cache import ScoresCache
 from app.models.zone import Zone
 from app.schemas.health import HealthResponse
 from app.services.ingest import get_stale_zones
+from app.services.raster_loader import raster_status
 from app.services.weather_refresh import get_outdated_weather_zones
 
 log = logging.getLogger(__name__)
@@ -62,6 +63,8 @@ async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
         stale_zones = [z["zone_id"] for z in await get_stale_zones(db)]
         weather_outdated = len(await get_outdated_weather_zones(db))
 
+    rasters, rasters_missing = raster_status()
+
     return HealthResponse(
         status="ok" if db_ok else "degraded",
         version=pkg_version("fungus-api"),
@@ -76,4 +79,6 @@ async def health(db: AsyncSession = Depends(get_db)) -> HealthResponse:
         db_reachable=db_ok,
         stale_zones=stale_zones,
         weather_outdated=weather_outdated,
+        rasters=rasters,
+        rasters_missing=rasters_missing,
     )

@@ -157,12 +157,15 @@ def compute_oi(
 # ── UI helpers ────────────────────────────────────────────────────────────────
 
 def score_label(score: int) -> str:
+    """Band of a score: the same five bands as the web (src/lib/scoreBands.js)."""
     if score >= 85:
         return "Excellent"
     if score >= 70:
         return "Very good"
     if score >= 55:
         return "Good"
+    if score >= 30:
+        return "Fair"
     return "Poor"
 
 

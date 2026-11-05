@@ -2,7 +2,7 @@
 
 Intelligent mushroom foraging prediction system for Spain.
 
-**Version**: v7.1 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
+**Version**: v7.2 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 
@@ -141,11 +141,18 @@ POST /api/v1/images/set-order                 ← admin only
 | v5.0–v5.6 | ✅ | JWT auth · ImageGenerator · Myco-Engine Visual DNA |
 | v6.0 | ✅ | OpenSpecs migration — structured SSOT, IDE-agnostic |
 | v7.0 | ✅ | Social login: Google OAuth2 |
-| v7.1 | 🚧 | Email confirmation on signup · design polish |
-| v8.0 | ⏸ | Android mobile app — paused (2026-10-10). Scaffold, nav, design system, zones done; species + map pending. Merged into `main`, not distributed |
-| v9.0 | 🚧 | Observatory (web) — scoring v2, daily series, date/species scores, Observatory page (`epic/v9-observatory`) |
-| v8.5 | 🗂 | Shared package — scoring, constants, types, i18n extracted as monorepo internal packages |
-| v10.0 | 🗂 | SEO: static prerendering + Core Web Vitals |
+| v7.1 | ✅ | Email confirmation on signup · design polish |
+| v7.2 | ✅ | Observatory (web): scoring v2, free map by coordinates, conditions and forest layers, «Mis rincones» with photos |
+
+**Next epics** — ordered by priority, no version number: it is assigned when the epic is merged into `main` (see `system/workflows.spec.md`).
+
+| # | Epic | Status | Scope |
+|---|---|---|---|
+| 1 | Product epic: Observatory and zones base map | 🗂 | PRD in the Fungus project; opens first |
+| 2 | `epic/observatory-layers` | 🗂 | Layers left from the Observatory: rain, temperature, wind, Top 10 |
+| — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ | Android app, paused 2026-10-10. Scaffold, nav, design system, zones done; species + map pending. Merged into `main` without tag, not distributed |
+| 3 | Shared package | 🗂 | Scoring, constants, types, i18n extracted as monorepo internal packages |
+| 4 | SEO | 🗂 | Static prerendering + Core Web Vitals |
 
 Detailed backlog: `memory/pending.md`
 

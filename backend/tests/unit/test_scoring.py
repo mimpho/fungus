@@ -252,6 +252,10 @@ class TestScoreLabel:
         assert score_label(55) == "Good"
         assert score_label(69) == "Good"
 
+    def test_fair(self):
+        assert score_label(30) == "Fair"
+        assert score_label(54) == "Fair"
+
     def test_poor(self):
         assert score_label(0) == "Poor"
-        assert score_label(54) == "Poor"
+        assert score_label(29) == "Poor"

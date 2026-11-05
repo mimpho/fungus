@@ -61,6 +61,10 @@ hourly: 'soil_temperature_0cm'
 current: 'temperature_2m,soil_temperature_0cm'
 ```
 
+### ⚠️ Open-Meteo counts days in UTC, not in the local timezone
+
+`date.today()` in a script run in Madrid between 00:00 and 02:00 is already the next UTC day, and the forecast range it builds goes past Open-Meteo's limit (the request is rejected). Use `datetime.now(UTC).date()` for any range sent to Open-Meteo (`export_zone_climate.py` was fixed on 2026-10-17).
+
 ### ⚠️ One free daily limit for everything (10,000 calls/day per IP)
 
 The ingest, backfills, the `weather_cache` refresh job (~1,850/day) and the card's live fallback all share it. A request over 2 weeks counts as days/14 calls. Do not run a large backfill (~9,000 calls) on the same day as normal traffic; the weather job stops itself at `WEATHER_DAILY_CALL_BUDGET` or on the first 429.
@@ -88,6 +92,12 @@ window.L = L  // ← MUST go here, before any dynamic import()
 // Inside the component, only when heatmap is activated:
 const heat = await import('leaflet.heat')
 ```
+
+### ⚠️ Overriding Leaflet's CSS: `leaflet.css` is imported after `styles.css`
+`main.jsx` imports `leaflet/dist/leaflet.css` after `./styles.css`, so a rule in `src/styles/map.css` with the same specificity as Leaflet's loses (the attribution kept its white background while the colour worked). Raise the specificity, e.g. `.leaflet-container .leaflet-control-attribution.leaflet-control`, instead of relying on order or `!important`.
+
+### ⚠️ `attributionControl.removeAttribution()` keeps the slot of the credit
+Leaflet only lowers the count of a removed credit to 0 and keeps its key, so a credit added again takes its old place in the line (the «Fuentes» link came before «Datos»). To keep an order, delete the slot after removing (`delete ctl._attributions[text]` when it is 0; private API of Leaflet 1.x). Done in `ObservatoryMap`.
 
 ### ⚠️ `FOREST_COLORS` and Leaflet colors → always hex, never CSS vars
 Leaflet's SVG markers and HTML popups are rendered outside React's DOM. CSS custom properties (`var(--color-coffee)`) don't resolve in that context. Always use literal hex values.
@@ -240,3 +250,144 @@ If an epic branch has commits from an earlier phase (skeletons) and a feature br
 
 ### ℹ️ `Family.jsx` renders `<Species />` as a child → different instance from `/especies`
 When navigating from `/familia/:slug` to `/especies/:id`, React unmounts Species from Family and mounts a new independent Species. No instance reuse between routes of different tree depth.
+
+---
+
+## Observatory — local runs and styles
+
+### ⚠️ The backend reads `backend/.env` only, not `.env.local`
+`app/config.py` loads `env_file=".env"`. `.env.local` is a Vite convention for the frontend; a setting such as `OBSERVATORY_MAX_NEW_CELLS_PER_USER_PER_DAY=0` put there does nothing, and the 429 «Daily limit of 10 new areas per user» keeps coming. `uvicorn --reload` does not reread `.env` either. For a one-off run without touching `backend/.env` (which points to production), put the variable in front of the command: `OBSERVATORY_MAX_NEW_CELLS_PER_USER_PER_DAY=0 python -m uvicorn app.main:app --reload`. The per-user and the global limit show the same message; the body of the 429 or the 503 says which one it is.
+
+### ⚠️ Colour tokens are comma-format: `rgba(var(--x), a)`, never `rgb(var(--x) / a)`
+`--color-cream-rgb` and `--color-bar-rgb` hold `r, g, b` with commas. `rgba(var(--color-cream-rgb), 0.6)` works; `rgb(var(--color-cream-rgb) / .6)` is invalid and the property is dropped silently (the custom checkboxes had invisible borders in the dark theme because of it).
+
+### ⚠️ A page-local score band list is descending
+`SCORE_BANDS` runs from `high` to `low` (`min` 85/70/55/30/0). Reversing it before drawing band rectangles gives negative SVG heights.
+
+### ⚠️ Photos attached in the chat lose their EXIF
+Pictures sent to Claude through the chat arrive recompressed without EXIF (no GPS, date or phone model). For field photos keep the originals in `local-data/field/` (excluded from git) and read them from there; their GPS is the evidence, so never publish them as they are.
+
+### ⚠️ `/observatory/point` is the prefix of the Observatory router
+`routers/observatory.py` has `prefix="/observatory/point"`. A route added there for something that is not a point lands under `/observatory/point/...` and the front gets a plain `{"detail": "Not Found"}`, which `observatoryService` shows as «Todavía no hay datos de clima para este punto» (every 404 reads like that). Anything that is not a point needs its own router (the territory one existed briefly and was removed on 2026-10-18), included in `main.py`. Check `/docs` after adding an endpoint.
+
+### ⚠️ Local runs do not migrate, so a new table does not exist locally
+`backend/.env` points at the production database and migrations are skipped locally (`RUN_MIGRATIONS_ON_STARTUP`). Code that needs a new table must keep working without it: a store can fall back to process memory, as the removed territory rain store did. Do not run `alembic upgrade head` from local just to test.
+
+### ⚠️ Open-Meteo counts calls by range: a big first pull is not free
+Requests over 2 weeks count as several calls (4 weeks = 3.0 in their example) and the page does not say how locations count. The removed territory rain asked for 55 locations and was estimated at ~770 calls for a full pull (the project measured ~7 weighted calls for 280 days of one cell, which would give ~250); that is why it was not shipped. Keep the same caution for the server-side cell ingestion of 7a. Free limit: 600/min, 5,000/hour, 10,000/day.
+
+### ⚠️ Sessions on the linked device run Python 3.10
+The project needs 3.11+ (`datetime.UTC`). For tests in a session: `uv venv /tmp/vv --python 3.12`, install the project there (outside the repo) and delete it afterwards.
+
+### ⚠️ Open-Meteo `elevation` needs one value per coordinate
+A batched request with several locations and `elevation=nan` once returned HTTP 400 (count mismatch). Send one `nan` per coordinate (`",".join(["nan"] * len(points))`), as `resolve_grid_batch` does; the answer says which grid cell and elevation each point falls in.
+
+### ⚠️ The Open-Meteo cell grid is not 0.1° and its rows do not line up
+A cell is ~0.0703° × 0.1272° near 41.6° N, the width in degrees changes with the latitude and every row has its own offset. Never infer the cell size from all the stored longitudes together, and never assume the cell below is at the same longitude. Use `build_grid` (per-row estimate) in `cell_discovery.py`.
+
+### ⚠️ Discovery fills the daily new-cell allowance
+`ingest_cells.py discover` creates ~400 cells with `created_by` NULL in one day; they count in `observatory_max_new_cells_per_day` (global, 60) so users may be refused new cells that day. Run it when that does not matter, or after raising the limit for the day.
+
+## Observatory — conditions layer
+
+### ⚠️ Rasters are raw `.bin` files built by scripts, not committed (except elevation)
+Forest and substrate rasters live in `local-data/` (out of git) and are built with `scripts/build_forest_raster.py` / `build_substrate_raster.py`; the elevation raster is in `frontend/public/data/`. Their endpoints are private (login) because the MCSC-4 and relief licences are unconfirmed. In production they come from the private bucket `geo-rasters` (`forest/`, `substrate/`), downloaded at start-up by `services/raster_loader.py` when `RASTERS_BUCKET` is set. Tests redirect the raster dirs to tmp (`conftest.py`).
+
+### ⚠️ Rebuilt a raster? Upload the `.bin` and the `.json` together
+`raster_loader.py` accepts a raster only if the `.bin` has exactly `classes x width x height` bytes of its `.json`. Uploading one without the other (or after changing the classes) makes the download fail the check; the API then starts with `rasters: degraded` in `/health` and an ERROR in the log, and scores leave out forest or soil. After a deploy, look at `/health` (`rasters`, `rasters_missing`): `status` stays `ok`. The download repeats at every start (Render's free disk is ephemeral) and `RASTERS_REQUIRED=true` turns a failure into an aborted start.
+
+### ⚠️ Layer cache is per process
+`layer_cache.py` is an in-memory LRU; it invalidates through `SqlCellStore.data_signature()`, so a cell refresh changes the key. Several workers do not share it.
+
+### ⚠️ Cache-Control middleware keeps a route's own header
+`main.py` only sets its default when the response has no `cache-control`; routes that set their own (layer endpoints) rely on this.
+
+### ⚠️ Edibility `excelente`
+`/point/species` once ignored `excelente`; the ensemble depends on `EXCELLENT` in `point_species.py`.
+
+### ⚠️ v2 `needs` / `fit_parts` / `compute_v2_multi`
+The ensemble counts a species only if altitude fit ≠ 0 and the product of `fit_parts` ≥ 0.05. Change `scoring_v2.py` and `layer_probability.py` together.
+
+### ⚠️ Map vs point differences
+Map forest is smoothed client-side per pixel; the server judges the 500 m mean at the point. Expect a few points of difference and float rounding at exact colour thresholds (float32 vs float64). A forecast day of the layer can also differ 1–3 points from the point calendar: the layer starts the model window 100 days before the chosen day, the calendar 100 days before the last observed day.
+
+### ⚠️ Local DB port
+The local database answers on 5433 or 55432 depending on the setup; check before running `check_layer_probability.py`.
+
+### ⚠️ A forecast older than 2 UTC days leaves holes in the layer
+The layer only shows a forecast fetched on one of the two UTC days before today or later (`forecast_fresh_since`). If the daily cell refresh does not run (budget 0, a failed night), the cells with an old forecast come without score for days ahead and the map shows a cut, often a straight edge: cells load in id order, so they share a download day. `python -m scripts.ingest_cells status` lists the forecast by download day and marks the stale ones; `refresh --max-calls 1500` fixes it (a few cells may fail with transient 503s: run it again).
+
+### ⚠️ `ingest_cells.py` writes where `DATABASE_URL` points, and `backend/.env` points at production
+For the disposable database put the URL in front of the command: `DATABASE_URL="postgresql+asyncpg://…@localhost:55432/fungus" PYTHONPATH=. python -m scripts.ingest_cells status`. Without it `refresh`, `load` and `discover` write to production.
+
+### ⚠️ `multiply` on the relief only blends because the layer pane is a sibling of the tile pane
+`mix-blend-mode` on the `obsLayer` pane blends with what is under it in the same stacking context (Leaflet's map pane). Moving the pane inside another stacking context (or giving it `isolation`) makes the blend do nothing. Place names of the dark maps live in their own pane (`obsLabels`) above the layer so they are not tinted.
+
+
+### ⚠️ The user menu shows the generator only to `role = 'admin'`, and it opens the gallery
+`/admin/generator` is the hub: it shows the gallery, and the generator loads only with `?especie=…&generar=1` (a species picked in the gallery). A local user is not an admin until `users.role` is set: `UPDATE users SET role = 'admin' WHERE email = '…';` on the disposable database (`docker exec -it fungus-ingest-test psql -U postgres -d fungus -c "…"`), then reload so `/me` returns the role.
+
+### ⚠️ `seed_catalog.py` wrote to production (2026-10-24)
+
+Run without `DATABASE_URL` it used `backend/.env`, which points at production. It overwrote the name, coordinates, altitude, forest type and description of every zone in the mock, and replaced the `extra_data` of all 202 species (synonyms, confusions, translations, fruiting conditions, `antiConfusion`). Restored from `migrations/*.sql` and checked against the Supabase snippets: the only things the SQL files could not give back were `antiConfusion` of `esp-062` (restored by hand) and the altitudes of the 17 moved zones (recomputed with `zone_elevation_ranges.py`). Eleven species whose fruiting conditions the 2026-03-14 audit had cleared got them back from the `015` session-B files; clear them again if they should stay without. Now guarded (see the changelog), but **any other writing script still trusts `backend/.env`**: put `DATABASE_URL` in front of every command that writes, and check it with `echo`.
+
+### ⚠️ What the Supabase tools can and cannot tell you about past SQL
+
+The free plan has **no backups**. The SQL editor's saved snippets keep only the **last content of each tab**, and `supabase snippets list` shows only the first page (10) with no way to ask for the next one; the API takes a `cursor`. A token with the scoped permission «SQL Snippets (read)» is refused (403): that capability enables no endpoint yet; a full-access token works. Treat the `migrations/` folder as the only record of data changes.
+
+### ⚠️ Every GET except `/species` is cached by the browser for an hour
+`add_cache_control` (`app/main.py`) sets `Cache-Control: public, max-age=3600` on any 200 GET whose **path** has no `/species`; the query string does not count. `/observatory/point/species` is `no-store`, but `/observatory/point/snapshot?species=…`, `/series` and `/calendar` are kept: after a change of catalogue data the species list shows the new score and the thermometer the old one. Found 2026-10-26 (a thermometer stuck at 2 while the list said 16). While debugging: DevTools → Network → «Disable cache» and a hard reload. `public` on responses that need login is also wrong; a fix (`private, max-age=60` under `/observatory/`) is pending.
+
+### ⚠️ An exported `DATABASE_URL` wins over `backend/.env`
+`app/config.py` is a `pydantic-settings` class: an environment variable beats the `.env` file. A terminal that once ran `export DATABASE_URL=…` (a disposable database) keeps it, so the backend reads that database while `backend/.env` says production, or the other way round if you unset it. Check what the process really uses: `echo $DATABASE_URL | sed -E 's#//[^@]*@#//***@#'` in the terminal that started it. For one-off runs put the variable in front of the command, never `export` it. The same goes for `VITE_API_BASE` on the Vite dev server (a forced port 8001 once left the frontend talking to a backend that was not running).
+
+### ⚠️ Local runs against production fail on the Observatory tables
+Production is at Alembic 016 until the epic is deployed, so a backend started on `backend/.env` answers 500 (`relation "cell_lookup" does not exist`) on every `/observatory/*` route. That is expected; test the Observatory on the disposable database (`fungus-ingest-test`, port 55432), where the catalogue, 423 cells and the migrations up to 021 are. Never run `alembic upgrade head` from local against Supabase (rule 21 of `agents.spec.md`).
+
+### ⚠️ The soil class comes from the bedrock, the pH that matters is the topsoil's
+`substrate_classes.py` maps the ICGC lithology (1:250,000) to three classes with typical pH ranges; carbonated rock is «calcáreo» (7.0–8.3). Under forest the topsoil on limestone is often decarbonated and acid (black trumpets are recorded on calcareous bedrock with bilberry), so a species with an acid range can be penalised on a point that is acid where it grows. The 46 % soil factor of a *B. edulis* at a point near La Molina came from a pure acid class and a catalogue range of 5.5–6.5.
+
+### ⚠️ A modal that closes its parent: React events cross portals, Esc crosses dialogs
+Two ways a dialog opened over another closed both: (1) a click that React bubbles from a portal up its React parent (a × inside a clickable area opens that area: stop the propagation in the button); (2) one Esc press heard by every `keydown` listener on `document`, the dialog above first, which unmounts it before the next listener looks (`useDialogAboveObsModal` now gives its slot back with a `setTimeout(0)` so the dialog under still sees it open). Any new overlay over an `ObsModal` should call that hook.
+
+### ⚠️ A history entry without the query string resets the Observatory
+`navigate(location.pathname, …)` drops `?lat=…&lon=…`, which is the Observatory's view state, and the observed zone (with whatever is open over it) closes. Keep `search` and `hash` when pushing an entry on the same page.
+
+### ⚠️ A local database one migration behind answers 500, not a clear error
+`fungus-ingest-test` was at Alembic 020, and the first photo upload failed with a 500 on the missing `corner_usage_events`. After pulling a branch with a migration, `alembic current` against the local database (with `DATABASE_URL` in front) tells which one is missing.
+
+### ⚠️ Tailwind breakpoints are the window's, not the dialog's
+`lg:` and `xl:` look at the browser window; a dialog (`ObsModal`, `max-w-7xl` with its margins and padding) and the panel inside it are narrower, so a grid that should change «when there is room» changes late. For a part inside a dialog use a container query with an arbitrary variant (Tailwind 3.4 has no container plugin here): `[container-type:inline-size]` on the parent and `[@container(min-width:56rem)]:grid-cols-4` on the grid (the filter panel of `SavedPointsList`). The cards' grid still uses the window's `xl:` and is only 4 columns when the window is at least 1280px.
+
+### ⚠️ A search in the dialog's title line is a portal, not a child
+The desktop `ObsModal` header has a slot (`ObsModalHeaderSlot`); the content portals into it. The slot is null on the first render (it is set by a ref callback) and on a phone sheet, so the content must draw the same element inline in that case.
+
+### ⚠️ A `fixed` child of the Observatory page is placed against the page, not the screen
+The page is wrapped in `anim-up` (a transform): a `position: fixed` descendant is then measured against it, so a full-screen map inside it started below the site's header and its bottom sheet ran off the screen. Anything that must cover the viewport (the phone's map, the zone screen) is drawn with `createPortal(…, document.body)`, like `ObsModal`. `inPortal` in `pages/Observatory.jsx`.
+
+### ⚠️ A horizontally scrolling row widens its grid's implicit column
+`grid` without a template has one `auto` column sized by the content; a `flex` row with `overflow-x-auto` still contributes its full min-content width, so the column (and the cards sharing it, the calendar beside the forecast) overflowed the screen. Give the grid `grid-cols-[minmax(0,1fr)]` (and `min-w-0` to the cards in it) wherever a slider lives in one.
+
+### ⚠️ A CSS-hidden first child still takes `space-y`
+`space-y-*` skips only `[hidden]` siblings, not `display: none` from a class (`lg:hidden`): the next sibling got the column's top margin and the desktop's left column started 16px lower than the right one. Draw the variant only when it applies (`useMediaQuery`) instead of hiding it.
+
+### ⚠️ The forest raster's class order is `CLASSES`'s order: change one, rebuild the other
+The `.bin` holds one byte plane per class in the order of `forest_classes.CLASSES`, and `forest-catalonia.json` lists them; the client reads the planes by `meta.classes`. Adding or renaming a class without running `build_forest_raster.py` (and uploading the result) leaves the back end and the map reading different layouts.
+
+### ⚠️ Group keys in `forest_affinity` (`pinar`, `otro`) are not classes
+`clean_affinity` expands a group weight to each of its classes that has no number of its own, so `{"pinar": 0.3}` and the five pine classes at 0.3 are the same; a class set to 0 stays out even if its group has a weight. A species that already has per-class weights and a new class is not listed there gets nothing for it. Migration `046` must run after the new back end is deployed: the old one only knows the five old keys and falls back to `forest_types` for a species whose affinity it cannot read.
+
+### ⚠️ The mock catalogue must follow every SQL data migration of the species
+`seed_catalog.py` merges the mock's `extra_data` over the stored one and the mock's keys win (`forest_affinity` is replaced whole, `ph_suelo_min/max` one by one). A migration that changes those keys in the database but not in `src/data/species.js` is undone by the next seed run (it now needs `--allow-remote` against production, but it can still happen). Change both in the same branch; `047` and `048` did, and `046` was brought in line with them on 2026-11-03.
+
+### ⚠️ Packing `backend/` for the cloud tests also packs `backend/.env`
+`backend/.env` points at production. A plain `tar` of `backend/` takes it, and it ended up in the cloud environment on 2026-11-03 (removed there and from the staged copy). Always exclude it: `tar czf … --exclude=.venv --exclude=__pycache__ --exclude=.pytest_cache --exclude=.ruff_cache --exclude=backend/.env backend`, and check with `tar tzf … | grep -c 'backend/\.env$'` (it must print 0). The package goes in `local-data/_to_delete/` (out of git; the device shell cannot delete there).
+
+### ⚠️ Compressing responses: Render's proxy already does, and Starlette's `GZipMiddleware` defaults to level 9
+Render's proxy compresses JSON with brotli when the origin does not (`content-encoding: br` on `/api/v1/zones`, 2026-11-04); whether it does for `application/octet-stream` (the rasters) is unknown. Starlette's `GZipMiddleware` compresses at `compresslevel=9` by default (about 11 times the CPU of level 6 for ~2% fewer bytes on the rasters, painful on a 0.1 CPU instance) and, if the server announces the `http.response.pathsend` extension (uvicorn 0.41 does not), silently skips `FileResponse`. If compression is added, set the level explicitly, send `Vary: Accept-Encoding`, and check the result in DevTools: the tests (httpx `ASGITransport`) do not go through Render's proxy. See `decisions.md`.
+
+### ⚠️ The linked device cannot install packages or build the front end
+Its sandbox had 36 MB of free disk on 2026-11-05 (`npm` fails with `ENOSPC`), Node 22 against the `.nvmrc`'s 24, Python 3.10, and `node_modules` built for macOS. The cloud environment can clone the public repository at a pushed branch and run `npm ci && npm run build` (it has no `.env`); for work that is not pushed, pack it excluding `backend/.env`, `.env.local` and `local-data/`. The durable fix is a frontend job in CI (see `pending.md`).
+
+### ⚠️ The repository is public
+`https://github.com/mimpho/fungus` answers without credentials. Anything pushed is public: keep the data derived from CREAF's MCSC-4 in `local-data/` and in the private buckets, never a `.env` or a dump, and do not use GitHub Actions artifacts for anything with user data.
