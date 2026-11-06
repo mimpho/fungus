@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, CheckSquare, ChevronDown, Layers, List, Square } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
-import { LayerLoadingPlaceholder } from './SpeciesLayerPicker'
 
 // Layers still to come (7c-7f of memory/pending.md): drawn as pills so it is clear what is on its way, but they take no
 // hover, focus or click until they exist.
@@ -22,7 +21,7 @@ const BASEMAPS = [
 // The popovers slide open in this time; a layer is switched on only after that, because working out its colours holds the page and would cut the slide
 const SLIDE_MS = 200
 
-const PILL = 'shadow-[0_4px_14px_rgba(0,0,0,0.4)] rounded-full text-sm font-medium transition-colors'
+const PILL = 'shadow-[0_4px_14px_rgba(0,0,0,0.4)] rounded-full text-[15px] font-medium transition-colors'
 const ON = 'bg-bar text-white'
 const OFF = 'bg-modal text-cream'
 const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-cream/40'
@@ -99,7 +98,7 @@ function TogglePill({ id, label, on, onToggle, panel = null, openId, onOpen, ext
           type="button"
           aria-pressed={shownOn}
           onClick={toggle}
-          className={`inline-flex items-center gap-2 pl-3.5 pr-3 py-2 ${SEGMENT}`}
+          className={`inline-flex items-center gap-2 pl-4 pr-3.5 py-2.5 ${SEGMENT}`}
         >
           <span aria-hidden="true">{shownOn ? <CheckSquare size={16} /> : <Square size={16} />}</span>
           {label}
@@ -113,7 +112,7 @@ function TogglePill({ id, label, on, onToggle, panel = null, openId, onOpen, ext
             aria-label={t.obsPillOptions}
             title={t.obsPillOptions}
             onClick={() => onOpen(open ? null : id)}
-            className={`px-2.5 border-l border-white/15 ${SEGMENT}`}
+            className={`px-3 border-l border-white/15 ${SEGMENT}`}
           >
             <ChevronDown size={16} aria-hidden="true" className={`transition-transform ${open ? 'rotate-180' : ''}`} />
           </button>
@@ -122,13 +121,7 @@ function TogglePill({ id, label, on, onToggle, panel = null, openId, onOpen, ext
       {panel && (
         <Collapse open={open} id={panelId}>
         <div className="mt-2 w-[22rem] max-h-[calc(100dvh-var(--header-h,5.5rem)-14rem)] overflow-y-auto overscroll-contain rounded-2xl bg-modal shadow-[0_4px_14px_rgba(0,0,0,0.4)] p-3">
-          {panel}
-          {waking && !on && id === 'probability' && (
-            // The same placeholder (same height) the layer's controls show once they are calculating, so the popover does not wait empty
-            <div className="mt-2 px-1 pb-0.5">
-              <LayerLoadingPlaceholder />
-            </div>
-          )}
+          {typeof panel === 'function' ? panel(waking) : panel}
         </div>
         </Collapse>
       )}
@@ -153,7 +146,7 @@ export function MapPills({
   useDismiss(Boolean(openId), rootRef, () => setOpenId(null))
 
   return (
-    <div ref={rootRef} role="toolbar" aria-label={t.obsLayersTitle} className="flex flex-col items-end gap-2">
+    <div ref={rootRef} role="toolbar" aria-label={t.obsLayersTitle} className="flex flex-col items-end gap-2.5">
       <TogglePill
         id="corners"
         label={t.obsLayerCorners}
@@ -168,7 +161,7 @@ export function MapPills({
             aria-label={t.obsSavedListTitle}
             title={t.obsSavedListTitle}
             onClick={() => { setOpenId(null); onOpenList() }}
-            className={`inline-flex items-center gap-1.5 px-2.5 border-l border-white/15 ${SEGMENT}`}
+            className={`inline-flex items-center gap-1.5 px-3 border-l border-white/15 ${SEGMENT}`}
           >
             <List size={16} aria-hidden="true" />
             {savedCount != null && <span data-testid="saved-count" className="text-xs font-bold tabular-nums">{savedCount}</span>}
@@ -194,7 +187,7 @@ export function MapPills({
         onOpen={setOpenId}
       />
       {COMING.map(l => (
-        <span key={l.id} aria-disabled="true" className={`${PILL} ${OFF} px-3.5 py-2 opacity-50 cursor-default select-none`}>
+        <span key={l.id} aria-disabled="true" className={`${PILL} ${OFF} px-4 py-2.5 opacity-50 cursor-default select-none`}>
           {t[l.key]}
         </span>
       ))}
@@ -221,7 +214,7 @@ export function ViewPill({ basemap, onBasemap }) {
           aria-expanded={open}
           aria-label={t.obsBasemapLabel}
           onClick={() => setOpen(o => !o)}
-          className={`inline-flex items-center gap-2 pl-3.5 pr-3 py-2 ${SEGMENT}`}
+          className={`inline-flex items-center gap-2 pl-4 pr-3.5 py-2.5 ${SEGMENT}`}
         >
           <Layers size={16} aria-hidden="true" />
           <span className="text-cream/60">{t.obsLayersView}</span>

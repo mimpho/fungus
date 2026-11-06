@@ -39,9 +39,10 @@ export function LayerLoadingPlaceholder() {
  * It lives inside the map's layers box (MapLayersBox), under the probability checkbox.
  * `layer` is the useProbabilityLayer state of the chosen species; `date` the reference day asked
  * for (null = the last day with data) and `onDateChange` how the day control changes it. `layerOn`: the layer is switched on, so
- * until its data arrives (the status may still be `idle` for a moment) the placeholder is shown.
+ * until its data arrives (the status may still be `idle` for a moment) the placeholder is shown. `holding`: the pill is waking the layer up, so the
+ * placeholder is shown even if the data of the point is already here (the controls are the same height once loaded).
  */
-export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, onDateChange, forestApplied = false, soilApplied = false, layerOn = false, className = '' }) {
+export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, onDateChange, forestApplied = false, soilApplied = false, layerOn = false, holding = false, className = '' }) {
   const { t, lang } = useApp()
   const { species: catalog } = useSpecies()
   const listId = useId()
@@ -193,7 +194,8 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
 
         {(speciesId || layer.status !== 'idle' || layerOn) && (
           <div className="px-1 pb-0.5 space-y-2" aria-live="polite">
-            {data?.last_data_date && onDateChange && (
+            {holding && <LayerLoadingPlaceholder />}
+            {!holding && data?.last_data_date && onDateChange && (
               <LayerDayControl
                 lastDate={data.last_data_date}
                 maxDate={data.max_date}
@@ -202,20 +204,20 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
                 onChange={onDateChange}
               />
             )}
-            {!data && (layer.status === 'loading' || (layerOn && layer.status !== 'error' && layer.status !== 'ready')) && (
+            {!holding && !data && (layer.status === 'loading' || (layerOn && layer.status !== 'error' && layer.status !== 'ready')) && (
               <LayerLoadingPlaceholder />
             )}
-            {layer.status === 'error' && <ObservatoryNotice error={layer.error} onRetry={layer.retry} />}
-            {layer.status === 'ready' && data && !data.date && (
+            {!holding && layer.status === 'error' && <ObservatoryNotice error={layer.error} onRetry={layer.retry} />}
+            {!holding && layer.status === 'ready' && data && !data.date && (
               <p className="text-xs text-cream/80">{t.obsLayNoData}</p>
             )}
-            {layer.status === 'ready' && data?.date && !data.in_season && (
+            {!holding && layer.status === 'ready' && data?.date && !data.in_season && (
               <p className="text-xs text-cream/80">{t.obsLayOutOfSeason}</p>
             )}
-            {layer.status === 'ready' && data?.in_season && !hasScores && (
+            {!holding && layer.status === 'ready' && data?.in_season && !hasScores && (
               <p className="text-xs text-cream/80">{t.obsLayNoCells}</p>
             )}
-            {data && layer.status !== 'error' && hasScores && (
+            {!holding && data && layer.status !== 'error' && hasScores && (
               <div className={`space-y-2 transition-opacity ${layer.status === 'loading' ? 'opacity-60' : ''}`}>
                 <div>
                   <div className="flex gap-[2px] h-2" aria-hidden="true">

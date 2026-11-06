@@ -240,7 +240,8 @@ export default function Observatory() {
     />
   )
   // The controls of the layers: in the pills' popovers (desktop) or in the layers card (phone)
-  const conditionsEl = (
+  // `layerOn`: the layer is on, or the pill is waking it up; the controls then show either their content or their placeholder, never both
+  const conditionsFor = (layerOn, holding = false) => (
     <SpeciesLayerPicker
       speciesId={layerSpecies}
       onChange={chooseLayerSpecies}
@@ -249,7 +250,8 @@ export default function Observatory() {
       forestApplied={Boolean(forest && elevation && (layerSpecies ? layer.data?.species?.forest_classes : layer.data))}
       soilApplied={Boolean(substrate && elevation && (layerSpecies ? layer.data?.species?.substrate_factors : layer.data))}
       onDateChange={setLayerDate}
-      layerOn={probabilityOn}
+      layerOn={layerOn}
+      holding={holding}
     />
   )
   const forestEl = <ForestTypeLegend active={forestShown} onToggle={toggleForestType} loaded={Boolean(forest)} />
@@ -335,7 +337,7 @@ export default function Observatory() {
             )}
             {/* Desktop: the view and, under it, what the map shows, as a column of pills at the right edge (before the search in the DOM so its list opens over them) */}
             {!phone && (
-              <div className="absolute z-[1100] top-3 right-3 flex flex-col items-end gap-2">
+              <div className="absolute z-[1100] top-3 right-3 flex flex-col items-end gap-2.5">
                 <ViewPill basemap={basemap} onBasemap={chooseBasemap} />
                 <MapPills
                   corners={cornersOn}
@@ -344,7 +346,7 @@ export default function Observatory() {
                   onOpenList={() => setSavedOpen(true)}
                   probability={probabilityOn}
                   onProbability={setProbabilityOn}
-                  probabilityPanel={conditionsEl}
+                  probabilityPanel={waking => conditionsFor(probabilityOn || waking, waking)}
                   forest={forestOn}
                   onForest={setForestOn}
                   forestPanel={forestEl}
@@ -374,7 +376,7 @@ export default function Observatory() {
                 basemap={basemap}
                 onBasemap={chooseBasemap}
               >
-                {conditionsEl}
+                {conditionsFor(probabilityOn)}
               </MapLayersBox>
             )}
             <div className={`absolute z-[1100] top-3 left-3 ${phone ? 'right-[4.5rem]' : 'right-3 md:right-auto'} pointer-events-none`}>
