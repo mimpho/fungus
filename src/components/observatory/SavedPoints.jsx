@@ -146,14 +146,16 @@ function Block({ title, children }) {
 }
 
 /** «Zonas observadas»: the button stuck at the top right of the page that shows or hides the saved cards. */
-export function SavedPointsToggle({ saved, onToggle }) {
+export function SavedPointsToggle({ saved, onToggle, compact = false }) {
   const { t } = useApp()
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-haspopup="dialog"
-      className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px] text-cream text-sm font-medium hover:bg-coffee/35 transition-all"
+      className={compact
+        ? 'inline-flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-sm bg-modal/85 shadow-lg text-cream text-sm font-medium hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40'
+        : 'inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px] text-cream text-sm font-medium hover:bg-coffee/35 transition-all'}
     >
       <span aria-hidden="true" className="[&>svg]:w-[18px] [&>svg]:h-[18px]">{IC.heart(true)}</span>
       <span>{t.obsSavedListTitle}</span>

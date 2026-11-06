@@ -170,7 +170,7 @@ export function MapSearch({ onSelect, className = '' }) {
         onChange={e => { chosenRef.current = null; setText(e.target.value); setOpen(true); setActive(-1) }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
-        className="w-full glass-search search-light-input text-base md:text-sm outline-none pl-12 pr-12 shadow-lg"
+        className="w-full glass-search search-light-input text-base md:text-sm outline-none pl-12 pr-12 shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
         style={{ height: '52px', borderRadius: '26px' }}
       />
       {text && (

@@ -14,7 +14,7 @@ const EMPTY = { name: '', notes: '', kind: DEFAULT_KIND, species_ids: [] }
  * it can never start from another corner's values. With `setMode` the edit dialog offers «Eliminar rincón»
  * (it switches to the 'remove' dialog).
  */
-export function CornerModals({ mode, setMode, onClose, point, saved, suggestedName, onRemoved }) {
+export function CornerModals({ mode, setMode, onClose, point, saved, suggestedName }) {
   const { t } = useApp()
   const existing = saved.find(point)
 
@@ -32,12 +32,11 @@ export function CornerModals({ mode, setMode, onClose, point, saved, suggestedNa
   async function remove() {
     await saved.remove(existing.id)
     onClose()
-    onRemoved?.()
   }
 
   if (mode === 'create' && !existing) {
     return (
-      <ObsModal title={t.obsSaveZoneTitle} onClose={onClose} size="lg" sheet>
+      <ObsModal title={t.obsSaveZoneTitle} onClose={onClose} size="lg" sheet titleNowrap>
         <SavePointForm
           key="new"
           photos={(
@@ -56,7 +55,7 @@ export function CornerModals({ mode, setMode, onClose, point, saved, suggestedNa
   }
   if (mode === 'edit' && existing) {
     return (
-      <ObsModal title={t.obsSavedEditTitle} onClose={onClose} size="lg" sheet>
+      <ObsModal title={t.obsSavedEditTitle} onClose={onClose} size="lg" sheet titleNowrap>
         <SavePointForm
           key={`edit-${existing.id}`}
           // Photos act at once (upload, tag, delete), not with «Guardar cambios»: a section of the form between the species and the notes
@@ -73,7 +72,7 @@ export function CornerModals({ mode, setMode, onClose, point, saved, suggestedNa
   }
   if (mode === 'remove' && existing) {
     return (
-      <ObsModal title={t.obsSavedRemove} onClose={onClose}>
+      <ObsModal title={t.obsSavedRemove} onClose={onClose} titleNowrap>
         <RemoveConfirm name={existing.name} onConfirm={remove} onCancel={onClose} />
       </ObsModal>
     )

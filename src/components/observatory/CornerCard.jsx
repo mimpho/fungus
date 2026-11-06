@@ -11,12 +11,15 @@ import { SpeciesPills } from './SpeciesPills'
 import { notesAreSpeciesNames } from './CornerSummary'
 
 const ACTION_BTN = `${BTN_PRIMARY} inline-flex items-center gap-2`
+// The look of the corner's cards (the saved one and the one that invites to save)
+const CARD = 'rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/25 [[data-theme=light]_&]:bg-[var(--glass-white)] [[data-theme=light]_&_.glass]:!bg-bar/20 [[data-theme=light]_&_.glass]:hover:!bg-bar/30 ring-2 ring-bar backdrop-blur-[16px]'
 
 /**
  * The saved corner of the observed zone, as one more card of the page: pin of its kind and name,
- * its notes, the species it has (as tag pills), its photos and a button to edit it (bottom right; the edit dialog is where it is removed). Nothing if the zone is not saved.
+ * its notes, the species it has (as tag pills), its photos and a button to edit it (bottom right; the edit dialog is where it is removed).
+ * While the zone is not saved the same place holds a card that invites to save it: what it will let you add, and the button (it opens the form in a dialog).
  */
-export function CornerCard({ point, saved, suggestedName, toponym = null, onRemoved, onOpenList }) {
+export function CornerCard({ point, saved, suggestedName, toponym = null, onOpenList }) {
   const { t } = useApp()
   const [mode, setMode] = useState('idle')
   const rows = useSpeciesRows()
@@ -30,11 +33,27 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
   const same = x => x && corner?.name?.trim().toLowerCase() === x.trim().toLowerCase()
   const place = toponym && !same(toponym.name) && !same(toponym.label) ? (toponym.label ?? toponym.name) : null
 
-  if (!corner) return <CornerModals mode={mode} onClose={close} point={point} saved={saved} onRemoved={onRemoved} />
+  if (!corner) {
+    return (
+      <>
+        <section aria-label={t.obsSaveCardTitle} data-testid="corner-save-card" className={CARD}>
+          <h2 className="font-display text-[27px] leading-tight text-cream">{t.obsSaveCardTitle}</h2>
+          <p className="text-sm text-cream/75">{t.obsSaveCardBody}</p>
+          <div className="flex justify-end pt-1">
+            <button type="button" onClick={() => setMode('create')} className={ACTION_BTN}>
+              <span aria-hidden="true" className="[&>svg]:w-4 [&>svg]:h-4">{IC.heart(false)}</span>
+              {t.obsSaveSubmit}
+            </button>
+          </div>
+        </section>
+        <CornerModals mode={mode} setMode={setMode} onClose={close} point={point} saved={saved} suggestedName={suggestedName} />
+      </>
+    )
+  }
 
   return (
     <>
-      <section aria-label={t.obsCornerSavedHere} data-testid="corner-card" className="rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/25 [[data-theme=light]_&]:bg-[var(--glass-white)] [[data-theme=light]_&_.glass]:!bg-bar/20 [[data-theme=light]_&_.glass]:hover:!bg-bar/30 ring-2 ring-bar backdrop-blur-[16px]">
+      <section aria-label={t.obsCornerSavedHere} data-testid="corner-card" className={CARD}>
         {/* The card's title and the link to the list on the first line; below, the pin beside the corner's name,
             its kind under it and, when the name is not the place's own, the toponym */}
         <div className="space-y-3 min-w-0">
@@ -80,7 +99,7 @@ export function CornerCard({ point, saved, suggestedName, toponym = null, onRemo
           </button>
         </div>
       </section>
-      <CornerModals mode={mode} setMode={setMode} onClose={close} point={point} saved={saved} suggestedName={suggestedName} onRemoved={onRemoved} />
+      <CornerModals mode={mode} setMode={setMode} onClose={close} point={point} saved={saved} suggestedName={suggestedName} />
     </>
   )
 }
