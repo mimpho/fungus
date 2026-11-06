@@ -197,6 +197,10 @@ Produce two documents in `memory/`:
 
 **Gate:** no feature branch is opened until all Open questions in the PRD are answered and the DoD and the Deployment readiness section are written.
 
+**Scope check (retro of `epic/observatory-map`):** at kick-off, mark every task that needs a back-end endpoint, new data or a migration. Such tasks do not go in a front-end epic: they get their own epic (a front-end fixture that will be redone is not a delivery), so the front-end epic can be merged into `main` on its own.
+
+**Components with states:** a component with several states or behaviours (accordion, sticky bar, placeholder, popover) is agreed with a table of options before it is coded, with the states it has and what stays the same height; the visual iterations then adjust details, not the model.
+
 ---
 
 ### 2. Epic retrospective (before epic → main merge)
