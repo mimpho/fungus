@@ -123,11 +123,11 @@ export function buildPending(snap, t, lang) {
 export function buildTiles(snap, t, lang) {
   const k = snap.key_facts ?? {}
   const tiles = [
-    { key: 'state', label: t.obsThTileState, value: snap.warm ? t.obsThStateWarm : t.obsThStateCold,
+    { key: 'state', icon: snap.warm ? 'trend-up' : 'trend-down', label: t.obsThTileState, value: snap.warm ? t.obsThStateWarm : t.obsThStateCold,
       sub: snap.warm ? t.obsThStateWarmSub : t.obsThStateColdSub },
-    { key: 'water', label: t.obsThTileWater, value: `${formatNumber(k.soil_water_mm, lang)} mm`,
+    { key: 'water', icon: 'humidity', label: t.obsThTileWater, value: `${formatNumber(k.soil_water_mm, lang)} mm`,
       sub: fill(t.obsThWaterSub, { capacity: SOIL_CAPACITY_MM }, lang) },
-    { key: 'soil', label: t.obsThTileSoil, value: `${formatNumber(k.soil_temp_7d_c, lang)} °C`,
+    { key: 'soil', icon: 'soil-moisture', label: t.obsThTileSoil, value: `${formatNumber(k.soil_temp_7d_c, lang)} °C`,
       sub: k.last_night_min_c != null ? fill(t.obsThSoilSub, { last_night_min_c: k.last_night_min_c }, lang) : null },
   ]
   return tiles.filter(x => !x.value.startsWith('NaN') && !x.value.startsWith('undefined'))

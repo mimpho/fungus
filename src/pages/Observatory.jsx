@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronUp, ChevronLeft, X, Maximize, Minimize } from 'lucide-react'
+import { X, Maximize, Minimize } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
 import { useSavedPoints } from '../hooks/useSavedPoints'
@@ -11,6 +11,7 @@ import { useElevationRaster } from '../hooks/useElevationRaster'
 import { useClassRaster } from '../hooks/useClassRaster'
 import { useSpecies } from '../hooks/useSpecies'
 import { isInCatalonia } from '../lib/catalonia'
+import { samePoint } from '../lib/observatoryView'
 import { ObservatoryError } from '../services/observatoryService'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { Tabs } from '../components/ui/Tabs'
@@ -95,22 +96,18 @@ export default function Observatory() {
     if (!pending || !elevation || !layer.data?.cells?.length) return null
     try { return pixelElevation(reliefGrid(elevation, layer.data.cells), pending.lat, pending.lon) } catch (_e) { return null }
   }, [pending, elevation, layer.data])
-  // The map stays on the page when a zone is observed: the page scrolls down to the zone and only
-  // a strip of the map stays above it (peeking). Clicking the strip scrolls back up to the map.
-  const mapBoxRef = useRef(null)
-  // On a phone (under 640px) an observed zone is its own full screen over the map; «Volver al mapa» hides it
-  // without leaving the zone. The desktop keeps the zone below the map.
+  // The map is the page. An observed zone is a layer over the whole screen (the header too), like a full-screen dialog:
+  // it is open while the URL has the point. Its cross closes it (the point leaves the URL) and the point's card stays on the
+  // map, with «Observar», which opens the zone again from scratch. The map stays mounted and untouched under the layer.
   const phone = useIsPhone()
-  const [zoneHidden, setZoneHidden] = useState(false)
+  const layerOpen = Boolean(observed) && isAuthenticated
+  const [headerSlot, setHeaderSlot] = useState(null) // where the zone puts its title: the header of the layer
   // Phone only: the map over the whole screen (the site's header too) and, where the browser allows it, the browser's own
   // fullscreen (iPhone Safari has none: there only the header goes). The state follows the browser leaving fullscreen by itself.
   const [fullscreenState, setFullscreenState] = useState(false)
   const fullscreen = fullscreenState && phone
-  useEffect(() => { setZoneHidden(false) }, [observed?.lat, observed?.lon])
   const [layersOpen, setLayersOpen] = useState(false) // the phone's layers panel; closed whenever the point's sheet opens, and the other way round
   const [sheetH, setSheetH] = useState(0) // height of the point's sheet on the phone, for the map to keep the point above it
-  // The phone's zone screen goes to the body (as ObsModal does): a fixed child of the animated page wrapper is placed against it, not the screen
-  const inPortal = node => (phone ? createPortal(node, document.body) : node)
   const nativeFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement
   function enterFullscreen() {
     setFullscreenState(true)
@@ -133,16 +130,13 @@ export default function Observatory() {
       document.removeEventListener('webkitfullscreenchange', onChange)
     }
   }, [])
-  // The page behind must not scroll under the full-screen map
+  // The page behind must not scroll under the full-screen map or the zone's layer
   useEffect(() => {
-    if (!fullscreen) return undefined
+    if (!fullscreen && !layerOpen) return undefined
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = previous }
-  }, [fullscreen])
-  const zoneRef = useRef(null)
-  const firstScroll = useRef(true)
-  const [peeking, setPeeking] = useState(false)
+  }, [fullscreen, layerOpen])
   const [basemap, setBasemap] = useState(() => {
     try {
       const saved = localStorage.getItem('fungus-obs-basemap')
@@ -155,58 +149,29 @@ export default function Observatory() {
     try { localStorage.setItem('fungus-obs-basemap', value) } catch (_e) { /* per-viewer convenience only */ }
   }
 
-  // Esc leaves the phone's fullscreen first; otherwise it closes the point panel (through a ref: the listener must see the current zone)
+  // Esc, one layer at a time: the phone's fullscreen, then the zone's layer, then the point's card
+  // (through a ref: the listener must see the current zone)
   const closePanelRef = useRef(() => {})
   useEffect(() => {
-    if (!pending && !fullscreen) return
+    if (!pending && !fullscreen && !layerOpen) return
     const onKey = e => {
       if (e.key !== 'Escape' || isDialogAbove()) return // a dialog on top takes this Esc
       if (fullscreen) exitFullscreen()
+      else if (layerOpen) closeZone()
       else closePanelRef.current()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pending, fullscreen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pending, fullscreen, layerOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Scroll to the observed zone: smooth when the person chooses it, at once when the page opens on it
-  const hasObserved = Boolean(observed) && isAuthenticated
-  useEffect(() => {
-    if (!hasObserved || phone) { firstScroll.current = false; return }
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    const behavior = firstScroll.current || reduce ? 'instant' : 'smooth'
-    firstScroll.current = false
-    const id = requestAnimationFrame(() => zoneRef.current?.scrollIntoView({ behavior, block: 'start' }))
-    return () => cancelAnimationFrame(id)
-  }, [hasObserved, phone, observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // «Peeking»: most of the map is out of view because a zone is being read below it
-  useEffect(() => {
-    const el = mapBoxRef.current
-    if (!hasObserved || phone || !el || typeof IntersectionObserver === 'undefined') { setPeeking(false); return }
-    const io = new IntersectionObserver(([entry]) => setPeeking(entry.intersectionRatio < 0.4), { threshold: [0, 0.2, 0.4, 0.6, 1] })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [hasObserved, phone])
-
-  function goToZone() {
-    if (phone) { setZoneHidden(false); return } // the zone is its own screen
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    zoneRef.current?.scrollIntoView({ behavior: reduce ? 'instant' : 'smooth', block: 'start' })
+  // Closing the zone's layer: the point's card stays on the map (the layer was opened from it, or from a link to the point)
+  function closeZone() {
+    if (observed) setPending({ lat: observed.lat, lon: observed.lon })
+    clear()
   }
 
-  function backToMap() {
-    if (phone) return // there the zone is a screen of its own: it has its own way back to the map
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    window.scrollTo({ top: 0, behavior: reduce ? 'instant' : 'smooth' })
-  }
-
-  // Closing the clicked point's card also closes the observed zone below the map and goes back to the top
   function closePanel() {
     setPending(null)
-    if (hasObserved) {
-      clear()
-      backToMap()
-    }
   }
   closePanelRef.current = closePanel
 
@@ -232,12 +197,6 @@ export default function Observatory() {
     if (open) setPending(null) // one panel at a time: the point's sheet gives way to the layers
   }
 
-  // Leaving the zone on the phone: back to the page
-  function leaveZone() {
-    clear()
-    setPending(null)
-  }
-
   // A search result is a pick that also moves the map to it
   function handleSearchSelect(point) {
     setLayersOpen(false)
@@ -246,19 +205,17 @@ export default function Observatory() {
   }
 
   function handleObserve(point) {
-    observe(point.lat, point.lon)
-    // The point's panel stays on the map (it then reads «Observing»), with its score and habitat
+    if (!samePoint(observed, point)) observe(point.lat, point.lon)
+    // The point's card stays on the map under the layer, for when the layer is closed
     setPending({ lat: point.lat, lon: point.lon })
     setSavedOpen(false)
-    setZoneHidden(false)
-    if (phone) setLayersOpen(false) // the zone takes the screen
+    setLayersOpen(false) // the zone takes the screen
   }
 
-  // The observed zone: on the page below the map (desktop), or as a screen of its own (phone)
+  // The observed zone: the content of the layer over the map
   const zoneEl = observed && (
     <ObservedZone
       key={`${observed.lat},${observed.lon}`}
-      onSpeciesPick={goToZone}
       onOpenList={() => setSavedOpen(true)}
       point={observed}
       saved={saved}
@@ -266,7 +223,7 @@ export default function Observatory() {
       days={days}
       onWindow={setWindow}
       initialSpecies={shownSpecies}
-      onRemoved={() => { clear(); backToMap() }}
+      headerSlot={headerSlot}
     />
   )
   const savedList = <SavedPointsList saved={saved} observed={observed} onSelect={handleObserve} />
@@ -311,7 +268,7 @@ export default function Observatory() {
       ) : (
         <>
           {/* The map fills the viewport under the header (--header-h is published by Layout) */}
-          <div ref={mapBoxRef} className="h-[calc(100dvh-var(--header-h,5.5rem))] min-h-[420px]">
+          <div className="h-[calc(100dvh-var(--header-h,5.5rem))] min-h-[420px]">
           <div className={`${fullscreen ? 'fixed inset-0 z-[150]' : 'relative h-full'} isolate overflow-hidden`}>
             <ObservatoryMap
               observed={observed}
@@ -399,59 +356,46 @@ export default function Observatory() {
               <MapSearch onSelect={handleSearchSelect} className="pointer-events-auto w-full md:w-[30rem]" />
             </div>
             {pending && (
-              <PointPanel point={pending} observed={observed} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onGoToZone={goToZone} onClose={closePanel} sheet={phone} onSheetHeight={setSheetH} />
-            )}
-            {/* Only a strip of the map shows: a 100 px band that ends where the observed zone starts (the anchor the page scrolls to), so it is always right above it; it takes the person back up to the map */}
-            {hasObserved && peeking && (
-              <button
-                type="button"
-                onClick={backToMap}
-                aria-label={t.obsBackToMap}
-                className="absolute inset-x-0 bottom-0 z-[1300] h-[100px] flex cursor-pointer flex-col items-center justify-end gap-0.5 bg-gradient-to-t from-modal/95 via-modal/60 to-transparent pb-3 text-cream/90 hover:text-cream transition-colors"
-              >
-                <ChevronUp size={22} strokeWidth={2.2} aria-hidden="true" />
-                <span className="text-[10.5px] font-medium uppercase tracking-[1.4px]">{t.obsBackToMap}</span>
-              </button>
+              <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} onSheetHeight={setSheetH} />
             )}
           </div>
           </div>
 
-          {observed && phone && !zoneHidden && inPortal(
-            <div className="fixed inset-0 z-[150] overflow-y-auto overscroll-contain bg-modal">
-              <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-3 py-2 bg-modal/95 backdrop-blur-sm">
-                <button
-                  type="button"
-                  onClick={() => setZoneHidden(true)}
-                  className="inline-flex items-center gap-1.5 pl-2 pr-4 py-2.5 rounded-xl text-cream text-sm font-medium hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
-                >
-                  <ChevronLeft size={20} aria-hidden="true" />
-                  {t.obsBackToMap}
-                </button>
-                <button
-                  type="button"
-                  onClick={leaveZone}
-                  aria-label={t.obsZoneClose}
-                  title={t.obsZoneClose}
-                  className="p-2.5 rounded-xl text-cream/70 hover:text-cream hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
-                >
-                  <X size={20} aria-hidden="true" />
-                </button>
+          {/* The observed zone: a layer over the whole screen (the header too), above the map, which stays mounted under it */}
+          {layerOpen && createPortal(
+            <div
+              key={`${observed.lat},${observed.lon}`}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t.obsTitle}
+              className="fixed inset-0 z-[150] overflow-y-auto overscroll-contain bg-modal"
+            >
+              {/* As tall as the site's header (--header-h, published by Layout), which the layer covers */}
+              <div className="sticky top-0 z-10 bg-modal/95 backdrop-blur-sm border-b border-white/[0.06]">
+                <div className="max-w-7xl mx-auto h-[var(--header-h,5.5rem)] flex items-center gap-3 px-4">
+                  <div ref={setHeaderSlot} className="min-w-0 flex-1" />
+                  <button
+                    type="button"
+                    onClick={closeZone}
+                    aria-label={t.obsZoneClose}
+                    title={t.obsZoneClose}
+                    className="shrink-0 p-2.5 -mr-2.5 rounded-xl text-cream/70 hover:text-cream hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
+                  >
+                    <X size={20} aria-hidden="true" />
+                  </button>
+                </div>
               </div>
-              <div ref={zoneRef} className="px-4 pt-2 pb-24">
+              <div className="max-w-7xl mx-auto px-4 pt-6 pb-24 space-y-6">
                 {zoneEl}
+                <p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p>
               </div>
-            </div>
+            </div>,
+            document.body,
           )}
 
           {/* What is below the map keeps the site's width */}
-          <div className="max-w-7xl mx-auto px-4 pt-8 pb-20 space-y-6">
-            {observed && !phone && (
-              <div ref={zoneRef} className="scroll-mt-[9.5rem] min-h-[calc(100vh-9.5rem)]">
-                {zoneEl}
-              </div>
-            )}
+          <div className="max-w-7xl mx-auto px-4 pt-8 pb-20">
             <TerritorySection active={observed} onObserve={handleObserve} />
-            <p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p>
           </div>
         </>
       )}

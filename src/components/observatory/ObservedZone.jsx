@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, Crosshair } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { ChevronDown } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { IC } from '../../lib/helpers'
 import { useSpecies } from '../../hooks/useSpecies'
@@ -10,12 +11,10 @@ import { fill } from '../../lib/thermometer'
 import { usePointData } from '../../hooks/usePointData'
 import { fetchPointCalendar, fetchPointForest, fetchPointSnapshot, fetchPointSpecies, fetchSavedPointSpecies } from '../../services/observatoryService'
 import { speciesRange } from '../../lib/chartData'
-import { forestIcon, forestParts } from '../../lib/habitat'
 import { ENSEMBLE } from '../../lib/speciesList'
 import { formatCoords } from '../../lib/observatoryView'
 import { ObservatoryNotice } from './ObservatoryNotice'
-import { PointHabitat } from './PointHabitat'
-import { SavePointControls } from './SavePointControls'
+import { PointFacts, PointFactsSkeleton } from './PointFacts'
 import { CornerCard } from './CornerCard'
 import { Thermometer, ThermometerSkeleton } from './Thermometer'
 import { SpeciesPanel } from './SpeciesPanel'
@@ -38,7 +37,7 @@ const MACRO_KEY = {
  * says that the species will not be listed. The place name is context: if it fails, coordinates
  * stand in and nothing is reported. Only the thermometer failing is an error to show.
  */
-export function ObservedZone({ point, saved, until = null, days, onWindow, onRemoved, initialSpecies = null, onSpeciesPick, onOpenList }) {
+export function ObservedZone({ point, saved, until = null, days, onWindow, initialSpecies = null, onOpenList, headerSlot = null }) {
   const { t, lang } = useApp()
   // Starts on the species the map layer shows, so the thermometer and the map speak of the same one
   const [speciesId, setSpeciesId] = useState(initialSpecies)
@@ -90,57 +89,33 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
   // where the server has no CREAF raster.
   const hasCreaf = Object.values(habitat?.forest ?? {}).some(share => share >= 0.05)
   const macro = hasForest && d?.macrotype && !hasCreaf ? `${t[MACRO_KEY[d.macrotype]]} (ICGC 2024)` : null
-  const mainForest = forestParts(habitat, t)[0]?.key
-  // The subtitle of the zone: place · coordinates · altitude · kind of terrain, each with its icon.
-  // (The coordinates are the title when there is no toponym, so they are not repeated.)
-  const facts = [
-    { key: 'place', icon: 'location', text: d?.toponym?.comarca },
-    { key: 'coords', icon: 'crosshair', text: d?.toponym ? formatCoords(point) : null },
-    { key: 'elevation', icon: 'mountain', text: Number.isFinite(elevation) ? `${Math.round(elevation)} m` : null },
-    {
-      key: 'terrain',
-      icon: forestIcon(mainForest) ? `forest-type-${forestIcon(mainForest)}` : null,
-      text: hasForest ? [t.obsForestYes, macro].filter(Boolean).join(' · ') : null,
-    },
-  ].filter(f => f.text)
-
-  return (
-    <section aria-label={t.obsObservedTitle} className="space-y-4">
-      <SavePointControls
-        point={point}
-        suggestedName={d?.toponym?.name ?? d?.toponym?.label}
-        saved={saved}
-        lead={action => (
-          <>
-            <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">{t.obsObservedTitle}</p>
-            {/* The save button is the `action`, to the right of the title (heart only on a phone); items-center keeps it level with the title */}
-            <div className="flex items-center justify-between gap-3 mt-1">
-              <h2 data-testid="zone-title" className="min-w-0 font-display font-bold text-[clamp(38px,5vw,56px)] leading-[1.02] tracking-[0.3px] text-cream break-words">{title}</h2>
-              {action}
-            </div>
-            <p data-testid="zone-facts" className="text-[13px] text-cream/70 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-              {facts.map((f, i) => (
-                <span key={f.key} className="inline-flex items-center gap-1.5">
-                  {i > 0 && <span aria-hidden="true" className="mr-0.5">·</span>}
-                  {f.icon === 'crosshair'
-                    ? <Crosshair size={14} strokeWidth={1.75} aria-hidden="true" />
-                    : f.icon && <img src={`/assets/images/icons/${f.icon}.png`} alt="" height="14" width="14" />}
-                  {f.text}
-                </span>
-              ))}
-            </p>
-          </>
-        )}
-      />
-
+  // What the point is: one column (under lg) it opens the zone; from lg up it is the top of the left column, level with the corner's card
+  const factsEl = (
+    <>
+      {forest.data == null && forest.status === 'loading'
+        ? <PointFactsSkeleton />
+        : <PointFacts point={point} toponym={d?.toponym} elevation={elevation} habitat={habitat} macro={macro} />}
       {hasForest === false && (
         <p role="note" className="rounded-xl glass-warm px-4 py-3 text-sm text-cream/90">{t.obsForestNo}</p>
       )}
+    </>
+  )
 
-      <PointHabitat habitat={habitat} />
+  return (
+    <section aria-label={t.obsObservedTitle} className="space-y-4">
+      {/* The label and the title go in the header of the layer (`headerSlot`, as tall as the site's header) */}
+      {headerSlot && createPortal(
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[1.4px] font-medium text-coffee-light">{t.obsObservedTitle}</p>
+          <h2 data-testid="zone-title" title={title} className="font-display font-bold text-[clamp(22px,2.8vw,30px)] leading-tight tracking-[0.3px] text-cream truncate">{title}</h2>
+        </div>,
+        headerSlot,
+      )}
+
+      {single && factsEl}
 
       {single && (
-        <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} onRemoved={onRemoved} />
+        <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} />
       )}
 
       <FilterPills
@@ -157,6 +132,7 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
         {({ chart, events }) => (
       <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_clamp(20rem,30%,30rem)] items-start">
         <div className="space-y-4 min-w-0">
+          {!single && factsEl}
           {/* Where the page is one column (under lg) the species filter is this button with the panel as its dropdown, above the thermometer; from lg up it is the card of the right column.
               (Drawn only then, not hidden with CSS: a hidden first child would still give the thermometer the column's top margin.) */}
           {single && (
@@ -181,7 +157,7 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
                   state={speciesList}
                   selected={speciesId}
                   // Choosing closes the dropdown so the thermometer below shows the change
-                  onSelect={id => { setSpeciesId(id); setFilterOpen(false); onSpeciesPick?.() }}
+                  onSelect={id => { setSpeciesId(id); setFilterOpen(false) }}
                 />
               </div>
             )}
@@ -198,13 +174,13 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, onRem
           {chart}
         </div>
         <div className="flex flex-col gap-4 min-w-0">
-          {!single && <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} onRemoved={onRemoved} />}
+          {!single && <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} />}
           {!single && <SpeciesPanel
             state={speciesList}
             selected={speciesId}
             // Choosing (or unchoosing) a species re-asks the thermometer and the cards: bring the
             // top of the zone into view so the person sees them change
-            onSelect={id => { setSpeciesId(id); onSpeciesPick?.() }}
+            onSelect={id => setSpeciesId(id)}
           />}
           {events}
         </div>

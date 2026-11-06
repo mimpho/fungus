@@ -94,8 +94,13 @@ export function Thermometer({ snap, note = null }) {
         <div className={`flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-5 -mx-5 px-5 pb-1.5 ${SCROLL_THIN} sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:overflow-visible sm:snap-none sm:grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))]`}>
           {vm.tiles.map(tile => (
             <div key={tile.key} className="w-[10.5rem] shrink-0 snap-start sm:w-auto sm:shrink sm:snap-align-none rounded-xl bg-cream/[0.05] p-3">
-              <p className="text-xs text-cream/60">{tile.label}</p>
-              <p className="font-display text-3xl font-bold leading-tight text-cream">{tile.value}</p>
+              <div className="flex items-center gap-2.5">
+                {tile.icon && <img src={`/assets/images/icons/${tile.icon}.png`} alt="" height="40" width="40" className="shrink-0" aria-hidden="true" />}
+                <div className="min-w-0">
+                  <p className="text-xs text-cream/60">{tile.label}</p>
+                  <p className="font-display text-3xl font-bold leading-tight text-cream">{tile.value}</p>
+                </div>
+              </div>
               {tile.sub && <p className="text-xs text-cream/60">{tile.sub}</p>}
             </div>
           ))}

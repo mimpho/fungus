@@ -44,6 +44,8 @@ export function CreditsModal() {
         {t.obsAttrReliefMap}{' '}
         <a href="https://www.icgc.cat/" target="_blank" rel="noopener noreferrer" className={LINK}>ICGC</a>
       </p>
+      <p className="text-xs text-cream/50">{t.obsAttrSoilNote}</p>
+      <p className="text-xs text-cream/50">{t.obsDisclaimer}</p>
     </div>
     </ObsModal>
   )

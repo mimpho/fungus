@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Binoculars } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { fetchPointForest } from '../../services/observatoryService'
-import { formatCoords, samePoint } from '../../lib/observatoryView'
+import { formatCoords } from '../../lib/observatoryView'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { PointHabitat } from './PointHabitat'
 import { InfoTip } from './InfoTip'
@@ -92,10 +92,9 @@ function PointSheet({ label, onClose, onHeight, children }) {
  * can ask; the answer is context, and the button works even while it loads or if it fails.
  * `layerValue` = what the probability layer paints at the point: { score, count } (count > 1: the
  * mean of that many species), null = nothing there, undefined = no layer to speak of.
- * `onGoToZone` scrolls to the observed zone: the «Observando» button stays active and takes you there (the zone is below the map, out of reach in fullscreen).
  * `saved` is the user's corners: if this point is one, its pin, name, species and notes show under the title, with «Editar».
  */
-export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, sheet = false, onSheetHeight }) {
+export function PointPanel({ point, saved, onObserve, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, sheet = false, onSheetHeight }) {
   const { t } = useApp()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [attempt, setAttempt] = useState(0)
@@ -121,7 +120,6 @@ export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onCl
   // The kind of forest is the CREAF's (habitat block); the ICGC type only stands in without it
   const hasCreaf = Object.values(d?.habitat?.forest ?? {}).some(share => share >= 0.05)
   const macro = d?.forest && !hasCreaf ? `${t[MACRO_KEY[d.macrotype]]} (ICGC 2024)` : null
-  const isObserved = samePoint(observed, point)
 
   // Forest is judged around the point (the backend looks within radius_m); under the pin itself
   // there can be a field: then the line says so, and what is under the pin is shown below it.
@@ -227,11 +225,11 @@ export function PointPanel({ point, observed, saved, onObserve, onGoToZone, onCl
       <div className={`grid gap-2 ${corner ? '' : 'grid-cols-2'}`}>
         <button
           type="button"
-          onClick={() => (isObserved ? onGoToZone?.() : onObserve(point))}
+          onClick={() => onObserve(point)}
           className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-bar hover:bg-[#a0834d] text-white text-sm font-medium transition-all"
         >
           <Binoculars size={16} aria-hidden="true" />
-          {isObserved ? t.obsPointObservingShort : t.obsPointObserveShort}
+          {t.obsPointObserveShort}
         </button>
         {!corner && (
           <button

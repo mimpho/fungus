@@ -278,7 +278,10 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     observedRef.current = null
     if (!observed) return
     observedRef.current = L.circleMarker([observed.lat, observed.lon], { ...OBSERVED_STYLE, interactive: false }).addTo(map)
-    map.setView([observed.lat, observed.lon], Math.max(map.getZoom(), OBSERVED_ZOOM), { animate: true })
+    // The map stays as it is while the point is in view (observing from the map's own card, under the zone's layer, must not
+    // change what the person comes back to); a point out of view (from the corners list, a link, Back) takes the map to it
+    const target = L.latLng(observed.lat, observed.lon)
+    if (!map.getBounds().contains(target)) map.setView(target, Math.max(map.getZoom(), OBSERVED_ZOOM), { animate: false })
   }, [observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Move the view on request (search result). `flyTo.n` changes on every request, even to the same place.
