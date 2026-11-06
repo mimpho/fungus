@@ -26,6 +26,17 @@ The epic gathers the PRs #124–#158. What it delivers:
 
 **Not verified:** no deployment against production has run yet; migrations `017`–`021` were exercised only on the disposable database `fungus-ingest-test`.
 
+### Epic summary — Observatory map (2026-11-05 → 2026-11-06, `epic/observatory-map`, to be released as v7.3.0 when merged into `main`)
+
+Front end only (PRD «Observatorio y zonas — mapa base»). What it delivers:
+
+- **Map as the page:** the Observatory map fills the viewport under the header at every width; «Zonas» leaves the header (its page, `/zonas`, stays deprecated and linked from the dashboard).
+- **Observed zone as a layer:** full-screen, driven by `?lat&lon`, with its facts cards, thermometer icons and active filters fixed under the header on scroll; picking a point zooms the map to it.
+- **Layer pills:** on desktop the layers are opaque pills with a shadow (Mis rincones, Condiciones, Tipo de bosque; Lluvia, Temperatura, Viento and Top 10 disabled for the alpha) with accordion panels and a loading placeholder; on a phone the layers card stays.
+- **Left out of the epic:** «Zonas de interés» (needs back end and data: its own epic) and the removal of the old zones page and its components.
+
+**Manual steps at release:** none (no migration, no new variable). **Not verified:** a real phone, ES/CA/EN texts and light/dark on the new pills and cards.
+
 ### Changed — Observatory map as the page; the observed zone as a full-screen layer (2026-11-06, `feat/map-fullscreen-observe`, T1 + T2 + T3 + T4 of `epic/observatory-map`)
 
 Front end only; no migration, no new variable. T1 (`1f3cbc6`), T2, T3 and T4 are separate commits of the same branch.

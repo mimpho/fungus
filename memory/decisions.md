@@ -15,6 +15,16 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## `epic/observatory-map` closes with T1–T4; «Zonas de interés» becomes its own epic (2026-11-06)
+
+**Decision:** the epic is closed with the map as the page, the observed zone as a layer, the zoom to the picked point and the layer pills. T5 «Zonas de interés» moves to a new full-stack epic and the cleanup of T6 to a small chore; the page `/zonas` stays deprecated and linked from the dashboard until it is retired.
+
+**Why:** T5 needs an endpoint and data, so it is no longer front-end work, and holding the epic for it would break the rule of merging into `main` every two to three weeks. A deprecated page that still works is not a problem in alpha.
+
+**Discarded:** shipping T5 with a front-end fixture (it would have to be redone with the real source); removing `/zonas` now (it is still linked, and the zones ranking has no replacement until Top 10).
+
+---
+
 ## Epics are named, not numbered, until delivery (2026-10-10)
 
 **Decision:** epics and their branches carry a name (`epic/observatory`, `feat/observatory-scoring-v2`), not a version. The version is assigned when the epic is merged into `main`: next free MINOR and tag `vX.Y.0`. The roadmap lists planned epics by priority without numbers.
