@@ -17,7 +17,7 @@ The epic is closed in the retrospective of 2026-11-05 (changes in `system/workfl
 
 ## 🔶 Next epics (decided 2026-11-05)
 
-1. The product epic of the PRD «Observatorio y zonas — mapa base» (`prd-observatorio-mapa-base` in the Fungus project): opens first, with its own PRD and the gate of `system/workflows.spec.md`.
+1. 🔶 The product epic of the PRD «Observatorio y zonas — mapa base» (`prd-observatorio-mapa-base` in the Fungus project) is open as `epic/observatory-map` (2026-11-05). Done: T1 map as the page, T2 observed zone as a layer, T3 zoom to the picked point and T4 layer pills (Top 10 is a disabled pill until `epic/observatory-layers`), all in `feat/map-fullscreen-observe`. To do: **T5** «Zonas de interés» (service `fetchPointsOfInterest(bbox)` with a fixture; Marcos has to give the coordinates of Sercases, La Molina, El Brull, Fageda del Montseny and Puigcerdà); **T6** remove `TerritorySection` / `ZoneRanking` and their i18n keys, `PointHabitat` if unused, `SavePointControls`, and widen the credits if needed. At the end: phone pass, ES/CA/EN, light and dark.
 2. `epic/observatory-layers` (small): the layers left from item 7 below — 7c rain, 7d temperature, 7e wind, 7f Top 10 — with a short PRD that includes «Deployment readiness».
 
 ## 🟡 Chore from `main` — dev environment and safety nets (decided 2026-11-05, outside the epic)

@@ -28,6 +28,8 @@ const BOUNDS = L.latLngBounds(
   [CATALONIA_BOUNDS.lat[1], CATALONIA_BOUNDS.lon[1]],
 )
 const OBSERVED_ZOOM = 12
+// A picked point brings the map at least this close, so the surroundings of the point are in view
+const PICK_ZOOM = 11
 // A cell's score: one number, or (excellent edibles together) one per species
 const meanScore = s => {
   if (!Array.isArray(s)) return s
@@ -278,7 +280,10 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     observedRef.current = null
     if (!observed) return
     observedRef.current = L.circleMarker([observed.lat, observed.lon], { ...OBSERVED_STYLE, interactive: false }).addTo(map)
-    map.setView([observed.lat, observed.lon], Math.max(map.getZoom(), OBSERVED_ZOOM), { animate: true })
+    // The map stays as it is while the point is in view (observing from the map's own card, under the zone's layer, must not
+    // change what the person comes back to); a point out of view (from the corners list, a link, Back) takes the map to it
+    const target = L.latLng(observed.lat, observed.lon)
+    if (!map.getBounds().contains(target)) map.setView(target, Math.max(map.getZoom(), OBSERVED_ZOOM), { animate: false })
   }, [observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Move the view on request (search result). `flyTo.n` changes on every request, even to the same place.
@@ -296,9 +301,17 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     pendingRef.current = null
     if (!pending) return
     pendingRef.current = L.circleMarker([pending.lat, pending.lon], { ...PENDING_STYLE, interactive: false }).addTo(map)
+    // Too far out to tell what is around the point: the map flies to it first (the card stays where it is)
+    // and, with a bottom sheet over the map (phone), it is then kept clear of the sheet
+    const clear = () => keepClear(map, pending, centerRef.current)
+    if (map.getZoom() < PICK_ZOOM) {
+      map.once('moveend', clear)
+      map.flyTo([pending.lat, pending.lon], PICK_ZOOM, { duration: 0.6 })
+      return () => { map.off('moveend', clear) }
+    }
     // With a bottom sheet over the map (phone) the point must not end up under it: if it is not
     // clearly in the strip left above the sheet, the map moves it to the middle of that strip
-    keepClear(map, pending, centerRef.current)
+    clear()
   }, [pending?.lat, pending?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The sheet grows as its content arrives (up to 80% of the screen): the point is kept clear of it

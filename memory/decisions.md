@@ -840,3 +840,11 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 **Why:** copying messages and forgetting the documentation cost time, and the incident of 2026-10-24 came from a `.env` that pointed at production. Guards that the database or a test enforce do not depend on remembering.
 
 **Discarded:** giving the linked device a GitHub token to push (a secret in the sandbox; pushing is one command for the human); granting folder-wide delete permission to make git's lock files work (the folder holds `local-data/` with the original field photos and the dumps); backups as GitHub Actions artifacts (the repository is public); running `vite build` on the linked device (36 MB of free disk) instead of a CI job.
+
+## The observed zone is a layer driven by the URL, not a page section (2026-11-06)
+
+**Decision:** in `epic/observatory-map` the map is the page and the observed zone is a full-viewport layer (a portal) that is open exactly while `?lat&lon` is in the URL. Its × closes the layer and keeps the point's card on the map; the point's button always says «Observar»; the layer's header is as tall as the site's and carries the zone's title; the facts of the point are a row of cards (`PointFacts`) and the save control is a card shaped like «Mi rincón». The sources of the forest and the soil moved to the credits modal.
+
+**Why:** the zone is the part of the product that is read, the map is where it is chosen; with the URL as the only state, back, reload and sharing work with no extra logic, and closing the layer does not lose the place on the map.
+
+**Discarded:** keeping the zone under the map and scrolling to it (the map could not be the page); a «Volver al mapa» button (the × is the same action); anchoring the point's card to the point on the map (it hides the surroundings; T3 zooms in instead); showing «Ver zona» for the point already observed (two states of one button for no gain).

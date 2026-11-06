@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { IC } from '../lib/helpers'
 import UserMenu from './UserMenu'
 import { CreditsModal } from './CreditsModal'
 
 export default function Layout() {
-  const { followedZones, t, setCreditsOpen } = useApp()
+  const { t, setCreditsOpen, isAuthenticated, authLoading } = useApp()
+  // The Observatory's map is the page: edge to edge under the header, without the site's wrapper or footer.
+  // (Logged out, the page is the login card, which keeps the normal layout.)
+  const fullBleed = useLocation().pathname === '/observatorio' && isAuthenticated && !authLoading
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // ── Header fixed + spacer ──────────────────────────────────────────────────
@@ -99,10 +102,9 @@ export default function Layout() {
     }
   }, [])
 
-  // Five sections. Perfil lives in the avatar menu (UserMenu), not in this row.
+  // Four sections (Zonas is deprecated: its page stays reachable, but it is not in the row). Perfil lives in the avatar menu (UserMenu), not in this row.
   const navItems = [
     { to: '/',            label: t.dashboard,  icon: IC.chart,       end: true },
-    { to: '/zonas',       label: t.zonas,      icon: IC.pin,         badge: followedZones.length },
     { to: '/observatorio', label: t.obsTitle,  icon: IC.observatory },
     { to: '/especies',    label: t.especies,   icon: IC.mushroom },
     { to: '/micologia',   label: t.micologia,  icon: IC.book },
@@ -110,7 +112,7 @@ export default function Layout() {
 
   const headerContent = (
     <>
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center">
+      <div className={`${fullBleed ? 'w-full' : 'max-w-7xl mx-auto'} px-4 py-3 flex items-center`}>
         {/* Logo */}
         <NavLink to="/" onClick={() => setMobileMenuOpen(false)}>
           <img src="/assets/images/logoFungus.png" alt="Fungus" className="h-16 w-auto object-contain logo-adaptive" />
@@ -118,13 +120,10 @@ export default function Layout() {
 
         {/* Nav desktop: icons only between md and lg (aria-label + title), icon and text from lg */}
         <nav className="hidden md:flex items-center gap-1 ml-auto mr-3">
-          {navItems.map(({ to, label, icon, end, badge }) => (
+          {navItems.map(({ to, label, icon, end }) => (
             <NavLink key={to} to={to} end={end} aria-label={label} title={label}
               className={({ isActive }) => `nav-item relative flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200${isActive ? ' nav-item--active' : ''}`}>
               {icon} <span className="hidden lg:inline">{label}</span>
-              {badge > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white rounded-full text-[10px] flex items-center justify-center font-bold">{badge}</span>
-              )}
             </NavLink>
           ))}
         </nav>
@@ -148,14 +147,11 @@ export default function Layout() {
       {/* Mobile dropdown menu */}
       {mobileMenuOpen && (
         <div className="md:hidden px-4 py-3 flex flex-col gap-1 anim-up border-t border-white/[0.06]">
-          {navItems.map(({ to, label, icon, end, badge }) => (
+          {navItems.map(({ to, label, icon, end }) => (
             <NavLink key={to} to={to} end={end}
               onClick={() => setMobileMenuOpen(false)}
               className={({ isActive }) => `nav-item relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all${isActive ? ' nav-item--active' : ''}`}>
               {icon} {label}
-              {badge > 0 && (
-                <span className="ml-auto px-2 py-0.5 bg-emerald-500 text-white rounded-full text-xs font-bold">{badge}</span>
-              )}
             </NavLink>
           ))}
         </div>
@@ -179,16 +175,18 @@ export default function Layout() {
         {headerContent}
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className={fullBleed ? undefined : 'max-w-7xl mx-auto px-4 py-8'}>
         <Outlet />
       </main>
 
-      <footer className="max-w-7xl mx-auto px-4 pb-6 text-center">
-        <button type="button" onClick={() => setCreditsOpen(true)}
-          className="text-xs text-cream/50 underline underline-offset-2 hover:text-cream transition-colors">
-          {t.creditsLink}
-        </button>
-      </footer>
+      {!fullBleed && (
+        <footer className="max-w-7xl mx-auto px-4 pb-6 text-center">
+          <button type="button" onClick={() => setCreditsOpen(true)}
+            className="text-xs text-cream/50 underline underline-offset-2 hover:text-cream transition-colors">
+            {t.creditsLink}
+          </button>
+        </footer>
+      )}
       <CreditsModal />
     </div>
   )
