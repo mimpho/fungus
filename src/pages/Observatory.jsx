@@ -379,7 +379,7 @@ export default function Observatory() {
                     onClick={closeZone}
                     aria-label={t.obsZoneClose}
                     title={t.obsZoneClose}
-                    className="shrink-0 p-2.5 -mr-2.5 rounded-xl text-cream/70 hover:text-cream hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
+                    className="shrink-0 p-2.5 rounded-xl text-cream/70 hover:text-cream hover:bg-white/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
                   >
                     <X size={20} aria-hidden="true" />
                   </button>
