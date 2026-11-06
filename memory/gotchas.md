@@ -365,6 +365,8 @@ The desktop `ObsModal` header has a slot (`ObsModalHeaderSlot`); the content por
 ### ⚠️ A `fixed` child of the Observatory page is placed against the page, not the screen
 The page is wrapped in `anim-up` (a transform): a `position: fixed` descendant is then measured against it, so a full-screen map inside it started below the site's header and its bottom sheet ran off the screen. Anything that must cover the viewport (the phone's map, the zone screen) is drawn with `createPortal(…, document.body)`, like `ObsModal`. `inPortal` in `pages/Observatory.jsx`.
 
+**Same cause, second symptom (2026-11-06):** `anim-up` is `animation: … both`, so its element keeps a stacking context after the animation, and a `fixed z-[150]` child inside it still sits under the site's header (`z-40`, outside it). The authenticated Observatory root therefore has no `anim-up` (`isAuthenticated ? undefined : 'anim-up'`); anything full-screen added to a page with `anim-up` needs the portal.
+
 ### ⚠️ A horizontally scrolling row widens its grid's implicit column
 `grid` without a template has one `auto` column sized by the content; a `flex` row with `overflow-x-auto` still contributes its full min-content width, so the column (and the cards sharing it, the calendar beside the forecast) overflowed the screen. Give the grid `grid-cols-[minmax(0,1fr)]` (and `min-w-0` to the cards in it) wherever a slider lives in one.
 
