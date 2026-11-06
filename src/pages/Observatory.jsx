@@ -12,11 +12,10 @@ import { useClassRaster } from '../hooks/useClassRaster'
 import { useSpecies } from '../hooks/useSpecies'
 import { isInCatalonia } from '../lib/catalonia'
 import { samePoint } from '../lib/observatoryView'
-import { ObservatoryError } from '../services/observatoryService'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
-import { Tabs } from '../components/ui/Tabs'
 import { MapSearch } from '../components/observatory/MapSearch'
 import { MapLayersBox } from '../components/observatory/MapLayersBox'
+import { MapPills, ViewPill } from '../components/observatory/MapPills'
 import { ForestTypeLegend } from '../components/observatory/ForestTypeLegend'
 import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
@@ -25,7 +24,6 @@ import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList, SavedPointsToggle } from '../components/observatory/SavedPoints'
 import { ObsModal, isDialogAbove } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
-import { ObservatoryNotice } from '../components/observatory/ObservatoryNotice'
 
 const BASEMAPS = ['satellite', 'streets', 'relief']
 
@@ -41,7 +39,6 @@ export default function Observatory() {
   const saved = useSavedPoints(isAuthenticated)
   // A page opened on a point (URL) starts with that point's panel on the map
   const [pending, setPending] = useState(() => (observed ? { lat: observed.lat, lon: observed.lon } : null))
-  const [pickError, setPickError] = useState(null)
   const [flyTo, setFlyTo] = useState(null)
   const [savedOpen, setSavedOpen] = useState(false)
   // Probability layer: switched on in the layers box, one species at a time (null = none yet).
@@ -102,6 +99,23 @@ export default function Observatory() {
   const phone = useIsPhone()
   const layerOpen = Boolean(observed) && isAuthenticated
   const [headerSlot, setHeaderSlot] = useState(null) // where the zone puts its title: the header of the layer
+  const [filtersSlot, setFiltersSlot] = useState(null) // and its active filters: a bar under that header, so they stay in view while the zone scrolls
+  // The bar of filters is fixed under the header once the zone scrolls up to it; only then do its pills get a shadow
+  const [filtersStuck, setFiltersStuck] = useState(false)
+  const layerHeaderRef = useRef(null)
+  const sentinelRef = useRef(null)
+  useEffect(() => {
+    const head = layerHeaderRef.current
+    const sentinel = sentinelRef.current
+    const scroller = sentinel?.closest('.overflow-y-auto')
+    if (!layerOpen || !head || !sentinel || !scroller) return undefined
+    // Stuck = the sentinel (just above the bar) has gone up behind the header
+    const check = () => setFiltersStuck(sentinel.getBoundingClientRect().top < head.getBoundingClientRect().bottom - 1)
+    check()
+    scroller.addEventListener('scroll', check, { passive: true })
+    window.addEventListener('resize', check)
+    return () => { scroller.removeEventListener('scroll', check); window.removeEventListener('resize', check) }
+  }, [layerOpen, observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
   // Phone only: the map over the whole screen (the site's header too) and, where the browser allows it, the browser's own
   // fullscreen (iPhone Safari has none: there only the header goes). The state follows the browser leaving fullscreen by itself.
   const [fullscreenState, setFullscreenState] = useState(false)
@@ -177,12 +191,10 @@ export default function Observatory() {
 
   function handlePick(lat, lon) {
     if (!isInCatalonia(lat, lon)) {
-      // Said here, without asking the API: it would answer 422 anyway
+      // Outside Catalonia there is nothing to look up (the API would answer 422): the pick is dropped without a notice
       setPending(null)
-      setPickError(new ObservatoryError('outside'))
       return
     }
-    setPickError(null)
     setPending({ lat, lon })
   }
 
@@ -224,8 +236,23 @@ export default function Observatory() {
       onWindow={setWindow}
       initialSpecies={shownSpecies}
       headerSlot={headerSlot}
+      filtersSlot={filtersSlot}
     />
   )
+  // The controls of the layers: in the pills' popovers (desktop) or in the layers card (phone)
+  const conditionsEl = (
+    <SpeciesLayerPicker
+      speciesId={layerSpecies}
+      onChange={chooseLayerSpecies}
+      layer={layer}
+      date={layerDate}
+      forestApplied={Boolean(forest && elevation && (layerSpecies ? layer.data?.species?.forest_classes : layer.data))}
+      soilApplied={Boolean(substrate && elevation && (layerSpecies ? layer.data?.species?.substrate_factors : layer.data))}
+      onDateChange={setLayerDate}
+      layerOn={probabilityOn}
+    />
+  )
+  const forestEl = <ForestTypeLegend active={forestShown} onToggle={toggleForestType} loaded={Boolean(forest)} />
   const savedList = <SavedPointsList saved={saved} observed={observed} onSelect={handleObserve} />
 
   if (authLoading) {
@@ -288,27 +315,11 @@ export default function Observatory() {
               centerAbove={phone ? { top: 72, bottomPx: sheetH || Math.round(window.innerHeight * 0.45) } : null}
               className="h-full"
             />
-            {pickError && <div className="absolute z-[1200] top-[7.5rem] left-3 right-3 md:right-auto md:w-[30rem]"><ObservatoryNotice error={pickError} /></div>}
             {!pending && !observed && (
               <p className="absolute z-[1100] bottom-10 left-3 right-16 md:bottom-3 md:right-auto md:max-w-sm glass-olive rounded-xl px-3 py-2 text-xs text-cream/80 pointer-events-none">
                 {t.obsMapHint}
               </p>
             )}
-            {/* View selector (same look as Zonas / Mapa de calor on the zones map). On a phone it lives in the layers panel */}
-            {!phone && <div className="absolute z-[1100] top-[4.75rem] right-3 md:top-3">
-              <div
-                role="group"
-                aria-label={t.obsBasemapLabel}
-                className="backdrop-blur-sm bg-modal/80 rounded-xl p-1.5"
-              >
-                <Tabs
-                  options={[{ id: 'satellite', label: t.obsBasemapSatellite }, { id: 'streets', label: t.obsBasemapStreets }, { id: 'relief', label: t.obsBasemapRelief }]}
-                  selected={basemap}
-                  onChange={chooseBasemap}
-                  size="md"
-                  variant="compact" />
-              </div>
-            </div>}
             {/* Phone: the map's fullscreen, level with the search */}
             {phone && (
               <button
@@ -322,36 +333,50 @@ export default function Observatory() {
                 {fullscreen ? <Minimize size={20} aria-hidden="true" /> : <Maximize size={20} aria-hidden="true" />}
               </button>
             )}
-            {/* Provisional (until the pills): the way into the corners list, under the search */}
-            <div className="absolute z-[1100] top-[4.25rem] left-3">
-              <SavedPointsToggle saved={saved} onToggle={() => setSavedOpen(o => !o)} compact />
-            </div>
-            {/* Under the basemap tabs on the right, so it never covers the clicked point's panel (bottom left). Before the search in the DOM so the search list opens over it on mobile */}
-            <MapLayersBox
-              corners={cornersOn}
-              onCorners={chooseCorners}
-              probability={probabilityOn}
-              onProbability={setProbabilityOn}
-              forest={forestOn}
-              onForest={setForestOn}
-              forestChildren={<ForestTypeLegend active={forestShown} onToggle={toggleForestType} loaded={Boolean(forest)} />}
-              className={phone ? 'absolute z-[1100] top-[4.75rem] left-3 right-3' : 'absolute z-[1100] top-[8rem] left-3 right-3 md:left-auto md:top-[4.75rem] md:right-3 md:w-[22rem]'}
-              mobile={phone}
-              open={phone ? layersOpen : undefined}
-              onOpenChange={phone ? changeLayersOpen : undefined}
-              basemap={basemap}
-              onBasemap={chooseBasemap}
-            >
-              <SpeciesLayerPicker
-                speciesId={layerSpecies}
-                onChange={chooseLayerSpecies}
-                layer={layer}
-                date={layerDate}
-                forestApplied={Boolean(forest && elevation && (layerSpecies ? layer.data?.species?.forest_classes : layer.data))}
-                soilApplied={Boolean(substrate && elevation && (layerSpecies ? layer.data?.species?.substrate_factors : layer.data))}
-                onDateChange={setLayerDate}
-              />
-            </MapLayersBox>
+            {/* Desktop: the view and, under it, what the map shows, as a column of pills at the right edge (before the search in the DOM so its list opens over them) */}
+            {!phone && (
+              <div className="absolute z-[1100] top-3 right-3 flex flex-col items-end gap-2">
+                <ViewPill basemap={basemap} onBasemap={chooseBasemap} />
+                <MapPills
+                  corners={cornersOn}
+                  onCorners={chooseCorners}
+                  savedCount={saved.status === 'ready' ? saved.points.length : null}
+                  onOpenList={() => setSavedOpen(true)}
+                  probability={probabilityOn}
+                  onProbability={setProbabilityOn}
+                  probabilityPanel={conditionsEl}
+                  forest={forestOn}
+                  onForest={setForestOn}
+                  forestPanel={forestEl}
+                />
+              </div>
+            )}
+            {/* Phone: the way into the corners list, under the search (the rest of the layers are in the layers card) */}
+            {phone && (
+              <div className="absolute z-[1100] top-[4.25rem] left-3">
+                <SavedPointsToggle saved={saved} onToggle={() => setSavedOpen(o => !o)} compact />
+              </div>
+            )}
+            {/* Phone: the layers card. Before the search in the DOM so the search list opens over it */}
+            {phone && (
+              <MapLayersBox
+                corners={cornersOn}
+                onCorners={chooseCorners}
+                probability={probabilityOn}
+                onProbability={setProbabilityOn}
+                forest={forestOn}
+                onForest={setForestOn}
+                forestChildren={forestEl}
+                className="absolute z-[1100] top-[4.75rem] left-3 right-3"
+                mobile
+                open={layersOpen}
+                onOpenChange={changeLayersOpen}
+                basemap={basemap}
+                onBasemap={chooseBasemap}
+              >
+                {conditionsEl}
+              </MapLayersBox>
+            )}
             <div className={`absolute z-[1100] top-3 left-3 ${phone ? 'right-[4.5rem]' : 'right-3 md:right-auto'} pointer-events-none`}>
               <MapSearch onSelect={handleSearchSelect} className="pointer-events-auto w-full md:w-[30rem]" />
             </div>
@@ -371,7 +396,7 @@ export default function Observatory() {
               className="fixed inset-0 z-[150] overflow-y-auto overscroll-contain bg-modal"
             >
               {/* As tall as the site's header (--header-h, published by Layout), which the layer covers */}
-              <div className="sticky top-0 z-10 bg-modal/95 backdrop-blur-sm border-b border-white/[0.06]">
+              <div ref={layerHeaderRef} className="sticky top-0 z-10 bg-modal/95 backdrop-blur-sm border-b border-white/[0.06]">
                 <div className="max-w-7xl mx-auto h-[var(--header-h,5.5rem)] flex items-center gap-3 px-4">
                   <div ref={setHeaderSlot} className="min-w-0 flex-1" />
                   <button
@@ -385,6 +410,9 @@ export default function Observatory() {
                   </button>
                 </div>
               </div>
+              {/* The zone's active filters (species, days): a bar under the header that keeps its place in the page and, when the zone scrolls up to it, stays fixed under the header. No background; its pills have a shadow only while it is fixed */}
+              <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
+              <div ref={setFiltersSlot} data-stuck={filtersStuck} className="group sticky top-[calc(var(--header-h,5.5rem)+1px)] z-10 pointer-events-none empty:hidden" />
               <div className="max-w-7xl mx-auto px-4 pt-6 pb-24 space-y-6">
                 {zoneEl}
                 <p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p>

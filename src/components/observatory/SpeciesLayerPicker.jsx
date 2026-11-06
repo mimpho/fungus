@@ -9,6 +9,27 @@ import { InfoTip } from './InfoTip'
 import { ObservatoryNotice } from './ObservatoryNotice'
 
 /**
+ * What the layer's box shows while it calculates, with the height of the loaded one so that the content does not make it jump:
+ * the day control (buttons 28 px, forecast strip 4, date 16.5, gaps of 4) and, 8 px below, the legend (bar 8, labels 16.5, gap 4).
+ */
+export function LayerLoadingPlaceholder() {
+  const { t } = useApp()
+  return (
+    <div className="space-y-2 animate-pulse" role="status" aria-label={t.obsLayLoading}>
+      <div className="space-y-1" aria-hidden="true">
+        <div className="h-7 rounded-full bg-cream/[0.08]" />
+        <div className="mx-[2.25rem] h-1 rounded-full bg-cream/[0.06]" />
+        <div className="mx-auto h-[16.5px] w-24 rounded bg-cream/[0.06]" />
+      </div>
+      <div className="space-y-1" aria-hidden="true">
+        <div className="h-2 rounded-full bg-cream/[0.08]" />
+        <div className="h-[16.5px] rounded bg-cream/[0.06]" />
+      </div>
+    </div>
+  )
+}
+
+/**
  * Species selector of the probability layer, over the map: a combobox that filters the whole
  * catalogue as you type (scientific name, common names in the app language, Latin synonyms — the
  * same match as the species list of a point). One species at a time: choosing another replaces
@@ -17,9 +38,10 @@ import { ObservatoryNotice } from './ObservatoryNotice'
  * an answer, its legend and what it does not take into account.
  * It lives inside the map's layers box (MapLayersBox), under the probability checkbox.
  * `layer` is the useProbabilityLayer state of the chosen species; `date` the reference day asked
- * for (null = the last day with data) and `onDateChange` how the day control changes it.
+ * for (null = the last day with data) and `onDateChange` how the day control changes it. `layerOn`: the layer is switched on, so
+ * until its data arrives (the status may still be `idle` for a moment) the placeholder is shown.
  */
-export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, onDateChange, forestApplied = false, soilApplied = false, className = '' }) {
+export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, onDateChange, forestApplied = false, soilApplied = false, layerOn = false, className = '' }) {
   const { t, lang } = useApp()
   const { species: catalog } = useSpecies()
   const listId = useId()
@@ -169,7 +191,7 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
           </ul>
         )}
 
-        {(speciesId || layer.status !== 'idle') && (
+        {(speciesId || layer.status !== 'idle' || layerOn) && (
           <div className="px-1 pb-0.5 space-y-2" aria-live="polite">
             {data?.last_data_date && onDateChange && (
               <LayerDayControl
@@ -180,15 +202,8 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
                 onChange={onDateChange}
               />
             )}
-            {layer.status === 'loading' && !data && (
-              // Placeholder with the height of the loaded box (day control, legend, notes) so it does not jump
-              <div className="space-y-2 animate-pulse" role="status" aria-label={t.obsLayLoading}>
-                <div className="h-11 rounded-lg bg-cream/[0.08]" />
-                <div className="space-y-1">
-                  <div className="h-2 rounded-full bg-cream/[0.08]" />
-                  <div className="h-3 w-full rounded bg-cream/[0.06]" />
-                </div>
-              </div>
+            {!data && (layer.status === 'loading' || (layerOn && layer.status !== 'error' && layer.status !== 'ready')) && (
+              <LayerLoadingPlaceholder />
             )}
             {layer.status === 'error' && <ObservatoryNotice error={layer.error} onRetry={layer.retry} />}
             {layer.status === 'ready' && data && !data.date && (

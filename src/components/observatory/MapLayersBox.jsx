@@ -8,6 +8,7 @@ const COMING = [
   { id: 'rain', key: 'obsLayerRain' },
   { id: 'temperature', key: 'obsLayerTemperature' },
   { id: 'wind', key: 'obsLayerWind' },
+  { id: 'top10', key: 'obsLayerTop10' },
 ]
 
 const BASEMAP_OPTIONS = [

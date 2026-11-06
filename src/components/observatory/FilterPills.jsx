@@ -6,16 +6,16 @@ import { dayWithYear } from '../../lib/timeline'
 function Pill({ label, onRemove }) {
   const { t } = useApp()
   return (
-    <li className="inline-flex items-center gap-1 rounded-full glass-warm border border-coffee-light pl-3.5 pr-1 py-1 text-sm text-cream">
+    <li className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-bar text-white transition-shadow group-data-[stuck=true]:shadow-[0_4px_14px_rgba(0,0,0,0.4)] pl-3.5 pr-1 py-1 text-sm">
       <span className="truncate max-w-[16rem]">{label}</span>
       <button
         type="button"
         onClick={onRemove}
         aria-label={t.obsFilterRemove.replace('{name}', label)}
-        className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-cream/15 transition-colors"
+        className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
       >
-        {/* Stroke from the cream token's RGB so it follows the theme (the glyph it replaces did not) */}
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--color-cream-rgb))" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {/* The pill is the colour of the map's active pills (`bg-bar`, white text), the same in both themes */}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>

@@ -37,7 +37,7 @@ const MACRO_KEY = {
  * says that the species will not be listed. The place name is context: if it fails, coordinates
  * stand in and nothing is reported. Only the thermometer failing is an error to show.
  */
-export function ObservedZone({ point, saved, until = null, days, onWindow, initialSpecies = null, onOpenList, headerSlot = null }) {
+export function ObservedZone({ point, saved, until = null, days, onWindow, initialSpecies = null, onOpenList, headerSlot = null, filtersSlot = null }) {
   const { t, lang } = useApp()
   // Starts on the species the map layer shows, so the thermometer and the map speak of the same one
   const [speciesId, setSpeciesId] = useState(initialSpecies)
@@ -118,13 +118,19 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
         <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} />
       )}
 
-      <FilterPills
-        speciesName={chosenName}
-        onClearSpecies={() => setSpeciesId(null)}
-        until={until}
-        days={days}
-        onClearWindow={() => onWindow(null, DEFAULT_WINDOW)}
-      />
+      {/* The active filters go in a bar under the layer's header (`filtersSlot`), fixed there when the zone scrolls up to it; no bar while there are none */}
+      {filtersSlot && (chosenName || until || days !== DEFAULT_WINDOW) && createPortal(
+        <div className="max-w-7xl mx-auto px-4 pt-5 pb-0">
+          <FilterPills
+            speciesName={chosenName}
+            onClearSpecies={() => setSpeciesId(null)}
+            until={until}
+            days={days}
+            onClearWindow={() => onWindow(null, DEFAULT_WINDOW)}
+          />
+        </div>,
+        filtersSlot,
+      )}
 
       {/* Two independent columns, so a card never waits for the height of the one beside it: on the left the
           thermometer and the chart, on the right the corner, the species filter and the events list */}
