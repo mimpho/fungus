@@ -26,15 +26,16 @@ The epic gathers the PRs #124–#158. What it delivers:
 
 **Not verified:** no deployment against production has run yet; migrations `017`–`021` were exercised only on the disposable database `fungus-ingest-test`.
 
-### Changed — Observatory map as the page; the observed zone as a full-screen layer (2026-11-06, `feat/map-fullscreen-observe`, T1 + T2 of `epic/observatory-map`)
+### Changed — Observatory map as the page; the observed zone as a full-screen layer (2026-11-06, `feat/map-fullscreen-observe`, T1 + T2 + T3 of `epic/observatory-map`)
 
-Front end only; no migration, no new variable. T1 (`1f3cbc6`) and T2 are two commits of the same branch.
+Front end only; no migration, no new variable. T1 (`1f3cbc6`), T2 and T3 are separate commits of the same branch.
 
 - **Map as the page (T1):** the map fills the viewport under the header at every width, without the page title, the site wrapper or the footer; «Zonas» leaves the header row (its page stays at `/zonas`); the header spans the full width on this route. On a phone the map is the page and its close button becomes a fullscreen toggle (Fullscreen API where the browser has it; iPhone Safari only hides the header). The page no longer carries `anim-up`: its opacity animation left a stacking context that trapped the fullscreen map under the header.
 - **Observed zone as a layer (T2):** it covers the viewport (header included) while `?lat&lon` is in the URL; its × closes the layer and keeps the point's card on the map, and Esc closes fullscreen, then the layer, then the card. The layer's header is as tall as the site's (`--header-h`, published by `Layout`) and holds «Zona observada» with the zone's title. The point's card always says «Observar» (there is no «Ver zona» or «Volver al mapa»), and the map keeps its view: it only recentres when the point is outside the bounds.
 - **Facts row (`PointFacts`):** comarca, coordinates, altitude, forest and soil as cards (icon, label, value; at least 170 px wide, one line per forest class, the row scrolls sideways), with a skeleton while the point loads. New soil icon. The sources of the forest and the soil stay in the credits modal, which now also says that the soil pH is the typical value of each lithology, not a measurement.
 - **Save card:** a point that is not saved shows a card «Guardar rincón» (same shape as «Mi rincón») that opens the save modal; deleting a corner from the zone no longer closes the zone. The titles of the corner modals no longer wrap.
 - **Thermometer tiles:** icon beside the value (state: green zigzag arrow when «En marcha», blue when «En frío»; soil water; soil temperature).
+- **Zoom to the picked point (T3):** picking a point with the map zoomed out further than 11 flies to it at zoom 11 (`PICK_ZOOM`) so its surroundings are in view; closer than that the zoom is left alone. The point's card does not move; on a phone the point is then kept clear of the bottom sheet (`keepClear`). The × of the zone's layer is aligned with the page's content.
 - **Removed:** `SavePointControls` is no longer used (delete the file), and the keys `obsViewMap`, `obsMapClose`, `obsBackToMap` and `obsPointObservingShort` of `data/i18n.js`.
 - **Verified:** `vite build` in a clean clone (cloud) and the grammar of the changed files. **Not verified:** a real phone (fullscreen, iPhone Safari without the API), Esc order with a modal over the layer, ES/CA/EN texts and light/dark theme on the new cards. The layer's header and the pills are still provisional until T4.
 
