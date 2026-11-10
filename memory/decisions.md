@@ -15,6 +15,14 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## Observatory navigation: one model for desktop and phone, built before the new layers (2026-11-10)
+
+**Decision:** a new front-end epic, `epic/observatory-navigation`, replaces the pills (desktop) and the layers card (phone) with one model: tabs **Datos** (Condiciones, Lluvia, Temperatura, Viento), **Zonas** (Mis rincones, Zonas de interés) and **Bosque**, each with its own switch (off by default, content shown dimmed), plus a separate **Vista** button. Layers accumulate on one map; inside Datos only one layer at a time, because they share the day slider and the legend. It is built before the phone improvements, `observatory-zones-of-interest` and `observatory-layers`, which then plug into it. Design: proposal C of the Claude artifact «Observatorio — propuestas de filtros y vistas del mapa»; spec in `memory/observatory-navigation-prd.md`.
+
+**Why:** every new layer would otherwise add a pill, a popover and a phone variant, and the two devices already work differently. Unifying first means the phone improvements are applied once, on the final structure.
+
+**Discarded:** A (always-visible pills plus a shared time deck): keeps the immediacy but needs a different phone solution and does not scale to more layers; B (one side panel / sheet with exclusive data layers and the other layers inside): everything in one place, but it makes accumulating layers awkward and hides the controls behind a sheet on phone.
+
 ## `epic/observatory-map` closes with T1–T4; «Zonas de interés» becomes its own epic (2026-11-06)
 
 **Decision:** the epic is closed with the map as the page, the observed zone as a layer, the zoom to the picked point and the layer pills. T5 «Zonas de interés» moves to a new full-stack epic and the cleanup of T6 to a small chore; the page `/zonas` stays deprecated and linked from the dashboard until it is retired.
