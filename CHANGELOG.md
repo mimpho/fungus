@@ -49,6 +49,11 @@ Front end only (PRD «Observatorio y zonas — mapa base»). What it delivers:
 - `memory/decisions.md`: one entry with every answer and its discarded alternatives.
 - `memory/pending.md`, `system/project.spec.md`, `README.md`: `epic/observatory-layers` becomes `epic/observatory-meteo` (rain, temperature, wind; full stack, rain first); Top 10 leaves it for the Zonas tab; new follow-up item: the point card as a sheet on phone and desktop.
 
+### Documentation — status documents retired (2026-11-11, docs only)
+
+- `CLAUDE.md`: sessions start from `memory/pending.md`, the active epic's PRD and plan, the branch and `git log`, and close through the branch close checklist; the Spanish `estado-fungus-*` documents of the Claude Project are no longer written (they repeated the repo docs). The few working notes they alone held move to a «How we work» paragraph.
+- `memory/pending.md`: new «Loose ends» block with the non-sensitive items that only lived in those documents.
+
 ### Changed — Observatory map as the page; the observed zone as a full-screen layer (2026-11-06, `feat/map-fullscreen-observe`, T1 + T2 + T3 + T4 of `epic/observatory-map`)
 
 Front end only; no migration, no new variable. T1 (`1f3cbc6`), T2, T3 and T4 are separate commits of the same branch.

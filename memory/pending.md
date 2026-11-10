@@ -24,6 +24,16 @@ The epic is closed in the retrospective of 2026-11-05 (changes in `system/workfl
 5. `epic/observatory-meteo` (renamed from `observatory-layers` on 2026-11-10; full stack, small; PRD to write, short, with «Deployment readiness»): the weather layers of the «Meteo» tab of `epic/observatory-navigation` — 7c rain first (endpoint over the stored `climate_cell_history`, no migration, no new ingest; accumulated over a window that ends on the shared day slider, presets 24 h · 7 d · 21 d, cuts for 24 h and 7 d set with real data; see the navigation PRD, Q2), then 7d temperature and 7e wind. 7f Top 10 is not a weather layer and stays out of it: it goes in the «Zonas» tab (see 7f).
 6. 🗂 **Point card as a sheet, phone and desktop** (decided 2026-11-10 while answering Q9 of `epic/observatory-navigation`; out of that epic, goes with the phone improvements that follow it). The point's card becomes the first level of the observed zone. **Phone:** dragging the sheet up opens the observed zone (same as «Observar»), dragging it down closes it (today only the close exists). **Desktop:** the card rises from the bottom, centred in width, not full width and not necessarily glued to the bottom edge (like Google Maps on desktop); not draggable on non-touch screens, so «Observar» and the close button stay. To solve: its overlap with the Meteo / Zonas / Bosque panel at the top right (≤ 400 px) and that both must coexist on desktop (Q5 of the navigation PRD); where the map centres the picked point so the card does not cover it.
 
+## 🟡 Loose ends (moved from the retired status documents, 2026-11-11)
+
+Small items that only lived in the Spanish status documents of the Claude Project. Security housekeeping (tokens, terminal history) is Marcos's and is not written here.
+
+- **`CHANGELOG.md`:** the summaries of `epic/observatory` and `epic/observatory-map` still sit under `[Unreleased]` («to be released as …») although both are in `main`; turn them into `[7.2.0]` and `[7.3.0]` sections.
+- **Minor code:** `bqp` / `bqr` possibly swapped; 3 ruff warnings; `scripts/gbif_forest_affinity.py` still uses the 5 old forest classes; unused keys `obsSaveCancel` and `obsPhotoNoSpecies`; `className` prop of `SpeciesPanel` unused; zones 030 and 202 without an altitude range.
+- **Inherited:** review forest weights against the field notebook (carrasco); extend the pH and forest-weight audit; photos of corners branch 3; branches `fix/observatory-cache-control` and `feat/observatory-forest-filter` (check whether still needed); 11 species without fruiting conditions; `compare_years`.
+- **Integrated branches that can be deleted:** those of `epic/observatory`, `feat/map-fullscreen-observe`, `docs/observatory-map-close`. `epic/observatory` and `epic/observatory-map` by hand once everything is deployed (the `epic/*` ruleset blocks it; switch it off for a moment).
+- **External answers:** CREAF (needed before monetising) and ICGC (geocoder limits, licence of `ombres_tfosc`).
+
 ## 🟡 Chore from `main` — dev environment and safety nets (decided 2026-11-05, outside the epic)
 
 Why: `backend/.env` pointed at production and `seed_catalog.py` overwrote data on 2026-10-24. Done on 2026-11-05: `DATABASE_URL` in the local `.env` points to the disposable `fungus-ingest-test` (port 55432). To do, from `main`:
