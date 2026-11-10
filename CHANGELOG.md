@@ -37,6 +37,11 @@ Front end only (PRD «Observatorio y zonas — mapa base»). What it delivers:
 
 **Manual steps at release:** none (no migration, no new variable). **Not verified:** a real phone, ES/CA/EN texts and light/dark on the new pills and cards.
 
+### Documentation — PRD for `epic/observatory-navigation` (2026-11-10, docs only)
+
+- `memory/observatory-navigation-prd.md`: one navigation model for the Observatory map on desktop and phone (tabs Datos / Zonas / Bosque with a switch each, a separate Vista button, accumulating layers), taken from proposal C of the design canvas. Scope, flows, nine open questions, deployment readiness (front end only), suggested branches and DoD.
+- `memory/pending.md`: the epic goes first among the next epics, ahead of the phone improvements, `observatory-zones-of-interest` and `observatory-layers`, which build on it.
+
 ### Changed — Observatory map as the page; the observed zone as a full-screen layer (2026-11-06, `feat/map-fullscreen-observe`, T1 + T2 + T3 + T4 of `epic/observatory-map`)
 
 Front end only; no migration, no new variable. T1 (`1f3cbc6`), T2, T3 and T4 are separate commits of the same branch.
