@@ -522,7 +522,7 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | # | Epic | Status | Scope |
 |---|---|---|---|
 | 1 | Product epic: Observatory and zones base map | 🗂 Next | PRD `prd-observatorio-mapa-base` (Fungus project); opens first |
-| 2 | `epic/observatory-layers` | 🗂 Next | Layers left from the Observatory: rain, temperature, wind, Top 10 |
+| 2 | `epic/observatory-meteo` | 🗂 Next | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
 | — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ Paused | Android app (React Native + Expo SDK 54 · MapLibre · EAS Build). Paused 2026-10-10; merged into `main` without tag |
 | 3 | Shared package | 🗂 Backlog | Scoring, constants, types, i18n as monorepo internal packages |
 | 4 | SEO | 🗂 Backlog | Static prerendering + Core Web Vitals |
