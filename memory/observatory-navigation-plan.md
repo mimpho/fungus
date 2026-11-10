@@ -1,0 +1,379 @@
+# Plan — `epic/observatory-navigation`
+
+> Technical plan and task breakdown. Product contract: [`observatory-navigation-prd.md`](observatory-navigation-prd.md) (open questions answered 2026-11-10; reasons in `memory/decisions.md`, «Observatory navigation: answers to the PRD's open questions»).
+> Last updated: 2026-11-10
+
+---
+
+## Status
+
+| # | Branch | Status |
+|---|---|---|
+| T1 | `feat/observatory-navigation-shell` | ⬜ |
+| T2 | `feat/observatory-navigation-phone` | ⬜ |
+| T3 | `feat/observatory-navigation-meteo` | ⬜ |
+| T4 | `feat/observatory-navigation-zonas-bosque` | ⬜ |
+| T5 | `chore/observatory-navigation-retire-old` | ⬜ |
+
+Order: T1 → T2 → T3 → T4 → T5. T3 and T4 both touch `Observatory.jsx` and `i18n.js`, so they go one after the other. All branches are cut from `epic/observatory-navigation` and squash-merged into it.
+
+The PRD suggested four branches; the shell is split into desktop (T1) and phone (T2) because it also carries the first-visit defaults, the loading bar and the Q5 coexistence rule.
+
+---
+
+## Findings in the current code
+
+1. **Draw order is reversed.** `ObservatoryMap.jsx` creates `FOREST_PANE` at z-index 340 and `LAYER_PANE` (conditions) at 350: the forest is drawn **under** the conditions. The PRD wants Meteo at the bottom and Bosque above it (T4).
+2. **Switching Condiciones on holds the page.** Working out the colours is synchronous; `MapPills` hides it by opening the popover first and switching the layer on after the slide (`waking`, `SLIDE_MS`). With Meteo on by default, the first computation must wait until the base map has painted (T1).
+3. **Phone top right is taken** by the fullscreen button (`Maximize`, 52 px). The PRD puts Vista «next to the search». Where both go is decided in T2. The «Mis rincones» button under the search (`SavedPointsToggle compact`) goes: its job moves to «Ver listado» in Zonas (T4).
+4. **The phone sheet already reports its height** (`onSheetHeight` → `centerAbove`), which keeps the picked point above it. The desktop panel needs the same idea sideways (T1).
+5. **No front-end tests** (no test script in `package.json`; `system/workflows.spec.md` leaves front-end code untested). Each task is accepted with `npm run build` clean plus a manual QA pass against its scenarios.
+6. **Today «Mis rincones» is on by default** (`fungus-obs-corners`, missing = on). The key is kept and becomes the Zonas switch (T1).
+
+---
+
+## Shared vocabulary
+
+- **Tab**: Meteo, Zonas or Bosque. Code ids: `data`, `zones`, `forest`.
+- **Switch**: whether a tab's layer is drawn. **Dot**: the mark on a tab icon while its switch is on.
+- **Panel**: a tab's content (desktop: beside the rail; phone: a sheet over the tab bar). Vista has a panel too, but no switch and no dot.
+- **Off look**: panel content at 40 % opacity, `inert`, under one transparent button «Activar {capa}».
+
+---
+
+## T1 · `feat/observatory-navigation-shell` — state model and desktop shell
+
+**Files**
+- New: `src/hooks/useMapNavigation.js` (open tab, switches, defaults, persistence), `src/hooks/useMapBusy.js`, `src/components/observatory/nav/` (`TabRail.jsx`, `NavPanel.jsx`, `PanelSwitch.jsx`, `ViewButton.jsx`, `ViewPanel.jsx`, `MapLoadingBar.jsx`), base-map thumbnails in `public/assets/images/observatory/`.
+- Modified: `src/pages/Observatory.jsx`, `src/components/observatory/ObservatoryMap.jsx` (room for the panel when centring), `src/styles.css` (shadow tokens), `src/data/i18n.js`.
+
+**Spec**
+1. `useMapNavigation` holds `openTab` (`data | zones | forest | view | null`) and `on = { data, zones, forest }`. Opening a tab closes any other panel, Vista's included. Tapping the open tab closes it. A switch keeps its value when its panel closes.
+2. First-visit defaults: `data` on, `zones` on if the user has saved corners (decided once the corners have loaded), `forest` off. Each switch is stored in `localStorage` (`fungus-obs-data`, `fungus-obs-corners` (reused), `fungus-obs-forest`); a stored value wins over the default. Wrap every read and write in try/catch.
+3. Desktop layout: tab rail top right (icon + label per tab, dot when on); Vista button and the Leaflet zoom bottom right; search top left (unchanged); panel to the left of the rail, at most 400 px wide (25 rem), height to its content with a max height and inner scroll.
+4. Panel header: tab name and `PanelSwitch` (`role="switch"`, `aria-checked`). Off look as in the vocabulary; a tap on it turns the switch on and does nothing else. The species field is the exception: it turns `data` on and keeps the focus (T3 wires the field; T1 provides the hook for it).
+5. The panels hold today's content, moved as it is: `SpeciesLayerPicker` in Meteo, the corners checkbox plus the list button in Zonas, `ForestTypeLegend` in Bosque. Their final layout comes in T3 and T4.
+6. Vista panel: Satélite · Mapa · Relieve with thumbnails; picking one closes the panel. Choice stored in `fungus-obs-basemap` as today.
+7. Desktop closing: the panel closes with its tab or Esc. Esc joins the page's chain: phone fullscreen → zone layer → open panel → point card. A map click does not close the panel.
+8. Coexistence (Q5): at ≥ 1024 px the point card (bottom left) and the panel are open together; from 640 to 1023 px opening one closes the other. When the map centres a point (search, zoom to the point) with a panel open, it leaves the panel's width free.
+9. `useMapBusy(sources)` is true while any source whose layer is **on** is loading. `MapLoadingBar` sits on the top edge of the map: indeterminate, shown after 300 ms, kept for at least 400 ms, `role="progressbar"` without value, label «Cargando capas», `aria-busy` on the map, static under `prefers-reduced-motion`. If an on layer fails, a compact notice on the same edge: «No se pudo cargar {capa} · Reintentar».
+10. Entry performance: the first Condiciones computation starts after the base map has painted (e.g. after the first `load` of the tile layer, or the next idle callback), so entering the page never freezes the map.
+11. Shadow tokens: `--shadow-float: 0 4px 16px rgba(0,0,0,.45)` (search, buttons, rail, zoom, panels) and `--shadow-bottom: 0 -4px 16px rgba(0,0,0,.45)` (bars and sheets on the bottom edge).
+12. Phone (< 640 px) keeps the old `MapLayersBox` until T2.
+
+**Scenarios**
+
+```gherkin
+Feature: Desktop navigation shell
+
+  Background:
+    Given a logged-in user on /observatorio at 1280 px wide
+
+  Scenario: First visit with saved corners
+    Given the browser has no stored Observatory switches
+    And the user has 12 saved corners
+    When the page opens
+    Then the base map is shown before the conditions colours
+    And the Meteo tab and the Zonas tab show a dot
+    And the Bosque tab shows no dot
+    And no panel is open
+
+  Scenario: First visit without saved corners
+    Given the browser has no stored Observatory switches
+    And the user has no saved corners
+    When the page opens
+    Then only the Meteo tab shows a dot
+
+  Scenario: Switches are remembered
+    Given the user switched Meteo off and Bosque on
+    When the page is reloaded
+    Then Meteo is off and Bosque is on
+
+  Scenario: Opening, replacing and closing panels
+    When the user clicks the Meteo tab
+    Then the Meteo panel opens to the left of the rail
+    When the user clicks the Zonas tab
+    Then the Zonas panel replaces it
+    When the user clicks the Zonas tab again
+    Then no panel is open
+    And every switch keeps its value
+
+  Scenario: Vista and tab panels never show together
+    Given the Bosque panel is open
+    When the user clicks the Vista button
+    Then the Bosque panel closes and the Vista panel opens
+    When the user picks «Relieve»
+    Then the base map is the relief and the Vista panel closes
+
+  Scenario: A tap on dimmed content only switches the layer on
+    Given the Bosque switch is off and its panel is open
+    When the user clicks the «Encinar» row
+    Then the Bosque switch is on and the Bosque tab shows a dot
+    And every forest class keeps its previous state
+
+  Scenario: Point card and panel coexist on a wide screen
+    Given the Meteo panel is open
+    When the user clicks a point on the map
+    Then the point card opens at the bottom left
+    And the Meteo panel stays open
+
+  Scenario: Point card and panel take turns on a narrow desktop
+    Given the window is 900 px wide and the Meteo panel is open
+    When the user clicks a point on the map
+    Then the point card opens and the Meteo panel closes
+
+  Scenario: Esc closes the panel before the point card
+    Given the point card and the Meteo panel are open
+    When the user presses Esc
+    Then the Meteo panel closes and the point card stays
+    When the user presses Esc again
+    Then the point card closes
+
+  Scenario: Loading bar
+    Given Meteo is on
+    When the conditions take more than 300 ms to arrive
+    Then a thin bar shows on the top edge of the map until they are drawn
+    And no bar shows when the answer comes from the cache
+
+  Scenario: A layer that fails
+    Given Meteo is on and the conditions request fails
+    Then the map shows «No se pudo cargar Condiciones · Reintentar»
+    When the user clicks «Reintentar»
+    Then the request is made again
+
+  Scenario: Keyboard
+    When the user tabs through the rail
+    Then each tab is reachable and announces whether its panel is expanded
+    And each switch toggles with Space
+```
+
+**Done when** the scenarios pass by hand, `npm run build` is clean, and the phone still works with the old layers card.
+
+---
+
+## T2 · `feat/observatory-navigation-phone` — phone shell
+
+**Files**
+- New: `src/components/observatory/nav/PhoneTabBar.jsx`.
+- Modified: `src/pages/Observatory.jsx`, `src/components/observatory/PointPanel.jsx` (`PointSheet` rises above the bar), `src/components/observatory/nav/ViewButton.jsx` / `ViewPanel.jsx` (phone placement), `src/data/i18n.js`.
+
+**Spec**
+1. With no tab open, the tab bar is a full-width bar fixed to the bottom of the map, top corners rounded, no drag handle, `--shadow-bottom`. Three tabs (icon + label + dot).
+2. Opening a tab grows a sheet upward from the bar; the bar and its three icons do not move. The sheet scrolls inside and never covers more than 80 % of the map's height.
+3. The point's sheet (`PointSheet`) rises from above the bar too, in the same place as a tab's sheet; its drag-down-to-close stays.
+4. One sheet at a time (Q5): a tab tap closes the point's sheet and drops the picked point; a picked point or a search result closes the tab's sheet; with a tab's sheet open, the first map tap only closes it.
+5. Vista: the layers button next to the search opens its panel under it; opening it closes any sheet. **Decision in this task:** where the fullscreen button goes. Proposed: one row, search · Vista · fullscreen.
+6. `centerAbove` uses the bar's height when no sheet is open, and the sheet's height when one is.
+7. Touch targets ≥ 44 px. `MapLayersBox` is no longer rendered (deleted in T5). The compact `SavedPointsToggle` under the search goes.
+
+**Scenarios**
+
+```gherkin
+Feature: Phone navigation shell
+
+  Background:
+    Given a logged-in user on /observatorio on a 390 px wide phone
+
+  Scenario: The bar at rest
+    When the page opens
+    Then a full-width bar with Meteo, Zonas and Bosque is fixed at the bottom of the map
+    And it has rounded top corners and no drag handle
+
+  Scenario: The icons do not move
+    When the user taps Meteo
+    Then a sheet grows upward from the bar with the Meteo panel
+    And the three tab icons stay in the same place
+    When the user taps Meteo again
+    Then the sheet closes and the icons are still in the same place
+
+  Scenario: A tab closes the point's sheet
+    Given the point's sheet is open for a picked point
+    When the user taps Zonas
+    Then the point's sheet closes, the picked point is dropped and the Zonas sheet opens
+
+  Scenario: A map tap with a tab's sheet open
+    Given the Bosque sheet is open
+    When the user taps the map
+    Then the Bosque sheet closes and no point is picked
+    When the user taps the map again
+    Then the point's sheet opens above the bar
+
+  Scenario: A search result closes the tab's sheet
+    Given the Meteo sheet is open
+    When the user picks a search result
+    Then the Meteo sheet closes and the point's sheet opens for that place
+
+  Scenario: Vista
+    Given the Zonas sheet is open
+    When the user taps the layers button next to the search
+    Then the Zonas sheet closes and the Vista panel opens under the button
+
+  Scenario: Fullscreen
+    When the user enters fullscreen
+    Then the tab bar stays at the bottom of the screen and the loading bar at its top edge
+```
+
+**Done when** the scenarios pass on iOS Safari and Android Chrome, in and out of fullscreen and with the browser bars showing.
+
+---
+
+## T3 · `feat/observatory-navigation-meteo` — Meteo panel
+
+**Files**
+- New: `src/components/observatory/nav/MeteoPanel.jsx`, `src/components/observatory/nav/RainPresets.jsx`, `src/components/observatory/nav/LayerLegend.jsx` (scale as a prop).
+- Modified: `src/components/observatory/SpeciesLayerPicker.jsx` (becomes the Condiciones content), `src/components/observatory/LayerDayControl.jsx` (shared by every Meteo segment), `src/lib/observatoryView.js` and `src/hooks/useObservatoryView.js` (`capa`, `seta`, `dia`), `src/components/observatory/ObservedZone.jsx` and `src/pages/Observatory.jsx` (hand-off of the day), `src/data/i18n.js`.
+
+**Spec**
+1. Segmented control Condiciones · Lluvia · Temp. · Viento. Only Condiciones works; the other three are `aria-disabled` with a «Pronto» mark. In development builds (`import.meta.env.DEV`) they open their placeholder panels; in production they do not open.
+2. Condiciones keeps today's behaviour: species field with placeholder «Filtrar por seta» (empty = mean of the excellent species), day slider −30 … +7 with the forecast stretch, step buttons, «Hoy», thermometer legend. Focusing the field with Meteo off switches it on and keeps the focus.
+3. Out of season, the Condiciones legend says so (few species in season), so a grey map does not read as broken.
+4. Lluvia placeholder panel: presets 24 h · 7 d · 21 d (default 7 d), window ending on the slider's day, label «Acumulado {desde}–{hasta} · {n} días», «incluye previsión» when the day is in the forecast stretch, `LayerLegend` in mm with placeholder cuts (21 d: the 60–120 mm «good» band of the zone's rain chart). Temperatura and Viento: slider and legend only.
+5. URL (Q6): while Meteo is on, `capa` (`condiciones`), `seta` (species id, missing = excellent mean) and `dia` (YYYY-MM-DD, missing = today). Written with history replace. On open: invalid values are dropped; `dia` outside −30 … +7 is clamped. With Meteo off the three go; the last choice stays in memory for when it is switched on again. URL values win over stored switches (a link with `capa` turns Meteo on).
+6. Hand-off to the observed zone, once when it opens: the species (as today) and, if `dia` is set, `hasta = dia` clamped to the last real day (`resolveWindow` already clamps).
+
+**Scenarios**
+
+```gherkin
+Feature: Meteo panel
+
+  Background:
+    Given a logged-in user on /observatorio with Meteo on
+
+  Scenario: Conditions for a species and a day
+    When the user opens Meteo and picks «Boletus edulis» in «Filtrar por seta»
+    Then the map shows the conditions of that species
+    And the URL has capa=condiciones and seta=<its id>
+    When the user moves the slider three days back
+    Then the colours follow once the slider rests
+    And the URL has dia=<that day>
+    And the browser's Back button does not step through the days
+
+  Scenario: Back to today
+    Given the slider is three days back
+    When the user taps «Hoy»
+    Then the URL has no dia parameter
+
+  Scenario: A shared link
+    Given the browser has Meteo stored as off
+    When the user opens /observatorio?capa=condiciones&seta=<id>&dia=<5 days ago>
+    Then Meteo is on with that species and that day
+
+  Scenario: A day out of range in a link
+    When the user opens a link with dia 60 days ago
+    Then the slider is at its first day (30 days back)
+
+  Scenario: Switching Meteo off and on
+    Given a species and a day are chosen
+    When the user switches Meteo off
+    Then capa, seta and dia leave the URL
+    When the user switches it on again
+    Then the same species and day are shown
+
+  Scenario: Typing with Meteo off
+    Given Meteo is off and its panel is open
+    When the user taps «Filtrar por seta»
+    Then Meteo is on and the field has the focus
+
+  Scenario: Segments not built yet
+    Given a production build
+    Then Lluvia, Temperatura and Viento show «Pronto» and cannot be selected
+
+  Scenario: The day travels to the observed zone
+    Given the slider is on a day 10 days ago and «Boletus edulis» is chosen
+    When the user observes a point
+    Then the zone opens with «Boletus edulis» and its window ending on that day
+
+  Scenario: A forecast day travels to the observed zone
+    Given the slider is on a day 3 days ahead
+    When the user observes a point
+    Then the zone's window ends on the last day with real data
+
+  Scenario: Out of season
+    Given a reference day when no excellent species is in season
+    Then the legend says that few species are in season
+```
+
+**Done when** the scenarios pass and `npm run build` is clean.
+
+---
+
+## T4 · `feat/observatory-navigation-zonas-bosque` — Zonas and Bosque panels
+
+**Files**
+- New: `src/components/observatory/nav/ZonasPanel.jsx`, `src/components/observatory/nav/BosquePanel.jsx`.
+- Modified: `src/components/observatory/ForestTypeLegend.jsx` (becomes the checklist, or is replaced by `BosquePanel`), `src/components/observatory/SavedPoints.jsx` (`SavedPointsToggle` goes), `src/components/observatory/ObservatoryMap.jsx` (pane order), `src/pages/Observatory.jsx`, `src/data/i18n.js`.
+
+**Spec**
+1. Zonas: three rows — Mis rincones (works), Zonas de interés and Top 10 (`aria-disabled`, «Pronto»). Each row: checkbox (`role="checkbox"`) and «Ver listado» with the count in a badge. «Ver listado» of Mis rincones opens the existing list modal (`ObsModal` + `SavedPointsList`); the inert rows show no count.
+2. The Zonas switch draws the checked rows; the Mis rincones checkbox is remembered in `localStorage`.
+3. Bosque: one checkbox per forest class with its colour, «Todos» / «Ninguno», and a counter «{n} de {total}». The checked classes are stored in `localStorage` (`fungus-obs-forest-classes`); unknown keys are ignored.
+4. Draw order (bottom to top): Meteo colours, Bosque classes, Zonas de interés, Top 10, Mis rincones. Swap the panes so the forest is above the conditions; labels stay above both.
+
+**Scenarios**
+
+```gherkin
+Feature: Zonas and Bosque panels
+
+  Background:
+    Given a logged-in user on /observatorio with 12 saved corners
+
+  Scenario: My corners and their list
+    When the user opens Zonas
+    Then the switch is on and «Mis rincones» is checked
+    And «Ver listado» shows 12
+    When the user taps «Ver listado»
+    Then the list of corners opens
+
+  Scenario: Rows not built yet
+    Then «Zonas de interés» and «Top 10» show «Pronto» and cannot be checked
+
+  Scenario: Forest over the conditions
+    Given Meteo is on
+    When the user switches Bosque on
+    Then the forest classes are drawn over the conditions colours
+    And the corners are drawn over both
+
+  Scenario: Choosing forest classes
+    Given Bosque is on
+    When the user taps «Ninguno»
+    Then no class is drawn and the counter reads «0 de 8»
+    When the user checks «Hayedo»
+    Then only beech forest is drawn and the counter reads «1 de 8»
+    When the page is reloaded
+    Then only «Hayedo» is checked
+
+  Scenario: Keyboard
+    When the user tabs into the Bosque panel
+    Then each class checkbox toggles with Space
+```
+
+**Done when** the scenarios pass and flows 3 of the PRD can be followed end to end.
+
+---
+
+## T5 · `chore/observatory-navigation-retire-old` — remove the old shell and final pass
+
+**Files**
+- Deleted: `src/components/observatory/MapPills.jsx` (with `ViewPill`), `src/components/observatory/MapLayersBox.jsx`.
+- Modified: `src/data/i18n.js` (orphan keys), `system/project.spec.md` and `README.md` (roadmap rows out of date: no row for this epic, the base map epic still «Next»).
+
+**Spec**
+1. No import of the deleted components remains; no i18n key is left unused (checked with a grep of every `obs*` key against `src/`).
+2. Full pass: ES / CA / EN, light and dark themes, iOS Safari and Android Chrome, keyboard and screen reader on tabs, switches, checkboxes and sliders, text contrast ≥ 4.5:1 (active fill `#766a3e`).
+
+**Scenarios**
+
+```gherkin
+Feature: Old shell retired
+
+  Scenario: No dead code
+    When the source is searched for MapPills, ViewPill and MapLayersBox
+    Then nothing is found
+
+  Scenario: Languages and themes
+    Given each of ES, CA and EN, in light and in dark
+    When the user goes through every tab, Vista and the point card
+    Then every string is translated and every text meets 4.5:1 contrast
+```
+
+**Done when** every item of the PRD's Definition of Done is ticked, except the retrospective and the merge into `main`.

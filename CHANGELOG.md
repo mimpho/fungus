@@ -42,6 +42,13 @@ Front end only (PRD «Observatorio y zonas — mapa base»). What it delivers:
 - `memory/observatory-navigation-prd.md`: one navigation model for the Observatory map on desktop and phone (tabs Datos / Zonas / Bosque with a switch each, a separate Vista button, accumulating layers), taken from proposal C of the design canvas. Scope, flows, nine open questions, deployment readiness (front end only), suggested branches and DoD.
 - `memory/pending.md`: the epic goes first among the next epics, ahead of the phone improvements, `observatory-zones-of-interest` and `observatory-layers`, which build on it.
 
+### Documentation — `epic/observatory-navigation`: open questions answered and task plan (2026-11-10, docs only)
+
+- `memory/observatory-navigation-prd.md`: the nine open questions answered. The first tab is «Meteo» (was «Datos»); rain is accumulated over a window that ends on the shared day slider, with presets 24 h · 7 d · 21 d and one fixed scale per preset; three base maps; the point card and the panel coexist on desktop (≥ 1024 px) and take turns on the phone; the URL holds `capa`, `seta` and `dia`; on a first visit Meteo is on and Zonas too when the user has corners; inert rows show «Pronto»; the desktop panel stays at the right, ≤ 400 px. Adds a loading bar on the map and Top 10 as a row of the Zonas tab.
+- `memory/observatory-navigation-plan.md` (new): tasks T1–T5 with files, spec and Gherkin scenarios, and what the current code changes (draw order, blocking first computation, phone top-right corner).
+- `memory/decisions.md`: one entry with every answer and its discarded alternatives.
+- `memory/pending.md`, `system/project.spec.md`, `README.md`: `epic/observatory-layers` becomes `epic/observatory-meteo` (rain, temperature, wind; full stack, rain first); Top 10 leaves it for the Zonas tab; new follow-up item: the point card as a sheet on phone and desktop.
+
 ### Changed — Observatory map as the page; the observed zone as a full-screen layer (2026-11-06, `feat/map-fullscreen-observe`, T1 + T2 + T3 + T4 of `epic/observatory-map`)
 
 Front end only; no migration, no new variable. T1 (`1f3cbc6`), T2, T3 and T4 are separate commits of the same branch.

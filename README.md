@@ -149,7 +149,7 @@ POST /api/v1/images/set-order                 ← admin only
 | # | Epic | Status | Scope |
 |---|---|---|---|
 | 1 | Product epic: Observatory and zones base map | 🗂 | PRD in the Fungus project; opens first |
-| 2 | `epic/observatory-layers` | 🗂 | Layers left from the Observatory: rain, temperature, wind, Top 10 |
+| 2 | `epic/observatory-meteo` | 🗂 | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
 | — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ | Android app, paused 2026-10-10. Scaffold, nav, design system, zones done; species + map pending. Merged into `main` without tag, not distributed |
 | 3 | Shared package | 🗂 | Scoring, constants, types, i18n extracted as monorepo internal packages |
 | 4 | SEO | 🗂 | Static prerendering + Core Web Vitals |
