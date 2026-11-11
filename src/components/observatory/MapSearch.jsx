@@ -170,7 +170,7 @@ export function MapSearch({ onSelect, className = '' }) {
         onChange={e => { chosenRef.current = null; setText(e.target.value); setOpen(true); setActive(-1) }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
-        className="w-full glass-search search-light-input text-base md:text-sm outline-none pl-12 pr-12 shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
+        className="w-full glass-search map-surface search-light-input text-base md:text-sm outline-none pl-12 pr-12 shadow-float"
         style={{ height: '52px', borderRadius: '26px' }}
       />
       {text && (
@@ -193,7 +193,7 @@ export function MapSearch({ onSelect, className = '' }) {
           id={listId}
           role="listbox"
           aria-label={t.obsSearchLabel}
-          className="absolute left-0 right-0 top-full mt-2 max-h-72 overflow-auto rounded-2xl backdrop-blur-sm bg-modal/95 py-1 shadow-lg"
+          className="absolute left-0 right-0 top-full mt-2 max-h-72 overflow-auto rounded-2xl map-surface py-1 shadow-float"
         >
           {!query && (
             <li role="presentation" className="px-5 pt-2 pb-1 text-[11px] uppercase tracking-[1px] text-cream/55">{t.obsSearchRecent}</li>

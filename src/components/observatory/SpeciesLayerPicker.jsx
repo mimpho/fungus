@@ -229,7 +229,7 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
                     <span className="text-cream/50">{t.obsLayDate.replace('{fecha}', formatDay(data.date, lang))}</span>
                     <span className="inline-flex items-center gap-1">
                       {t.obsLayHigh}
-                      <InfoTip label={t.obsLayInfoLabel} align="right" className="-my-1.5">
+                      <InfoTip label={t.obsLayInfoLabel} align="right" floating className="-my-1.5">
                         <span className="block space-y-2">
                           {!speciesId && <span className="block">{t.obsLayAllNote}</span>}
                           <span className="block">{forestApplied && soilApplied ? t.obsLayNoteForestSoil : forestApplied ? t.obsLayNoteForest : soilApplied ? t.obsLayNoteSoil : t.obsLayNote}</span>

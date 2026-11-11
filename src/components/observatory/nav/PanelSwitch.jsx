@@ -11,8 +11,8 @@ export function PanelSwitch({ checked, onChange, label }) {
       onClick={() => onChange(!checked)}
       className="shrink-0 h-[44px] -my-[9px] flex items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
     >
-      <span className={`relative block w-[44px] h-[26px] rounded-full transition-colors ${checked ? 'bg-coffee-light' : 'bg-cream/25'}`}>
-        <span className={`absolute top-[3px] left-[3px] w-[20px] h-[20px] rounded-full transition-transform ${checked ? 'translate-x-[18px] bg-[#22281d]' : 'translate-x-0 bg-cream'}`} />
+      <span className={`relative block w-[44px] h-[26px] rounded-full transition-colors ${checked ? 'bg-[var(--switch-on)]' : 'bg-[var(--switch-off)]'}`}>
+        <span className={`absolute top-[3px] left-[3px] w-[20px] h-[20px] rounded-full transition-transform [box-shadow:var(--switch-thumb-shadow)] ${checked ? 'translate-x-[18px] bg-[var(--switch-thumb-on)]' : 'translate-x-0 bg-[var(--switch-thumb-off)]'}`} />
       </span>
     </button>
   )

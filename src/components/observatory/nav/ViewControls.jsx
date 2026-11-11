@@ -30,7 +30,7 @@ export function ViewButton({ open, onClick, panelId }) {
       aria-expanded={open}
       aria-controls={open ? panelId : undefined}
       aria-label={t.obsViewTitle}
-      className={`w-[76px] h-[76px] rounded-[22px] shadow-float flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${open ? 'bg-[#766a3e] text-white' : 'map-surface text-cream hover:brightness-110'} ${FOCUS}`}
+      className={`w-[76px] h-[76px] rounded-[22px] shadow-float flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${open ? 'bg-[var(--nav-active)] text-white' : 'map-surface text-cream hover:brightness-110'} ${FOCUS}`}
     >
       <Layers size={18} aria-hidden="true" />
       {t.obsLayersView}
@@ -61,7 +61,7 @@ export function ViewPanel({ id, basemap, onBasemap, onClose, className = '' }) {
               onClick={() => { onBasemap(b.id); onClose() }}
               className={`text-left rounded-xl ${FOCUS}`}
             >
-              <span className={`relative block h-[72px] rounded-xl overflow-hidden bg-[#2f3d2c] border-[2.5px] ${selected ? 'border-coffee-light' : 'border-transparent'}`}>
+              <span className={`relative block h-[72px] rounded-xl overflow-hidden bg-cream/10 border-[2.5px] ${selected ? 'border-coffee-light' : 'border-transparent'}`}>
                 {b.layers.map(url => (
                   <img key={url} src={tile(url)} alt="" aria-hidden="true" draggable="false" className="absolute inset-0 w-full h-full object-cover" />
                 ))}
