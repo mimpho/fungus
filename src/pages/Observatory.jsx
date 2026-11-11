@@ -14,11 +14,14 @@ import { useClassRasterState } from '../hooks/useClassRaster'
 import { useSpecies } from '../hooks/useSpecies'
 import { isInCatalonia } from '../lib/catalonia'
 import { samePoint } from '../lib/observatoryView'
+import { DEFAULT_METEO_LAYER, DEFAULT_RAIN_PRESET } from '../lib/meteoLayers'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { MapSearch } from '../components/observatory/MapSearch'
 import { ForestTypeLegend } from '../components/observatory/ForestTypeLegend'
 import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
+import { layerDays } from '../components/observatory/LayerDayControl'
+import { MeteoPanel } from '../components/observatory/nav/MeteoPanel'
 import { ObservedZone } from '../components/observatory/ObservedZone'
 import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList } from '../components/observatory/SavedPoints'
@@ -45,7 +48,7 @@ const PANEL_CLEAR_PX = 480
  */
 export default function Observatory() {
   const { t, isAuthenticated, authLoading, setAuthModal } = useApp()
-  const { point: observed, until, days, observe, clear, setWindow } = useObservatoryView()
+  const { point: observed, until, days, initialMeteo, observe, clear, setWindow, setMeteo } = useObservatoryView()
   const saved = useSavedPoints(isAuthenticated)
   // A page opened on a point (URL) starts with that point's panel on the map
   const [pending, setPending] = useState(() => (observed ? { lat: observed.lat, lon: observed.lon } : null))
@@ -54,12 +57,18 @@ export default function Observatory() {
   // The map's navigation: tabs Meteo / Zonas / Bosque, each with a switch remembered in this browser, and
   // one panel open at a time (memory/observatory-navigation-plan.md, T1). First visit: Meteo on, Zonas on
   // if the user has corners, Bosque off.
-  const nav = useMapNavigation({ hasCorners: saved.points.length > 0, cornersReady: saved.status === 'ready' })
-  // Probability layer (Meteo · Condiciones): one species at a time (null = the mean of the excellent ones).
-  // Switching it off hides it but remembers the species and the day.
-  const probabilityOn = nav.on.data
-  const [layerSpecies, setLayerSpecies] = useState(null)
-  const [layerDate, setLayerDate] = useState(null) // null = last day with data
+  // A link with a Meteo layer (`capa`) turns Meteo on, whatever this browser stored
+  const nav = useMapNavigation({ hasCorners: saved.points.length > 0, cornersReady: saved.status === 'ready', dataFromUrl: Boolean(initialMeteo) })
+  // Meteo: one data layer at a time (Condiciones; Lluvia, Temperatura and Viento are placeholders until
+  // epic/observatory-meteo). The day is shared by every layer. Switching Meteo off hides it but remembers
+  // the layer, the species and the day. Opened from a link, they come from the URL.
+  const meteoOn = nav.on.data
+  const [meteoKind, setMeteoKind] = useState(initialMeteo?.layer ?? DEFAULT_METEO_LAYER)
+  const [rainPreset, setRainPreset] = useState(DEFAULT_RAIN_PRESET)
+  // Probability layer (Meteo · Condiciones): one species at a time (null = the mean of the excellent ones)
+  const probabilityOn = meteoOn && meteoKind === 'conditions'
+  const [layerSpecies, setLayerSpecies] = useState(initialMeteo?.species ?? null)
+  const [layerDate, setLayerDate] = useState(initialMeteo?.day ?? null) // null = last day with data
   // «Mis rincones» (Zonas)
   const cornersOn = nav.on.zones
   // Forest type layer (Bosque): the forest raster by dominant type; the legend filters which types show
@@ -72,6 +81,15 @@ export default function Observatory() {
   })
   const shownSpecies = probabilityOn ? layerSpecies : null
   const { species: catalog } = useSpecies()
+  // A species the catalogue does not have (an old or mistyped link) is dropped without a notice: the
+  // layer falls back to the mean of the excellent ones
+  useEffect(() => {
+    if (layerSpecies && catalog?.length && !catalog.some(x => x.id === layerSpecies)) setLayerSpecies(null)
+  }, [catalog, layerSpecies])
+  // The URL says what Meteo shows while it is on (history replaced: Back does not walk through the days)
+  useEffect(() => {
+    setMeteo(meteoOn ? { layer: meteoKind, species: layerSpecies, day: layerDate } : null)
+  }, [meteoOn, meteoKind, layerSpecies, layerDate, setMeteo])
   const speciesLabel = id => {
     const s = (catalog ?? []).find(x => x.id === id)
     return s?.commonNames?.[0] || s?.scientificName || ''
@@ -248,7 +266,11 @@ export default function Observatory() {
   }
 
   function handleObserve(point) {
-    if (!samePoint(observed, point)) observe(point.lat, point.lon)
+    // The zone opens on the Meteo day: its window ends there, or on the last day with real data when the
+    // day is a forecast one
+    const lastReal = layerDays(layer.data).lastDate
+    const zoneUntil = probabilityOn && layerDate ? (layerDate > lastReal ? lastReal : layerDate) : undefined
+    if (!samePoint(observed, point)) observe(point.lat, point.lon, { until: zoneUntil })
     // The point's card stays on the map under the layer, for when the layer is closed
     setPending({ lat: point.lat, lon: point.lon })
     setSavedOpen(false)
@@ -270,8 +292,7 @@ export default function Observatory() {
       filtersSlot={filtersSlot}
     />
   )
-  // The controls of the layers: in the pills' popovers (desktop) or in the layers card (phone)
-  // `layerOn`: the layer is on, or the pill is waking it up; the controls then show either their content or their placeholder, never both
+  // Condiciones, the first segment of the Meteo panel. `layerOn`: the layer is on (its data is then on its way or here)
   const conditionsFor = (layerOn, holding = false) => (
     <SpeciesLayerPicker
       speciesId={layerSpecies}
@@ -296,7 +317,17 @@ export default function Observatory() {
       flat={flat}
       className={className}
     >
-      {tab === 'data' && conditionsFor(probabilityOn)}
+      {tab === 'data' && (
+        <MeteoPanel
+          kind={meteoKind}
+          onKind={setMeteoKind}
+          conditions={conditionsFor(probabilityOn)}
+          date={layerDate}
+          onDateChange={setLayerDate}
+          rainPreset={rainPreset}
+          onRainPreset={setRainPreset}
+        />
+      )}
       {tab === 'zones' && (
         <div className="flex items-center gap-3">
           <span className="flex-1 text-sm text-cream">{t.obsLayerCorners}</span>

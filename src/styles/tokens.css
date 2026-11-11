@@ -155,6 +155,21 @@
   --switch-thumb-shadow:  none;
   --shadow-float:         0 4px 16px rgba(0, 0, 0, 0.45);   /* floating controls: search, buttons, rail, zoom, panels */
   --shadow-bottom:        0 -4px 16px rgba(0, 0, 0, 0.45);  /* bars and sheets attached to the bottom edge */
+
+  /* Legend scales of the Meteo tab's weather layers (low → high), from the design's artboards. Placeholder
+     until epic/observatory-meteo draws them on the map; the same in both themes. */
+  --meteo-rain-1:   #e6f0fa;
+  --meteo-rain-2:   #6fa8dc;
+  --meteo-rain-3:   #1d3f8c;
+  --meteo-temp-1:   #3b6fd0;
+  --meteo-temp-2:   #7fb8d8;
+  --meteo-temp-3:   #e8d77a;
+  --meteo-temp-4:   #e0793a;
+  --meteo-temp-5:   #c0392b;
+  --meteo-wind-1:   #d7efe9;
+  --meteo-wind-2:   #6cc4b0;
+  --meteo-wind-3:   #2f8f9d;
+  --meteo-wind-4:   #3a4fa0;
 }
 
 /* ── Light theme overrides ────────────────────────────────────────────────── */

@@ -82,6 +82,26 @@ function keepClear(map, point, area) {
   if (dx || dy) map.panBy([dx, dy], { animate: true })
 }
 
+// How far the map can be dragged: Catalonia with a margin, as if the whole map were in view
+const DRAG_BOUNDS = BOUNDS.pad(0.25)
+
+/**
+ * The drag limits, grown by what the interface covers at the map's edges (`area`: the search at the
+ * top, the phone's bar or sheet at the bottom, a desktop panel at the right), so that every part of
+ * Catalonia can be dragged into the strip left in view. In pixels at the current zoom, so it is worked
+ * out again when the zoom or the covered area changes.
+ */
+function fitDragBounds(map, area) {
+  const top = area?.top ?? 0
+  const bottom = area?.bottomPx ?? 0
+  const right = area?.rightPx ?? 0
+  if (!top && !bottom && !right) { map.setMaxBounds(DRAG_BOUNDS); return }
+  const zoom = map.getZoom()
+  const nw = map.project(DRAG_BOUNDS.getNorthWest(), zoom).subtract([0, top])
+  const se = map.project(DRAG_BOUNDS.getSouthEast(), zoom).add([right, bottom])
+  map.setMaxBounds(L.latLngBounds(map.unproject(nw, zoom), map.unproject(se, zoom)))
+}
+
 // The first base tiles get this long to arrive before the layers are drawn anyway
 const BASE_WAIT_MS = 2500
 
@@ -138,7 +158,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     const map = L.map(elRef.current, {
       zoomControl: false,
       minZoom: 7,
-      maxBounds: BOUNDS.pad(0.25),
+      maxBounds: DRAG_BOUNDS,
       maxBoundsViscosity: 0.8,
     })
     map.createPane(FOREST_PANE).style.zIndex = 340
@@ -148,6 +168,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     if (initial.current) map.setView([initial.current.lat, initial.current.lon], initial.current.zoom ?? OBSERVED_ZOOM)
     else map.fitBounds(BOUNDS)
     map.on('click', e => onPickRef.current?.(e.latlng.lat, e.latlng.lng))
+    map.on('zoomend', () => fitDragBounds(map, centerRef.current))
     map.on('moveend', () => { const c = map.getCenter(); onViewRef.current?.({ lat: c.lat, lon: c.lng, zoom: map.getZoom() }) })
     mapRef.current = map
     onMap?.(map)
@@ -384,11 +405,14 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     clear()
   }, [pending?.lat, pending?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The sheet grows as its content arrives (up to 80% of the screen), a panel opens on the right: the point is kept clear of them
+  // The sheet grows as its content arrives (up to 80% of the screen), a panel opens on the right: the point is kept clear of
+  // them, and the drag limits grow by what they cover (a part of Catalonia under the sheet can be dragged up into view)
   useEffect(() => {
     const map = mapRef.current
-    if (map && pending && !flyingRef.current) keepClear(map, pending, centerRef.current)
-  }, [centerAbove?.bottomPx, centerAbove?.rightPx]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!map) return
+    fitDragBounds(map, centerAbove)
+    if (pending && !flyingRef.current) keepClear(map, pending, centerRef.current)
+  }, [centerAbove?.top, centerAbove?.bottomPx, centerAbove?.rightPx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={elRef} role="region" aria-label={label} className={className} />
 }
