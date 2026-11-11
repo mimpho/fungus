@@ -22,14 +22,15 @@ function store(tab, value) {
 /**
  * Open panel and switches of the map. First visit (nothing stored): Meteo on, Bosque off, Zonas on only
  * if the user has saved corners — decided once they have loaded (`cornersReady`), off until then.
- * After that each switch is whatever this browser last chose.
+ * After that each switch is whatever this browser last chose. `dataFromUrl`: the page was opened with a
+ * Meteo layer in the URL, which wins over the stored switch (without storing it).
  * `openTab`: 'data' | 'zones' | 'forest' | 'view' | null. Opening one closes any other; opening the
  * one already open closes it. A switch keeps its value when its panel closes.
  */
-export function useMapNavigation({ hasCorners = false, cornersReady = false } = {}) {
+export function useMapNavigation({ hasCorners = false, cornersReady = false, dataFromUrl = false } = {}) {
   const [openTab, setOpenTab] = useState(null)
   const [on, setOnState] = useState(() => ({
-    data: stored('data') ?? true,
+    data: dataFromUrl || (stored('data') ?? true),
     zones: stored('zones') ?? false,
     forest: stored('forest') ?? false,
   }))

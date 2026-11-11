@@ -52,6 +52,18 @@ Answers to the open questions of `memory/observatory-navigation-prd.md`, recorde
 
 **Discarded:** Vista next to the search (narrow search); the floating Vista button rising with the open sheet (covers more map, jumps with every sheet height, and under the one-sheet rule its tap closes the sheet anyway); fullscreen inside the Vista panel (two taps, hidden on iPhone); fullscreen in the bar (not a base-map or layer control); the desktop's +/− on the phone.
 
+## Observatory Meteo panel: one list of layers, silent drop of an unknown species, slider from today, drag limits that count the covered edges (2026-11-11, T3 of `epic/observatory-navigation`)
+
+**Decision:**
+1. Which Meteo layers are built, and whether placeholders open, lives in **one shared module** (`src/lib/meteoLayers.js`: `ready` per layer, `SHOW_PREVIEWS = import.meta.env.DEV`), not in a flag inside `MeteoPanel`.
+2. A link whose `seta` is not in the catalogue **drops it without a notice** (once the catalogue has loaded) and the URL is rewritten with history replace; the layer shows the mean of the excellent species.
+3. The day slider runs from **30 days before today** to the last scorable day, the same range a link's `dia` is clamped to.
+4. The map's drag limits **grow by what the interface covers** (search, phone bar or sheet, desktop panel) instead of re-centring the map in the visible strip.
+
+**Why:** (1) the URL parser also needs to know which `capa` values are valid, and `epic/observatory-meteo` turns layers on one at a time: one `ready` flag each, as Q8 asked («one-line change»). (2) It is how a broken `lat/lon` or `hasta` is already treated; a notice for an old link adds noise and a string for little. (3) With the slider counted from the last day with data (often yesterday), a link clamped to −30 days did not land on the slider's first day. (4) With a sheet open at the overview zoom the south of Catalonia sat under the sheet and the fixed limits would not let it be dragged up; growing the limits never moves the map by itself, works the same for the desktop panel, and is a few lines in the effect that already follows the sheet's height.
+
+**Discarded:** a flag inside `MeteoPanel` (the URL could not see it); falling back to the excellent mean with a notice; re-centring Catalonia in the visible strip when a sheet opens (the map jumps on every tab, and at 390 px it does not fit at zoom 7, so the phone would need zoom 6).
+
 ## Observatory navigation: one model for desktop and phone, built before the new layers (2026-11-10)
 
 **Decision:** a new front-end epic, `epic/observatory-navigation`, replaces the pills (desktop) and the layers card (phone) with one model: tabs **Datos** (renamed **Meteo**, see the answers above) (Condiciones, Lluvia, Temperatura, Viento), **Zonas** (Mis rincones, Zonas de interés) and **Bosque**, each with its own switch (off by default, content shown dimmed), plus a separate **Vista** button. Layers accumulate on one map; inside Datos only one layer at a time, because they share the day slider and the legend. It is built before the phone improvements, `observatory-zones-of-interest` and `observatory-layers`, which then plug into it. Design: proposal C of the Claude artifact «Observatorio — propuestas de filtros y vistas del mapa»; spec in `memory/observatory-navigation-prd.md`.

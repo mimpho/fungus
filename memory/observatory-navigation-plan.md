@@ -1,7 +1,7 @@
 # Plan — `epic/observatory-navigation`
 
 > Technical plan and task breakdown. Product contract: [`observatory-navigation-prd.md`](observatory-navigation-prd.md) (open questions answered 2026-11-10; reasons in `memory/decisions.md`, «Observatory navigation: answers to the PRD's open questions»).
-> Last updated: 2026-11-10
+> Last updated: 2026-11-11
 
 ---
 
@@ -11,7 +11,7 @@
 |---|---|---|
 | T1 | `feat/observatory-navigation-shell` | ✅ 2026-11-11 (see «T1 — as built» below) |
 | T2 | `feat/observatory-navigation-phone` | ✅ 2026-11-11 (see «T2 — as built» below) |
-| T3 | `feat/observatory-navigation-meteo` | ⬜ |
+| T3 | `feat/observatory-navigation-meteo` | ✅ 2026-11-11 (see «T3 — as built» below) |
 | T4 | `feat/observatory-navigation-zonas-bosque` | ⬜ |
 | T5 | `chore/observatory-navigation-retire-old` | ⬜ |
 
@@ -318,6 +318,19 @@ Feature: Meteo panel
 ```
 
 **Done when** the scenarios pass and `npm run build` is clean.
+
+### T3 — as built (2026-11-11)
+
+What changed against the spec above, for the tasks that follow:
+- **One list of Meteo layers:** `src/lib/meteoLayers.js` (`METEO_LAYERS` with `ready`, `SHOW_PREVIEWS = import.meta.env.DEV`, rain presets and placeholder scales). The segmented control, the URL and the legends read it; `epic/observatory-meteo` turns a layer on by setting `ready` and adds its `param` to the links. Only ready layers can be named in `capa`; with a placeholder segment open (dev) the Meteo keys leave the URL.
+- **Shared slider memory:** `layerDays(data)` in `LayerDayControl.jsx` keeps the last days the server gave, so the slider does not jump when Meteo is switched off and on, the species changes or another segment opens. The slider's range is counted from **today** (−30 … the last scorable day), not from the last day with data, so it matches the clamp of a link's `dia`. «Hoy» goes to today's offset (with no forecast, today is the last day with data and `dia` leaves the URL).
+- **Condiciones off:** with Meteo off the panel ignores the layer's data (it may be the point's mean of the excellent ones while a species is chosen) and shows the slider and the legend as controls only. `SpeciesLayerPicker` keeps its `holding` prop and `LayerLoadingPlaceholder` export only for the old shell (T5 removes them).
+- **Season note:** `seasonNote()` (exported for a quick check): a species out of season keeps `obsLayOutOfSeason`; the mean of the excellent ones says «none» or «only n of m» when fewer than a third are in season.
+- **Hand-off:** `observe(lat, lon, { until })` writes `hasta` with the Meteo day (or the last real day for a forecast day). `ObservedZone.jsx` was not touched.
+- **Links do not store:** `useMapNavigation({ dataFromUrl })` turns Meteo on for a link with `capa` without writing `fungus-obs-data`.
+- **Shell fix taken here (asked during T3's review):** `ObservatoryMap` grows its drag limits (`maxBounds`) by what `centerAbove` covers (top, bottom, right), recomputed on zoom and when the covered area changes, so the south of Catalonia can be dragged up above an open sheet. When the sheet closes the map settles back inside the normal limits (the only automatic move).
+- **Colours:** new tokens `--meteo-rain-*`, `--meteo-temp-*`, `--meteo-wind-*` in `tokens.css` (`:root`, both themes). `coffee-light` has no Tailwind opacity modifier: tinted fills use `color-mix()` (see `memory/gotchas.md`).
+- Not checked here: forecast days (the local database had no fresh forecast), real iOS Safari and Android Chrome (Marcos).
 
 ---
 

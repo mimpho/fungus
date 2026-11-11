@@ -74,6 +74,20 @@ Front end only; no migration, no new variable.
 - **Top of the map:** the search and the fullscreen button (44 px). No zoom buttons on the phone: the map is zoomed with a pinch. Leaflet's credits sit above the bar.
 - **Centring:** the map keeps a picked point clear of the bar or of the bar plus the point's sheet; a search result is kept clear once its flight ends (before, the point could land under the sheet).
 
+### Added — Observatory map navigation, Meteo panel (2026-11-11, `feat/observatory-navigation-meteo`, T3 of `epic/observatory-navigation`)
+
+Front end only; no migration, no new variable.
+
+- **Segmented control:** Condiciones · Lluvia · Temp. · Viento. Only Condiciones works; the other three carry «Pronto» and `aria-disabled`. Their placeholder panels open only in development builds (`import.meta.env.DEV`); one list in `src/lib/meteoLayers.js` says which layers are built (`ready`), so `epic/observatory-meteo` turns one on with a single flag.
+- **Condiciones:** species field, day slider and legend in the Meteo panel on both devices. With Meteo off the slider and the legend are shown dimmed too (before, only the species field). The legend says when the reference day is out of season (none, or fewer than a third, of the excellent species in season), so a grey map does not read as broken.
+- **Day slider, shared by every segment:** 44 px step buttons, the day with a «previsión» tag, and under the slider «−30 d · Hoy · +N d»; «Hoy» goes back to today. The range is now counted from today (−30 … the last day that can be scored), the same as a link's `dia`.
+- **Lluvia placeholder:** presets 24 h · 7 d · 21 d (7 d by default), «Acumulado {desde}–{hasta} · {n} días» ending on the slider's day, «incluye previsión» on a forecast day, and a `LayerLegend` in mm with the scale as a prop (placeholder cuts; 21 d marks the 60–120 mm good band of the zone's rain chart). Temperatura and Viento: slider and legend. New tokens `--meteo-rain-*`, `--meteo-temp-*`, `--meteo-wind-*`.
+- **URL:** while Meteo is on, `capa`, `seta` and `dia` (left out when it is the default day), written with history replace. A link with `capa` turns Meteo on without storing it; a broken `capa` drops the three; an unknown `seta` is dropped once the catalogue loads; `dia` is clamped to −30…+7 days from today.
+- **Hand-off to the observed zone:** with a day chosen, the zone opens with its window ending on that day (`hasta`), or on the last day with real data when the day is a forecast one; the species goes as before.
+- **Map drag limits (shell fix):** the limits grow by what the interface covers (search at the top, the phone's bar or sheet at the bottom, the desktop panel at the right), so a part of Catalonia under a sheet can be dragged up into view; when the sheet closes the map settles back inside the normal limits.
+
+**Not verified:** forecast days (the forecast stretch, «incluye previsión», a forecast day handed to the zone) — the local database has no fresh forecast; real iOS Safari and Android Chrome (Marcos).
+
 ### Documentation — status documents retired (2026-11-11, docs only)
 
 - `CLAUDE.md`: sessions start from `memory/pending.md`, the active epic's PRD and plan, the branch and `git log`, and close through the branch close checklist; the Spanish `estado-fungus-*` documents of the Claude Project are no longer written (they repeated the repo docs). The few working notes they alone held move to a «How we work» paragraph.
