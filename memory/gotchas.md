@@ -231,6 +231,11 @@ Render free tier doesn't expose Shell. Running `alembic upgrade head` manually i
 
 **Implemented solution:** `await asyncio.to_thread(_run_db_migrations)` in lifespan. Migration runs in a worker thread where no event loop is active, so `asyncio.run()` in env.py works without conflict.
 
+### ⚠️ Resend: `EMAIL_FROM` must be on a verified domain, or `onboarding@resend.dev`
+With no domain verified in Resend, `EMAIL_FROM` set to a Gmail address made every send fail with 403 «Domain not verified: Verify gmail.com or update your from domain» (from ~2026-11-04, when the production variables were set, until 2026-11-11). `gmail.com` cannot be verified: verifying needs control of the domain's DNS (SPF/DKIM records), and the same goes for `fungus.vercel.app`. `send_ops_alert` logs only `Client error '403 Forbidden'`, not Resend's reason; the reason is in Resend → Logs (open the request).
+
+**Fix in place:** `EMAIL_FROM=Fungus <onboarding@resend.dev>` (the default in `config.py`). That sender only delivers to the email of the Resend account, so the ops alerts arrive but the sign-up verification email to any other user cannot be sent (see `pending.md`).
+
 ### ⚠️ Backend floats can have erratic precision on the frontend
 Values like `pa21_mm` come as raw Python floats (e.g., `1.7999999999999998`). Always round when normalizing on the frontend.
 
