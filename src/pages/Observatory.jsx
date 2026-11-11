@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Maximize, Minimize, List } from 'lucide-react'
+import { X, Maximize, Minimize } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
 import { useSavedPoints } from '../hooks/useSavedPoints'
@@ -17,11 +17,12 @@ import { samePoint } from '../lib/observatoryView'
 import { DEFAULT_METEO_LAYER, DEFAULT_RAIN_PRESET } from '../lib/meteoLayers'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { MapSearch } from '../components/observatory/MapSearch'
-import { ForestTypeLegend } from '../components/observatory/ForestTypeLegend'
 import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
 import { layerDays } from '../components/observatory/LayerDayControl'
 import { MeteoPanel } from '../components/observatory/nav/MeteoPanel'
+import { ZonasPanel } from '../components/observatory/nav/ZonasPanel'
+import { BosquePanel } from '../components/observatory/nav/BosquePanel'
 import { ObservedZone } from '../components/observatory/ObservedZone'
 import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList } from '../components/observatory/SavedPoints'
@@ -39,6 +40,28 @@ const VIEW_PANEL_ID = 'obs-view-panel'
 const TAB_TITLE = { data: 'obsTabMeteo', zones: 'obsTabZones', forest: 'obsTabForest' }
 // Desktop: what a panel covers at the right of the map (rail 16 + 76, gap 12, panel 360, margin 16)
 const PANEL_CLEAR_PX = 480
+// Zonas · «Mis rincones» checkbox and Bosque's checked classes, remembered in this browser (the Zonas switch keeps
+// `fungus-obs-corners`, see useMapNavigation)
+const CORNERS_ROW_KEY = 'fungus-obs-zones-corners'
+const FOREST_CLASSES_KEY = 'fungus-obs-forest-classes'
+const ALL_FOREST = FOREST_TYPES.map(f => f.key)
+
+function storedCornersRow() {
+  try { return localStorage.getItem(CORNERS_ROW_KEY) !== 'off' } catch (_e) { return true }
+}
+
+// Stored as a JSON list of class keys; unknown keys are dropped, anything unreadable means all classes
+function storedForestClasses() {
+  try {
+    const list = JSON.parse(localStorage.getItem(FOREST_CLASSES_KEY))
+    if (Array.isArray(list)) return new Set(list.filter(k => ALL_FOREST.includes(k)))
+  } catch (_e) { /* fall back to all */ }
+  return new Set(ALL_FOREST)
+}
+
+function store(key, value) {
+  try { localStorage.setItem(key, value) } catch (_e) { /* per-viewer convenience only */ }
+}
 
 /**
  * /observatorio — the Observatory of any point in Catalonia (login required). The map is the page:
@@ -69,16 +92,14 @@ export default function Observatory() {
   const probabilityOn = meteoOn && meteoKind === 'conditions'
   const [layerSpecies, setLayerSpecies] = useState(initialMeteo?.species ?? null)
   const [layerDate, setLayerDate] = useState(initialMeteo?.day ?? null) // null = last day with data
-  // «Mis rincones» (Zonas)
-  const cornersOn = nav.on.zones
-  // Forest type layer (Bosque): the forest raster by dominant type; the legend filters which types show
+  // Zonas: the switch draws the checked rows; only «Mis rincones» exists for now
+  const [cornersRow, setCornersRowState] = useState(storedCornersRow)
+  const setCornersRow = value => { setCornersRowState(value); store(CORNERS_ROW_KEY, value ? 'on' : 'off') }
+  const cornersOn = nav.on.zones && cornersRow
+  // Forest type layer (Bosque): the forest raster by dominant type; the panel's checkboxes say which classes show
   const forestOn = nav.on.forest
-  const [forestShown, setForestShown] = useState(() => new Set(FOREST_TYPES.map(f => f.key)))
-  const toggleForestType = key => setForestShown(prev => {
-    const next = new Set(prev)
-    if (next.has(key)) next.delete(key); else next.add(key)
-    return next
-  })
+  const [forestShown, setForestShownState] = useState(storedForestClasses)
+  const setForestShown = next => { setForestShownState(next); store(FOREST_CLASSES_KEY, JSON.stringify(ALL_FOREST.filter(k => next.has(k)))) }
   const shownSpecies = probabilityOn ? layerSpecies : null
   const { species: catalog } = useSpecies()
   // A species the catalogue does not have (an old or mistyped link) is dropped without a notice: the
@@ -306,7 +327,6 @@ export default function Observatory() {
       holding={holding}
     />
   )
-  const forestEl = <ForestTypeLegend active={forestShown} onToggle={toggleForestType} loaded={Boolean(forest)} />
   // A tab's panel, the same on both devices (beside the rail on desktop, in the bar's sheet on the phone)
   const navPanel = (tab, { flat = false, className = '' } = {}) => (
     <NavPanel
@@ -329,21 +349,16 @@ export default function Observatory() {
         />
       )}
       {tab === 'zones' && (
-        <div className="flex items-center gap-3">
-          <span className="flex-1 text-sm text-cream">{t.obsLayerCorners}</span>
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            onClick={() => setSavedOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full px-3 min-h-[44px] bg-cream/10 hover:bg-cream/20 text-sm text-cream font-medium outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
-          >
-            <List size={16} aria-hidden="true" />
-            {t.obsZonesSeeList}
-            {saved.status === 'ready' && <span data-testid="saved-count" className="min-w-[1.5rem] rounded-full bg-coffee-light/25 px-1.5 text-xs font-bold tabular-nums">{saved.points.length}</span>}
-          </button>
-        </div>
+        <ZonasPanel
+          corners={{
+            checked: cornersRow,
+            onChange: setCornersRow,
+            count: saved.status === 'ready' ? saved.points.length : null,
+            onList: () => setSavedOpen(true),
+          }}
+        />
       )}
-      {tab === 'forest' && forestEl}
+      {tab === 'forest' && <BosquePanel active={forestShown} onChange={setForestShown} loaded={Boolean(forest)} />}
     </NavPanel>
   )
   const savedList = <SavedPointsList saved={saved} observed={observed} onSelect={handleObserve} />

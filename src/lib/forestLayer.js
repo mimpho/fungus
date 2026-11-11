@@ -32,12 +32,14 @@ export const FOREST_TYPES = [
 const MIN_SHARE = 0.1
 // From this share of forest (of the classes shown) the colour is at full strength
 const FULL_SHARE = 0.5
-const MAX_ALPHA = 0.7
+// Translucent fill (T4 of epic/observatory-navigation; was 0.7): the forest is drawn over the conditions
+// layer, and with this alpha both can be read at once, and the ground through them
+const MAX_ALPHA = 0.45
 
 // Opacity factor per basemap for the forest layer: its own, not the conditions layer's (that one is raised on
 // the satellite because it is blended with `hard-light`; the forest is drawn with plain alpha, and with the
-// same factor its colours would cover the image completely)
-export const FOREST_ALPHA_SCALE_BY_BASEMAP = { satellite: 0.8, streets: 1.5, relief: 2 }
+// same factor its colours would cover the image completely). Lowered in T4 with the fill (streets and relief were 1.5 and 2)
+export const FOREST_ALPHA_SCALE_BY_BASEMAP = { satellite: 0.8, streets: 1.1, relief: 1.1 }
 
 const mercY = lat => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))
 const latOfMercY = y => ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI
@@ -76,7 +78,7 @@ export function paintForestTypes(raster, active, { alphaScale = 1 } = {}) {
       const o = (row * W + c) * 4
       const rgb = ks[best].rgb
       rgba[o] = rgb[0]; rgba[o + 1] = rgb[1]; rgba[o + 2] = rgb[2]
-      rgba[o + 3] = Math.round(255 * MAX_ALPHA * alphaScale * Math.min(1, share / FULL_SHARE))
+      rgba[o + 3] = Math.round(255 * Math.min(1, MAX_ALPHA * alphaScale * Math.min(1, share / FULL_SHARE)))
     }
   }
   return rgba
