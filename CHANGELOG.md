@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Branch close skill moved into the repo (2026-11-11, `chore/claude-branch-close-skill`, outside any epic)
+
+- The `fungus-branch-close` skill now lives in `.claude/skills/fungus-branch-close/SKILL.md`, versioned with the code, instead of being synced from claude.ai: an edit reaches the next Claude Code session without waiting for the app's sync, and goes through a PR like `system/`.
+- New phase: after the commits, the session stops the local services it started (`api` on 8000, `dev` on 5173), checks the ports are free (a process it did not start is reported, not killed), resets the browser pane's viewport and confirms the `localStorage` keys are restored. The next task's session starts its own services.
+- The next-task prompt no longer says the local back end shares the production database (it depends on `backend/.env`, which may point to a local database without fresh forecast); it adds `git pull --ff-only` to the branch command, the «as built» sections of done tasks, and the px/token rule.
+- Closing commands go one per single-line `bash` block (the desktop app's Run button).
+
 ### Fixed — Open-Meteo quota and the Observatory's 500s (2026-11-11, `fix/open-meteo-429`)
 
 - **No 500 on a 429.** `/api/v1/observatory/point/*` answered 500 when Open-Meteo refused a call for quota: the connector retried the 429 three times and then let `httpx.HTTPStatusError` out, which the router did not catch. They now answer 503 with `Retry-After` (the 429's own wait, 60 s for other provider failures). Stored cells never call Open-Meteo and keep answering.
