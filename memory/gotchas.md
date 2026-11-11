@@ -406,7 +406,7 @@ The site's base font is 18px (`system/project.spec.md`, design system), so `1rem
 
 ### ⚠️ `bg-coffee-light/20` draws nothing
 
-`coffee-light` is mapped in `tailwind.config.js` to a plain `var(--color-coffee-light)`, without an RGB channel, so Tailwind cannot apply an opacity modifier: `bg-coffee-light/25` produces no rule and the element has no background (the «saved-count» badge of the Zonas panel uses it today). **Rule:** for a tinted fill of a colour without `--…-rgb`, use `color-mix()`: `bg-[color-mix(in_srgb,var(--color-coffee-light)_20%,transparent)]`. Colours with `withOpacity('--color-…-rgb')` (cream, coffee) take the modifier.
+`coffee-light` is mapped in `tailwind.config.js` to a plain `var(--color-coffee-light)`, without an RGB channel, so Tailwind cannot apply an opacity modifier: `bg-coffee-light/25` produces no rule and the element has no background (the «saved-count» badge of the Zonas panel used it until T4 of `epic/observatory-navigation`, which gave it solid tokens `--count-badge-*`). **Rule:** for a tinted fill of a colour without `--…-rgb`, use `color-mix()`: `bg-[color-mix(in_srgb,var(--color-coffee-light)_20%,transparent)]`. Colours with `withOpacity('--color-…-rgb')` (cream, coffee) take the modifier.
 
 ## Frontend — the local back end is not production
 

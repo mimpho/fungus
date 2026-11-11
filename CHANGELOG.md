@@ -74,6 +74,18 @@ Front end only; no migration, no new variable.
 - **Top of the map:** the search and the fullscreen button (44 px). No zoom buttons on the phone: the map is zoomed with a pinch. Leaflet's credits sit above the bar.
 - **Centring:** the map keeps a picked point clear of the bar or of the bar plus the point's sheet; a search result is kept clear once its flight ends (before, the point could land under the sheet).
 
+### Added — Observatory map navigation, Zonas and Bosque panels (2026-11-12, `feat/observatory-navigation-zonas-bosque`, T4 of `epic/observatory-navigation`)
+
+Front end only; no migration, no new variable.
+
+- **Zonas:** three rows, each a checkbox and «Ver listado». «Mis rincones» works (its checkbox is remembered in this browser; «Ver listado» opens the list of corners, with the count in a badge that now has a fill); «Zonas de interés» and «Top 10» are shown with «Pronto» and cannot be checked.
+- **Bosque:** one checkbox per forest class with its colour, in two columns; «Todos» / «Ninguno» and the counter «{n} de 11». The checked classes are remembered in this browser. Replaces the old legend.
+- **Draw order:** the forest is now drawn over the conditions colours (it was under them); the corners stay over both.
+- **Forest look:** a lighter, translucent fill, so the conditions and the ground read through it; also lighter on the street and relief maps than before.
+- New tokens `--count-badge-bg` and `--count-badge-text`; ES / CA / EN strings for the new controls.
+
+**Not verified:** the relief basemap; real iOS Safari and Android Chrome (Marcos).
+
 ### Added — Observatory map navigation, Meteo panel (2026-11-11, `feat/observatory-navigation-meteo`, T3 of `epic/observatory-navigation`)
 
 Front end only; no migration, no new variable.

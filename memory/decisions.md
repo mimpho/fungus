@@ -64,6 +64,14 @@ Answers to the open questions of `memory/observatory-navigation-prd.md`, recorde
 
 **Discarded:** a flag inside `MeteoPanel` (the URL could not see it); falling back to the excellent mean with a notice; re-centring Catalonia in the visible strip when a sheet opens (the map jumps on every tab, and at 390 px it does not fit at zoom 7, so the phone would need zoom 6).
 
+## Observatory Bosque and Zonas: forest drawn over the conditions as a translucent fill (2026-11-12, T4 of `epic/observatory-navigation`)
+
+**Decision:** the forest layer moves above the conditions (panes 350 → conditions, 355 → forest, 360 → labels; PRD rule 5) and is painted as a translucent fill (alpha 0.45 × forest share, was 0.7) with plain alpha and no outline. Its per-basemap factors drop to satellite 0.8, streets 1.1, relief 1.1. The «Mis rincones» checkbox of the Zonas panel gets its own key (`fungus-obs-zones-corners`) and the forest classes are stored as a JSON list (`fungus-obs-forest-classes`). `ForestTypeLegend` is replaced by `BosquePanel`, not reworked.
+
+**Why:** compared in the browser over the satellite with Meteo on: with the old alpha and with `hard-light` the forest covered the conditions completely, so the two layers could not be read together; with the lighter fill the conditions read through the forest, and alone the classes stay apart and the ground reads through. A blend on the forest would also mix with the blended conditions into colours neither legend has. `fungus-obs-corners` already means the Zonas switch (T1). `ForestTypeLegend` is only used by code T5 deletes.
+
+**Discarded:** `hard-light` and the old alpha (above); an outline per class (fill 0.45, edge 0.9): built and dropped in QA because the raster is ~250 m per pixel (1100 × 1111 for Catalonia, aggregated from MCSC-4's 25 m grid), so the edges were thick and stepped when zoomed in; a thinner outline would need an upscaled canvas (3300 × 3333 pixels to encode on every class change: slow); storing the classes in the URL (PRD Q6: preferences live in `localStorage`).
+
 ## Observatory navigation: one model for desktop and phone, built before the new layers (2026-11-10)
 
 **Decision:** a new front-end epic, `epic/observatory-navigation`, replaces the pills (desktop) and the layers card (phone) with one model: tabs **Datos** (renamed **Meteo**, see the answers above) (Condiciones, Lluvia, Temperatura, Viento), **Zonas** (Mis rincones, Zonas de interés) and **Bosque**, each with its own switch (off by default, content shown dimmed), plus a separate **Vista** button. Layers accumulate on one map; inside Datos only one layer at a time, because they share the day slider and the legend. It is built before the phone improvements, `observatory-zones-of-interest` and `observatory-layers`, which then plug into it. Design: proposal C of the Claude artifact «Observatorio — propuestas de filtros y vistas del mapa»; spec in `memory/observatory-navigation-prd.md`.
