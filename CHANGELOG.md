@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Branch close skill moved into the repo (2026-11-11, `chore/claude-branch-close-skill`, outside any epic)
+
+- The `fungus-branch-close` skill now lives in `.claude/skills/fungus-branch-close/SKILL.md`, versioned with the code, instead of being synced from claude.ai: an edit reaches the next Claude Code session without waiting for the app's sync, and goes through a PR like `system/`.
+- New phase: after the commits, the session stops the local services it started (`api` on 8000, `dev` on 5173), checks the ports are free (a process it did not start is reported, not killed), resets the browser pane's viewport and confirms the `localStorage` keys are restored. The next task's session starts its own services.
+- The next-task prompt no longer says the local back end shares the production database (it depends on `backend/.env`, which may point to a local database without fresh forecast); it adds `git pull --ff-only` to the branch command, the «as built» sections of done tasks, and the px/token rule.
+- Closing commands go one per single-line `bash` block (the desktop app's Run button).
+
+### Fixed — Open-Meteo quota and the Observatory's 500s (2026-11-11, `fix/open-meteo-429`)
+
+- **No 500 on a 429.** `/api/v1/observatory/point/*` answered 500 when Open-Meteo refused a call for quota: the connector retried the 429 three times and then let `httpx.HTTPStatusError` out, which the router did not catch. They now answer 503 with `Retry-After` (the 429's own wait, 60 s for other provider failures). Stored cells never call Open-Meteo and keep answering.
+- **A quota 429 is never retried.** `OpenMeteoConnector` and `resolve_grid_batch` raise `ProviderRateLimited` (a `ProviderUnavailable`) with the wait read from Open-Meteo's reason (next minute, next hour, next UTC midnight), log the reason, and pause every Open-Meteo call of the process until then. Only the "too many concurrent requests" 429, 5xx and network errors are retried; when they run out they also come out as `ProviderUnavailable`.
+- **Failures remembered per point.** `CellProvider` does not ask again, for that wait (60 s otherwise), a 500 m bucket whose resolve failed or a cell whose load failed. Before, the five endpoints of one page re-sent the same request: 85 identical calls in a minute were seen locally.
+- **Daily jobs moved to just after midnight UTC.** Render's egress IP is shared and other tenants spend Open-Meteo's free daily quota by ~05:45 UTC: from 2026-11-08 `cell_refresh` stopped on its first cell every day and the weather refreshes stored nothing from 06:30. The ingest runs at 00:05 UTC and `cell_refresh` at 00:40 UTC (new settings `INGEST_CRON_MINUTE`, `CELL_REFRESH_CRON_MINUTE`; `INGEST_CRON_HOUR` defaults to 0). Scores hold until an hour after the next ingest.
+- **Zone weather refreshed once a day.** The `weather_cache` job of the legacy zones ran every 3 h (~1,600 of our ~3,300 daily Open-Meteo calls) for a zone list that is being retired. It now runs at 00:30 UTC (`WEATHER_REFRESH_CRON_HOUR`, default `0`) and rows are served for 26 h (`WEATHER_MAX_AGE_HOURS`, was 6).
+- **Point elevation spends less.** `point_elevation` shares one Open-Meteo elevation call among the endpoints that ask for the same point at once, does not ask a failed point again for 60 s, sends nothing while the 429 pause is on, and starts that pause on a quota 429.
+- `elevation=nan` in the one-day archive request is `resolve_grid` asking for the cell's mean elevation, not a bug.
+
 ### Epic summary — Observatory (web) (2026-10-10 → 2026-11-05, `epic/observatory`, to be released as v7.2.0 when merged into `main`)
 
 The epic gathers the PRs #124–#158. What it delivers:

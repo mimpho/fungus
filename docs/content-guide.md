@@ -66,7 +66,7 @@ Every zone value is either **static** (set once when the zone is created, review
 | `forest_type` | Static | MITECO Mapa Forestal de España (official classification); OpenStreetMap as a check | By hand | Never |
 | `soil_type` | Static | Geological map (IGME) when known | By hand, optional | Never |
 | `description` | Static | Own text | By hand | Never |
-| `climate_history` (daily min/max/mean temperature, soil temperature, rain, humidity, wind) | Dynamic | Open-Meteo: archive API for days older than ~8 days, forecast API for recent days | Backfill on creation (`backend/scripts/backfill.py`), then the daily ingest | Daily, 05:00 UTC |
+| `climate_history` (daily min/max/mean temperature, soil temperature, rain, humidity, wind) | Dynamic | Open-Meteo: archive API for days older than ~8 days, forecast API for recent days | Backfill on creation (`backend/scripts/backfill.py`), then the daily ingest | Daily, 00:05 UTC |
 | `weather_cache` (current weather) | Dynamic | Open-Meteo forecast API | `backend/app/services/weather_refresh.py` | Every 3 h |
 | `scores_cache` (`score_oi` + `score_detail` per model version) | Computed | `climate_history` + zone altitude, scoring model (`model_version`) | Daily ingest | Daily, after the ingest |
 
@@ -368,7 +368,7 @@ The scoring model needs at least 100 days of history; the Observatory compares y
 - [ ] Zone appears in `/zonas` map and list, and the card opens with correct data
 - [ ] `climate_history` has rows from the backfill start to yesterday, without gaps
 - [ ] After the next daily ingest, `scores_cache` has a row for the zone with `model_version`
-- [ ] Current weather shows in the card (next weather refresh, every 3 h)
+- [ ] Current weather shows in the card (next weather refresh, daily at 00:30 UTC)
 
 ---
 

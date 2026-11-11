@@ -283,10 +283,12 @@ Each degradation is logged in `historial_clima.fuente` and `dist_estacion_km`, a
 ### 7.1 Frequency and Schedule
 
 ```
-0 5 * * *   →  05:00 UTC (07:00 Spanish time)
+5 0 * * *   →  00:05 UTC (01:05 Spanish time), cell refresh at 00:40 UTC
 ```
 
-Run after nightly publication of most regional networks. If a day fails, history isn't lost: next day can backfill missing days.
+Since 2026-11-11: right after Open-Meteo's free daily quota resets; Render's shared egress IP spends it by ~05:45 UTC (see `memory/decisions.md`). Until then it ran at 05:00 UTC, after the nightly publication of most regional networks; at 00:05 the last hours of yesterday may still be a forecast, and the next run's 7-day lookback replaces them.
+
+If a day fails, history isn't lost: next day can backfill missing days.
 
 ### 7.2 Execution Flow
 

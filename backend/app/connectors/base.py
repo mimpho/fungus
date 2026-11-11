@@ -9,6 +9,16 @@ class ProviderUnavailable(Exception):
     pass
 
 
+class ProviderRateLimited(ProviderUnavailable):
+    """The provider refused the call for quota (HTTP 429). Asking again before `retry_after`
+    seconds only spends more of the quota, so callers give up instead of retrying."""
+
+    def __init__(self, message: str, retry_after: int, reason: str = "") -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+        self.reason = reason
+
+
 @dataclass
 class DailyWeatherData:
     """Aggregated daily weather data, provider-agnostic."""

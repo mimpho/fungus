@@ -99,16 +99,24 @@ class TestRetries:
     @pytest.fixture(autouse=True)
     def no_wait(self, monkeypatch):
         # Skip tenacity's exponential wait
-        monkeypatch.setattr(OpenMeteoConnector._request.retry, "wait", wait_none())
+        monkeypatch.setattr(open_meteo._send.retry, "wait", wait_none())
 
     def _client(self, monkeypatch, statuses):
         monkeypatch.setattr(open_meteo.httpx, "AsyncClient", lambda **kw: _FakeClient(statuses))
 
-    async def test_429_is_retried(self, monkeypatch):
-        self._client(monkeypatch, [429, 200])
+    async def test_503_is_retried(self, monkeypatch):
+        self._client(monkeypatch, [503, 200])
         y = date.today() - timedelta(days=1)
         rows = await OpenMeteoConnector("zone-x", 42.0, 2.0).fetch_range(y, y)
         assert len(rows) == 1
+
+    async def test_a_quota_429_is_not_retried(self, monkeypatch):
+        statuses = [429, 200]
+        self._client(monkeypatch, statuses)
+        y = date.today() - timedelta(days=1)
+        with pytest.raises(ingest.ProviderUnavailable):
+            await OpenMeteoConnector("zone-x", 42.0, 2.0).fetch_range(y, y)
+        assert statuses == [200]  # only one call made
 
     async def test_400_is_not_retried(self, monkeypatch):
         statuses = [400, 200]
@@ -207,3 +215,25 @@ async def test_one_failing_zone_does_not_stop_the_rest(monkeypatch):
 
     assert [e["zone_id"] for e in result["errors"]] == ["zone-002"]
     assert result["upserted"] == 4
+
+
+# ── Schedule: right after Open-Meteo's daily quota resets ─────────────────────
+
+class TestSchedule:
+    def test_the_daily_jobs_run_just_after_midnight_utc_by_default(self):
+        from app.config import Settings
+
+        s = Settings(_env_file=None)
+        assert (s.ingest_cron_hour, s.ingest_cron_minute) == (0, 5)
+        # the cell refresh waits for the ingest and the 00:30 weather refresh
+        assert s.cell_refresh_cron_minute == 40
+
+    def test_scores_hold_until_an_hour_after_the_next_ingest(self, monkeypatch):
+        from datetime import UTC, datetime
+
+        monkeypatch.setattr(ingest.settings, "ingest_cron_hour", 0)
+        monkeypatch.setattr(ingest.settings, "ingest_cron_minute", 5)
+        after_run = datetime(2026, 11, 12, 0, 9, tzinfo=UTC)
+        assert ingest.scores_valid_until(after_run) == datetime(2026, 11, 13, 1, 5, tzinfo=UTC)
+        before_run = datetime(2026, 11, 11, 23, 59, tzinfo=UTC)  # a manual run before midnight
+        assert ingest.scores_valid_until(before_run) == datetime(2026, 11, 12, 1, 5, tzinfo=UTC)
