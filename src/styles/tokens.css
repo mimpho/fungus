@@ -153,6 +153,8 @@
   --switch-thumb-on:      var(--map-surface);
   --switch-thumb-off:     var(--color-cream);
   --switch-thumb-shadow:  none;
+  --count-badge-bg:       var(--color-coffee-light);   /* «Ver listado» count (Zonas): solid, as in the design */
+  --count-badge-text:     #22281d;                     /* 6.3:1 on #c4a06b */
   --shadow-float:         0 4px 16px rgba(0, 0, 0, 0.45);   /* floating controls: search, buttons, rail, zoom, panels */
   --shadow-bottom:        0 -4px 16px rgba(0, 0, 0, 0.45);  /* bars and sheets attached to the bottom edge */
 
@@ -294,5 +296,7 @@
   --switch-thumb-on:      #ffffff;
   --switch-thumb-off:     #ffffff;
   --switch-thumb-shadow:  0 1px 2px rgba(0, 0, 0, 0.35);
+  --count-badge-bg:       var(--color-coffee-light);   /* #8b6030 */
+  --count-badge-text:     #ffffff;                     /* 5.3:1 on #8b6030 */
 }
 /* [generated:light-theme:end] */

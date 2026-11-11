@@ -1,7 +1,7 @@
 # Plan — `epic/observatory-navigation`
 
 > Technical plan and task breakdown. Product contract: [`observatory-navigation-prd.md`](observatory-navigation-prd.md) (open questions answered 2026-11-10; reasons in `memory/decisions.md`, «Observatory navigation: answers to the PRD's open questions»).
-> Last updated: 2026-11-11
+> Last updated: 2026-11-12
 
 ---
 
@@ -12,7 +12,7 @@
 | T1 | `feat/observatory-navigation-shell` | ✅ 2026-11-11 (see «T1 — as built» below) |
 | T2 | `feat/observatory-navigation-phone` | ✅ 2026-11-11 (see «T2 — as built» below) |
 | T3 | `feat/observatory-navigation-meteo` | ✅ 2026-11-11 (see «T3 — as built» below) |
-| T4 | `feat/observatory-navigation-zonas-bosque` | ⬜ |
+| T4 | `feat/observatory-navigation-zonas-bosque` | ✅ 2026-11-12 (see «T4 — as built» below) |
 | T5 | `chore/observatory-navigation-retire-old` | ⬜ |
 
 Order: T1 → T2 → T3 → T4 → T5. T3 and T4 both touch `Observatory.jsx` and `i18n.js`, so they go one after the other. All branches are cut from `epic/observatory-navigation` and squash-merged into it.
@@ -374,9 +374,9 @@ Feature: Zonas and Bosque panels
   Scenario: Choosing forest classes
     Given Bosque is on
     When the user taps «Ninguno»
-    Then no class is drawn and the counter reads «0 de 8»
+    Then no class is drawn and the counter reads «0 de 11»
     When the user checks «Hayedo»
-    Then only beech forest is drawn and the counter reads «1 de 8»
+    Then only beech forest is drawn and the counter reads «1 de 11»
     When the page is reloaded
     Then only «Hayedo» is checked
 
@@ -392,6 +392,19 @@ Feature: Zonas and Bosque panels
 ```
 
 **Done when** the scenarios pass and flows 3 of the PRD can be followed end to end.
+
+### T4 — as built (2026-11-12)
+
+What changed against the spec above, for the tasks that follow:
+- **Eleven forest classes, not eight:** the counter reads «{n} de 11» (`FOREST_TYPES`); the scenario above was corrected. The design's artboard draws ten made-up classes.
+- **One checkbox for both panels:** `nav/NavCheckbox.jsx` (`role="checkbox"`, a button, so Space and Enter toggle it; the box takes the switch's tokens `--switch-on` / `--switch-thumb-on`; optional colour swatch; `aria-disabled` rows). Labels wrap instead of truncating (two columns of a 360 px panel are narrow for «Pinar de pino negro» or «Black pine (pinassa) forest»).
+- **Storage:** the «Mis rincones» checkbox has its own key, `fungus-obs-zones-corners` (missing = checked), because `fungus-obs-corners` is the Zonas switch since T1. The Zonas layer draws the corners only with the switch on **and** the row checked. Bosque's classes: `fungus-obs-forest-classes`, a JSON list of keys (unknown keys dropped, unreadable = all).
+- **Count badge:** solid fill with new tokens `--count-badge-bg` / `--count-badge-text` in `tokens.css` (dark `#c4a06b` / `#22281d`, 6.3:1; light `#8b6030` / white, 5.3:1), as in the artboard; the old `bg-coffee-light/25` drew nothing.
+- **«Todos / Ninguno» in cream, not the artboard's gold:** `#c4a06b` on the dark surface (`#4c5240`) is 3.3:1, under 4.5:1. Each is disabled when it would change nothing.
+- **Draw order:** panes conditions 350, forest 355, labels 360; 370 and 380 are reserved (comment) for «Zonas de interés» and Top 10; the corners stay in the marker pane (≥ 400).
+- **Forest look: a translucent fill, no outline.** `MAX_ALPHA` in `forestLayer.js` 0.7 → 0.45 (× the share of forest); plain alpha, no blend. Forest factors per basemap lowered with it: streets 1.5 → 1.1, relief 2 → 1.1 (satellite stays 0.8). Compared in the browser over the satellite, with Meteo on and off: the old alpha and `hard-light` both covered the conditions completely. An outline per class was built and dropped in QA (Marcos): the raster's ~250 m pixels made the edges thick and stepped when zoomed in. Reasons in `memory/decisions.md`.
+- **`ForestTypeLegend` and `SavedPointsToggle` are no longer used** (nor are `MapPills` / `MapLayersBox`, which import them); **T5** deletes them with the old shell, with their i18n keys (`obsForestHint` among them).
+- Not checked here: the relief basemap; real iOS Safari and Android Chrome (Marcos).
 
 ---
 

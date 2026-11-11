@@ -36,9 +36,12 @@ const meanScore = s => {
   const v = s.filter(x => x != null)
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
 }
-const LAYER_PANE = 'obsLayer' // between the tiles (200) and the markers (400): the layer never covers a point
-const FOREST_PANE = 'obsForest' // forest types: under the conditions layer, so both can be on
-const LABELS_PANE = 'obsLabels' // place names of the dark maps: over the layer (350), under the markers
+// Draw order, bottom to top (PRD rule 5): Meteo colours, Bosque classes, Zonas de interés, Top 10, Mis rincones.
+// All between the tiles (200) and the markers (400, where the corners are): no layer ever covers a point.
+const LAYER_PANE = 'obsLayer' // Meteo: the conditions layer (350)
+const FOREST_PANE = 'obsForest' // Bosque: over the conditions (355), so both can be read at once
+const LABELS_PANE = 'obsLabels' // place names of the dark maps: over both layers (360)
+// Reserved for epic/observatory-zones-of-interest and the Top 10: 370 and 380
 // How the layer mixes with the base map: on the relief it multiplies the grey shading; on the satellite
 // `hard-light` keeps the colour strong while the ground (valleys, rivers, towns) still reads through it
 const LAYER_BLEND = { relief: 'multiply', satellite: 'hard-light' }
@@ -161,8 +164,8 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
       maxBounds: DRAG_BOUNDS,
       maxBoundsViscosity: 0.8,
     })
-    map.createPane(FOREST_PANE).style.zIndex = 340
     map.createPane(LAYER_PANE).style.zIndex = 350
+    map.createPane(FOREST_PANE).style.zIndex = 355
     map.createPane(LABELS_PANE).style.zIndex = 360
     if (leafletZoom) L.control.zoom({ position: 'bottomright' }).addTo(map)
     if (initial.current) map.setView([initial.current.lat, initial.current.lon], initial.current.zoom ?? OBSERVED_ZOOM)
@@ -318,6 +321,8 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     const cancel = afterPaint(() => {
       let next = null
       try {
+        // A translucent fill with plain alpha, no blend: over the conditions a blended forest would mix into colours
+        // neither legend has (compared in T4 with `hard-light` and with an outline per class)
         const overlay = forestTypeOverlay(forestTypes.raster, forestTypes.active, { alphaScale: FOREST_ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1 })
         if (overlay) next = L.imageOverlay(overlay.url, overlay.bounds, { pane: FOREST_PANE, interactive: false })
       } catch (err) {
