@@ -59,6 +59,8 @@ Front end only; no migration, no new variable.
 - **Point card and panel:** from 1024 px they stay open together and the map keeps a picked point clear of the panel; below that, one at a time. Esc closes the panel first, then the card.
 - **Loading and errors:** a thin bar on the top edge of the map while a layer that is on loads or is being drawn (after 300 ms, for at least 400 ms); a failed layer shows «No se pudo cargar {capa} · Reintentar». Layer pictures are drawn after the next paint, so a switch answers at once.
 - **Look:** one surface colour for every floating control of the map (`.map-surface`, the search's); the conditions layer is blended with `hard-light` on the satellite and is much stronger there; two shadow tokens (`--shadow-float`, `--shadow-bottom`).
+- **Light theme and tokens:** opaque white surfaces (search and its results list included); the active tab, open Vista and the switch use the buttons' green in the light theme and keep the gold-brown in the dark one; the active tab's label is readable in both. New tokens in `src/styles/tokens.css` (`--map-surface`, `--nav-active`, `--switch-*`, `--shadow-float`, `--shadow-bottom`); the light `--color-bar-rgb` typo fixed (one green, `#758847`) and `--color-bar` set for the light theme.
+- **ⓘ in the Meteo panel:** its text floats over the page (`InfoTip` `floating`), so the panel no longer cuts it or scrolls.
 - The phone keeps the old layers card until T2; the old desktop pills are no longer rendered (removed in T5).
 
 ### Documentation — status documents retired (2026-11-11, docs only)
