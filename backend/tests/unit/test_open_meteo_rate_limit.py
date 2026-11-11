@@ -209,3 +209,63 @@ class TestEndpoints:
             r = await c.get(f"/observatory/point/{path}", params=SANTA_FE_PARAMS)
         assert r.status_code == 503
         assert r.headers["Retry-After"] == "300"
+
+
+class TestPointElevation:
+    @pytest.fixture(autouse=True)
+    def fresh_state(self, monkeypatch):
+        from app.services import point_elevation as pe
+
+        monkeypatch.setattr(pe, "_cache", type(pe._cache)())
+        monkeypatch.setattr(pe, "_failed", {})
+        monkeypatch.setattr(pe, "_inflight", {})
+        return pe
+
+    async def test_the_endpoints_of_one_page_share_one_call(self, fresh_state):
+        import asyncio
+
+        calls = []
+
+        async def fetch(lat, lon):
+            calls.append((lat, lon))
+            await asyncio.sleep(0)
+            return 900.0
+
+        out = await asyncio.gather(
+            *(fresh_state.point_elevation(41.77, 2.43, fetch=fetch) for _ in range(5))
+        )
+        assert out == [900.0] * 5 and len(calls) == 1
+
+    async def test_a_failure_is_not_asked_again_for_a_minute(self, fresh_state, monkeypatch):
+        calls = []
+
+        async def fetch(lat, lon):
+            calls.append(1)
+            return None
+
+        clock = [1000.0]
+        monkeypatch.setattr(fresh_state.time, "monotonic", lambda: clock[0])
+        assert await fresh_state.point_elevation(41.77, 2.43, fetch=fetch) is None
+        assert await fresh_state.point_elevation(41.77, 2.43, fetch=fetch) is None
+        assert len(calls) == 1
+        clock[0] += fresh_state.FAILURE_TTL_S + 1
+        await fresh_state.point_elevation(41.77, 2.43, fetch=fetch)
+        assert len(calls) == 2
+
+    async def test_a_429_pauses_open_meteo_and_later_calls_send_nothing(
+        self, fresh_state, monkeypatch
+    ):
+        client = _install(monkeypatch, [(429, DAILY), (200, {"elevation": [900.0]})])
+        assert await fresh_state.fetch_elevation(41.77, 2.43) is None
+        assert open_meteo.rate_limit_pause() > 0
+        assert await fresh_state.fetch_elevation(42.20, 1.80) is None
+        assert client.calls == 1
+
+
+class TestWeatherRefreshSchedule:
+    def test_the_zone_weather_is_refreshed_once_a_day_and_lasts_a_day(self):
+        from app.config import Settings
+
+        s = Settings(_env_file=None)
+        assert s.weather_refresh_cron_hour == "0"
+        assert s.weather_max_age_hours >= 24

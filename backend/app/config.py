@@ -78,9 +78,12 @@ class Settings(BaseSettings):
     # Ops alerts (stale zones after the daily ingest). Empty = no email.
     alert_email: str = ""
 
-    # Current weather (weather_cache), refreshed by a job every 3 h.
-    # Rows older than this are not served (the UI shows "–"): two refresh cycles.
-    weather_max_age_hours: int = 6
+    # Current weather (weather_cache) of the legacy zones, refreshed once a day at 00:30 UTC
+    # (2026-11-11; it was every 3 h, ~1,600 of our ~3,300 daily Open-Meteo calls, for a zone list
+    # that is being retired). APScheduler cron hour expression: "0" = once, "*/3" = every 3 h.
+    weather_refresh_cron_hour: str = "0"
+    # Rows older than this are not served (the UI shows "–"): one daily cycle plus a margin.
+    weather_max_age_hours: int = 26
     # Max Open-Meteo calls per UTC day for weather_cache (refresh job + live card
     # fetches). The free limit (10,000/day) is shared with the ingest and backfills.
     weather_daily_call_budget: int = 3000

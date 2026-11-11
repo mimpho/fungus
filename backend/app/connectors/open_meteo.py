@@ -327,6 +327,15 @@ def retry_after_seconds(reason: str, header: str | None, now: datetime) -> int:
     return DEFAULT_RATE_LIMIT_PAUSE_S
 
 
+def register_rate_limit(resp: httpx.Response) -> int:
+    """A quota 429 from any Open-Meteo API (also the elevation one): start the process-wide
+    pause and return its length in seconds."""
+    reason = _reason(resp)
+    wait = retry_after_seconds(reason, resp.headers.get("Retry-After"), datetime.now(UTC))
+    _pause(wait, reason)
+    return wait
+
+
 def _raise_for_status(resp: httpx.Response, what: str) -> None:
     status = resp.status_code
     if status < 400:
@@ -336,8 +345,7 @@ def _raise_for_status(resp: httpx.Response, what: str) -> None:
         log.warning("Open-Meteo HTTP 429 (concurrent requests) for %s: retrying", what)
         raise _Transient(f"HTTP 429: {reason}")
     if status == 429:
-        wait = retry_after_seconds(reason, resp.headers.get("Retry-After"), datetime.now(UTC))
-        _pause(wait, reason)
+        wait = register_rate_limit(resp)
         log.warning(
             "Open-Meteo rate limit (HTTP 429) for %s: %s. No more calls for %d s",
             what, reason or "no reason given", wait,

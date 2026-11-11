@@ -172,8 +172,9 @@ async def _startup_ingest_if_empty() -> None:
             log.exception("Startup ingest failed: %s", exc)
 
 
-# Every 3 h at :30 (00:30, 03:30, …) — never at the same time as the 00:05 ingest
-WEATHER_REFRESH_CRON = {"hour": "*/3", "minute": 30}
+# At :30 of the hours in WEATHER_REFRESH_CRON_HOUR (default once, 00:30 UTC, right after
+# Open-Meteo's daily quota resets) — never at the same time as the ingest or the cell refresh
+WEATHER_REFRESH_CRON = {"hour": settings.weather_refresh_cron_hour, "minute": 30}
 
 
 async def _scheduled_weather_refresh() -> None:
@@ -259,9 +260,10 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     scheduler.start()
     log.info(
         "Scheduler started — daily ingest at %02d:%02d UTC, cell refresh at %02d:%02d UTC, "
-        "weather refresh every 3 h at :30",
+        "weather refresh at hour(s) %s, minute 30",
         settings.ingest_cron_hour, settings.ingest_cron_minute,
         settings.ingest_cron_hour, settings.cell_refresh_cron_minute,
+        settings.weather_refresh_cron_hour,
     )
 
     # Fire-and-forget: populate scores_cache on first deploy / cold start
