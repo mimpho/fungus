@@ -63,6 +63,17 @@ Front end only; no migration, no new variable.
 - **ⓘ in the Meteo panel:** its text floats over the page (`InfoTip` `floating`), so the panel no longer cuts it or scrolls.
 - The phone keeps the old layers card until T2; the old desktop pills are no longer rendered (removed in T5).
 
+### Added — Observatory map navigation, phone shell (2026-11-11, `feat/observatory-navigation-phone`, T2 of `epic/observatory-navigation`)
+
+Front end only; no migration, no new variable.
+
+- **Tab bar (phone):** a full-width bar fixed to the bottom of the map with Meteo · Zonas · Bosque and, after a thin line, Vista (no switch, no dot); rounded top corners, no drag handle, `--shadow-bottom`. Opening a tab or Vista grows a sheet upward out of the bar (at most 80 % of the map, scrolling inside); the icons never move. The sheet does not scroll while it grows or folds, so no scroll bar flashes.
+- **Same panels as desktop:** the tabs' panels and Vista's base maps are the T1 components (`NavPanel`, `ViewPanel`), drawn flat inside the sheet. «Ver listado» in Zonas replaces the compact «Mis rincones» button under the search; the old layers card (`MapLayersBox`) is no longer rendered (removed in T5).
+- **One sheet at a time:** a tab or Vista closes the point's sheet and drops the picked point; a picked point or a search result closes the tab's sheet; with a sheet open, the first map tap only closes it. Esc closes an open panel before the point's card.
+- **Point's sheet:** rises from the top of the tab bar, on `.map-surface` with `--shadow-bottom` (was `glass-olive-80`); its drag down to close stays.
+- **Top of the map:** the search and the fullscreen button (44 px). No zoom buttons on the phone: the map is zoomed with a pinch. Leaflet's credits sit above the bar.
+- **Centring:** the map keeps a picked point clear of the bar or of the bar plus the point's sheet; a search result is kept clear once its flight ends (before, the point could land under the sheet).
+
 ### Documentation — status documents retired (2026-11-11, docs only)
 
 - `CLAUDE.md`: sessions start from `memory/pending.md`, the active epic's PRD and plan, the branch and `git log`, and close through the branch close checklist; the Spanish `estado-fungus-*` documents of the Claude Project are no longer written (they repeated the repo docs). The few working notes they alone held move to a «How we work» paragraph.

@@ -10,7 +10,7 @@
 | # | Branch | Status |
 |---|---|---|
 | T1 | `feat/observatory-navigation-shell` | ✅ 2026-11-11 (see «T1 — as built» below) |
-| T2 | `feat/observatory-navigation-phone` | ⬜ |
+| T2 | `feat/observatory-navigation-phone` | ✅ 2026-11-11 (see «T2 — as built» below) |
 | T3 | `feat/observatory-navigation-meteo` | ⬜ |
 | T4 | `feat/observatory-navigation-zonas-bosque` | ⬜ |
 | T5 | `chore/observatory-navigation-retire-old` | ⬜ |
@@ -174,7 +174,7 @@ What changed against the spec above, for the tasks that follow:
 2. Opening a tab grows a sheet upward from the bar; the bar and its three icons do not move. The sheet scrolls inside and never covers more than 80 % of the map's height.
 3. The point's sheet (`PointSheet`) rises from above the bar too, in the same place as a tab's sheet; its drag-down-to-close stays.
 4. One sheet at a time (Q5): a tab tap closes the point's sheet and drops the picked point; a picked point or a search result closes the tab's sheet; with a tab's sheet open, the first map tap only closes it.
-5. Vista: the layers button next to the search opens its panel under it; opening it closes any sheet. **Decision in this task:** where the fullscreen button goes. Proposed: one row, search · Vista · fullscreen.
+5. Vista (decided 2026-11-11, see `memory/decisions.md`): the bar's fourth button, after a thin line, with no switch and no dot; it opens as a sheet out of the bar like a tab, and picking a base map closes it. Fullscreen sits next to the search. No zoom buttons on the phone (pinch).
 6. `centerAbove` uses the bar's height when no sheet is open, and the sheet's height when one is.
 7. Touch targets ≥ 44 px. `MapLayersBox` is no longer rendered (deleted in T5). The compact `SavedPointsToggle` under the search goes.
 
@@ -217,8 +217,8 @@ Feature: Phone navigation shell
 
   Scenario: Vista
     Given the Zonas sheet is open
-    When the user taps the layers button next to the search
-    Then the Zonas sheet closes and the Vista panel opens under the button
+    When the user taps Vista in the bar
+    Then the Zonas sheet gives way to the Vista sheet and the icons stay in the same place
 
   Scenario: Fullscreen
     When the user enters fullscreen
@@ -226,6 +226,18 @@ Feature: Phone navigation shell
 ```
 
 **Done when** the scenarios pass on iOS Safari and Android Chrome, in and out of fullscreen and with the browser bars showing.
+
+---
+
+### T2 — as built (2026-11-11)
+
+What changed against the spec above, for the tasks that follow:
+- **Vista is the bar's fourth button** (after a thin line, no switch, no dot) and opens as a sheet like a tab; not next to the search, and not the desktop's floating button (a tab's sheet covered it). The top of the map holds the search and the fullscreen button. No zoom buttons on the phone (pinch). Reasons in `memory/decisions.md`.
+- **One component for the bar and its sheet:** `PhoneTabBar` (bar and sheet are one surface; the sheet grows with a `grid-template-rows` transition and only scrolls once it is still). It reports two heights: the whole (for `centerAbove`) and the bar alone (`--obs-bottom-clear`, which lifts Leaflet's credits).
+- **Panels are shared with desktop:** `navPanel(tab, { flat })` in `Observatory.jsx` builds a tab's panel for both devices; `NavPanel` and `ViewPanel` have a `flat` prop (no surface of their own) for the sheet. **T3 and T4** change the panels' content there once and it shows on both devices.
+- **The point's sheet** sits on top of the bar (`sheetBottomPx`); the bar is above it in z-order, so the sheet slides in and out from behind the bar. Its look (it reads as coming out of the bar) is left for the point-card work, `memory/pending.md` item 6.
+- **Search flight:** `ObservatoryMap` keeps a searched point clear of the sheet when the flight ends (`flyingRef`), instead of panning during the flight.
+- Not checked here: real iOS Safari and Android Chrome (Marcos), with and without fullscreen and the browser bars.
 
 ---
 

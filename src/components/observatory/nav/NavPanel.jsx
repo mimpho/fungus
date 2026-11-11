@@ -8,8 +8,9 @@ import { PanelSwitch } from './PanelSwitch'
  * only switches the layer on, the control under it does not act (unticking a class to hide it must not
  * end up showing the forest). The exception is an element marked `data-wake-focus` (the species field):
  * a tap on it switches the layer on and leaves the focus in it.
+ * `flat`: no surface of its own, for when it sits inside the phone's sheet.
  */
-export function NavPanel({ id, title, on, onSwitch, children, className = '' }) {
+export function NavPanel({ id, title, on, onSwitch, children, flat = false, className = '' }) {
   const { t, lang } = useApp()
 
   function wake(e) {
@@ -24,7 +25,7 @@ export function NavPanel({ id, title, on, onSwitch, children, className = '' }) 
   }
 
   return (
-    <section id={id} aria-label={title} className={`rounded-[22px] map-surface shadow-float p-4 flex flex-col gap-3 ${className}`}>
+    <section id={id} aria-label={title} className={`${flat ? '' : 'rounded-[22px] map-surface shadow-float'} p-4 flex flex-col gap-3 ${className}`}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-[17px] font-semibold text-cream">{title}</h2>
         <PanelSwitch checked={on} onChange={onSwitch} label={fill(t.obsSwitchShow, { capa: title }, lang)} />

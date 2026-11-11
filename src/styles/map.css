@@ -109,3 +109,6 @@
 /* One surface for every floating control of the map (search, tabs, panels, Vista, zoom, point card,
    hints): the search's own background, so they all read as one family over the satellite image */
 .map-surface { background: var(--map-surface); } /* token in src/styles/tokens.css, per theme */
+
+/* Phone: Leaflet's bottom controls (zoom, credits) sit above the tab bar; the page sets how tall it is */
+.leaflet-container .leaflet-bottom { bottom: var(--obs-bottom-clear, 0px); }
