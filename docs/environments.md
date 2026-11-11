@@ -15,7 +15,9 @@ obligation and destination.
 | `ENVIRONMENT` | No | `development` | `development` enables SQL echo and relaxed CORS. Set to `production` on Render |
 | `LOG_LEVEL` | No | `INFO` | Python log level: `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `CORS_ORIGINS` | No | `http://localhost:5173` | Comma-separated allowed origins. Add Vercel URL in production |
-| `INGEST_CRON_HOUR` | No | `5` | UTC hour for the daily ingest cron (05:00 UTC = 07:00 Madrid) |
+| `INGEST_CRON_HOUR` | No | `0` | UTC hour of the daily ingest and of the cell refresh (00:05 UTC: right after Open-Meteo's daily quota resets; Render's shared IP spends it by ~05:45) |
+| `INGEST_CRON_MINUTE` | No | `5` | Minute of the daily ingest |
+| `CELL_REFRESH_CRON_MINUTE` | No | `40` | Minute of the daily cell refresh (after the 00:30 weather refresh) |
 | `INGEST_MAX_CONCURRENCY` | No | `6` | Parallel Open-Meteo requests during ingest |
 | `SUPABASE_URL` | Prod | *(empty)* | Supabase project URL, for Storage (corner photos, rasters). Empty with the key = photos off |
 | `SUPABASE_SERVICE_KEY` | Prod | *(empty)* | Secret/service key of that project. Back end only: never in the front end or in git |
@@ -73,7 +75,7 @@ Set these in the Render dashboard → Service → Environment:
 | `METEOCAT_API_KEY` | When available |
 | `AEMET_API_KEY` | When available |
 
-`INGEST_CRON_HOUR`, `INGEST_MAX_CONCURRENCY`, `LOG_LEVEL` use their defaults
+`INGEST_CRON_HOUR`, `INGEST_CRON_MINUTE`, `CELL_REFRESH_CRON_MINUTE`, `INGEST_MAX_CONCURRENCY`, `LOG_LEVEL` use their defaults
 and do not need to be set explicitly.
 
 Render injects env vars at runtime — no `.env` file is deployed. The

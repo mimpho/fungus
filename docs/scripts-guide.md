@@ -46,7 +46,7 @@ python -m scripts.seed_catalog --dry-run
 
 **Location**: `backend/scripts/backfill.py`
 
-Fetches historical daily weather data from Open-Meteo for all active zones (or a subset) and upserts rows into `climate_history`. Intended to run **once** on first deployment to give the OI scoring algorithm historical context. The daily cron job (`APScheduler`, 05:00 UTC) takes over after that.
+Fetches historical daily weather data from Open-Meteo for all active zones (or a subset) and upserts rows into `climate_history`. Intended to run **once** on first deployment to give the OI scoring algorithm historical context. The daily cron job (`APScheduler`, 00:05 UTC) takes over after that.
 
 Requires: `DATABASE_URL` env var.
 

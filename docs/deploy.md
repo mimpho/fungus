@@ -124,7 +124,7 @@ This loads 2 years of Open-Meteo historical data for all 28 zones (~5 min).
 
 ## 6. Keep-alive (UptimeRobot)
 
-Render free tier sleeps after 15 min of inactivity. The daily cron at 05:00 UTC
+Render free tier sleeps after 15 min of inactivity. The daily cron at 00:05 UTC
 wakes the service, but the frontend would hit a cold start on the first request
 of the day.
 
