@@ -368,7 +368,7 @@ The scoring model needs at least 100 days of history; the Observatory compares y
 - [ ] Zone appears in `/zonas` map and list, and the card opens with correct data
 - [ ] `climate_history` has rows from the backfill start to yesterday, without gaps
 - [ ] After the next daily ingest, `scores_cache` has a row for the zone with `model_version`
-- [ ] Current weather shows in the card (next weather refresh, every 3 h)
+- [ ] Current weather shows in the card (next weather refresh, daily at 00:30 UTC)
 
 ---
 

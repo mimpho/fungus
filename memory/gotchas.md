@@ -67,7 +67,7 @@ current: 'temperature_2m,soil_temperature_0cm'
 
 ### ⚠️ One free daily limit for everything (10,000 calls/day per IP)
 
-The ingest, backfills, the `weather_cache` refresh job (~1,850/day) and the card's live fallback all share it. A request over 2 weeks counts as days/14 calls. Do not run a large backfill (~9,000 calls) on the same day as normal traffic; the weather job stops itself at `WEATHER_DAILY_CALL_BUDGET` or on the first 429. Since 2026-11-11 the connector does the same for every caller: a quota 429 is never retried and pauses all Open-Meteo calls of the process until the limit resets (`rate_limit_pause()`); a point that failed is not asked again for its `retry_after` (60 s for other failures). `elevation=nan` in a one-day archive URL is `resolve_grid` (the cell's mean elevation), not a bug.
+The ingest, backfills, the `weather_cache` refresh job (~200/day since 2026-11-11, once a day; it was ~1,600 every 3 h) and the card's live fallback all share it. A request over 2 weeks counts as days/14 calls. Do not run a large backfill (~9,000 calls) on the same day as normal traffic; the weather job stops itself at `WEATHER_DAILY_CALL_BUDGET` or on the first 429. Since 2026-11-11 the connector does the same for every caller: a quota 429 is never retried and pauses all Open-Meteo calls of the process until the limit resets (`rate_limit_pause()`); a point that failed is not asked again for its `retry_after` (60 s for other failures). `elevation=nan` in a one-day archive URL is `resolve_grid` (the cell's mean elevation), not a bug.
 
 ---
 

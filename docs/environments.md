@@ -18,6 +18,8 @@ obligation and destination.
 | `INGEST_CRON_HOUR` | No | `0` | UTC hour of the daily ingest and of the cell refresh (00:05 UTC: right after Open-Meteo's daily quota resets; Render's shared IP spends it by ~05:45) |
 | `INGEST_CRON_MINUTE` | No | `5` | Minute of the daily ingest |
 | `CELL_REFRESH_CRON_MINUTE` | No | `40` | Minute of the daily cell refresh (after the 00:30 weather refresh) |
+| `WEATHER_REFRESH_CRON_HOUR` | No | `0` | UTC hour(s) of the zone weather refresh, at :30 (APScheduler expression; `*/3` = every 3 h, as before 2026-11-11) |
+| `WEATHER_MAX_AGE_HOURS` | No | `26` | Zone weather older than this is not served («–»); one daily refresh plus a margin |
 | `INGEST_MAX_CONCURRENCY` | No | `6` | Parallel Open-Meteo requests during ingest |
 | `SUPABASE_URL` | Prod | *(empty)* | Supabase project URL, for Storage (corner photos, rasters). Empty with the key = photos off |
 | `SUPABASE_SERVICE_KEY` | Prod | *(empty)* | Secret/service key of that project. Back end only: never in the front end or in git |
