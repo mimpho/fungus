@@ -23,7 +23,7 @@ from typing import Protocol
 
 import httpx
 
-from app.connectors.base import ProviderUnavailable
+from app.connectors.base import ProviderRateLimited, ProviderUnavailable
 from app.models.climate_cell import cell_id as make_cell_id
 from app.models.climate_cell import lookup_key
 from app.services.cell_discovery import (
@@ -85,6 +85,8 @@ class IngestStats:
 
 
 def _rate_limited(exc: Exception) -> bool:
+    if isinstance(exc, ProviderRateLimited):
+        return True
     return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
 
 

@@ -312,11 +312,21 @@ async def _replace_forecast(
 
 # ── Scores cache ──────────────────────────────────────────────────────────────
 
+def scores_valid_until(now: datetime) -> datetime:
+    """Today's scores hold until an hour after the next daily ingest is due."""
+    run = now.replace(
+        hour=settings.ingest_cron_hour, minute=settings.ingest_cron_minute,
+        second=0, microsecond=0,
+    )
+    if run <= now:
+        run += timedelta(days=1)
+    return run + timedelta(hours=1)
+
+
 async def _refresh_scores_cache(db: AsyncSession, zones: list[Zone]) -> None:
     """Recompute and persist today's score for all zones (see services/zone_scores.py)."""
     today = date.today()
-    valid_until = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-    valid_until = valid_until.replace(hour=5) + timedelta(days=1)  # next day at 05:00 UTC
+    valid_until = scores_valid_until(datetime.now(UTC))
 
     for zone in zones:
         try:

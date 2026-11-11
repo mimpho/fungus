@@ -35,6 +35,27 @@ Small items that only lived in the Spanish status documents of the Claude Projec
 - **External answers:** CREAF (needed before monetising) and ICGC (geocoder limits, licence of `ombres_tfosc`).
 - **Colour tokens: the generator is stale** (found 2026-11-11, T1 of `epic/observatory-navigation`). `scripts/generate-css-vars.ts` (`npm run gen:css-vars`) still writes into `src/styles.css`, which no longer has its markers (it would append blocks there), and the «generated» blocks of `src/styles/tokens.css` have been edited by hand (the light block has 76 variables; the script writes 21). In practice `src/styles/tokens.css` is the web's source of truth and `shared/colors.ts` only feeds the mobile app. **Do not run the script** until it is fixed. Fix (fits the shared-package epic): point it at `tokens.css`, generate every variable that block holds (RGB channels and `--ui-*` included) from `shared/colors.ts`, and move there the tokens added by hand (`--map-surface`, `--nav-active`, `--switch-*`, `--shadow-float`, `--shadow-bottom`, light `--color-bar`).
 
+## 🔴 Open-Meteo 429 in production (found 2026-11-11, fixed in #167)
+
+The fix (no retry on a quota 429, process-wide pause, failures remembered per point, 503 with `Retry-After` instead of 500) is in code; see `decisions.md` (2026-11-11). Render's logs show the cause: the daily limit of Render's shared egress IP is spent by others by ~05:45 UTC every day, while our own spend is ~1,000 calls. Effects: `cell_refresh` has done nothing since at least 2026-11-08 (the map layer loses its forecast), weather is stale from 06:30 to 00:30, and the 2026-11-09 ingest stored nothing (on the 10th a restart at 05:04 cut it). Decide, Marcos:
+
+1. ✅ Deployed 2026-11-11 (#167): the ingest runs at 00:05 UTC and `cell_refresh` at 00:40 UTC; Render has no `INGEST_CRON_HOUR` nor `WEATHER_MAX_AGE_HOURS` variable, and the start-up log confirms the schedule. Still to check, the first night's logs: `Scheduler started — daily ingest at 00:05 UTC, cell refresh at 00:40 UTC`, `Ingest complete` with no errors and `Cell refresh finished: … refreshed=423 … stopped=no` (or `stopped=budget`, not `rate-limit`).
+1b. ✅ Deployed 2026-11-11 (#167): the zone weather refresh runs once a day (00:30 UTC) and rows last 26 h. Still to check: `Weather refresh finished` once that night, with `'stored': 190`.
+1c. 🟡 Next, with or after `epic/observatory-navigation` (front-end routing, not this branch): the Observatory becomes the home page and the dashboard goes; then switch off the zone ingest (`run_daily_ingest`, ~380 calls), the zone weather job (~200) and the stale-zone / outdated-weather alerts, and decide what to do with `scores_cache`, `climate_history`, `weather_cache` and the `/zones` endpoints. Later, maybe a new dashboard with links to the sections.
+2. Still open: a paid Open-Meteo plan with an API key (Professional, for the historical API), the clean fix and also needed for any commercial use; the weather refreshes from ~06:30 UTC keep failing until then. New branch: setting for the key, `customer-` hosts plus `apikey`.
+3. The tracebacks at 00:25 UTC on 2026-11-11 (`concurrent/futures/_base.py`) are not Open-Meteo's "concurrent requests" 429; they are probably the point endpoints' 500s that this fix removes. Look at the line above each traceback if they come back.
+4. A local backend runs the same scheduler and the start-up weather refresh from Marcos's IP: start it with no jobs, or count it in the quota.
+
+## 🔴 Email to users needs a domain of our own (found 2026-11-11)
+
+Resend has no verified domain, so `EMAIL_FROM` is `onboarding@resend.dev`, which only delivers to the Resend account's own email: the ops alerts work, the sign-up verification email to any other user does not (see `gotchas.md`). To do, Marcos:
+
+1. Buy a domain (~10–15 €/year), add it in Resend → Domains and put the DNS records it gives (SPF, DKIM) at the registrar; when it says «Verified», set `EMAIL_FROM=Fungus <no-reply@<domain>>` in Render. No code change. The same domain can serve the app on Vercel (then add it to `CORS_ORIGINS`).
+2. Check Render's logs for `Resend API error` to know whether sign-ups since ~2026-11-04 were left without their verification email.
+3. Small `fix/*`: `send_ops_alert` should log Resend's status and body, as the verification email already does (today it logs only `403 Forbidden`).
+
+Discarded: sending from Gmail over SMTP with an app password (code change, personal address as sender, ~500/day, more likely to land in spam).
+
 ## 🟡 Chore from `main` — dev environment and safety nets (decided 2026-11-05, outside the epic)
 
 Why: `backend/.env` pointed at production and `seed_catalog.py` overwrote data on 2026-10-24. Done on 2026-11-05: `DATABASE_URL` in the local `.env` points to the disposable `fungus-ingest-test` (port 55432). To do, from `main`:
