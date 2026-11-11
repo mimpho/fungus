@@ -116,6 +116,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
   const onPickRef  = useRef(onPick)
   const onViewRef  = useRef(onViewChange)
   const centerRef  = useRef(centerAbove)
+  const flyingRef  = useRef(false) // a search result's flight is under way
   const initial    = useRef(observed ?? startAt)
   // Pictures being worked out (layer, forest): the page shows its loading bar meanwhile
   const drawingRef = useRef({ layer: false, forest: false })
@@ -349,8 +350,14 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
   // Move the view on request (search result). `flyTo.n` changes on every request, even to the same place.
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !flyTo) return
+    if (!map || !flyTo) return undefined
+    // The flight ends with the place in the middle of the map: then it is kept clear of a sheet or panel
+    // over the map (the picked point's own move ran while the map was still flying)
+    const clear = () => { flyingRef.current = false; keepClear(map, flyTo, centerRef.current) }
+    flyingRef.current = true
+    map.once('moveend', clear)
     map.flyTo([flyTo.lat, flyTo.lon], Math.max(map.getZoom(), OBSERVED_ZOOM), { duration: 0.8 })
+    return () => { flyingRef.current = false; map.off('moveend', clear) }
   }, [flyTo?.n]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pending point (picked, not observed yet)
@@ -364,6 +371,9 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     // Too far out to tell what is around the point: the map flies to it first (the card stays where it is)
     // and, with a bottom sheet over the map (phone), it is then kept clear of the sheet
     const clear = () => keepClear(map, pending, centerRef.current)
+    // A search result is already flying there: its flight keeps the point clear when it lands
+    // (moving the map now would cut the flight short)
+    if (flyingRef.current) return undefined
     if (map.getZoom() < PICK_ZOOM) {
       map.once('moveend', clear)
       map.flyTo([pending.lat, pending.lon], PICK_ZOOM, { duration: 0.6 })
@@ -377,7 +387,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
   // The sheet grows as its content arrives (up to 80% of the screen), a panel opens on the right: the point is kept clear of them
   useEffect(() => {
     const map = mapRef.current
-    if (map && pending) keepClear(map, pending, centerRef.current)
+    if (map && pending && !flyingRef.current) keepClear(map, pending, centerRef.current)
   }, [centerAbove?.bottomPx, centerAbove?.rightPx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={elRef} role="region" aria-label={label} className={className} />

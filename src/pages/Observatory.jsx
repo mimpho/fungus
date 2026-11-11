@@ -16,19 +16,19 @@ import { isInCatalonia } from '../lib/catalonia'
 import { samePoint } from '../lib/observatoryView'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { MapSearch } from '../components/observatory/MapSearch'
-import { MapLayersBox } from '../components/observatory/MapLayersBox'
 import { ForestTypeLegend } from '../components/observatory/ForestTypeLegend'
 import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
 import { ObservedZone } from '../components/observatory/ObservedZone'
 import { TerritorySection } from '../components/observatory/TerritorySection'
-import { SavedPointsList, SavedPointsToggle } from '../components/observatory/SavedPoints'
+import { SavedPointsList } from '../components/observatory/SavedPoints'
 import { ObsModal, isDialogAbove } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
 import { TabRail } from '../components/observatory/nav/TabRail'
 import { NavPanel } from '../components/observatory/nav/NavPanel'
 import { ViewButton, ViewPanel, ZoomButtons } from '../components/observatory/nav/ViewControls'
 import { MapLoadingBar } from '../components/observatory/nav/MapLoadingBar'
+import { PhoneTabBar } from '../components/observatory/nav/PhoneTabBar'
 
 const BASEMAPS = ['satellite', 'streets', 'relief']
 const NAV_PANEL_ID = 'obs-nav-panel'
@@ -58,15 +58,12 @@ export default function Observatory() {
   // Probability layer (Meteo · Condiciones): one species at a time (null = the mean of the excellent ones).
   // Switching it off hides it but remembers the species and the day.
   const probabilityOn = nav.on.data
-  const setProbabilityOn = value => nav.setOn('data', value)
   const [layerSpecies, setLayerSpecies] = useState(null)
   const [layerDate, setLayerDate] = useState(null) // null = last day with data
   // «Mis rincones» (Zonas)
   const cornersOn = nav.on.zones
-  const chooseCorners = value => nav.setOn('zones', value)
   // Forest type layer (Bosque): the forest raster by dominant type; the legend filters which types show
   const forestOn = nav.on.forest
-  const setForestOn = value => nav.setOn('forest', value)
   const [forestShown, setForestShown] = useState(() => new Set(FOREST_TYPES.map(f => f.key)))
   const toggleForestType = key => setForestShown(prev => {
     const next = new Set(prev)
@@ -137,8 +134,9 @@ export default function Observatory() {
   // fullscreen (iPhone Safari has none: there only the header goes). The state follows the browser leaving fullscreen by itself.
   const [fullscreenState, setFullscreenState] = useState(false)
   const fullscreen = fullscreenState && phone
-  const [layersOpen, setLayersOpen] = useState(false) // the phone's layers panel; closed whenever the point's sheet opens, and the other way round
   const [sheetH, setSheetH] = useState(0) // height of the point's sheet on the phone, for the map to keep the point above it
+  const [barH, setBarH] = useState(0) // height the phone's tab bar covers (with a tab's sheet open, the sheet too)
+  const [barRestH, setBarRestH] = useState(0) // the bar alone: the map's own controls at the bottom (zoom, credits) sit above it
   const nativeFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement
   function enterFullscreen() {
     setFullscreenState(true)
@@ -190,28 +188,30 @@ export default function Observatory() {
     { id: 'drawing', label: '', on: true, loading: drawing, error: false },
   ], [drawing, t, probabilityOn, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
 
-  // Desktop: a tab or Vista opens its panel; below 1024px the point card and a panel take turns
+  // A tab or Vista opens its panel. Below 1024px the point card and a panel take turns; on the phone
+  // (one sheet at a time) opening a tab's sheet or Vista also drops the picked point.
   function toggleNav(tab) {
-    if (!phone && !wide && nav.openTab !== tab) setPending(null)
+    if (!wide && nav.openTab !== tab) setPending(null)
     nav.toggleTab(tab)
   }
 
-  // Esc, one layer at a time: the phone's fullscreen, then the zone's layer, then the point's card
+  // Esc, one layer at a time: the phone's fullscreen, then the zone's layer, then an open panel, then the point's card
   // (through a ref: the listener must see the current zone)
   const closePanelRef = useRef(() => {})
   const desktopPanel = !phone && nav.openTab
+  const anyPanel = Boolean(nav.openTab)
   useEffect(() => {
-    if (!pending && !fullscreen && !layerOpen && !desktopPanel) return
+    if (!pending && !fullscreen && !layerOpen && !anyPanel) return
     const onKey = e => {
       if (e.key !== 'Escape' || isDialogAbove()) return // a dialog on top takes this Esc
       if (fullscreen) exitFullscreen()
       else if (layerOpen) closeZone()
-      else if (desktopPanel) nav.close() // a map panel goes before the point's card
+      else if (anyPanel) nav.close() // a map panel goes before the point's card
       else closePanelRef.current()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pending, fullscreen, layerOpen, desktopPanel]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pending, fullscreen, layerOpen, anyPanel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Closing the zone's layer: the point's card stays on the map (the layer was opened from it, or from a link to the point)
   function closeZone() {
@@ -234,20 +234,15 @@ export default function Observatory() {
     setPending({ lat, lon })
   }
 
-  // A tap on the phone's map while the layers panel is open only closes the panel (a second tap picks the point)
+  // A tap on the phone's map while a tab's sheet or Vista is open only closes it (a second tap picks the point)
   function handleMapTap(lat, lon) {
-    if (phone && layersOpen) { setLayersOpen(false); return }
+    if (phone && nav.openTab) { nav.close(); return }
     handlePick(lat, lon)
   }
 
-  function changeLayersOpen(open) {
-    setLayersOpen(open)
-    if (open) setPending(null) // one panel at a time: the point's sheet gives way to the layers
-  }
-
-  // A search result is a pick that also moves the map to it
+  // A search result is a pick that also moves the map to it (on the phone it takes the place of an open sheet)
   function handleSearchSelect(point) {
-    setLayersOpen(false)
+    if (phone) nav.close()
     handlePick(point.lat, point.lon)
     setFlyTo({ ...point, n: Date.now() })
   }
@@ -257,8 +252,7 @@ export default function Observatory() {
     // The point's card stays on the map under the layer, for when the layer is closed
     setPending({ lat: point.lat, lon: point.lon })
     setSavedOpen(false)
-    setLayersOpen(false) // the zone takes the screen
-    nav.close()
+    nav.close() // the zone takes the screen
   }
 
   // The observed zone: the content of the layer over the map
@@ -292,6 +286,35 @@ export default function Observatory() {
     />
   )
   const forestEl = <ForestTypeLegend active={forestShown} onToggle={toggleForestType} loaded={Boolean(forest)} />
+  // A tab's panel, the same on both devices (beside the rail on desktop, in the bar's sheet on the phone)
+  const navPanel = (tab, { flat = false, className = '' } = {}) => (
+    <NavPanel
+      id={NAV_PANEL_ID}
+      title={t[TAB_TITLE[tab]]}
+      on={nav.on[tab]}
+      onSwitch={value => nav.setOn(tab, value)}
+      flat={flat}
+      className={className}
+    >
+      {tab === 'data' && conditionsFor(probabilityOn)}
+      {tab === 'zones' && (
+        <div className="flex items-center gap-3">
+          <span className="flex-1 text-sm text-cream">{t.obsLayerCorners}</span>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setSavedOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full px-3 min-h-[44px] bg-cream/10 hover:bg-cream/20 text-sm text-cream font-medium outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
+          >
+            <List size={16} aria-hidden="true" />
+            {t.obsZonesSeeList}
+            {saved.status === 'ready' && <span data-testid="saved-count" className="min-w-[1.5rem] rounded-full bg-coffee-light/25 px-1.5 text-xs font-bold tabular-nums">{saved.points.length}</span>}
+          </button>
+        </div>
+      )}
+      {tab === 'forest' && forestEl}
+    </NavPanel>
+  )
   const savedList = <SavedPointsList saved={saved} observed={observed} onSelect={handleObserve} />
 
   if (authLoading) {
@@ -335,7 +358,7 @@ export default function Observatory() {
         <>
           {/* The map fills the viewport under the header (--header-h is published by Layout) */}
           <div className="h-[calc(100dvh-var(--header-h,5.5rem))] min-h-[420px]">
-          <div className={`${fullscreen ? 'fixed inset-0 z-[150]' : 'relative h-full'} isolate overflow-hidden`}>
+          <div className={`${fullscreen ? 'fixed inset-0 z-[150]' : 'relative h-full'} isolate overflow-hidden`} style={{ '--obs-bottom-clear': `${phone ? barRestH : 0}px` }}>
             <ObservatoryMap
               observed={observed}
               pending={pending}
@@ -347,22 +370,22 @@ export default function Observatory() {
               habitat={habitat}
               forestTypes={forestTypes}
               onPick={phone ? handleMapTap : handlePick}
-              leafletZoom={phone}
+              leafletZoom={false}
               onMap={setMapInst}
               onDrawing={setDrawing}
               label={t.obsMapLabel}
               basemap={basemap}
               flyTo={flyTo}
               dataSources={[Boolean(layerId) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
-              centerAbove={phone ? { top: 72, bottomPx: sheetH || Math.round(window.innerHeight * 0.45) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
+              centerAbove={phone ? { top: 72, bottomPx: barH + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
               className="h-full"
             />
-            {!pending && !observed && (
-              <p className="absolute z-[1100] bottom-10 left-3 right-16 md:bottom-3 md:right-auto md:max-w-sm map-surface shadow-float rounded-xl px-3 py-2 text-xs text-cream/80 pointer-events-none">
+            {!pending && !observed && !(phone && nav.openTab) && (
+              <p style={phone ? { bottom: barRestH + 28 } : undefined} className="absolute z-[1100] bottom-10 left-3 right-3 md:bottom-3 md:right-auto md:max-w-sm map-surface shadow-float rounded-xl px-3 py-2 text-xs text-cream/80 pointer-events-none">
                 {t.obsMapHint}
               </p>
             )}
-            {/* Phone: the map's fullscreen, level with the search */}
+            {/* Phone: the fullscreen at the top, level with the search (44 px, centred on the 52 px search) */}
             {phone && (
               <button
                 type="button"
@@ -370,46 +393,15 @@ export default function Observatory() {
                 aria-pressed={fullscreen}
                 aria-label={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
                 title={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
-                className="absolute z-[1100] top-3 right-3 w-[52px] h-[52px] rounded-full glass-search search-light-text shadow-lg flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
+                className="absolute z-[1100] top-[16px] right-3 w-[44px] h-[44px] rounded-full map-surface text-cream shadow-float flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
               >
                 {fullscreen ? <Minimize size={20} aria-hidden="true" /> : <Maximize size={20} aria-hidden="true" />}
               </button>
             )}
-            {/* Desktop: the tabs at the top right, Vista and the zoom at the bottom right; a panel opens to the left of them */}
+            {/* Desktop: Vista and the zoom at the bottom right; Vista's panel opens to their left. On the phone Vista is the
+                tab bar's fourth button and the map is zoomed with the fingers */}
             {!phone && (
               <>
-                <div className="absolute z-[1100] top-4 right-4">
-                  <TabRail openTab={nav.openTab} on={nav.on} onToggle={toggleNav} panelId={NAV_PANEL_ID} />
-                </div>
-                {TABS.includes(nav.openTab) && (
-                  <div className="absolute z-[1100] top-4 right-[104px] w-[360px] max-h-[calc(100%-2rem)] flex">
-                    <NavPanel
-                      id={NAV_PANEL_ID}
-                      title={t[TAB_TITLE[nav.openTab]]}
-                      on={nav.on[nav.openTab]}
-                      onSwitch={value => nav.setOn(nav.openTab, value)}
-                      className="w-full max-h-full overflow-y-auto overscroll-contain"
-                    >
-                      {nav.openTab === 'data' && conditionsFor(probabilityOn)}
-                      {nav.openTab === 'zones' && (
-                        <div className="flex items-center gap-3">
-                          <span className="flex-1 text-sm text-cream">{t.obsLayerCorners}</span>
-                          <button
-                            type="button"
-                            aria-haspopup="dialog"
-                            onClick={() => setSavedOpen(true)}
-                            className="inline-flex items-center gap-2 rounded-full px-3 py-2 bg-cream/10 hover:bg-cream/20 text-sm text-cream font-medium outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
-                          >
-                            <List size={16} aria-hidden="true" />
-                            {t.obsZonesSeeList}
-                            {saved.status === 'ready' && <span data-testid="saved-count" className="min-w-[1.5rem] rounded-full bg-coffee-light/25 px-1.5 text-xs font-bold tabular-nums">{saved.points.length}</span>}
-                          </button>
-                        </div>
-                      )}
-                      {nav.openTab === 'forest' && forestEl}
-                    </NavPanel>
-                  </div>
-                )}
                 <div className="absolute z-[1100] right-4 bottom-5 flex flex-col items-end gap-2.5">
                   <ViewButton open={nav.openTab === 'view'} onClick={() => toggleNav('view')} panelId={VIEW_PANEL_ID} />
                   <ZoomButtons map={mapInst} />
@@ -421,40 +413,43 @@ export default function Observatory() {
                 )}
               </>
             )}
+            {/* Desktop: the tabs at the top right; a panel opens to the left of them */}
+            {!phone && (
+              <>
+                <div className="absolute z-[1100] top-4 right-4">
+                  <TabRail openTab={nav.openTab} on={nav.on} onToggle={toggleNav} panelId={NAV_PANEL_ID} />
+                </div>
+                {TABS.includes(nav.openTab) && (
+                  <div className="absolute z-[1100] top-4 right-[104px] w-[360px] max-h-[calc(100%-2rem)] flex">
+                    {navPanel(nav.openTab, { className: 'w-full max-h-full overflow-y-auto overscroll-contain' })}
+                  </div>
+                )}
+              </>
+            )}
             {/* The conditions panel shows its own error: the map's notice is for when it is closed */}
             <MapLoadingBar busy={busy} failed={failed?.id === 'conditions' && nav.openTab === 'data' ? null : failed} />
-            {/* Phone: the way into the corners list, under the search (the rest of the layers are in the layers card) */}
+            {/* Phone: the tabs as a bar at the bottom; a tab's panel grows out of it as a sheet */}
             {phone && (
-              <div className="absolute z-[1100] top-[4.25rem] left-3">
-                <SavedPointsToggle saved={saved} onToggle={() => setSavedOpen(o => !o)} compact />
-              </div>
-            )}
-            {/* Phone: the layers card. Before the search in the DOM so the search list opens over it */}
-            {phone && (
-              <MapLayersBox
-                corners={cornersOn}
-                onCorners={chooseCorners}
-                probability={probabilityOn}
-                onProbability={setProbabilityOn}
-                forest={forestOn}
-                onForest={setForestOn}
-                forestChildren={forestEl}
-                className="absolute z-[1100] top-[4.75rem] left-3 right-3"
-                mobile
-                open={layersOpen}
-                onOpenChange={changeLayersOpen}
-                basemap={basemap}
-                onBasemap={chooseBasemap}
-              >
-                {conditionsFor(probabilityOn)}
-              </MapLayersBox>
+              <PhoneTabBar
+                openTab={nav.openTab}
+                on={nav.on}
+                onToggle={toggleNav}
+                panelId={NAV_PANEL_ID}
+                viewPanelId={VIEW_PANEL_ID}
+                renderPanel={tab => (tab === 'view'
+                  ? <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemap} onClose={nav.close} flat />
+                  : navPanel(tab, { flat: true }))}
+                joined={Boolean(pending)}
+                onHeight={setBarH}
+                onBarHeight={setBarRestH}
+              />
             )}
             {/* Desktop: the search never reaches the rail, nor an open panel (rail 16 + 76, panel 12 + 360, gap 12) */}
-            <div className={`absolute z-[1100] top-3 left-3 ${phone ? 'right-[4.5rem]' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`}>
+            <div className={`absolute z-[1100] top-3 left-3 ${phone ? 'right-[64px]' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`}>
               <MapSearch onSelect={handleSearchSelect} className={`pointer-events-auto w-full ${phone ? '' : 'max-w-[30rem]'}`} />
             </div>
             {pending && (
-              <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} onSheetHeight={setSheetH} />
+              <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} onSheetHeight={setSheetH} sheetBottomPx={phone ? barH : 0} />
             )}
           </div>
           </div>

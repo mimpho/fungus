@@ -24,9 +24,10 @@ const MACRO_KEY = {
  * The point's panel on a phone: a bottom sheet over the map, without a backdrop so the map keeps
  * answering (another tap picks another point, a drag moves it). It rises on mount, has a handle that
  * can be dragged down to close it (the same gesture as the dialogs' sheets) and never covers more
- * than 80% of the screen: its content scrolls.
+ * than 80% of the map: its content scrolls. `bottomPx`: it rises from above the phone's tab bar (which
+ * stays over it, so the sheet slides in and out from behind the bar).
  */
-function PointSheet({ label, onClose, onHeight, children }) {
+function PointSheet({ label, onClose, onHeight, bottomPx = 0, children }) {
   const [entered, setEntered] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -65,8 +66,10 @@ function PointSheet({ label, onClose, onHeight, children }) {
       role="dialog"
       aria-label={label}
       data-testid="point-sheet"
-      className="absolute z-[1100] inset-x-0 bottom-0 flex flex-col max-h-[80dvh] overflow-hidden glass-olive-80 rounded-t-2xl shadow-xl"
+      className="absolute z-[1100] inset-x-0 flex flex-col overflow-hidden map-surface rounded-t-[24px] shadow-bottom"
       style={{
+        bottom: bottomPx,
+        maxHeight: `calc(80% - ${bottomPx}px)`,
         transform: dragging ? `translateY(${dragY}px)` : entered ? 'translateY(0)' : 'translateY(100%)',
         transition: dragging ? 'none' : 'transform 0.3s cubic-bezier(0.32,0.72,0,1)',
       }}
@@ -79,7 +82,7 @@ function PointSheet({ label, onClose, onHeight, children }) {
       >
         <div className="w-10 h-1 rounded-full bg-cream/25" />
       </div>
-      <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pt-1 space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className={`min-h-0 overflow-y-auto overscroll-contain px-4 pt-1 space-y-3 ${bottomPx ? 'pb-4' : 'pb-[max(1rem,env(safe-area-inset-bottom))]'}`}>
         {children}
       </div>
     </div>
@@ -94,7 +97,7 @@ function PointSheet({ label, onClose, onHeight, children }) {
  * mean of that many species), null = nothing there, undefined = no layer to speak of.
  * `saved` is the user's corners: if this point is one, its pin, name, species and notes show under the title, with «Editar».
  */
-export function PointPanel({ point, saved, onObserve, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, sheet = false, onSheetHeight }) {
+export function PointPanel({ point, saved, onObserve, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, sheet = false, onSheetHeight, sheetBottomPx = 0 }) {
   const { t } = useApp()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [attempt, setAttempt] = useState(0)
@@ -248,7 +251,7 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
   )
 
   // On a phone: a bottom sheet that leaves the map usable above it (no backdrop)
-  if (sheet) return <PointSheet label={title} onClose={onClose} onHeight={onSheetHeight}>{content}</PointSheet>
+  if (sheet) return <PointSheet label={title} onClose={onClose} onHeight={onSheetHeight} bottomPx={sheetBottomPx}>{content}</PointSheet>
   return (
     <div
       role="dialog"
