@@ -61,7 +61,13 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
 
     # Ingesta
-    ingest_cron_hour: int = 5
+    # Daily ingest at 00:05 UTC and cell refresh at 00:40 UTC (2026-11-11): Render's egress IP is
+    # shared and other tenants spend Open-Meteo's free daily quota by ~05:45 UTC, so the heavy
+    # jobs run right after the quota resets at midnight UTC. Yesterday (UTC and Madrid) is over.
+    ingest_cron_hour: int = 0
+    ingest_cron_minute: int = 5
+    # Same hour as the ingest; after the 00:30 weather refresh, never during the ingest.
+    cell_refresh_cron_minute: int = 40
     ingest_max_concurrency: int = 6
     # Days re-fetched on every daily run (ending yesterday) to fill missed days
     ingest_lookback_days: int = 7

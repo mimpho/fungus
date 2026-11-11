@@ -13,7 +13,12 @@ from datetime import UTC, date, datetime, timedelta
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from app.connectors.base import DailyWeatherData, ProviderUnavailable, WeatherConnector
+from app.connectors.base import (
+    DailyWeatherData,
+    ProviderRateLimited,
+    ProviderUnavailable,
+    WeatherConnector,
+)
 
 log = logging.getLogger(__name__)
 
@@ -23,8 +28,11 @@ BASE_URL = "https://api.open-meteo.com/v1/forecast"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 ARCHIVE_CUTOFF_DAYS = 8
 
-# HTTP statuses worth retrying (rate limit and transient server errors)
-RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+# HTTP statuses worth retrying (transient server errors). A 429 is not one of them: a quota
+# refusal is never retried (see _raise_for_status), only the "too many concurrent requests" 429.
+RETRYABLE_STATUS = {500, 502, 503, 504}
+# Pause after a quota 429 whose reason we do not recognise (and Retry-After is absent).
+DEFAULT_RATE_LIMIT_PAUSE_S = 60
 
 # Open-Meteo variables we need
 DAILY_VARS = (
@@ -134,12 +142,6 @@ class OpenMeteoConnector(WeatherConnector):
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
-    @retry(
-        retry=retry_if_exception_type(httpx.HTTPError),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True,
-    )
     async def _request(self, start: date, end: date, archive: bool = False) -> dict:
         params = {
             "latitude": self.lat,
@@ -152,29 +154,9 @@ class OpenMeteoConnector(WeatherConnector):
         }
         if self.elevation is not None:
             params["elevation"] = self.elevation
-        try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.get(ARCHIVE_URL if archive else BASE_URL, params=params)
-                resp.raise_for_status()
-                return resp.json()
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code in RETRYABLE_STATUS:
-                # Re-raise as HTTPError so tenacity retries it
-                log.warning(
-                    "Open-Meteo HTTP %s for %s — retrying",
-                    exc.response.status_code, self.zone_id,
-                )
-                raise
-            reason = exc.response.text[:200].strip()
-            log.warning(
-                "Open-Meteo HTTP %s for %s: %s", exc.response.status_code, self.zone_id, reason
-            )
-            raise ProviderUnavailable(
-                f"Open-Meteo HTTP {exc.response.status_code} for zone {self.zone_id}: {reason}"
-            ) from exc
-        except httpx.HTTPError as exc:
-            log.warning("Open-Meteo request failed for %s: %s", self.zone_id, exc)
-            raise
+        return await _get_json(
+            ARCHIVE_URL if archive else BASE_URL, params, f"zone {self.zone_id}", timeout=15.0
+        )
 
     def _parse(self, raw: dict, start: date, end: date) -> list[DailyWeatherData]:
         """Convert Open-Meteo response to list of DailyWeatherData."""
@@ -247,12 +229,6 @@ def _safe_int(lst: list, idx: int) -> int | None:
     return None if val is None else round(val)
 
 
-@retry(
-    retry=retry_if_exception_type(httpx.HTTPError),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    reraise=True,
-)
 async def resolve_grid_batch(
     points: Sequence[tuple[float, float]],
 ) -> list[tuple[float, float, float]]:
@@ -273,19 +249,7 @@ async def resolve_grid_batch(
         # One value per coordinate: with several locations a single "nan" is a 400.
         "elevation": ",".join(["nan"] * len(points)),
     }
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.get(ARCHIVE_URL, params=params)
-            resp.raise_for_status()
-            raw = resp.json()
-    except httpx.HTTPStatusError as exc:
-        if exc.response.status_code in RETRYABLE_STATUS:
-            log.warning("Open-Meteo HTTP %s resolving %d points: retrying",
-                        exc.response.status_code, len(points))
-            raise
-        raise ProviderUnavailable(
-            f"Open-Meteo HTTP {exc.response.status_code}: {exc.response.text[:200].strip()}"
-        ) from exc
+    raw = await _get_json(ARCHIVE_URL, params, f"{len(points)} probe points", timeout=30.0)
     answers = raw if isinstance(raw, list) else [raw]  # one location comes back as an object
     if len(answers) != len(points):
         raise ProviderUnavailable(
@@ -298,3 +262,123 @@ async def resolve_grid_batch(
         ]
     except (KeyError, TypeError, ValueError) as exc:
         raise ProviderUnavailable("Open-Meteo returned an answer with no grid cell") from exc
+
+
+# ── HTTP layer: retries, quota refusals and the process-wide pause ────────────
+#
+# Open-Meteo's free tier is counted per IP (600/min, 5,000/hour, 10,000/day, weighted). Once it
+# answers a quota 429, every further call from this process before the limit resets is wasted
+# and may keep the IP over the limit, so no request leaves until `_paused_until`. The pause is
+# per process: the local backend and Render do not share it (nor their quota, unless they share
+# an IP).
+
+_paused_until: datetime | None = None
+_pause_reason = ""
+
+
+class _Transient(Exception):
+    """A failure worth one more try: network error, 5xx, or a concurrency 429."""
+
+
+def rate_limit_pause() -> int:
+    """Seconds left of the pause after a quota 429 (0 = none)."""
+    if _paused_until is None:
+        return 0
+    return max(0, int((_paused_until - datetime.now(UTC)).total_seconds()))
+
+
+def reset_rate_limit_pause() -> None:
+    global _paused_until, _pause_reason
+    _paused_until, _pause_reason = None, ""
+
+
+def _pause(seconds: int, reason: str) -> None:
+    global _paused_until, _pause_reason
+    until = datetime.now(UTC) + timedelta(seconds=seconds)
+    if _paused_until is None or until > _paused_until:
+        _paused_until, _pause_reason = until, reason
+
+
+def _reason(resp: httpx.Response) -> str:
+    """Open-Meteo explains a refusal as {"error": true, "reason": "..."}."""
+    try:
+        body = resp.json()
+        if isinstance(body, dict) and body.get("reason"):
+            return str(body["reason"])[:200]
+    except ValueError:
+        pass
+    return resp.text[:200].strip()
+
+
+def retry_after_seconds(reason: str, header: str | None, now: datetime) -> int:
+    """How long to stay away after a 429, from Open-Meteo's reason ("Minutely / Hourly / Daily
+    API request limit exceeded"), else its Retry-After header, else a minute."""
+    text = reason.lower()
+    if "daily" in text:
+        nxt = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        return max(1, int((nxt - now).total_seconds()))
+    if "hourly" in text:
+        nxt = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+        return max(1, int((nxt - now).total_seconds()))
+    if "minutely" in text:
+        return 60
+    if header and header.strip().isdigit():
+        return max(1, int(header.strip()))
+    return DEFAULT_RATE_LIMIT_PAUSE_S
+
+
+def _raise_for_status(resp: httpx.Response, what: str) -> None:
+    status = resp.status_code
+    if status < 400:
+        return
+    reason = _reason(resp)
+    if status == 429 and "concurrent" in reason.lower():
+        log.warning("Open-Meteo HTTP 429 (concurrent requests) for %s: retrying", what)
+        raise _Transient(f"HTTP 429: {reason}")
+    if status == 429:
+        wait = retry_after_seconds(reason, resp.headers.get("Retry-After"), datetime.now(UTC))
+        _pause(wait, reason)
+        log.warning(
+            "Open-Meteo rate limit (HTTP 429) for %s: %s. No more calls for %d s",
+            what, reason or "no reason given", wait,
+        )
+        raise ProviderRateLimited(
+            f"Open-Meteo HTTP 429 for {what}: {reason}", retry_after=wait, reason=reason
+        )
+    if status in RETRYABLE_STATUS:
+        log.warning("Open-Meteo HTTP %s for %s: retrying", status, what)
+        raise _Transient(f"HTTP {status}: {reason}")
+    log.warning("Open-Meteo HTTP %s for %s: %s", status, what, reason)
+    raise ProviderUnavailable(f"Open-Meteo HTTP {status} for {what}: {reason}")
+
+
+@retry(
+    retry=retry_if_exception_type(_Transient),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True,
+)
+async def _send(url: str, params: dict, what: str, timeout: float) -> dict:
+    left = rate_limit_pause()
+    if left:  # also between retries: another request may have hit the quota meanwhile
+        raise ProviderRateLimited(
+            f"Open-Meteo paused for {left} s after a 429 ({_pause_reason})",
+            retry_after=left, reason=_pause_reason,
+        )
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(url, params=params)
+    except httpx.HTTPError as exc:
+        log.warning("Open-Meteo request failed for %s: %s", what, exc)
+        raise _Transient(f"network error: {exc}") from exc
+    _raise_for_status(resp, what)
+    return resp.json()
+
+
+async def _get_json(url: str, params: dict, what: str, timeout: float) -> dict:
+    """GET with retries for transient failures. Every failure comes out as ProviderUnavailable
+    (ProviderRateLimited for a quota 429), never as a raw httpx error."""
+    try:
+        return await _send(url, params, what, timeout)
+    except _Transient as exc:
+        raise ProviderUnavailable(f"Open-Meteo unavailable for {what}: {exc}") from exc

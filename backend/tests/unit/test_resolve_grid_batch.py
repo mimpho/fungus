@@ -1,5 +1,6 @@
 """Batched grid probing of the Open-Meteo connector, with the HTTP client replaced."""
 
+import httpx
 import pytest
 
 from app.connectors.base import ProviderUnavailable
@@ -7,10 +8,8 @@ from app.connectors.open_meteo import resolve_grid_batch
 
 
 def _client(payload, seen):
-    class _Resp:
-        def raise_for_status(self): ...
-        def json(self):
-            return payload
+    def _Resp():
+        return httpx.Response(200, json=payload)
 
     class _Client:
         def __init__(self, *a, **k): ...

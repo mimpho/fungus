@@ -72,12 +72,10 @@ class TestConnectorForecast:
 
         from app.connectors.base import ProviderUnavailable
 
-        class _Resp:
-            status_code = 400
-            text = '{"error":true,"reason":"Parameter \'end_date\' is out of allowed range"}'
-
-            def raise_for_status(self):
-                raise httpx.HTTPStatusError("bad", request=None, response=self)
+        def _Resp():
+            return httpx.Response(
+                400, json={"error": True, "reason": "Parameter 'end_date' is out of allowed range"}
+            )
 
         class _Client:
             def __init__(self, *a, **k): ...

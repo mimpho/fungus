@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.connectors.base import ProviderUnavailable
+from app.connectors.base import ProviderRateLimited, ProviderUnavailable
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.species import Species
@@ -103,6 +103,14 @@ async def _cell_and_rows(
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Too many new areas loaded today; try again later",
+            headers={"Retry-After": str(exc.retry_after)},
+        ) from exc
+    except ProviderRateLimited as exc:
+        # Open-Meteo's quota is spent: say when to come back instead of failing with a 500.
+        log.warning("Open-Meteo rate-limited for %s,%s: %s", point.lat, point.lon, exc)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The weather provider is over its request limit; try again later",
             headers={"Retry-After": str(exc.retry_after)},
         ) from exc
     except ProviderUnavailable as exc:
