@@ -1,21 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Maximize, Minimize } from 'lucide-react'
+import { X, Maximize, Minimize, List } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
 import { useSavedPoints } from '../hooks/useSavedPoints'
-import { useIsPhone } from '../hooks/useIsPhone'
+import { useIsPhone, useIsWide } from '../hooks/useIsPhone'
+import { useMapNavigation, TABS } from '../hooks/useMapNavigation'
+import { useMapBusy } from '../hooks/useMapBusy'
 import { ALL_EXCELLENT, useProbabilityLayer } from '../hooks/useProbabilityLayer'
 import { pixelElevation, pixelScore, reliefGrid } from '../lib/reliefLayer'
-import { useElevationRaster } from '../hooks/useElevationRaster'
-import { useClassRaster } from '../hooks/useClassRaster'
+import { useElevationRasterState } from '../hooks/useElevationRaster'
+import { useClassRasterState } from '../hooks/useClassRaster'
 import { useSpecies } from '../hooks/useSpecies'
 import { isInCatalonia } from '../lib/catalonia'
 import { samePoint } from '../lib/observatoryView'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { MapSearch } from '../components/observatory/MapSearch'
 import { MapLayersBox } from '../components/observatory/MapLayersBox'
-import { MapPills, ViewPill } from '../components/observatory/MapPills'
 import { ForestTypeLegend } from '../components/observatory/ForestTypeLegend'
 import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
@@ -24,8 +25,17 @@ import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList, SavedPointsToggle } from '../components/observatory/SavedPoints'
 import { ObsModal, isDialogAbove } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
+import { TabRail } from '../components/observatory/nav/TabRail'
+import { NavPanel } from '../components/observatory/nav/NavPanel'
+import { ViewButton, ViewPanel, ZoomButtons } from '../components/observatory/nav/ViewControls'
+import { MapLoadingBar } from '../components/observatory/nav/MapLoadingBar'
 
 const BASEMAPS = ['satellite', 'streets', 'relief']
+const NAV_PANEL_ID = 'obs-nav-panel'
+const VIEW_PANEL_ID = 'obs-view-panel'
+const TAB_TITLE = { data: 'obsTabMeteo', zones: 'obsTabZones', forest: 'obsTabForest' }
+// Desktop: what a panel covers at the right of the map (rail 16 + 76, gap 12, panel 360, margin 16)
+const PANEL_CLEAR_PX = 480
 
 /**
  * /observatorio — the Observatory of any point in Catalonia (login required). The map is the page:
@@ -41,21 +51,22 @@ export default function Observatory() {
   const [pending, setPending] = useState(() => (observed ? { lat: observed.lat, lon: observed.lon } : null))
   const [flyTo, setFlyTo] = useState(null)
   const [savedOpen, setSavedOpen] = useState(false)
-  // Probability layer: switched on in the layers box, one species at a time (null = none yet).
+  // The map's navigation: tabs Meteo / Zonas / Bosque, each with a switch remembered in this browser, and
+  // one panel open at a time (memory/observatory-navigation-plan.md, T1). First visit: Meteo on, Zonas on
+  // if the user has corners, Bosque off.
+  const nav = useMapNavigation({ hasCorners: saved.points.length > 0, cornersReady: saved.status === 'ready' })
+  // Probability layer (Meteo · Condiciones): one species at a time (null = the mean of the excellent ones).
   // Switching it off hides it but remembers the species and the day.
-  const [probabilityOn, setProbabilityOn] = useState(false)
+  const probabilityOn = nav.on.data
+  const setProbabilityOn = value => nav.setOn('data', value)
   const [layerSpecies, setLayerSpecies] = useState(null)
   const [layerDate, setLayerDate] = useState(null) // null = last day with data
-  // «Mis rincones» layer: on by default; the choice is remembered in this browser only
-  const [cornersOn, setCornersOn] = useState(() => {
-    try { return localStorage.getItem('fungus-obs-corners') !== 'off' } catch (_e) { return true }
-  })
-  function chooseCorners(value) {
-    setCornersOn(value)
-    try { localStorage.setItem('fungus-obs-corners', value ? 'on' : 'off') } catch (_e) { /* per-viewer convenience only */ }
-  }
-  // Forest type layer: the forest raster by dominant type; the legend filters which types show
-  const [forestOn, setForestOn] = useState(false)
+  // «Mis rincones» (Zonas)
+  const cornersOn = nav.on.zones
+  const chooseCorners = value => nav.setOn('zones', value)
+  // Forest type layer (Bosque): the forest raster by dominant type; the legend filters which types show
+  const forestOn = nav.on.forest
+  const setForestOn = value => nav.setOn('forest', value)
   const [forestShown, setForestShown] = useState(() => new Set(FOREST_TYPES.map(f => f.key)))
   const toggleForestType = key => setForestShown(prev => {
     const next = new Set(prev)
@@ -74,9 +85,12 @@ export default function Observatory() {
   const layerId = probabilityOn ? (layerSpecies ?? ALL_EXCELLENT) : pending ? ALL_EXCELLENT : null
   const layer = useProbabilityLayer(isAuthenticated ? layerId : null, { date: layerDate ?? undefined })
   const chooseLayerSpecies = id => { setLayerSpecies(id); setLayerDate(null) }
-  const elevation = useElevationRaster(Boolean(layerId) && isAuthenticated)
-  const forest = useClassRaster('forest', (Boolean(layerId) || forestOn) && isAuthenticated)
-  const substrate = useClassRaster('substrate', Boolean(layerId) && isAuthenticated)
+  const elevationState = useElevationRasterState(Boolean(layerId) && isAuthenticated)
+  const forestState = useClassRasterState('forest', (Boolean(layerId) || forestOn) && isAuthenticated)
+  const substrateState = useClassRasterState('substrate', Boolean(layerId) && isAuthenticated)
+  const elevation = elevationState.raster
+  const forest = forestState.raster
+  const substrate = substrateState.raster
   const habitat = useMemo(() => ({ forest, substrate }), [forest, substrate])
   const forestTypes = useMemo(() => (forestOn && forest ? { raster: forest, active: forestShown } : null), [forestOn, forest, forestShown])
   // What the layer paints at the spot picked on the map ({ score, count }; null = nothing there)
@@ -97,6 +111,9 @@ export default function Observatory() {
   // it is open while the URL has the point. Its cross closes it (the point leaves the URL) and the point's card stays on the
   // map, with «Observar», which opens the zone again from scratch. The map stays mounted and untouched under the layer.
   const phone = useIsPhone()
+  const wide = useIsWide() // from 1024px the point card and a map panel fit side by side
+  const [mapInst, setMapInst] = useState(null) // the Leaflet map, for the desktop zoom buttons
+  const [drawing, setDrawing] = useState(false) // the map is working out a layer's picture
   const layerOpen = Boolean(observed) && isAuthenticated
   const [headerSlot, setHeaderSlot] = useState(null) // where the zone puts its title: the header of the layer
   const [filtersSlot, setFiltersSlot] = useState(null) // and its active filters: a bar under that header, so they stay in view while the zone scrolls
@@ -163,20 +180,38 @@ export default function Observatory() {
     try { localStorage.setItem('fungus-obs-basemap', value) } catch (_e) { /* per-viewer convenience only */ }
   }
 
+  // What the map is waiting for, for the loading bar on its top edge (only layers that are on count)
+  const { busy, failed } = useMapBusy(useMemo(() => [
+    { id: 'conditions', label: t.obsLayerProbability, on: probabilityOn, loading: layer.status === 'loading', error: layer.status === 'error', retry: layer.retry },
+    { id: 'elevation', label: t.obsLayerProbability, on: probabilityOn, loading: elevationState.status === 'loading', error: false },
+    { id: 'substrate', label: t.obsLayerProbability, on: probabilityOn, loading: substrateState.status === 'loading', error: false },
+    { id: 'forest', label: t.obsTabForest, on: forestOn || probabilityOn, loading: forestState.status === 'loading', error: forestOn && forestState.status === 'error', retry: forestState.retry },
+    { id: 'corners', label: t.obsLayerCorners, on: cornersOn, loading: saved.status === 'loading', error: saved.status === 'error', retry: saved.reload },
+    { id: 'drawing', label: '', on: true, loading: drawing, error: false },
+  ], [drawing, t, probabilityOn, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
+
+  // Desktop: a tab or Vista opens its panel; below 1024px the point card and a panel take turns
+  function toggleNav(tab) {
+    if (!phone && !wide && nav.openTab !== tab) setPending(null)
+    nav.toggleTab(tab)
+  }
+
   // Esc, one layer at a time: the phone's fullscreen, then the zone's layer, then the point's card
   // (through a ref: the listener must see the current zone)
   const closePanelRef = useRef(() => {})
+  const desktopPanel = !phone && nav.openTab
   useEffect(() => {
-    if (!pending && !fullscreen && !layerOpen) return
+    if (!pending && !fullscreen && !layerOpen && !desktopPanel) return
     const onKey = e => {
       if (e.key !== 'Escape' || isDialogAbove()) return // a dialog on top takes this Esc
       if (fullscreen) exitFullscreen()
       else if (layerOpen) closeZone()
+      else if (desktopPanel) nav.close() // a map panel goes before the point's card
       else closePanelRef.current()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pending, fullscreen, layerOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pending, fullscreen, layerOpen, desktopPanel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Closing the zone's layer: the point's card stays on the map (the layer was opened from it, or from a link to the point)
   function closeZone() {
@@ -190,6 +225,7 @@ export default function Observatory() {
   closePanelRef.current = closePanel
 
   function handlePick(lat, lon) {
+    if (!phone && !wide) nav.close() // below 1024px the point card takes the place of a map panel
     if (!isInCatalonia(lat, lon)) {
       // Outside Catalonia there is nothing to look up (the API would answer 422): the pick is dropped without a notice
       setPending(null)
@@ -222,6 +258,7 @@ export default function Observatory() {
     setPending({ lat: point.lat, lon: point.lon })
     setSavedOpen(false)
     setLayersOpen(false) // the zone takes the screen
+    nav.close()
   }
 
   // The observed zone: the content of the layer over the map
@@ -310,15 +347,18 @@ export default function Observatory() {
               habitat={habitat}
               forestTypes={forestTypes}
               onPick={phone ? handleMapTap : handlePick}
+              leafletZoom={phone}
+              onMap={setMapInst}
+              onDrawing={setDrawing}
               label={t.obsMapLabel}
               basemap={basemap}
               flyTo={flyTo}
               dataSources={[Boolean(layerId) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
-              centerAbove={phone ? { top: 72, bottomPx: sheetH || Math.round(window.innerHeight * 0.45) } : null}
+              centerAbove={phone ? { top: 72, bottomPx: sheetH || Math.round(window.innerHeight * 0.45) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
               className="h-full"
             />
             {!pending && !observed && (
-              <p className="absolute z-[1100] bottom-10 left-3 right-16 md:bottom-3 md:right-auto md:max-w-sm glass-olive rounded-xl px-3 py-2 text-xs text-cream/80 pointer-events-none">
+              <p className="absolute z-[1100] bottom-10 left-3 right-16 md:bottom-3 md:right-auto md:max-w-sm map-surface shadow-float rounded-xl px-3 py-2 text-xs text-cream/80 pointer-events-none">
                 {t.obsMapHint}
               </p>
             )}
@@ -335,24 +375,54 @@ export default function Observatory() {
                 {fullscreen ? <Minimize size={20} aria-hidden="true" /> : <Maximize size={20} aria-hidden="true" />}
               </button>
             )}
-            {/* Desktop: the view and, under it, what the map shows, as a column of pills at the right edge (before the search in the DOM so its list opens over them) */}
+            {/* Desktop: the tabs at the top right, Vista and the zoom at the bottom right; a panel opens to the left of them */}
             {!phone && (
-              <div className="absolute z-[1100] top-3 right-3 flex flex-col items-end gap-2.5">
-                <ViewPill basemap={basemap} onBasemap={chooseBasemap} />
-                <MapPills
-                  corners={cornersOn}
-                  onCorners={chooseCorners}
-                  savedCount={saved.status === 'ready' ? saved.points.length : null}
-                  onOpenList={() => setSavedOpen(true)}
-                  probability={probabilityOn}
-                  onProbability={setProbabilityOn}
-                  probabilityPanel={waking => conditionsFor(probabilityOn || waking, waking)}
-                  forest={forestOn}
-                  onForest={setForestOn}
-                  forestPanel={forestEl}
-                />
-              </div>
+              <>
+                <div className="absolute z-[1100] top-4 right-4">
+                  <TabRail openTab={nav.openTab} on={nav.on} onToggle={toggleNav} panelId={NAV_PANEL_ID} />
+                </div>
+                {TABS.includes(nav.openTab) && (
+                  <div className="absolute z-[1100] top-4 right-[104px] w-[360px] max-h-[calc(100%-2rem)] flex">
+                    <NavPanel
+                      id={NAV_PANEL_ID}
+                      title={t[TAB_TITLE[nav.openTab]]}
+                      on={nav.on[nav.openTab]}
+                      onSwitch={value => nav.setOn(nav.openTab, value)}
+                      className="w-full max-h-full overflow-y-auto overscroll-contain"
+                    >
+                      {nav.openTab === 'data' && conditionsFor(probabilityOn)}
+                      {nav.openTab === 'zones' && (
+                        <div className="flex items-center gap-3">
+                          <span className="flex-1 text-sm text-cream">{t.obsLayerCorners}</span>
+                          <button
+                            type="button"
+                            aria-haspopup="dialog"
+                            onClick={() => setSavedOpen(true)}
+                            className="inline-flex items-center gap-2 rounded-full px-3 py-2 bg-cream/10 hover:bg-cream/20 text-sm text-cream font-medium outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
+                          >
+                            <List size={16} aria-hidden="true" />
+                            {t.obsZonesSeeList}
+                            {saved.status === 'ready' && <span data-testid="saved-count" className="min-w-[1.5rem] rounded-full bg-coffee-light/25 px-1.5 text-xs font-bold tabular-nums">{saved.points.length}</span>}
+                          </button>
+                        </div>
+                      )}
+                      {nav.openTab === 'forest' && forestEl}
+                    </NavPanel>
+                  </div>
+                )}
+                <div className="absolute z-[1100] right-4 bottom-5 flex flex-col items-end gap-2.5">
+                  <ViewButton open={nav.openTab === 'view'} onClick={() => toggleNav('view')} panelId={VIEW_PANEL_ID} />
+                  <ZoomButtons map={mapInst} />
+                </div>
+                {nav.openTab === 'view' && (
+                  <div className="absolute z-[1100] right-[104px] bottom-5 w-[360px]">
+                    <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemap} onClose={nav.close} />
+                  </div>
+                )}
+              </>
             )}
+            {/* The conditions panel shows its own error: the map's notice is for when it is closed */}
+            <MapLoadingBar busy={busy} failed={failed?.id === 'conditions' && nav.openTab === 'data' ? null : failed} />
             {/* Phone: the way into the corners list, under the search (the rest of the layers are in the layers card) */}
             {phone && (
               <div className="absolute z-[1100] top-[4.25rem] left-3">
@@ -379,8 +449,9 @@ export default function Observatory() {
                 {conditionsFor(probabilityOn)}
               </MapLayersBox>
             )}
-            <div className={`absolute z-[1100] top-3 left-3 ${phone ? 'right-[4.5rem]' : 'right-3 md:right-auto'} pointer-events-none`}>
-              <MapSearch onSelect={handleSearchSelect} className="pointer-events-auto w-full md:w-[30rem]" />
+            {/* Desktop: the search never reaches the rail, nor an open panel (rail 16 + 76, panel 12 + 360, gap 12) */}
+            <div className={`absolute z-[1100] top-3 left-3 ${phone ? 'right-[4.5rem]' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`}>
+              <MapSearch onSelect={handleSearchSelect} className={`pointer-events-auto w-full ${phone ? '' : 'max-w-[30rem]'}`} />
             </div>
             {pending && (
               <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} onSheetHeight={setSheetH} />

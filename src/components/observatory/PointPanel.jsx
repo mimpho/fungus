@@ -253,7 +253,7 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
     <div
       role="dialog"
       aria-label={title}
-      className="absolute z-[1100] left-3 right-16 bottom-14 md:bottom-3 md:right-auto md:w-[22rem] max-h-[calc(100%-11.5rem)] md:max-h-[calc(100%-6rem)] overflow-y-auto glass-olive-80 rounded-2xl p-4 space-y-3 shadow-xl"
+      className="absolute z-[1100] left-3 right-16 bottom-14 md:bottom-3 md:right-auto md:w-[22rem] max-h-[calc(100%-11.5rem)] md:max-h-[calc(100%-6rem)] overflow-y-auto map-surface rounded-2xl p-4 space-y-3 shadow-float"
     >
       {content}
     </div>

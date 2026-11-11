@@ -130,6 +130,7 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
         <div className="relative">
           <input
             ref={inputRef}
+            data-wake-focus=""
             type="text"
             role="combobox"
             aria-label={t.obsLaySearchLabel}

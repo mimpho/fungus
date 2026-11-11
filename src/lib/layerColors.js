@@ -14,11 +14,12 @@ export const BAND_HEX = { high: '#34d399', good: '#c4a06b', ok: '#f59e0b', mid: 
 // Low scores are common: they are drawn fainter so the map underneath is still readable
 const BAND_OPACITY = { high: 0.62, good: 0.58, ok: 0.52, mid: 0.44, low: 0.34 }
 
-// The alphas above are multiplied by a factor per basemap (a pixel's alpha tops out at 1): the dark
-// maps need them stronger and the satellite image, busy as it is, fainter. On the shaded relief the layer
-// is also blended with `multiply` (see ObservatoryMap), which keeps the black-and-white shading
-// readable through the colour. Raise a factor for stronger colour, lower it to see more map.
-export const ALPHA_SCALE_BY_BASEMAP = { satellite: 0.8, streets: 1.5, relief: 2 }
+// The alphas above are multiplied by a factor per basemap (a pixel's alpha tops out at 1). The layer is
+// also blended with the map (see LAYER_BLEND in ObservatoryMap): `multiply` on the shaded relief, which
+// keeps its black-and-white shading readable through the colour, and `hard-light` on the satellite, which
+// lets the colour be strong (the factor was 0.8 with plain alpha and the heat map barely showed) while
+// the ground still reads through it. Raise a factor for stronger colour, lower it to see more map.
+export const ALPHA_SCALE_BY_BASEMAP = { satellite: 1.7, streets: 1.5, relief: 2 }
 
 /** Fill of one cell of the probability layer. */
 export function cellFill(score) {

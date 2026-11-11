@@ -34,6 +34,11 @@ const MIN_SHARE = 0.1
 const FULL_SHARE = 0.5
 const MAX_ALPHA = 0.7
 
+// Opacity factor per basemap for the forest layer: its own, not the conditions layer's (that one is raised on
+// the satellite because it is blended with `hard-light`; the forest is drawn with plain alpha, and with the
+// same factor its colours would cover the image completely)
+export const FOREST_ALPHA_SCALE_BY_BASEMAP = { satellite: 0.8, streets: 1.5, relief: 2 }
+
 const mercY = lat => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360))
 const latOfMercY = y => ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI
 const toRgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))
