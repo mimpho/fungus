@@ -61,7 +61,13 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
 
     # Ingesta
-    ingest_cron_hour: int = 5
+    # Daily ingest at 00:05 UTC and cell refresh at 00:40 UTC (2026-11-11): Render's egress IP is
+    # shared and other tenants spend Open-Meteo's free daily quota by ~05:45 UTC, so the heavy
+    # jobs run right after the quota resets at midnight UTC. Yesterday (UTC and Madrid) is over.
+    ingest_cron_hour: int = 0
+    ingest_cron_minute: int = 5
+    # Same hour as the ingest; after the 00:30 weather refresh, never during the ingest.
+    cell_refresh_cron_minute: int = 40
     ingest_max_concurrency: int = 6
     # Days re-fetched on every daily run (ending yesterday) to fill missed days
     ingest_lookback_days: int = 7
@@ -72,9 +78,12 @@ class Settings(BaseSettings):
     # Ops alerts (stale zones after the daily ingest). Empty = no email.
     alert_email: str = ""
 
-    # Current weather (weather_cache), refreshed by a job every 3 h.
-    # Rows older than this are not served (the UI shows "–"): two refresh cycles.
-    weather_max_age_hours: int = 6
+    # Current weather (weather_cache) of the legacy zones, refreshed once a day at 00:30 UTC
+    # (2026-11-11; it was every 3 h, ~1,600 of our ~3,300 daily Open-Meteo calls, for a zone list
+    # that is being retired). APScheduler cron hour expression: "0" = once, "*/3" = every 3 h.
+    weather_refresh_cron_hour: str = "0"
+    # Rows older than this are not served (the UI shows "–"): one daily cycle plus a margin.
+    weather_max_age_hours: int = 26
     # Max Open-Meteo calls per UTC day for weather_cache (refresh job + live card
     # fetches). The free limit (10,000/day) is shared with the ingest and backfills.
     weather_daily_call_budget: int = 3000

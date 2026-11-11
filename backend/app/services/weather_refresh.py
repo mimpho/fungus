@@ -1,7 +1,8 @@
 """
 Scheduled refresh of weather_cache (current weather shown in the zone list and card).
 
-Runs every 3 h for all active zones (plus once at startup when rows are missing),
+Runs once a day (00:30 UTC, `WEATHER_REFRESH_CRON_HOUR`) for all active zones
+(plus once at startup when rows are missing),
 so the API never has to call Open-Meteo on a user request. Guards, so the free
 Open-Meteo limit (10,000 calls/day, shared with the ingest and backfills) is never
 exceeded and stale data is never shown as current:

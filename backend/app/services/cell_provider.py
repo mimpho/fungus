@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Protocol
 
-from app.connectors.base import DailyWeatherData
+from app.connectors.base import DailyWeatherData, ProviderRateLimited, ProviderUnavailable
 from app.connectors.open_meteo import ARCHIVE_CUTOFF_DAYS, OpenMeteoConnector
 from app.models.climate_cell import cell_id as make_cell_id
 from app.models.climate_cell import lookup_key
@@ -27,6 +27,10 @@ HISTORY_DAYS = 280  # 180 of timeline + 100 of calculation warm-up
 FORECAST_DAYS = 16
 REFRESH_WINDOW_DAYS = 10  # recent days re-fetched by the daily refresh
 LOOKUP_CACHE_SIZE = 5000
+# After a failed resolve or load, the same point / cell is not asked again for this long (a 429
+# keeps it away for its own Retry-After). Every page asks 5 endpoints of the same point; without
+# this each of them, and each reload, re-sent the request that had just failed.
+FAILURE_TTL_S = 60
 
 
 class CellBudgetExceeded(Exception):
@@ -148,6 +152,8 @@ class CellProvider:
         self._resolving: dict[tuple[int, int], asyncio.Future] = {}
         self._loading: dict[str, asyncio.Future] = {}
         self._create_lock = asyncio.Lock()
+        # key -> (until, error): recent provider failures, answered without calling again
+        self._failed: dict[object, tuple[datetime, ProviderUnavailable]] = {}
 
     async def get(
         self, store: CellStore, lat: float, lon: float, user_id: int | None = None
@@ -160,7 +166,12 @@ class CellProvider:
         cell = await store.get_cell(cell_id)
         if cell is not None and cell.loaded_to is not None:
             return CellResult(cell, "stored")
-        await self._single_flight(self._loading, cell_id, lambda: self._load(store, cell_id))
+        await self._remembering_failure(
+            ("load", cell_id),
+            lambda: self._single_flight(
+                self._loading, cell_id, lambda: self._load(store, cell_id)
+            ),
+        )
         return CellResult(await store.get_cell(cell_id), "live")
 
     async def load(self, store: CellStore, cell_id: str) -> None:
@@ -189,10 +200,13 @@ class CellProvider:
             return self._lru[key]
         # Keyed by user too: a refusal (limit) must not be shared with another user who asks
         # for the same new point at the same time. The creation lock below keeps it to one cell.
-        cell_id = await self._single_flight(
-            self._resolving,
-            (key, user_id),
-            lambda: self._resolve_uncached(store, key, lat, lon, user_id),
+        cell_id = await self._remembering_failure(
+            ("resolve", key),
+            lambda: self._single_flight(
+                self._resolving,
+                (key, user_id),
+                lambda: self._resolve_uncached(store, key, lat, lon, user_id),
+            ),
         )
         self._lru[key] = cell_id
         while len(self._lru) > LOOKUP_CACHE_SIZE:
@@ -243,6 +257,28 @@ class CellProvider:
     async def _fetch(self, cell: CellInfo, start: date, end: date):
         connector = self._factory(cell.id, cell.lat, cell.lon, cell.elevation_m)
         return await connector.fetch_range_and_forecast(start, end, forecast_days=FORECAST_DAYS)
+
+    async def _remembering_failure(self, key, call: Callable[[], Awaitable]):
+        """Run `call` unless the same key failed at the provider a moment ago: then raise that
+        failure again with no network. Limits of ours (budget, per-user) are not remembered."""
+        now = self._now()
+        hit = self._failed.get(key)
+        if hit is not None:
+            until, error = hit
+            if now < until:
+                left = max(1, int((until - now).total_seconds()))
+                if isinstance(error, ProviderRateLimited):
+                    raise ProviderRateLimited(str(error), retry_after=left, reason=error.reason)
+                raise ProviderUnavailable(str(error))
+            del self._failed[key]
+        try:
+            return await call()
+        except ProviderUnavailable as exc:
+            ttl = exc.retry_after if isinstance(exc, ProviderRateLimited) else FAILURE_TTL_S
+            self._failed[key] = (self._now() + timedelta(seconds=max(ttl, 1)), exc)
+            if len(self._failed) > LOOKUP_CACHE_SIZE:  # bounded: drop the oldest entry
+                self._failed.pop(next(iter(self._failed)))
+            raise
 
     @staticmethod
     async def _single_flight(registry: dict, key, make: Callable[[], Awaitable]):

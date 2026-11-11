@@ -5,6 +5,7 @@ Scenarios follow memory/observatory-plan.md, «Update 2026-10-14».
 import asyncio
 from datetime import UTC, date, datetime, timedelta
 
+import httpx
 import pytest
 
 from app.connectors.base import DailyWeatherData, ProviderUnavailable
@@ -383,9 +384,8 @@ class TestConnector:
     async def test_elevation_is_sent_only_when_set(self, monkeypatch):
         seen = []
 
-        class _Resp:
-            def raise_for_status(self): ...
-            def json(self): return {"daily": {"time": []}, "hourly": {}}
+        def _Resp():
+            return httpx.Response(200, json={"daily": {"time": []}, "hourly": {}})
 
         class _Client:
             def __init__(self, *a, **k): ...

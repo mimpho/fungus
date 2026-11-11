@@ -175,7 +175,7 @@ backend/
 | FastAPI | ≥0.115 | Async, lifespan, CORS middleware |
 | SQLAlchemy | 2.x async | asyncpg driver |
 | Alembic | ≥1.13 | Migrations; auto-apply on lifespan |
-| APScheduler | 3.x | Daily cron at 05:00 UTC |
+| APScheduler | 3.x | Daily cron at 00:05 UTC |
 | httpx | ≥0.27 | Async client for external APIs |
 | tenacity | ≥9 | Retries with backoff in connectors |
 
