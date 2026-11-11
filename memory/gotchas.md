@@ -402,6 +402,18 @@ Its sandbox had 36 MB of free disk on 2026-11-05 (`npm` fails with `ENOSPC`), No
 
 The site's base font is 18px (`system/project.spec.md`, design system), so `1rem` = 18px: `w-5` is 22.5px, not 20px; `h-11` is 49.5px, not 44px. In a control drawn to exact pixel sizes (a switch, a 44px touch target, a 76px rail) the parts stop adding up: the switch's thumb in `PanelSwitch` sat off-centre. **Rule:** for controls taken from a design with px measures, use arbitrary px values (`w-[20px]`, `h-[44px]`).
 
+## Frontend — Tailwind colours without opacity channels
+
+### ⚠️ `bg-coffee-light/20` draws nothing
+
+`coffee-light` is mapped in `tailwind.config.js` to a plain `var(--color-coffee-light)`, without an RGB channel, so Tailwind cannot apply an opacity modifier: `bg-coffee-light/25` produces no rule and the element has no background (the «saved-count» badge of the Zonas panel uses it today). **Rule:** for a tinted fill of a colour without `--…-rgb`, use `color-mix()`: `bg-[color-mix(in_srgb,var(--color-coffee-light)_20%,transparent)]`. Colours with `withOpacity('--color-…-rgb')` (cream, coffee) take the modifier.
+
+## Frontend — the local back end is not production
+
+### ⚠️ No forecast days in the Observatory locally
+
+The local back end's `DATABASE_URL` may point to a database on `localhost` (it did on 2026-11-11), not to production: `/health`'s `last_ingest` then differs from production's. Without the daily `cell_refresh` the cells have no fresh forecast and the layer answers `max_date` = `last_data_date`: the day slider shows no forecast stretch and «incluye previsión» never appears. Not a front-end bug; check forecast behaviour in production or with the database switched by Marcos.
+
 ## Frontend — heavy work in an effect after a click
 
 ### ⚠️ React runs the effects of a click before the browser paints
