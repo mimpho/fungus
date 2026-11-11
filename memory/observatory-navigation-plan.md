@@ -9,7 +9,7 @@
 
 | # | Branch | Status |
 |---|---|---|
-| T1 | `feat/observatory-navigation-shell` | ⬜ |
+| T1 | `feat/observatory-navigation-shell` | ✅ 2026-11-11 (see «T1 — as built» below) |
 | T2 | `feat/observatory-navigation-phone` | ⬜ |
 | T3 | `feat/observatory-navigation-meteo` | ⬜ |
 | T4 | `feat/observatory-navigation-zonas-bosque` | ⬜ |
@@ -148,6 +148,18 @@ Feature: Desktop navigation shell
 ```
 
 **Done when** the scenarios pass by hand, `npm run build` is clean, and the phone still works with the old layers card.
+
+---
+
+### T1 — as built (2026-11-11)
+
+What changed against the spec above, for the tasks that follow:
+- **One surface for the map's floating controls:** `.map-surface` in `src/styles/map.css` (the search's `--color-search-bg`, `#4c5240`; white 85 % in the light theme), not the artboards' `#30372a`. Used by the rail, panels, Vista, zoom, failure notice, the desktop point card and the map hint. **T2** applies it to the phone bar, sheets and the point's sheet (still `glass-olive-80`).
+- **Layer pictures are worked out after the next paint** (`afterPaint` in `ObservatoryMap.jsx`) and the new picture replaces the old one only when it is ready; `onDrawing` feeds the loading bar. Without it a switch flipped on only after the picture was ready (React flushes the effects of a click before painting).
+- **Conditions layer on the satellite:** `mix-blend-mode: hard-light` (`LAYER_BLEND`) and opacity factor 1.7 (was plain alpha, 0.8). The forest layer keeps its own factor (`FOREST_ALPHA_SCALE_BY_BASEMAP`, 0.8): its look is decided in **T4** (spec item 5).
+- **Desktop search** stops before the rail, and before an open panel.
+- **Not done here, left to T3:** with Meteo off, the dimmed Condiciones content shows only the species field (`SpeciesLayerPicker` hides the slider and legend while the layer is off); T3's Condiciones content must show them dimmed too. The rows «Pronto» (Lluvia, Temperatura, Viento, Zonas de interés, Top 10) are gone from desktop until T3 and T4.
+- Sizes of the new controls are in px, not rem (the base font is 18px; see `memory/gotchas.md`).
 
 ---
 
@@ -308,6 +320,7 @@ Feature: Meteo panel
 2. The Zonas switch draws the checked rows; the Mis rincones checkbox is remembered in `localStorage`.
 3. Bosque: one checkbox per forest class with its colour, «Todos» / «Ninguno», and a counter «{n} de {total}». The checked classes are stored in `localStorage` (`fungus-obs-forest-classes`); unknown keys are ignored.
 4. Draw order (bottom to top): Meteo colours, Bosque classes, Zonas de interés, Top 10, Mis rincones. Swap the panes so the forest is above the conditions; labels stay above both.
+5. Forest look, decided with the new order (raised during T1 QA, 2026-11-11: on the satellite the forest reads as almost opaque and flat). Compare in the browser, alone and over the conditions: plain alpha (today, `FOREST_ALPHA_SCALE_BY_BASEMAP` 0.8 on satellite), `hard-light` alone, and translucent fill with an outline per class (as the PRD's draw-order rule says). Over the conditions the two layers must stay readable: two `hard-light` layers on top of each other mix into colours neither legend has.
 
 **Scenarios**
 
@@ -341,6 +354,12 @@ Feature: Zonas and Bosque panels
     Then only beech forest is drawn and the counter reads «1 de 8»
     When the page is reloaded
     Then only «Hayedo» is checked
+
+  Scenario: Forest over the satellite and over the conditions
+    Given the base map is the satellite
+    When the user switches Bosque on, with Meteo off and then on
+    Then the forest classes can be told apart and the ground still reads through them
+    And with Meteo on, both the conditions colours and the forest classes can be read
 
   Scenario: Keyboard
     When the user tabs into the Bosque panel

@@ -49,6 +49,20 @@ Front end only (PRD «Observatorio y zonas — mapa base»). What it delivers:
 - `memory/decisions.md`: one entry with every answer and its discarded alternatives.
 - `memory/pending.md`, `system/project.spec.md`, `README.md`: `epic/observatory-layers` becomes `epic/observatory-meteo` (rain, temperature, wind; full stack, rain first); Top 10 leaves it for the Zonas tab; new follow-up item: the point card as a sheet on phone and desktop.
 
+### Added — Observatory map navigation, desktop shell (2026-11-11, `feat/observatory-navigation-shell`, T1 of `epic/observatory-navigation`)
+
+Front end only; no migration, no new variable.
+
+- **Tabs and panels (desktop):** a rail at the top right with Meteo · Zonas · Bosque, each with a switch (`role="switch"`) and a dot while its layer is on; one panel open at a time, to the left of the rail (360 px, height to its content). With the switch off the panel content is dimmed and inert under one «Activar {capa}» button; a tap there only switches the layer on, except the species field, which also takes the focus. A second tap on a tab, or Esc, closes its panel; the layer keeps its state.
+- **First visit and memory:** Meteo on, Zonas on when the user has saved corners, Bosque off; each switch is then remembered per browser (`fungus-obs-data`, `fungus-obs-corners`, `fungus-obs-forest`).
+- **Vista and zoom:** a Vista button and the zoom (own buttons, not Leaflet's) at the bottom right; Vista's panel shows the three base maps with a real tile as thumbnail.
+- **Point card and panel:** from 1024 px they stay open together and the map keeps a picked point clear of the panel; below that, one at a time. Esc closes the panel first, then the card.
+- **Loading and errors:** a thin bar on the top edge of the map while a layer that is on loads or is being drawn (after 300 ms, for at least 400 ms); a failed layer shows «No se pudo cargar {capa} · Reintentar». Layer pictures are drawn after the next paint, so a switch answers at once.
+- **Look:** one surface colour for every floating control of the map (`.map-surface`, the search's); the conditions layer is blended with `hard-light` on the satellite and is much stronger there; two shadow tokens (`--shadow-float`, `--shadow-bottom`).
+- **Light theme and tokens:** opaque white surfaces (search and its results list included); the active tab, open Vista and the switch use the buttons' green in the light theme and keep the gold-brown in the dark one; the active tab's label is readable in both. New tokens in `src/styles/tokens.css` (`--map-surface`, `--nav-active`, `--switch-*`, `--shadow-float`, `--shadow-bottom`); the light `--color-bar-rgb` typo fixed (one green, `#758847`) and `--color-bar` set for the light theme.
+- **ⓘ in the Meteo panel:** its text floats over the page (`InfoTip` `floating`), so the panel no longer cuts it or scrolls.
+- The phone keeps the old layers card until T2; the old desktop pills are no longer rendered (removed in T5).
+
 ### Documentation — status documents retired (2026-11-11, docs only)
 
 - `CLAUDE.md`: sessions start from `memory/pending.md`, the active epic's PRD and plan, the branch and `git log`, and close through the branch close checklist; the Spanish `estado-fungus-*` documents of the Claude Project are no longer written (they repeated the repo docs). The few working notes they alone held move to a «How we work» paragraph.

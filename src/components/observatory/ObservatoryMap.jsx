@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import {
@@ -8,7 +8,7 @@ import {
 import { CATALONIA_BOUNDS } from '../../lib/catalonia'
 import { cellFill, ALPHA_SCALE_BY_BASEMAP } from '../../lib/layerColors'
 import { reliefOverlay } from '../../lib/reliefLayer'
-import { forestTypeOverlay } from '../../lib/forestLayer'
+import { forestTypeOverlay, FOREST_ALPHA_SCALE_BY_BASEMAP } from '../../lib/forestLayer'
 import { pinSvg } from '../../lib/cornerKinds'
 import { useApp } from '../../contexts/AppContext'
 
@@ -39,6 +39,9 @@ const meanScore = s => {
 const LAYER_PANE = 'obsLayer' // between the tiles (200) and the markers (400): the layer never covers a point
 const FOREST_PANE = 'obsForest' // forest types: under the conditions layer, so both can be on
 const LABELS_PANE = 'obsLabels' // place names of the dark maps: over the layer (350), under the markers
+// How the layer mixes with the base map: on the relief it multiplies the grey shading; on the satellite
+// `hard-light` keeps the colour strong while the ground (valleys, rivers, towns) still reads through it
+const LAYER_BLEND = { relief: 'multiply', satellite: 'hard-light' }
 
 // A cluster of corners: dark olive disc with a cream ring, so it reads on satellite, streets and relief alike
 function clusterIcon(cluster) {
@@ -64,16 +67,31 @@ function cornerMarker(sp, pinLabel, onPick) {
   return marker
 }
 
-// With a bottom sheet over the map (phone) a picked point must not end up under it: if it is not
-// clearly in the strip left above the sheet (`area` = { top, bottomPx }), the map moves it to the middle of that strip
+// With a sheet over the bottom of the map (phone) or a panel over its right side (desktop) a picked point
+// must not end up under it: if it is not clearly in the part left in view (`area` = { top, bottomPx, rightPx }),
+// the map moves it to the middle of that part
 function keepClear(map, point, area) {
   if (!area) return
   const size = map.getSize()
-  const visibleBottom = size.y - area.bottomPx
+  const top = area.top ?? 0
+  const visibleBottom = size.y - (area.bottomPx ?? 0)
+  const visibleRight = size.x - (area.rightPx ?? 0)
   const p = map.latLngToContainerPoint([point.lat, point.lon])
-  if (p.y < area.top + 24 || p.y > visibleBottom - 40) {
-    map.panBy([0, p.y - (area.top + visibleBottom) / 2], { animate: true })
-  }
+  const dy = p.y < top + 24 || p.y > visibleBottom - 40 ? p.y - (top + visibleBottom) / 2 : 0
+  const dx = area.rightPx && (p.x < 24 || p.x > visibleRight - 40) ? p.x - visibleRight / 2 : 0
+  if (dx || dy) map.panBy([dx, dy], { animate: true })
+}
+
+// The first base tiles get this long to arrive before the layers are drawn anyway
+const BASE_WAIT_MS = 2500
+
+// Working out a layer's picture holds the page for a moment. React runs the effects of a click before the
+// browser paints, so the work is put off until after the next paint: the switch that was clicked shows as
+// on at once, and the loading bar can show while the picture is worked out. Returns a cancel function.
+function afterPaint(work) {
+  let timer = null
+  const frame = requestAnimationFrame(() => { timer = setTimeout(work, 0) })
+  return () => { cancelAnimationFrame(frame); clearTimeout(timer) }
 }
 
 /**
@@ -85,7 +103,7 @@ function keepClear(map, point, area) {
  * coloured by its score. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
  * the forest is not one the species fits or the soil pH is not its own. Neither takes clicks, so picking a point works over the layer.
  */
-export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, dataSources = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, dataSources = null, leafletZoom = true, onMap = null, onDrawing = null, className = '' }) {
   const { t, setCreditsOpen } = useApp()
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
@@ -99,6 +117,17 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
   const onViewRef  = useRef(onViewChange)
   const centerRef  = useRef(centerAbove)
   const initial    = useRef(observed ?? startAt)
+  // Pictures being worked out (layer, forest): the page shows its loading bar meanwhile
+  const drawingRef = useRef({ layer: false, forest: false })
+  const onDrawingRef = useRef(onDrawing)
+  useEffect(() => { onDrawingRef.current = onDrawing }, [onDrawing])
+  const setDrawing = (key, value) => {
+    if (drawingRef.current[key] === value) return
+    drawingRef.current = { ...drawingRef.current, [key]: value }
+    onDrawingRef.current?.(drawingRef.current.layer || drawingRef.current.forest)
+  }
+  // Working out a layer's colours holds the page for a moment: the first time, the base map is painted first
+  const [baseReady, setBaseReady] = useState(false)
   useEffect(() => { onPickRef.current = onPick }, [onPick])
   useEffect(() => { onViewRef.current = onViewChange; centerRef.current = centerAbove }, [onViewChange, centerAbove])
 
@@ -114,12 +143,13 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     map.createPane(FOREST_PANE).style.zIndex = 340
     map.createPane(LAYER_PANE).style.zIndex = 350
     map.createPane(LABELS_PANE).style.zIndex = 360
-    L.control.zoom({ position: 'bottomright' }).addTo(map)
+    if (leafletZoom) L.control.zoom({ position: 'bottomright' }).addTo(map)
     if (initial.current) map.setView([initial.current.lat, initial.current.lon], initial.current.zoom ?? OBSERVED_ZOOM)
     else map.fitBounds(BOUNDS)
     map.on('click', e => onPickRef.current?.(e.latlng.lat, e.latlng.lng))
     map.on('moveend', () => { const c = map.getCenter(); onViewRef.current?.({ lat: c.lat, lon: c.lng, zoom: map.getZoom() }) })
     mapRef.current = map
+    onMap?.(map)
 
     // The container changes size with the viewport and the panel: Leaflet must be told.
     const ro = new ResizeObserver(() => map.invalidateSize())
@@ -127,10 +157,11 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
 
     return () => {
       ro.disconnect()
+      onMap?.(null)
       try { map.remove() } catch (_e) { /* partial state: ignore */ }
       mapRef.current = observedRef.current = pendingRef.current = tilesRef.current = savedRef.current = layerRef.current = forestRef.current = null
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Basemap: satellite (default), streets or shaded relief. Swapped without touching the view or the markers.
   useEffect(() => {
@@ -158,6 +189,18 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     tilesRef.current = L.tileLayer(ICGC_HYBRID_TILES_URL, { attribution: ICGC_ATTRIBUTION, maxZoom: 19 })
     tilesRef.current.addTo(map).bringToBack()
   }, [basemap])
+
+  // The first base tiles: once they are painted (or after BASE_WAIT_MS), the layers may be drawn
+  useEffect(() => {
+    if (baseReady) return undefined
+    const tiles = tilesRef.current
+    const ready = () => requestAnimationFrame(() => setBaseReady(true))
+    const timer = setTimeout(ready, BASE_WAIT_MS)
+    tiles?.once?.('load', ready)
+    // a layer group (relief, streets) passes the event of its first tile layer
+    tiles?.eachLayer?.(l => l.once?.('load', ready))
+    return () => { clearTimeout(timer); tiles?.off?.('load', ready); tiles?.eachLayer?.(l => l.off?.('load', ready)) }
+  }, [baseReady, basemap])
 
   // Credits on the map: tile credits (set by the basemap), a «Sources» link that opens the credits modal
   // and, while a data layer is on, the short credit of that data. The full list lives in the modal.
@@ -198,54 +241,71 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
   // blended with the tiles under it (the pane is a sibling of the tile pane, so it sees them)
   useEffect(() => {
     const pane = mapRef.current?.getPane(LAYER_PANE)
-    if (pane) pane.style.mixBlendMode = basemap === 'relief' ? 'multiply' : ''
+    if (pane) pane.style.mixBlendMode = LAYER_BLEND[basemap] ?? ''
   }, [basemap])
 
   // Probability layer: a picture blending the cells (with relief when the elevation raster is
-  // loaded); if drawing it fails, one rectangle per scored cell, sized by the grid the backend measured
+  // loaded); if drawing it fails, one rectangle per scored cell, sized by the grid the backend measured.
+  // The new picture replaces the old one only once it is ready, so the map never blinks empty.
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
-    layerRef.current?.remove()
-    layerRef.current = null
-    if (!layer?.cells?.length) return
-    const options = { pane: LAYER_PANE, interactive: false }
-    try {
-      const overlay = reliefOverlay(elevation, layer, habitat ?? {}, { alphaScale: ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1 }) // elevation null: blended by cell, without relief
-      if (overlay) {
-        layerRef.current = L.imageOverlay(overlay.url, overlay.bounds, options).addTo(map)
-        return
+    if (!map) return undefined
+    const replace = next => {
+      layerRef.current?.remove()
+      layerRef.current = next ? next.addTo(map) : null
+    }
+    if (!baseReady || !layer?.cells?.length) { replace(null); setDrawing('layer', false); return undefined }
+    setDrawing('layer', true)
+    const cancel = afterPaint(() => {
+      const options = { pane: LAYER_PANE, interactive: false }
+      let next = null
+      try {
+        const overlay = reliefOverlay(elevation, layer, habitat ?? {}, { alphaScale: ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1 }) // elevation null: blended by cell, without relief
+        if (overlay) next = L.imageOverlay(overlay.url, overlay.bounds, options)
+      } catch (err) {
+        console.warn('Probability layer: picture failed, drawing cells', err)
       }
-    } catch (err) {
-      console.warn('Probability layer: picture failed, drawing cells', err)
-    }
-    const cells = layer.cells.filter(c => c.status === 'scored' && c.half_lat && c.half_lon)
-    if (!cells.length) return
-    const group = L.layerGroup()
-    for (const c of cells) {
-      L.rectangle(
-        [[c.lat - c.half_lat, c.lon - c.half_lon], [c.lat + c.half_lat, c.lon + c.half_lon]],
-        { ...options, stroke: false, ...cellFill(meanScore(c.score)) },
-      ).addTo(group)
-    }
-    group.addTo(map)
-    layerRef.current = group
-  }, [layer, elevation, habitat, basemap])
+      if (!next) {
+        const cells = layer.cells.filter(c => c.status === 'scored' && c.half_lat && c.half_lon)
+        if (cells.length) {
+          next = L.layerGroup()
+          for (const c of cells) {
+            L.rectangle(
+              [[c.lat - c.half_lat, c.lon - c.half_lon], [c.lat + c.half_lat, c.lon + c.half_lon]],
+              { ...options, stroke: false, ...cellFill(meanScore(c.score)) },
+            ).addTo(next)
+          }
+        }
+      }
+      if (mapRef.current === map) replace(next)
+      setDrawing('layer', false)
+    })
+    return () => { cancel(); setDrawing('layer', false) }
+  }, [layer, elevation, habitat, basemap, baseReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Forest type layer: the forest raster painted by dominant type; `forestTypes` = { raster, active }
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
-    forestRef.current?.remove()
-    forestRef.current = null
-    if (!forestTypes?.raster) return
-    try {
-      const overlay = forestTypeOverlay(forestTypes.raster, forestTypes.active, { alphaScale: ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1 })
-      if (overlay) forestRef.current = L.imageOverlay(overlay.url, overlay.bounds, { pane: FOREST_PANE, interactive: false }).addTo(map)
-    } catch (err) {
-      console.warn('Forest type layer: picture failed', err)
+    if (!map) return undefined
+    const replace = next => {
+      forestRef.current?.remove()
+      forestRef.current = next ? next.addTo(map) : null
     }
-  }, [forestTypes, basemap])
+    if (!baseReady || !forestTypes?.raster) { replace(null); setDrawing('forest', false); return undefined }
+    setDrawing('forest', true)
+    const cancel = afterPaint(() => {
+      let next = null
+      try {
+        const overlay = forestTypeOverlay(forestTypes.raster, forestTypes.active, { alphaScale: FOREST_ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1 })
+        if (overlay) next = L.imageOverlay(overlay.url, overlay.bounds, { pane: FOREST_PANE, interactive: false })
+      } catch (err) {
+        console.warn('Forest type layer: picture failed', err)
+      }
+      if (mapRef.current === map) replace(next)
+      setDrawing('forest', false)
+    })
+    return () => { cancel(); setDrawing('forest', false) }
+  }, [forestTypes, basemap, baseReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Corners: a pin per kind with its name, in clusters (leaflet.markercluster, loaded on demand);
   // clicking one picks it like a click on that spot. If the plugin cannot load, plain pins.
@@ -314,11 +374,11 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     clear()
   }, [pending?.lat, pending?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The sheet grows as its content arrives (up to 80% of the screen): the point is kept clear of it
+  // The sheet grows as its content arrives (up to 80% of the screen), a panel opens on the right: the point is kept clear of them
   useEffect(() => {
     const map = mapRef.current
     if (map && pending) keepClear(map, pending, centerRef.current)
-  }, [centerAbove?.bottomPx]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [centerAbove?.bottomPx, centerAbove?.rightPx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={elRef} role="region" aria-label={label} className={className} />
 }

@@ -393,3 +393,23 @@ Its sandbox had 36 MB of free disk on 2026-11-05 (`npm` fails with `ENOSPC`), No
 
 ### ⚠️ The repository is public
 `https://github.com/mimpho/fungus` answers without credentials. Anything pushed is public: keep the data derived from CREAF's MCSC-4 in `local-data/` and in the private buckets, never a `.env` or a dump, and do not use GitHub Actions artifacts for anything with user data.
+
+---
+
+## Frontend — sizes in rem with an 18px base font
+
+### ⚠️ `w-5`, `h-11` and other rem utilities are 12.5 % bigger than Tailwind's names suggest
+
+The site's base font is 18px (`system/project.spec.md`, design system), so `1rem` = 18px: `w-5` is 22.5px, not 20px; `h-11` is 49.5px, not 44px. In a control drawn to exact pixel sizes (a switch, a 44px touch target, a 76px rail) the parts stop adding up: the switch's thumb in `PanelSwitch` sat off-centre. **Rule:** for controls taken from a design with px measures, use arbitrary px values (`w-[20px]`, `h-[44px]`).
+
+## Frontend — heavy work in an effect after a click
+
+### ⚠️ React runs the effects of a click before the browser paints
+
+For discrete events (click, key) React 18 flushes the passive effects synchronously, before the next paint. A heavy effect (working out the conditions layer picture, ~seconds) then holds the frame and the control that was clicked does not change until it ends: the Meteo switch flipped on only after the map was drawn. **Fix:** put the heavy part off until after the next paint (`afterPaint` in `ObservatoryMap.jsx`: `requestAnimationFrame` + `setTimeout(0)`) and report it as loading meanwhile.
+
+## Frontend — QA in the shared browser pane
+
+### ⚠️ Testing in the user's own browser pane leaves `localStorage` choices behind
+
+The Observatory remembers the base map, the tab switches and the forest classes per browser. QA done by Claude in the same browser pane the user then looks at leaves those choices set (the relief base map stayed after a test and looked like the new default). **Rule:** after QA, put back what was changed (`fungus-obs-basemap`, `fungus-obs-data`, `fungus-obs-corners`, `fungus-obs-forest`) or say which keys were touched.

@@ -15,3 +15,19 @@ export function useIsPhone() {
   }, [])
   return phone
 }
+
+const WIDE = '(min-width: 1024px)'
+
+/** True from 1024px on: wide enough for the point card and a map panel side by side. */
+export function useIsWide() {
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia?.(WIDE).matches === true)
+  useEffect(() => {
+    if (!window.matchMedia) return undefined
+    const mq = window.matchMedia(WIDE)
+    const on = () => setWide(mq.matches)
+    on()
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return wide
+}
