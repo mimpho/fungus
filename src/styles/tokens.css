@@ -143,6 +143,35 @@
   --ui-score-mid-text:       #fb923c;   /* light orange               */
   --ui-score-low-bar:        #ef4444;   /* red — <30 (Malo)           */
   --ui-score-low-text:       #f87171;   /* light red                  */
+
+  /* Observatory map navigation (epic/observatory-navigation). The floating controls of the map share
+     one surface; the active tab, the open Vista button and the panel switch use the tokens below. */
+  --map-surface:          var(--color-search-bg);
+  --nav-active:           #766a3e;   /* the design's gold-brown, darker than --color-bar for 4.5:1 with white */
+  --switch-on:            var(--color-coffee-light);
+  --switch-off:           rgba(var(--color-cream-rgb), 0.25);
+  --switch-thumb-on:      var(--map-surface);
+  --switch-thumb-off:     var(--color-cream);
+  --switch-thumb-shadow:  none;
+  --count-badge-bg:       var(--color-coffee-light);   /* «Ver listado» count (Zonas): solid, as in the design */
+  --count-badge-text:     #22281d;                     /* 6.3:1 on #c4a06b */
+  --shadow-float:         0 4px 16px rgba(0, 0, 0, 0.45);   /* floating controls: search, buttons, rail, zoom, panels */
+  --shadow-bottom:        0 -4px 16px rgba(0, 0, 0, 0.45);  /* bars and sheets attached to the bottom edge */
+
+  /* Legend scales of the Meteo tab's weather layers (low → high), from the design's artboards. Placeholder
+     until epic/observatory-meteo draws them on the map; the same in both themes. */
+  --meteo-rain-1:   #e6f0fa;
+  --meteo-rain-2:   #6fa8dc;
+  --meteo-rain-3:   #1d3f8c;
+  --meteo-temp-1:   #3b6fd0;
+  --meteo-temp-2:   #7fb8d8;
+  --meteo-temp-3:   #e8d77a;
+  --meteo-temp-4:   #e0793a;
+  --meteo-temp-5:   #c0392b;
+  --meteo-wind-1:   #d7efe9;
+  --meteo-wind-2:   #6cc4b0;
+  --meteo-wind-3:   #2f8f9d;
+  --meteo-wind-4:   #3a4fa0;
 }
 
 /* ── Light theme overrides ────────────────────────────────────────────────── */
@@ -174,7 +203,8 @@
   --color-cream-rgb:  43, 42, 31;     /* #2b2a1f */
   --color-muted-rgb:  107, 96, 69;    /* #6b6045 */
   --color-modal-rgb:  255, 255, 255;  /* white panel */
-  --color-bar-rgb:    117, 136, 75;   /* #758847 — light theme variant, more olive-green */
+  --color-bar:        #758847;        /* light theme variant, more olive-green (barLight in shared/colors.ts) */
+  --color-bar-rgb:    117, 136, 71;   /* #758847 — was 117, 136, 75, a typo that drew #75884b */
   --color-coffee-rgb: 107, 79, 42;    /* #6b4f2a */
 
   /* ── Semantic UI tokens — light ─────────────────────────────────────────── */
@@ -257,5 +287,16 @@
   --ui-score-mid-text:       #c2410c;   /* dark orange      */
   --ui-score-low-bar:        #dc2626;   /* mid red          */
   --ui-score-low-text:       #b91c1c;   /* dark red         */
+
+  /* Observatory map navigation — light: white surface, the buttons' green (--color-bar) for active */
+  --map-surface:          #ffffff;   /* opaque: a translucent white lets the satellite show through the text */
+  --nav-active:           #667739;   /* olive darker than --color-bar (#758847, 3.9:1): 4.9:1 with white text */
+  --switch-on:            var(--color-bar);
+  --switch-off:           rgba(var(--color-cream-rgb), 0.35);
+  --switch-thumb-on:      #ffffff;
+  --switch-thumb-off:     #ffffff;
+  --switch-thumb-shadow:  0 1px 2px rgba(0, 0, 0, 0.35);
+  --count-badge-bg:       var(--color-coffee-light);   /* #8b6030 */
+  --count-badge-text:     #ffffff;                     /* 5.3:1 on #8b6030 */
 }
 /* [generated:light-theme:end] */

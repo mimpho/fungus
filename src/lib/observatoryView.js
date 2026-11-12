@@ -8,10 +8,16 @@
 // default view (no observed point): the page never breaks on a bad link, and the URL is
 // rewritten (history replaced) to what the page shows.
 // The timeline window adds two more: `hasta` (last day of the window, YYYY-MM-DD; missing = the
-// last day with data) and `dias` (its length, 7–180; missing = 20). Later steps add vista, capas,
-// seta and setas here.
+// last day with data) and `dias` (its length, 7–180; missing = 20).
+// The Meteo tab adds what the map is showing, only while Meteo is on: `capa` (the data layer, e.g.
+// `condiciones`), `seta` (species id; missing = the mean of the excellent ones) and `dia` (the
+// reference day, YYYY-MM-DD; missing = the last day with data). `dia` is clamped to −30…+7 days from
+// today; `seta` and `dia` mean nothing without `capa`. Whether `seta` exists in the catalogue is
+// checked by the page once the catalogue has loaded.
 // =====================================================
 import { isInCatalonia } from './catalonia'
+import { addDays, todayIso } from './layerDays'
+import { layerFromParam, paramOfLayer } from './meteoLayers'
 
 export const MIN_WINDOW = 7
 export const MAX_WINDOW = 180
@@ -37,6 +43,55 @@ function toDays(raw) {
   if (typeof raw !== 'string' || !INTEGER.test(raw)) return null
   const n = Number(raw)
   return n >= MIN_WINDOW && n <= MAX_WINDOW ? n : null
+}
+
+export const MAX_DAYS_BACK = 30
+export const MAX_DAYS_AHEAD = 7
+const SPECIES_ID = /^[a-z0-9][a-z0-9-]{0,39}$/i
+
+/** A `dia` inside −30…+7 days from `today` (outside, the nearest end); null when it is not a day. */
+export function clampDay(raw, today = todayIso()) {
+  const day = toUntil(raw)
+  if (!day) return null
+  const first = addDays(today, -MAX_DAYS_BACK)
+  const last = addDays(today, MAX_DAYS_AHEAD)
+  return day < first ? first : day > last ? last : day
+}
+
+/**
+ * The Meteo state in the URL: { layer, species, day } or null when there is no valid `capa` (Meteo is
+ * then whatever this browser stored). `layer` is a meteoLayers id.
+ */
+export function parseMeteo(params, today = todayIso()) {
+  const layer = layerFromParam(params.get('capa'))
+  if (!layer) return null
+  const seta = params.get('seta')
+  return {
+    layer,
+    species: typeof seta === 'string' && SPECIES_ID.test(seta) ? seta : null,
+    day: clampDay(params.get('dia'), today),
+  }
+}
+
+/**
+ * New params with the Meteo state set, or removed with null (Meteo off, or a layer that cannot be
+ * linked to); every other parameter is kept.
+ */
+export function withMeteo(params, meteo) {
+  const next = new URLSearchParams(params)
+  const capa = meteo ? paramOfLayer(meteo.layer) : null
+  if (capa) {
+    next.set('capa', capa)
+    if (meteo.species) next.set('seta', meteo.species)
+    else next.delete('seta')
+    if (meteo.day) next.set('dia', meteo.day)
+    else next.delete('dia')
+  } else {
+    next.delete('capa')
+    next.delete('seta')
+    next.delete('dia')
+  }
+  return next
 }
 
 /**
@@ -92,14 +147,17 @@ export function formatCoords(point) {
 /**
  * The URL's canonical form, or null when it already is. A link with a broken point loses it (and
  * the window with it), duplicated lat/lon collapse to the valid one, coordinates are rounded and
- * a broken or default window is dropped: the address bar always says what the page shows.
+ * a broken or default window is dropped, and so are a `capa` that names no built layer (with its `seta`
+ * and `dia`), a broken `seta` or `dia`; a `dia` out of range is clamped: the address bar always says
+ * what the page shows.
  */
-export function canonicalParams(params) {
-  const keys = ['lat', 'lon', 'hasta', 'dias']
+export function canonicalParams(params, today = todayIso()) {
+  const keys = ['lat', 'lon', 'hasta', 'dias', 'capa', 'seta', 'dia']
   if (!keys.some(k => params.has(k))) return null
   const view = parseView(params)
-  const canonical = view.point
+  const withView = view.point
     ? withWindow(withPoint(params, view.point), { until: view.until, days: view.days })
     : withPoint(params, null)
+  const canonical = withMeteo(withView, parseMeteo(params, today))
   return canonical.toString() === params.toString() ? null : canonical
 }

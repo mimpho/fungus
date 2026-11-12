@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Epic summary — Observatory map navigation (2026-11-10 → 2026-11-12, `epic/observatory-navigation`, to be released as v7.4.0 when merged into `main`)
+
+Front end only (no migration, no new variable, no dependency; `backend/pyproject.toml` 7.3.0 → 7.4.0 only for the version). One navigation model for the map on desktop and phone, in place of the layer pills, the layers card and the view dropdown. What it delivers:
+
+- **Shell:** tabs Meteo / Zonas / Bosque, each with a switch and a dot, and a separate Vista button; desktop rail with panels of at most 400 px, phone bar with a sheet that grows out of it. Layers accumulate on one map; first-visit defaults (Meteo on, Zonas on with saved corners); loading bar and failure notice on the map's top edge (T1, T2).
+- **Meteo:** conditions with species filter, day slider with forecast and URL state (`capa`, `seta`, `dia`), day hand-off to the observed zone; rain, temperature and wind as inert rows until `epic/observatory-meteo` (T3).
+- **Zonas and Bosque:** «Mis rincones» with its list, inert «Zonas de interés» and Top 10, one checkbox per forest class (11), forest drawn over the conditions as a translucent fill (T4).
+- **Retired:** `MapPills`, `ViewPill`, `MapLayersBox`, `ForestTypeLegend`, `SavedPointsToggle` and 16 orphan i18n keys; contrast pass ≥ 4.5:1 (T5).
+- **Retro:** squash-only PRs into `epic/*`, sync with `main` done locally, rules for control placement, transitions vs heavy work and contrast per task (`system/workflows.spec.md`); CI waits noted in `memory/pending.md`.
+- **After the deploy:** check on iOS Safari and Android Chrome (including fullscreen and the browser bars), real keyboard and screen reader.
+
+### Changed — Observatory map navigation: old shell retired and final pass (2026-11-12, `chore/observatory-navigation-retire-old`, T5 of `epic/observatory-navigation`)
+
+- **Old shell deleted:** `MapPills.jsx` (with `ViewPill`), `MapLayersBox.jsx`, `ForestTypeLegend.jsx` and `SavedPointsToggle`; also `holding` and `LayerLoadingPlaceholder` of `SpeciesLayerPicker`. No reference to any of them is left in `src/`, `README.md` or `system/`.
+- **16 orphan i18n keys removed** in ES, CA and EN (`obsChLayers`, `obsCornerSpeciesChosen`, `obsForestHint`, `obsLayerForest`, `obsLayersClose`, `obsLayersCollapse`, `obsLayersExpand`, `obsPhotoNoSpecies`, `obsPhotoUploading`, `obsPillOptions`, `obsPointLayer`, `obsPointLayerFor`, `obsPointLayerMean`, `obsPointObserve`, `obsSaveCancel`, `obsSavedBadge`). The dynamic families `obsChTitle_*`, `obsThC_*`, `obsThE_*`, `obsThH_*` stay. `obsHabSource` stays: `PointPanel` still uses `PointHabitat`.
+- **Contrast pass (≥ 4.5:1):** light `--nav-active` `#758847` → `#667739` (4.93:1 with white text; was 3.91:1); small texts of the panels, legend, day slider and tab labels `cream/50–70` → `cream/80` (on the dark surface `cream/70` was 4.33:1, tab labels included); the colour swatches of Bosque have a 1 px light border («Otros caducifolios» `#475569` was 1.07:1 against the panel). Disabled «Pronto» items are exempt.
+- **Vista: no mid-transition colours.** `transition-colors` removed from the elements that swap fill and text colour (Vista button, tab pills, Meteo segment, rain presets): in the light theme the text went white-on-white while the thread was busy loading the new base map.
+- **Phone: the Vista sheet folds before the base map changes** (`chooseBasemapAfterFold`, `SHEET_MS + 40` ms). Changing the base map held the thread while the sheet folded, leaving it half-folded with the labels and the check cut off.
+- Roadmap rows of `system/project.spec.md` and `README.md` brought up to date (v7.3 ✅, `epic/observatory-navigation` 🚧, `epic/observatory-zones-of-interest` Next; the «Product epic» row is gone, it was delivered by `epic/observatory-map`).
+
 ### Changed — Branch close skill moved into the repo (2026-11-11, `chore/claude-branch-close-skill`, outside any epic)
 
 - The `fungus-branch-close` skill now lives in `.claude/skills/fungus-branch-close/SKILL.md`, versioned with the code, instead of being synced from claude.ai: an edit reaches the next Claude Code session without waiting for the app's sync, and goes through a PR like `system/`.
@@ -53,6 +73,74 @@ Front end only (PRD «Observatorio y zonas — mapa base»). What it delivers:
 - **Left out of the epic:** «Zonas de interés» (needs back end and data: its own epic) and the removal of the old zones page and its components.
 
 **Manual steps at release:** none (no migration, no new variable). **Not verified:** a real phone, ES/CA/EN texts and light/dark on the new pills and cards.
+
+### Documentation — PRD for `epic/observatory-navigation` (2026-11-10, docs only)
+
+- `memory/observatory-navigation-prd.md`: one navigation model for the Observatory map on desktop and phone (tabs Datos / Zonas / Bosque with a switch each, a separate Vista button, accumulating layers), taken from proposal C of the design canvas. Scope, flows, nine open questions, deployment readiness (front end only), suggested branches and DoD.
+- `memory/pending.md`: the epic goes first among the next epics, ahead of the phone improvements, `observatory-zones-of-interest` and `observatory-layers`, which build on it.
+
+### Documentation — `epic/observatory-navigation`: open questions answered and task plan (2026-11-10, docs only)
+
+- `memory/observatory-navigation-prd.md`: the nine open questions answered. The first tab is «Meteo» (was «Datos»); rain is accumulated over a window that ends on the shared day slider, with presets 24 h · 7 d · 21 d and one fixed scale per preset; three base maps; the point card and the panel coexist on desktop (≥ 1024 px) and take turns on the phone; the URL holds `capa`, `seta` and `dia`; on a first visit Meteo is on and Zonas too when the user has corners; inert rows show «Pronto»; the desktop panel stays at the right, ≤ 400 px. Adds a loading bar on the map and Top 10 as a row of the Zonas tab.
+- `memory/observatory-navigation-plan.md` (new): tasks T1–T5 with files, spec and Gherkin scenarios, and what the current code changes (draw order, blocking first computation, phone top-right corner).
+- `memory/decisions.md`: one entry with every answer and its discarded alternatives.
+- `memory/pending.md`, `system/project.spec.md`, `README.md`: `epic/observatory-layers` becomes `epic/observatory-meteo` (rain, temperature, wind; full stack, rain first); Top 10 leaves it for the Zonas tab; new follow-up item: the point card as a sheet on phone and desktop.
+
+### Added — Observatory map navigation, desktop shell (2026-11-11, `feat/observatory-navigation-shell`, T1 of `epic/observatory-navigation`)
+
+Front end only; no migration, no new variable.
+
+- **Tabs and panels (desktop):** a rail at the top right with Meteo · Zonas · Bosque, each with a switch (`role="switch"`) and a dot while its layer is on; one panel open at a time, to the left of the rail (360 px, height to its content). With the switch off the panel content is dimmed and inert under one «Activar {capa}» button; a tap there only switches the layer on, except the species field, which also takes the focus. A second tap on a tab, or Esc, closes its panel; the layer keeps its state.
+- **First visit and memory:** Meteo on, Zonas on when the user has saved corners, Bosque off; each switch is then remembered per browser (`fungus-obs-data`, `fungus-obs-corners`, `fungus-obs-forest`).
+- **Vista and zoom:** a Vista button and the zoom (own buttons, not Leaflet's) at the bottom right; Vista's panel shows the three base maps with a real tile as thumbnail.
+- **Point card and panel:** from 1024 px they stay open together and the map keeps a picked point clear of the panel; below that, one at a time. Esc closes the panel first, then the card.
+- **Loading and errors:** a thin bar on the top edge of the map while a layer that is on loads or is being drawn (after 300 ms, for at least 400 ms); a failed layer shows «No se pudo cargar {capa} · Reintentar». Layer pictures are drawn after the next paint, so a switch answers at once.
+- **Look:** one surface colour for every floating control of the map (`.map-surface`, the search's); the conditions layer is blended with `hard-light` on the satellite and is much stronger there; two shadow tokens (`--shadow-float`, `--shadow-bottom`).
+- **Light theme and tokens:** opaque white surfaces (search and its results list included); the active tab, open Vista and the switch use the buttons' green in the light theme and keep the gold-brown in the dark one; the active tab's label is readable in both. New tokens in `src/styles/tokens.css` (`--map-surface`, `--nav-active`, `--switch-*`, `--shadow-float`, `--shadow-bottom`); the light `--color-bar-rgb` typo fixed (one green, `#758847`) and `--color-bar` set for the light theme.
+- **ⓘ in the Meteo panel:** its text floats over the page (`InfoTip` `floating`), so the panel no longer cuts it or scrolls.
+- The phone keeps the old layers card until T2; the old desktop pills are no longer rendered (removed in T5).
+
+### Added — Observatory map navigation, phone shell (2026-11-11, `feat/observatory-navigation-phone`, T2 of `epic/observatory-navigation`)
+
+Front end only; no migration, no new variable.
+
+- **Tab bar (phone):** a full-width bar fixed to the bottom of the map with Meteo · Zonas · Bosque and, after a thin line, Vista (no switch, no dot); rounded top corners, no drag handle, `--shadow-bottom`. Opening a tab or Vista grows a sheet upward out of the bar (at most 80 % of the map, scrolling inside); the icons never move. The sheet does not scroll while it grows or folds, so no scroll bar flashes.
+- **Same panels as desktop:** the tabs' panels and Vista's base maps are the T1 components (`NavPanel`, `ViewPanel`), drawn flat inside the sheet. «Ver listado» in Zonas replaces the compact «Mis rincones» button under the search; the old layers card (`MapLayersBox`) is no longer rendered (removed in T5).
+- **One sheet at a time:** a tab or Vista closes the point's sheet and drops the picked point; a picked point or a search result closes the tab's sheet; with a sheet open, the first map tap only closes it. Esc closes an open panel before the point's card.
+- **Point's sheet:** rises from the top of the tab bar, on `.map-surface` with `--shadow-bottom` (was `glass-olive-80`); its drag down to close stays.
+- **Top of the map:** the search and the fullscreen button (44 px). No zoom buttons on the phone: the map is zoomed with a pinch. Leaflet's credits sit above the bar.
+- **Centring:** the map keeps a picked point clear of the bar or of the bar plus the point's sheet; a search result is kept clear once its flight ends (before, the point could land under the sheet).
+
+### Added — Observatory map navigation, Zonas and Bosque panels (2026-11-12, `feat/observatory-navigation-zonas-bosque`, T4 of `epic/observatory-navigation`)
+
+Front end only; no migration, no new variable.
+
+- **Zonas:** three rows, each a checkbox and «Ver listado». «Mis rincones» works (its checkbox is remembered in this browser; «Ver listado» opens the list of corners, with the count in a badge that now has a fill); «Zonas de interés» and «Top 10» are shown with «Pronto» and cannot be checked.
+- **Bosque:** one checkbox per forest class with its colour, in two columns; «Todos» / «Ninguno» and the counter «{n} de 11». The checked classes are remembered in this browser. Replaces the old legend.
+- **Draw order:** the forest is now drawn over the conditions colours (it was under them); the corners stay over both.
+- **Forest look:** a lighter, translucent fill, so the conditions and the ground read through it; also lighter on the street and relief maps than before.
+- New tokens `--count-badge-bg` and `--count-badge-text`; ES / CA / EN strings for the new controls.
+
+**Not verified:** the relief basemap; real iOS Safari and Android Chrome (Marcos).
+
+### Added — Observatory map navigation, Meteo panel (2026-11-11, `feat/observatory-navigation-meteo`, T3 of `epic/observatory-navigation`)
+
+Front end only; no migration, no new variable.
+
+- **Segmented control:** Condiciones · Lluvia · Temp. · Viento. Only Condiciones works; the other three carry «Pronto» and `aria-disabled`. Their placeholder panels open only in development builds (`import.meta.env.DEV`); one list in `src/lib/meteoLayers.js` says which layers are built (`ready`), so `epic/observatory-meteo` turns one on with a single flag.
+- **Condiciones:** species field, day slider and legend in the Meteo panel on both devices. With Meteo off the slider and the legend are shown dimmed too (before, only the species field). The legend says when the reference day is out of season (none, or fewer than a third, of the excellent species in season), so a grey map does not read as broken.
+- **Day slider, shared by every segment:** 44 px step buttons, the day with a «previsión» tag, and under the slider «−30 d · Hoy · +N d»; «Hoy» goes back to today. The range is now counted from today (−30 … the last day that can be scored), the same as a link's `dia`.
+- **Lluvia placeholder:** presets 24 h · 7 d · 21 d (7 d by default), «Acumulado {desde}–{hasta} · {n} días» ending on the slider's day, «incluye previsión» on a forecast day, and a `LayerLegend` in mm with the scale as a prop (placeholder cuts; 21 d marks the 60–120 mm good band of the zone's rain chart). Temperatura and Viento: slider and legend. New tokens `--meteo-rain-*`, `--meteo-temp-*`, `--meteo-wind-*`.
+- **URL:** while Meteo is on, `capa`, `seta` and `dia` (left out when it is the default day), written with history replace. A link with `capa` turns Meteo on without storing it; a broken `capa` drops the three; an unknown `seta` is dropped once the catalogue loads; `dia` is clamped to −30…+7 days from today.
+- **Hand-off to the observed zone:** with a day chosen, the zone opens with its window ending on that day (`hasta`), or on the last day with real data when the day is a forecast one; the species goes as before.
+- **Map drag limits (shell fix):** the limits grow by what the interface covers (search at the top, the phone's bar or sheet at the bottom, the desktop panel at the right), so a part of Catalonia under a sheet can be dragged up into view; when the sheet closes the map settles back inside the normal limits.
+
+**Not verified:** forecast days (the forecast stretch, «incluye previsión», a forecast day handed to the zone) — the local database has no fresh forecast; real iOS Safari and Android Chrome (Marcos).
+
+### Documentation — status documents retired (2026-11-11, docs only)
+
+- `CLAUDE.md`: sessions start from `memory/pending.md`, the active epic's PRD and plan, the branch and `git log`, and close through the branch close checklist; the Spanish `estado-fungus-*` documents of the Claude Project are no longer written (they repeated the repo docs). The few working notes they alone held move to a «How we work» paragraph.
+- `memory/pending.md`: new «Loose ends» block with the non-sensitive items that only lived in those documents.
 
 ### Changed — Observatory map as the page; the observed zone as a full-screen layer (2026-11-06, `feat/map-fullscreen-observe`, T1 + T2 + T3 + T4 of `epic/observatory-map`)
 

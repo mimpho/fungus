@@ -398,3 +398,41 @@ Its sandbox had 36 MB of free disk on 2026-11-05 (`npm` fails with `ENOSPC`), No
 
 ### ⚠️ The repository is public
 `https://github.com/mimpho/fungus` answers without credentials. Anything pushed is public: keep the data derived from CREAF's MCSC-4 in `local-data/` and in the private buckets, never a `.env` or a dump, and do not use GitHub Actions artifacts for anything with user data.
+
+---
+
+## Frontend — sizes in rem with an 18px base font
+
+### ⚠️ `w-5`, `h-11` and other rem utilities are 12.5 % bigger than Tailwind's names suggest
+
+The site's base font is 18px (`system/project.spec.md`, design system), so `1rem` = 18px: `w-5` is 22.5px, not 20px; `h-11` is 49.5px, not 44px. In a control drawn to exact pixel sizes (a switch, a 44px touch target, a 76px rail) the parts stop adding up: the switch's thumb in `PanelSwitch` sat off-centre. **Rule:** for controls taken from a design with px measures, use arbitrary px values (`w-[20px]`, `h-[44px]`).
+
+## Frontend — Tailwind colours without opacity channels
+
+### ⚠️ `bg-coffee-light/20` draws nothing
+
+`coffee-light` is mapped in `tailwind.config.js` to a plain `var(--color-coffee-light)`, without an RGB channel, so Tailwind cannot apply an opacity modifier: `bg-coffee-light/25` produces no rule and the element has no background (the «saved-count» badge of the Zonas panel used it until T4 of `epic/observatory-navigation`, which gave it solid tokens `--count-badge-*`). **Rule:** for a tinted fill of a colour without `--…-rgb`, use `color-mix()`: `bg-[color-mix(in_srgb,var(--color-coffee-light)_20%,transparent)]`. Colours with `withOpacity('--color-…-rgb')` (cream, coffee) take the modifier.
+
+## Frontend — the local back end is not production
+
+### ⚠️ No forecast days in the Observatory locally
+
+The local back end's `DATABASE_URL` may point to a database on `localhost` (it did on 2026-11-11), not to production: `/health`'s `last_ingest` then differs from production's. Without the daily `cell_refresh` the cells have no fresh forecast and the layer answers `max_date` = `last_data_date`: the day slider shows no forecast stretch and «incluye previsión» never appears. Not a front-end bug; check forecast behaviour in production or with the database switched by Marcos.
+
+## Frontend — heavy work in an effect after a click
+
+### ⚠️ React runs the effects of a click before the browser paints
+
+For discrete events (click, key) React 18 flushes the passive effects synchronously, before the next paint. A heavy effect (working out the conditions layer picture, ~seconds) then holds the frame and the control that was clicked does not change until it ends: the Meteo switch flipped on only after the map was drawn. **Fix:** put the heavy part off until after the next paint (`afterPaint` in `ObservatoryMap.jsx`: `requestAnimationFrame` + `setTimeout(0)`) and report it as loading meanwhile.
+
+## Frontend — QA in the shared browser pane
+
+### ⚠️ Testing in the user's own browser pane leaves `localStorage` choices behind
+
+The Observatory remembers the base map, the tab switches and the forest classes per browser. QA done by Claude in the same browser pane the user then looks at leaves those choices set (the relief base map stayed after a test and looked like the new default). **Rule:** after QA, put back what was changed (`fungus-obs-basemap`, `fungus-obs-data`, `fungus-obs-corners`, `fungus-obs-forest`) or say which keys were touched.
+
+## Frontend — transitions and busy threads
+
+### ⚠️ `transition-colors` on elements that swap fill and text colour freezes mid-way when the thread is busy
+
+The Vista button (open: green fill, white text; closed: light surface, dark text in the light theme) kept `transition-colors`. Changing the base map holds the main thread, the transition stalls near its start and the text stays white on a near-white fill: it «vanishes» in the light theme only (in dark both ends read). **Rule:** no transition on elements that swap fill and text colour together; instant. The same family on the phone: a sheet that folds with `grid-template-rows` (main thread) must not share its 300 ms with heavy work; run the heavy change after the fold (`chooseBasemapAfterFold`, `SHEET_MS + 40`).
