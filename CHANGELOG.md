@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Epic summary — Observatory map navigation (2026-11-10 → 2026-11-12, `epic/observatory-navigation`, to be released as v7.4.0 when merged into `main`)
+
+Front end only (no migration, no new variable, no dependency; `backend/pyproject.toml` 7.3.0 → 7.4.0 only for the version). One navigation model for the map on desktop and phone, in place of the layer pills, the layers card and the view dropdown. What it delivers:
+
+- **Shell:** tabs Meteo / Zonas / Bosque, each with a switch and a dot, and a separate Vista button; desktop rail with panels of at most 400 px, phone bar with a sheet that grows out of it. Layers accumulate on one map; first-visit defaults (Meteo on, Zonas on with saved corners); loading bar and failure notice on the map's top edge (T1, T2).
+- **Meteo:** conditions with species filter, day slider with forecast and URL state (`capa`, `seta`, `dia`), day hand-off to the observed zone; rain, temperature and wind as inert rows until `epic/observatory-meteo` (T3).
+- **Zonas and Bosque:** «Mis rincones» with its list, inert «Zonas de interés» and Top 10, one checkbox per forest class (11), forest drawn over the conditions as a translucent fill (T4).
+- **Retired:** `MapPills`, `ViewPill`, `MapLayersBox`, `ForestTypeLegend`, `SavedPointsToggle` and 16 orphan i18n keys; contrast pass ≥ 4.5:1 (T5).
+- **Retro:** squash-only PRs into `epic/*`, sync with `main` done locally, rules for control placement, transitions vs heavy work and contrast per task (`system/workflows.spec.md`); CI waits noted in `memory/pending.md`.
+- **After the deploy:** check on iOS Safari and Android Chrome (including fullscreen and the browser bars), real keyboard and screen reader.
+
 ### Changed — Observatory map navigation: old shell retired and final pass (2026-11-12, `chore/observatory-navigation-retire-old`, T5 of `epic/observatory-navigation`)
 
 - **Old shell deleted:** `MapPills.jsx` (with `ViewPill`), `MapLayersBox.jsx`, `ForestTypeLegend.jsx` and `SavedPointsToggle`; also `holding` and `LayerLoadingPlaceholder` of `SpeciesLayerPicker`. No reference to any of them is left in `src/`, `README.md` or `system/`.
