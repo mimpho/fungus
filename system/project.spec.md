@@ -9,7 +9,7 @@
 
 Fungus is a mycological prediction web app for Catalonia/Spain. It combines real meteorological data, soil conditions and a scoring algorithm with a seasonal factor to predict the best zones and timing for mushroom foraging.
 
-**Current version**: v7.3 frontend · v7.3 backend (`epic/observatory-map`; `epic/observatory-navigation` is in progress and takes the next free MINOR when merged)
+**Current version**: v7.4 frontend · v7.4 backend (on release of `epic/observatory-navigation`; the backend only changes its version number)
 **Frontend deploy**: Vercel → `fungus-ashen.vercel.app` (branch `main`)
 **Backend deploy**: Render → `https://fungus-api.onrender.com`
 **Database**: Supabase — PostgreSQL + PostGIS (Ireland region)
@@ -517,15 +517,15 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v7.1 | ✅ Done | Email confirmation on registration (Resend) |
 | v7.2 | ✅ Done | Observatory (web): scoring v2, free map by coordinates, conditions and forest layers, «Mis rincones» with photos (`epic/observatory`) |
 | v7.3 | ✅ Done | Observatory map as the page: zone layer, layer pills, forest and conditions layers (`epic/observatory-map`, front end only) |
+| v7.4 | ✅ Done | Observatory map navigation: tabs Meteo / Zonas / Bosque and Vista on desktop and phone, layers that accumulate, URL state, old shell retired (`epic/observatory-navigation`, front end only) |
 
 **Next epics** — ordered by priority, no version number (assigned when the epic is merged into `main`; see `system/workflows.spec.md`):
 
 | # | Epic | Status | Scope |
 |---|---|---|---|
-| 1 | `epic/observatory-navigation` | 🚧 In progress | One navigation model for the map on desktop and phone: tabs Meteo / Zonas / Bosque, Vista button, layers that accumulate. Front end only; T1–T4 integrated, T5 (retire the old shell, final pass) on its branch; then retro and merge |
-| 2 | `epic/observatory-zones-of-interest` | 🗂 Next | «Zonas de interés» markers, endpoint and data; entry point is the «Zonas» tab. Full stack |
-| 3 | `epic/observatory-meteo` | 🗂 Next | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
+| 1 | `epic/observatory-zones-of-interest` | 🗂 Next | «Zonas de interés» markers, endpoint and data; entry point is the «Zonas» tab. Full stack |
+| 2 | `epic/observatory-meteo` | 🗂 Next | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
 | — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ Paused | Android app (React Native + Expo SDK 54 · MapLibre · EAS Build). Paused 2026-10-10; merged into `main` without tag |
-| 4 | Shared package | 🗂 Backlog | Scoring, constants, types, i18n as monorepo internal packages |
-| 5 | SEO | 🗂 Backlog | Static prerendering + Core Web Vitals |
+| 3 | Shared package | 🗂 Backlog | Scoring, constants, types, i18n as monorepo internal packages |
+| 4 | SEO | 🗂 Backlog | Static prerendering + Core Web Vitals |
 | — | Hardening | 🗂 No date | Move generator API keys to backend FastAPI |

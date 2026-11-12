@@ -137,7 +137,7 @@ The task breakdown, with each task's spec and Gherkin scenarios, is in [`observa
 - [x] Rain, temperature, wind, Zonas de interés and Top 10 appear as inert rows, ready to be wired by their epics.
 - [x] Open questions 1–9 answered or consciously deferred and written in `memory/decisions.md`.
 - [x] Old pills, layers card and view dropdown removed; no orphan i18n keys.
-- [ ] ES / CA / EN, light and dark, iOS Safari and Android Chrome checked; keyboard and screen-reader pass on tabs, switches, checkboxes and sliders. — ES / CA / EN, light and dark, 390 and 1280 px and contrast done in T5 (2026-11-12); **left for Marcos:** iOS Safari, Android Chrome, real keyboard and screen reader.
+- [ ] ES / CA / EN, light and dark, iOS Safari and Android Chrome checked; keyboard and screen-reader pass on tabs, switches, checkboxes and sliders. — ES / CA / EN, light and dark, 390 and 1280 px and contrast done in T5 (2026-11-12); **after the deploy** (no real device before production): iOS Safari, Android Chrome, real keyboard and screen reader.
 - [ ] Deployment readiness checks done.
 - [ ] All feature branches squash-merged into `epic/observatory-navigation`
 - [ ] Retrospective completed and workflow improvements applied
