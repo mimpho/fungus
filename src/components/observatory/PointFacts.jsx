@@ -38,15 +38,15 @@ export function PointFacts({ point, toponym, elevation, habitat, macro = null, c
   if (!cards.length) return null
   return (
     <div data-testid="zone-facts" className={`space-y-2 ${className}`}>
-      <div className={`flex gap-3 overflow-x-auto ${SCROLL_THIN}`}>
+      <div className={`flex gap-3 overflow-x-auto -mx-4 px-4 scroll-px-4 lg:mx-0 lg:px-0 ${SCROLL_THIN}`}>
         {cards.map(c => (
-          <div key={c.key} data-testid={`fact-${c.key}`} className="surface-subtle rounded-xl py-3 px-0 text-center flex-[1_0_auto] min-w-[170px] flex flex-col justify-center">
-            <div className="h-9 mb-1 flex items-center justify-center text-cream/70" aria-hidden="true">
+          <div key={c.key} data-testid={`fact-${c.key}`} className="surface-subtle rounded-xl py-2.5 px-3 sm:py-3 sm:px-0 text-center flex-[0_0_auto] sm:flex-[1_0_auto] sm:min-w-[170px] flex flex-col justify-center">
+            <div className="h-[28px] sm:h-[36px] mb-1 flex items-center justify-center text-cream/70 [&_img]:h-full [&_img]:w-auto [&_svg]:h-full [&_svg]:w-auto" aria-hidden="true">
               {c.icon ? <img src={`/assets/images/icons/${c.icon}.png`} alt="" height="36" width="36" /> : c.node}
             </div>
-            <div className="text-cream/70 text-[11px] mb-1">{c.label}</div>
+            <div className="text-cream/70 text-[11px] mb-0.5 sm:mb-1">{c.label}</div>
             {c.lines.map((l, i) => (
-              <div key={i} className="text-cream text-xs font-semibold whitespace-nowrap">
+              <div key={i} className="text-cream text-[12px] sm:text-xs font-semibold whitespace-nowrap">
                 {l.text}{l.sub && <span className="font-normal text-cream/60"> {l.sub}</span>}
               </div>
             ))}
@@ -66,10 +66,10 @@ export function PointFactsSkeleton({ className = '' }) {
   const lines = [1, 1, 1, 2, 2]
   return (
     <div data-testid="zone-facts-skeleton" aria-busy="true" className={className}>
-      <div className={`flex gap-3 overflow-x-auto ${SCROLL_THIN}`}>
+      <div className={`flex gap-3 overflow-x-auto -mx-4 px-4 scroll-px-4 lg:mx-0 lg:px-0 ${SCROLL_THIN}`}>
         {lines.map((n, i) => (
-          <div key={i} className="surface-subtle rounded-xl py-3 px-0 flex-[1_0_auto] min-w-[170px] flex flex-col items-center justify-center">
-            <div className="h-9 mb-1 flex items-center justify-center"><div className="size-8 rounded-full bg-white/10 animate-pulse" /></div>
+          <div key={i} className="surface-subtle rounded-xl py-2.5 sm:py-3 px-0 w-[124px] flex-[0_0_auto] sm:flex-[1_0_auto] sm:w-auto sm:min-w-[170px] flex flex-col items-center justify-center">
+            <div className="h-[28px] sm:h-[36px] mb-1 flex items-center justify-center"><div className="size-[28px] sm:size-[32px] rounded-full bg-white/10 animate-pulse" /></div>
             <div className="h-[11px] w-16 rounded bg-white/10 animate-pulse mb-1.5" />
             {Array.from({ length: n }, (_, j) => (
               <div key={j} className={`h-3 rounded bg-white/10 animate-pulse ${j ? 'mt-1.5 w-20' : 'w-28'}`} />

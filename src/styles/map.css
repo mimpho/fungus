@@ -73,14 +73,16 @@
   height: 18px;
 }
 
-/* Map credits (leaflet.css is imported after this file, hence the extra class to win on specificity): Fungus olive with white text (literal colours: they must not follow the theme, the map is dark in both) */
+/* Map credits (leaflet.css is imported after this file, hence the extra class to win on specificity): cream text (#f4ebe1) with no background, a dark halo to read on any base map, and lifted 5px off the tab bar (literal colours: they must not follow the theme) */
 .leaflet-container .leaflet-control-attribution.leaflet-control {
-  background: rgba(63, 73, 59, 0.88);
-  color: #fff;
+  background: transparent;
+  color: #f4ebe1; /* the dark theme's --color-cream, as a literal: the map is dark in both themes, so the variable (dark in the light theme) cannot be used */
   padding: 3px 10px;
+  margin-bottom: 5px;
+  text-shadow: 0 0 3px #000, 0 0 2px #000, 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 .leaflet-container .leaflet-control-attribution.leaflet-control a {
-  color: #fff;
+  color: #f4ebe1;
   text-decoration: underline;
   text-underline-offset: 2px;
 }

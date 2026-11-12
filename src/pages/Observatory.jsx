@@ -40,6 +40,8 @@ const VIEW_PANEL_ID = 'obs-view-panel'
 const TAB_TITLE = { data: 'obsTabMeteo', zones: 'obsTabZones', forest: 'obsTabForest' }
 // Desktop: what a panel covers at the right of the map (rail 16 + 76, gap 12, panel 360, margin 16)
 const PANEL_CLEAR_PX = 480
+const HINT_MS = 6000 // how long «Haz clic en el mapa…» stays
+const HINT_FADE_MS = 1500 // and how long it takes to fade out
 // Zonas · «Mis rincones» checkbox and Bosque's checked classes, remembered in this browser (the Zonas switch keeps
 // `fungus-obs-corners`, see useMapNavigation)
 const CORNERS_ROW_KEY = 'fungus-obs-zones-corners'
@@ -76,12 +78,35 @@ export default function Observatory() {
   // A page opened on a point (URL) starts with that point's panel on the map
   const [pending, setPending] = useState(() => (observed ? { lat: observed.lat, lon: observed.lon } : null))
   const [flyTo, setFlyTo] = useState(null)
+  // Android Chrome draws the gesture area below the page with the page's own background unless the page says it reaches
+  // the screen edge: `viewport-fit=cover` makes env(safe-area-inset-bottom) real and lets the tab bar's surface run down to it.
+  // Only on this page: the others do not handle the insets. It goes back as it was when the page is left.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]')
+    if (!meta) return undefined
+    const previous = meta.getAttribute('content')
+    if (!/viewport-fit/.test(previous || '')) meta.setAttribute('content', `${previous}, viewport-fit=cover`)
+    return () => meta.setAttribute('content', previous)
+  }, [])
+  // «Haz clic en el mapa…»: once per visit, for HINT_MS or until the map is used
+  const [hintOn, setHintOn] = useState(true)
+  const [hintGone, setHintGone] = useState(false) // taken out of the page once it has faded
+  useEffect(() => {
+    const timer = setTimeout(() => setHintOn(false), HINT_MS)
+    return () => clearTimeout(timer)
+  }, [])
+  useEffect(() => {
+    if (hintOn) return undefined
+    const timer = setTimeout(() => setHintGone(true), HINT_FADE_MS + 100)
+    return () => clearTimeout(timer)
+  }, [hintOn])
   const [savedOpen, setSavedOpen] = useState(false)
   // The map's navigation: tabs Meteo / Zonas / Bosque, each with a switch remembered in this browser, and
   // one panel open at a time (memory/observatory-navigation-plan.md, T1). First visit: Meteo on, Zonas on
   // if the user has corners, Bosque off.
   // A link with a Meteo layer (`capa`) turns Meteo on, whatever this browser stored
   const nav = useMapNavigation({ hasCorners: saved.points.length > 0, cornersReady: saved.status === 'ready', dataFromUrl: Boolean(initialMeteo) })
+  useEffect(() => { if (pending || observed || nav.openTab) setHintOn(false) }, [pending, observed, nav.openTab])
   // Meteo: one data layer at a time (Condiciones; Lluvia, Temperatura and Viento are placeholders until
   // epic/observatory-meteo). The day is shared by every layer. Switching Meteo off hides it but remembers
   // the layer, the species and the day. Opened from a link, they come from the URL.
@@ -434,10 +459,13 @@ export default function Observatory() {
               centerAbove={phone ? { top: 72, bottomPx: barH + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
               className="h-full"
             />
-            {!pending && !observed && !(phone && nav.openTab) && (
-              <p style={phone ? { bottom: barRestH + 28 } : undefined} className="absolute z-[1100] bottom-10 left-3 right-3 md:bottom-3 md:right-auto md:max-w-sm map-surface shadow-float rounded-xl px-3 py-2 text-xs text-cream/80 pointer-events-none">
-                {t.obsMapHint}
-              </p>
+            {/* The hint is a toast under the search (it used to sit on the tab bar): it goes after a few seconds, or as soon as the map is used */}
+            {!hintGone && !pending && !observed && !(phone && nav.openTab) && (
+              <div style={{ transitionDuration: `${HINT_FADE_MS}ms` }} className={`absolute z-[1100] top-[80px] left-3 ${phone ? 'right-[64px]' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
+                <p role="status" className="w-fit max-w-[30rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white">
+                  {t.obsMapHint}
+                </p>
+              </div>
             )}
             {/* Phone: the fullscreen at the top, level with the search (44 px, centred on the 52 px search) */}
             {phone && (

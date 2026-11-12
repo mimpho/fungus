@@ -26,29 +26,29 @@ function Skeleton() {
 
 function DayCard({ d }) {
   return (
-    <li aria-label={d.aria} className="w-[9.5rem] shrink-0 snap-start sm:w-auto sm:shrink sm:snap-align-none rounded-xl bg-cream/[0.05] p-3 min-[1440px]:p-2.5 flex flex-col items-start gap-2 min-[1440px]:gap-1.5 min-w-0">
-      <span aria-hidden="true" className="text-base min-[1440px]:text-sm font-semibold text-cream capitalize">
+    <li aria-label={d.aria} className="w-[136px] sm:w-[156px] shrink-0 snap-start rounded-xl bg-cream/[0.05] p-2.5 sm:p-3 flex flex-col items-start gap-2 min-w-0">
+      <span aria-hidden="true" className="text-[14px] sm:text-[14px] font-semibold text-cream capitalize">
         {d.weekday} <span className="font-normal text-cream/60 whitespace-nowrap">{d.dayMonth}</span>
       </span>
-      <div aria-hidden="true" className="flex items-center gap-3 min-[1440px]:gap-2 self-center">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 min-[1440px]:w-9 min-[1440px]:h-9 ${ICON_COLOR[d.kind]}`}>
+      <div aria-hidden="true" className="flex items-center gap-2 sm:gap-3 self-center">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 w-[32px] h-[32px] sm:w-[40px] sm:h-[40px] ${ICON_COLOR[d.kind]}`}>
           <path d={ICON[d.kind]} />
         </svg>
         <span className="flex flex-col leading-tight">
-          <span className="text-xl min-[1440px]:text-lg font-semibold text-cream">{d.maxText}</span>
-          <span className="text-[15px] min-[1440px]:text-[13px] text-cream/60">{d.minText}</span>
+          <span className="text-[18px] sm:text-[19px] font-semibold text-cream">{d.maxText}</span>
+          <span className="text-[13px] sm:text-[14px] text-cream/60">{d.minText}</span>
         </span>
       </div>
       {/* Rain and wind: a 20 px cell for the bar or the icon and the text next to it; the rain text sits on the bar's base line */}
-      <span aria-hidden="true" className="flex items-end gap-2 h-6 text-xs min-[1440px]:text-[11px] text-cream whitespace-nowrap">
+      <span aria-hidden="true" className="flex items-end gap-2 h-6 text-[12px] sm:text-xs text-cream whitespace-nowrap">
         <span className="w-5 h-full flex items-end justify-center">
           <span className="w-2.5 rounded-t-[3px] bg-[var(--ui-rain-text)]" style={{ height: d.bar }} />
         </span>
         <span className="leading-none translate-y-[2px]">{d.rainText}</span>
       </span>
-      <span aria-hidden="true" className="flex items-center gap-2 h-6 text-xs min-[1440px]:text-[11px] text-cream whitespace-nowrap">
+      <span aria-hidden="true" className="flex items-center gap-2 h-6 text-[12px] sm:text-xs text-cream whitespace-nowrap">
         <span className="w-5 flex items-center justify-center">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cream/70 min-[1440px]:w-4 min-[1440px]:h-4">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cream/70">
             <path d={WIND_ICON} />
           </svg>
         </span>
@@ -90,8 +90,8 @@ export function ForecastSection({ point, zoneName }) {
             </div>
           </div>
 
-          {/* On a phone the days are a row that slides sideways (it bleeds to the card's edges); from sm up they are the grid */}
-          <ol aria-label={t.obsFcNear} className={`flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-5 -mx-5 px-5 pb-1.5 ${SCROLL_THIN} sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:overflow-visible sm:snap-none sm:grid-cols-4 lg:grid-cols-7`}>
+          {/* The days are a row that slides sideways at every width (it bleeds to the card's edges): seven fixed-width cards instead of a squeezed grid */}
+          <ol aria-label={t.obsFcNear} className={`flex gap-2 overflow-x-auto snap-x snap-mandatory scroll-px-5 -mx-5 px-5 pb-1.5 ${SCROLL_THIN}`}>
             {vm.near.map(d => <DayCard key={d.iso} d={d} />)}
           </ol>
 
