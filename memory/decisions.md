@@ -947,3 +947,13 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 **Why:** the contrast failures were the same family everywhere (alpha on cream over a translucent surface); one value per role is easier to keep than per-component fixes. Disabled items («Pronto») are exempt from 4.5:1 (WCAG 1.4.3, inactive components).
 
 **Retro note:** the squash of #174 entered `epic/observatory-navigation` as a merge commit (two parents, default title). Use *Squash and merge* on each PR, or allow only squash with the PR title as commit title (the `--no-ff` of the epic into `main` is done locally, so it does not need the button).
+
+## Roadmap after v7.4.0: species filter, rain, zones of interest (2026-11-12)
+
+**Decision (Marcos):** the order is the species filter → rain (`epic/observatory-meteo`) → zones of interest. The species filter is a small front-end epic, `epic/observatory-species-filter`, in tasks: T1 shared state and the species field as the second half of the search bar (50 / 50, the focused one takes the whole width; no sheet), T2 Bosque dimmed for the chosen species, T3 species sheet and fixed bar only if the species field falls short. The species belongs to the whole map: `seta` is no longer a Meteo-only URL parameter, which **supersedes Q6 of `epic/observatory-navigation`**. Zones of interest are drawn as **pins** (a correction to rule 5 of the navigation PRD, which said dashed outlines) and the epic is cut in two: visibility, permissions, endpoint, admin and pins first; photos, species filter and clustering second.
+
+**Why:** the species filter is front end only (no migration, no deploy risk), removes the filter from inside Meteo and is a prerequisite for the Top 10 and the zones' filter. Rain is small (no migration, no new ingest) and its rows already show «Pronto» in production. Zones of interest are the biggest (migration, permissions, content that Marcos supplies) and are cut in two to merge into `main` on the cadence.
+
+**Discarded:** zones before rain (defensible for the empty-map problem of a new user, but larger and dependent on content; the content work can run in parallel); the species sheet and the fixed bar in the first task (the species field with its × is enough to read and clear the filter, and the sheet depends on the point-card work); hiding classes in Bosque with a species (the forest weights are estimates reviewed for few species).
+
+**To check:** the zones' dynamic filter may need no endpoint (`pixelScore` works at any latitude and longitude from the layer's data); and the cells' load in production before the zones epic.

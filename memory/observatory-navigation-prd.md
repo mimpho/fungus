@@ -38,7 +38,7 @@ Rules that hold on every screen:
 2. **Each tab has a switch** (top right of its panel). **Defaults on a first visit** (Q7): Meteo **on** (Condiciones, mean of the excellent species, today), Zonas **on if the user has saved corners** (off otherwise), Bosque off. After that each switch is remembered in this browser (`localStorage`; Zonas takes over the current `fungus-obs-corners` key), and URL parameters win over what is stored. With the switch off the panel content is still shown, dimmed (40 %) and inert, so the user sees what turning it on will offer; a tap on it only turns the switch on (the tapped control does not act), except the species field, which turns Meteo on and keeps the focus. Turning the switch on keeps whatever was last chosen (checked classes, species, preset).
 3. **A dot on a tab icon means «this layer is on»**. No dot, layer off. Vista never has a dot.
 4. **One tap on a tab opens its panel**; a second tap on the same tab closes it, and the layer keeps its state. Opening another tab replaces the panel. Vista's panel and the tabs' panel never show together (opening one closes the other).
-5. **Draw order** (bottom to top): Meteo colours, Bosque classes (translucent fill; the outline per class was dropped in T4 QA, 2026-11-12: the raster's ~250 m pixels made it stepped), Zonas de interés (dashed outline), Top 10 (ranked markers), Mis rincones (points).
+5. **Draw order** (bottom to top): Meteo colours, Bosque classes (translucent fill; the outline per class was dropped in T4 QA, 2026-11-12: the raster's ~250 m pixels made it stepped), Zonas de interés (pins, not outlines: corrected on 2026-11-12, see `memory/observatory-zones-of-interest-prd.md`), Top 10 (ranked markers), Mis rincones (points).
 
 ---
 
