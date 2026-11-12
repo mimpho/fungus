@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Observatory on a phone: adjustments from real devices (2026-11-13, `chore/observatory-mobile-adjustments`, outside any epic)
+
+Seven adjustments seen on Android Chrome and desktop Chrome with v7.4.0 in production. Front end only.
+
+- **Hint as a toast:** «Haz clic en el mapa…» no longer sits on the tab bar. It is a coffee-coloured toast under the search (phone and desktop), stays 6 s and fades out in 1.5 s (no transition under `prefers-reduced-motion`); it also goes as soon as the map is used or a tab opens, and does not come back during the visit. `role="status"`.
+- **Map credits:** cream text (`#f4ebe1`, the dark theme's `--color-cream` as a literal, because the map is dark in both themes), no background, dark `text-shadow` halo, 5 px higher.
+- **The strip under the phone's tab bar:** the page now declares `viewport-fit=cover` while the Observatory is open (the `<meta viewport>` is put back when leaving), so `env(safe-area-inset-bottom)` is real and the bar's surface runs down to the edge instead of leaving the page background in the gesture area. **Hypothesis, to confirm on an Android device after the deploy.**
+- **Cards of the observed zone, in px:** the summary row (place, coordinates, altitude, forest, soil) has content-width cards with smaller icon and text on a phone, and **bleeds to the viewport edges while the page is one column** (under `lg`): it starts with the page's margin and, scrolling, reaches both edges; the thermometer's tiles («En marcha», «51,2 mm») have a 22 px serif value on a phone and 24 px from `sm` up (was 33.75 px); the forecast's day cards are 136 px on a phone and 156 px on desktop, with smaller icon, date and temperature.
+- **Forecast on desktop:** the seven days are a row that slides sideways with fixed-width cards, like on a phone, instead of a squeezed seven-column grid.
+
 ### Epic summary — Observatory map navigation (2026-11-10 → 2026-11-12, `epic/observatory-navigation`, to be released as v7.4.0 when merged into `main`)
 
 Front end only (no migration, no new variable, no dependency; `backend/pyproject.toml` 7.3.0 → 7.4.0 only for the version). One navigation model for the map on desktop and phone, in place of the layer pills, the layers card and the view dropdown. What it delivers:

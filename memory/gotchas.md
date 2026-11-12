@@ -431,6 +431,10 @@ For discrete events (click, key) React 18 flushes the passive effects synchronou
 
 The Observatory remembers the base map, the tab switches and the forest classes per browser. QA done by Claude in the same browser pane the user then looks at leaves those choices set (the relief base map stayed after a test and looked like the new default). **Rule:** after QA, put back what was changed (`fungus-obs-basemap`, `fungus-obs-data`, `fungus-obs-corners`, `fungus-obs-forest`) or say which keys were touched.
 
+### ⚠️ The 18px base also inflates `text-*`, `w-*`, `h-*` and `size-*` in cards (found 2026-11-13)
+
+Seen on real phones: `text-3xl` is 33.75px, `w-[9.5rem]` 171px, `w-10` 45px (not 40). Cards that looked right in a 1280px mock were too big on a phone. Use arbitrary px values (`text-[22px]`, `w-[40px]`) and set the desktop size with `sm:`; **measure with `getBoundingClientRect` / `getComputedStyle`, not by eye** (a `w-10` icon measured 45px).
+
 ## Frontend — transitions and busy threads
 
 ### ⚠️ `transition-colors` on elements that swap fill and text colour freezes mid-way when the thread is busy
