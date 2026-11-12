@@ -20,9 +20,9 @@ export function TabButton({ id, open, on, onClick, panelId, className = '' }) {
       aria-expanded={open}
       aria-controls={open ? panelId : undefined}
       aria-label={on ? `${t[label]} · ${t.obsTabOn}` : t[label]}
-      className={`relative flex flex-col items-center justify-center gap-0.5 rounded-2xl text-xs transition-colors ${open ? 'text-cream font-semibold' : 'text-cream/70 font-medium hover:text-cream'} ${FOCUS} ${className}`}
+      className={`relative flex flex-col items-center justify-center gap-0.5 rounded-2xl text-xs transition-colors ${open ? 'text-cream font-semibold' : 'text-cream/80 font-medium hover:text-cream'} ${FOCUS} ${className}`}
     >
-      <span className={`relative w-[48px] h-[30px] rounded-full flex items-center justify-center transition-colors ${open ? 'bg-[var(--nav-active)] text-white' : ''}`}>
+      <span className={`relative w-[48px] h-[30px] rounded-full flex items-center justify-center ${open ? 'bg-[var(--nav-active)] text-white' : ''}`}>
         <Icon size={18} aria-hidden="true" />
         {on && <span aria-hidden="true" data-testid={`tab-dot-${id}`} className="absolute top-0.5 right-1.5 w-[9px] h-[9px] rounded-full bg-coffee-light ring-2 ring-[var(--map-surface)]" />}
       </span>

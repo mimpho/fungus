@@ -27,27 +27,6 @@ export function seasonNote(data, speciesId, t, lang) {
 }
 
 /**
- * What the layer's box shows while it calculates, with the height of the loaded one so that the content does not make it jump:
- * the day control (buttons 28 px, forecast strip 4, date 16.5, gaps of 4) and, 8 px below, the legend (bar 8, labels 16.5, gap 4).
- */
-export function LayerLoadingPlaceholder() {
-  const { t } = useApp()
-  return (
-    <div className="space-y-2 animate-pulse" role="status" aria-label={t.obsLayLoading}>
-      <div className="space-y-1" aria-hidden="true">
-        <div className="h-7 rounded-full bg-cream/[0.08]" />
-        <div className="mx-[2.25rem] h-1 rounded-full bg-cream/[0.06]" />
-        <div className="mx-auto h-[16.5px] w-24 rounded bg-cream/[0.06]" />
-      </div>
-      <div className="space-y-1" aria-hidden="true">
-        <div className="h-2 rounded-full bg-cream/[0.08]" />
-        <div className="h-[16.5px] rounded bg-cream/[0.06]" />
-      </div>
-    </div>
-  )
-}
-
-/**
  * Condiciones, the first segment of the Meteo tab: a combobox that filters the whole catalogue as you
  * type (scientific name, common names in the app language, Latin synonyms — the same match as the
  * species list of a point). One species at a time (none = the mean of the excellent ones): choosing
@@ -56,9 +35,9 @@ export function LayerLoadingPlaceholder() {
  * and what the layer is doing (calculating, error, season, nothing to show).
  * `layer` is the useProbabilityLayer state of the chosen species; `date` the reference day asked for
  * (null = the last day with data) and `onDateChange` how the slider changes it. `layerOn`: the layer is
- * switched on, so a missing answer means it is on its way. `holding`: show the loading placeholder.
+ * switched on, so a missing answer means it is on its way.
  */
-export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, onDateChange, forestApplied = false, soilApplied = false, layerOn = false, holding = false, className = '' }) {
+export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, onDateChange, forestApplied = false, soilApplied = false, layerOn = false, className = '' }) {
   const { t, lang } = useApp()
   const { species: catalog } = useSpecies()
   const listId = useId()
@@ -192,7 +171,7 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
             className="max-h-56 overflow-auto rounded-xl bg-modal/95 py-1"
           >
             {options.length === 0 && (
-              <li role="presentation" className="px-3 py-2.5 text-sm text-cream/60">{t.obsLayNoMatch}</li>
+              <li role="presentation" className="px-3 py-2.5 text-sm text-cream/80">{t.obsLayNoMatch}</li>
             )}
             {options.map((o, i) => (
               <li
@@ -207,7 +186,7 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
               >
                 <span className={`block text-sm text-cream ${o.id === speciesId ? 'font-semibold' : ''}`}>{o.name}</span>
                 {o.scientific && o.scientific !== o.name && (
-                  <span className="block text-xs text-cream/55 italic">{o.scientific}</span>
+                  <span className="block text-xs text-cream/80 italic">{o.scientific}</span>
                 )}
               </li>
             ))}
@@ -215,7 +194,7 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
         )}
 
         <div className="px-1 pb-0.5 space-y-3" aria-live="polite">
-          {holding ? <LayerLoadingPlaceholder /> : status === 'error' ? (
+          {status === 'error' ? (
             <ObservatoryNotice error={layer.error} onRetry={layer.retry} />
           ) : (
             <>
@@ -245,11 +224,11 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
                   </InfoTip>
                 ) : null}
               />
-              {layerOn && status === 'loading' && !data && <p className="text-xs text-cream/60" role="status">{t.obsLayLoading}</p>}
+              {layerOn && status === 'loading' && !data && <p className="text-xs text-cream/80" role="status">{t.obsLayLoading}</p>}
               {season && <p className="text-xs text-cream/80" data-testid="legend-season">{season}</p>}
               {status === 'ready' && data && !data.date && <p className="text-xs text-cream/80">{t.obsLayNoData}</p>}
               {status === 'ready' && data?.in_season && !hasScores && speciesId && <p className="text-xs text-cream/80">{t.obsLayNoCells}</p>}
-              {data?.species?.generic_model && <p className="text-[11px] text-cream/60">{t.obsLayGeneric}</p>}
+              {data?.species?.generic_model && <p className="text-[11px] text-cream/80">{t.obsLayGeneric}</p>}
             </>
           )}
         </div>

@@ -4,7 +4,7 @@ import { useApp } from '../../../contexts/AppContext'
 import { TABS } from '../../../hooks/useMapNavigation'
 import { TabButton } from './TabRail'
 
-const SHEET_MS = 300 // how long the sheet takes to grow or fold
+export const SHEET_MS = 300 // how long the sheet takes to grow or fold
 
 /**
  * Phone: the three tabs, and Vista after them, as a full-width bar fixed to the bottom of the map (top
@@ -84,9 +84,9 @@ export function PhoneTabBar({ openTab, on, onToggle, panelId, viewPanelId, rende
           aria-expanded={openTab === 'view'}
           aria-controls={openTab === 'view' ? viewPanelId : undefined}
           aria-label={t.obsViewTitle}
-          className={`flex-1 h-[60px] flex flex-col items-center justify-center gap-0.5 rounded-2xl text-xs transition-colors ${openTab === 'view' ? 'text-cream font-semibold' : 'text-cream/70 font-medium hover:text-cream'} outline-none focus-visible:ring-2 focus-visible:ring-cream/50`}
+          className={`flex-1 h-[60px] flex flex-col items-center justify-center gap-0.5 rounded-2xl text-xs transition-colors ${openTab === 'view' ? 'text-cream font-semibold' : 'text-cream/80 font-medium hover:text-cream'} outline-none focus-visible:ring-2 focus-visible:ring-cream/50`}
         >
-          <span className={`w-[48px] h-[30px] rounded-full flex items-center justify-center transition-colors ${openTab === 'view' ? 'bg-[var(--nav-active)] text-white' : ''}`}>
+          <span className={`w-[48px] h-[30px] rounded-full flex items-center justify-center ${openTab === 'view' ? 'bg-[var(--nav-active)] text-white' : ''}`}>
             <Layers size={18} aria-hidden="true" />
           </span>
           {t.obsLayersView}

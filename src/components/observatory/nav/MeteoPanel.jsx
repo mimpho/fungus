@@ -33,7 +33,7 @@ export function MeteoPanel({ kind, onKind, conditions, date, onDateChange, rainP
               aria-disabled={l.ready ? undefined : true}
               aria-label={l.ready ? t[l.label] : `${t[l.label]} · ${t.obsLayerSoon}`}
               onClick={() => { if (open && !selected) onKind(l.id) }}
-              className={`relative flex-auto min-w-0 px-1.5 h-[44px] rounded-lg flex flex-col items-center justify-center text-[13px] leading-tight transition-colors ${FOCUS} ${selected ? 'bg-[var(--nav-active)] text-white font-semibold' : l.ready ? 'text-cream/80 font-medium hover:text-cream' : `text-cream/50 font-medium ${open ? 'hover:text-cream/80' : 'cursor-default'}`}`}
+              className={`relative flex-auto min-w-0 px-1.5 h-[44px] rounded-lg flex flex-col items-center justify-center text-[13px] leading-tight ${FOCUS} ${selected ? 'bg-[var(--nav-active)] text-white font-semibold' : l.ready ? 'text-cream/80 font-medium hover:text-cream' : `text-cream/50 font-medium ${open ? 'hover:text-cream/80' : 'cursor-default'}`}`}
             >
               <span className="truncate max-w-full">{t[l.short]}</span>
               {!l.ready && <span aria-hidden="true" className="text-[10px] uppercase tracking-wide opacity-80">{t.obsLayerSoon}</span>}
@@ -57,7 +57,7 @@ function PreviewPanel({ kind, date, onDateChange, rainPreset, onRainPreset }) {
   const days = layerDays()
   const day = date ?? days.lastDate
   const slider = <LayerDayControl lastDate={days.lastDate} maxDate={days.maxDate} forecastFrom={days.forecastFrom} date={date} onChange={onDateChange} />
-  const note = <p className="text-[11px] text-cream/50">{fill(t.obsMeteoPreview, { capa: t[meteoLayer(kind)?.label] }, lang)}</p>
+  const note = <p className="text-[11px] text-cream/80">{fill(t.obsMeteoPreview, { capa: t[meteoLayer(kind)?.label] }, lang)}</p>
 
   if (kind === 'rain') {
     const preset = RAIN_PRESETS.find(p => p.id === rainPreset) ?? RAIN_PRESETS[1]

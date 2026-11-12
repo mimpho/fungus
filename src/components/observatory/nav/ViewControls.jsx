@@ -30,7 +30,7 @@ export function ViewButton({ open, onClick, panelId }) {
       aria-expanded={open}
       aria-controls={open ? panelId : undefined}
       aria-label={t.obsViewTitle}
-      className={`w-[76px] h-[76px] rounded-[22px] shadow-float flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${open ? 'bg-[var(--nav-active)] text-white' : 'map-surface text-cream hover:brightness-110'} ${FOCUS}`}
+      className={`w-[76px] h-[76px] rounded-[22px] shadow-float flex flex-col items-center justify-center gap-1 text-xs font-medium ${open ? 'bg-[var(--nav-active)] text-white' : 'map-surface text-cream hover:brightness-110'} ${FOCUS}`}
     >
       <Layers size={18} aria-hidden="true" />
       {t.obsLayersView}

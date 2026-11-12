@@ -25,7 +25,7 @@ export function NavCheckbox({ checked, onChange, label, swatch = null, disabled 
       >
         {checked && <Check size={13} strokeWidth={3.4} />}
       </span>
-      {swatch && <span aria-hidden="true" className="shrink-0 w-[10px] h-[10px] rounded-[3px]" style={{ background: swatch }} />}
+      {swatch && <span aria-hidden="true" className="shrink-0 w-[10px] h-[10px] rounded-[3px] border border-cream/50" style={{ background: swatch }} />}
       {/* Labels wrap (two lines at most in practice): «Pinar de pino negro» or «Black pine (pinassa) forest» do not fit half a panel */}
       <span className="min-w-0 leading-tight">{label}</span>
     </button>
