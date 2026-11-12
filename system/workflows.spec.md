@@ -68,7 +68,7 @@ chore/<epic>-* (code)  ──squash──▶
 chore/* (project-wide)  ──squash──▶  main (directly)
 ```
 
-**feat/fix/chore → epic**: squash merge. One logical commit per feature, with Conventional Commits message.
+**feat/fix/chore → epic**: squash merge. One logical commit per feature, with Conventional Commits message. On GitHub, every PR into an `epic/*` branch is integrated with *Squash and merge* and the commit title is the PR title; never *Create a merge commit* (retro of `epic/observatory-navigation`: #164 and #174 entered with «Merge pull request #… from …»). The repository's squash default is set to «Pull request title», and merge commits are only for the epic → `main` merge, which is done locally.
 
 > ⚠️ **BEFORE running the squash-merge commands**, complete the doc checklist below. No exceptions — not even for small branches.
 
@@ -103,7 +103,7 @@ git fetch origin
 git rebase epic/observatory
 ```
 
-**Syncing an epic with `main`** (only when `main` has a change the epic lacks, such as a hotfix): merge `main` into the epic, never rebase, from a clean working tree and before the epic's own PR. The merge commit is expected in the epic's history.
+**Syncing an epic with `main`** (only when `main` has a change the epic lacks, such as a hotfix): merge `main` into the epic, never rebase, from a clean working tree and before the epic's own PR. The merge commit is expected in the epic's history. Do it locally and push the merge itself (no `chore/*-sync-main` PR in between, which cost two history entries in `epic/observatory-navigation`); if the `epic/*` ruleset refuses the direct push, say so and switch it off for that push.
 
 ```bash
 git checkout epic/observatory && git merge main
@@ -200,6 +200,12 @@ Produce two documents in `memory/`:
 **Scope check (retro of `epic/observatory-map`):** at kick-off, mark every task that needs a back-end endpoint, new data or a migration. Such tasks do not go in a front-end epic: they get their own epic (a front-end fixture that will be redone is not a delivery), so the front-end epic can be merged into `main` on its own.
 
 **Components with states:** a component with several states or behaviours (accordion, sticky bar, placeholder, popover) is agreed with a table of options before it is coded, with the states it has and what stays the same height; the visual iterations then adjust details, not the model.
+
+**Where each control sits:** the same kick-off table gives, for every new control, its place on desktop and on phone (Vista moved twice in `epic/observatory-navigation`, and on the phone it only found its place in T2).
+
+**Heavy work and transitions:** a change that holds the main thread (a new base map, a layer picture) is not started in the same click as a transition (a folding sheet, a colour swap): run it after the transition ends, and do not put `transition-colors` on elements that swap fill and text colour together. See `memory/gotchas.md`, «Frontend — transitions and busy threads».
+
+**Contrast per task:** a UI task of an epic with a contrast target in its PRD (≥ 4.5:1 for text) measures it in the light and the dark theme before it closes, with the real surface behind the text; it does not wait for the last task (T5 of `epic/observatory-navigation` found failures from T1–T4). Disabled items are exempt.
 
 ---
 
