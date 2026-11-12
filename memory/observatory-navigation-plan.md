@@ -13,7 +13,7 @@
 | T2 | `feat/observatory-navigation-phone` | ✅ 2026-11-11 (see «T2 — as built» below) |
 | T3 | `feat/observatory-navigation-meteo` | ✅ 2026-11-11 (see «T3 — as built» below) |
 | T4 | `feat/observatory-navigation-zonas-bosque` | ✅ 2026-11-12 (see «T4 — as built» below) |
-| T5 | `chore/observatory-navigation-retire-old` | ⬜ |
+| T5 | `chore/observatory-navigation-retire-old` | ✅ 2026-11-12 (see «T5 — as built» below) |
 
 Order: T1 → T2 → T3 → T4 → T5. T3 and T4 both touch `Observatory.jsx` and `i18n.js`, so they go one after the other. All branches are cut from `epic/observatory-navigation` and squash-merged into it.
 
@@ -434,3 +434,12 @@ Feature: Old shell retired
 ```
 
 **Done when** every item of the PRD's Definition of Done is ticked, except the retrospective and the merge into `main`.
+
+### T5 — as built (2026-11-12)
+
+What changed against the spec above, for the epic close:
+- **Deleted:** `MapPills.jsx` (with `ViewPill`), `MapLayersBox.jsx`, `ForestTypeLegend.jsx`, `SavedPointsToggle`, `holding` and `LayerLoadingPlaceholder`. `npm run build` clean; grep of the five names empty.
+- **Orphan keys:** all unused `obs*` keys, not only the old shell's: 16 × 3 languages (list in `CHANGELOG.md`). `obsHabSource` is **not** orphan (`PointPanel` → `PointHabitat`), so item 4 of `memory/pending.md` shrinks to `TerritorySection` / `ZoneRanking`.
+- **Contrast, measured in the DOM** (script estimating the effective background; ES/CA/EN, light and dark, 390 and 1280 px, the four panels): light `--nav-active` `#667739` (4.93:1); small panel texts `cream/80`; swatches with a light border. Nothing is left under 4.5:1 except disabled «Pronto» items.
+- **Two bugs found by Marcos in QA:** Vista's text and icon vanishing in the light theme (transition frozen mid-way while the base map loaded) and the phone's Vista sheet staying half-folded after picking a base map. Both fixed (see `CHANGELOG.md`, `gotchas.md`).
+- **Not checked here:** real keyboard presses (the pane did not take focus), screen reader, iOS Safari and Android Chrome, the relief base map. These stay with Marcos.

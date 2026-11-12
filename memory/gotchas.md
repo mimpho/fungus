@@ -430,3 +430,9 @@ For discrete events (click, key) React 18 flushes the passive effects synchronou
 ### ⚠️ Testing in the user's own browser pane leaves `localStorage` choices behind
 
 The Observatory remembers the base map, the tab switches and the forest classes per browser. QA done by Claude in the same browser pane the user then looks at leaves those choices set (the relief base map stayed after a test and looked like the new default). **Rule:** after QA, put back what was changed (`fungus-obs-basemap`, `fungus-obs-data`, `fungus-obs-corners`, `fungus-obs-forest`) or say which keys were touched.
+
+## Frontend — transitions and busy threads
+
+### ⚠️ `transition-colors` on elements that swap fill and text colour freezes mid-way when the thread is busy
+
+The Vista button (open: green fill, white text; closed: light surface, dark text in the light theme) kept `transition-colors`. Changing the base map holds the main thread, the transition stalls near its start and the text stays white on a near-white fill: it «vanishes» in the light theme only (in dark both ends read). **Rule:** no transition on elements that swap fill and text colour together; instant. The same family on the phone: a sheet that folds with `grid-template-rows` (main thread) must not share its 300 ms with heavy work; run the heavy change after the fold (`chooseBasemapAfterFold`, `SHEET_MS + 40`).

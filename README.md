@@ -143,16 +143,18 @@ POST /api/v1/images/set-order                 ← admin only
 | v7.0 | ✅ | Social login: Google OAuth2 |
 | v7.1 | ✅ | Email confirmation on signup · design polish |
 | v7.2 | ✅ | Observatory (web): scoring v2, free map by coordinates, conditions and forest layers, «Mis rincones» with photos |
+| v7.3 | ✅ | Observatory map as the page: zone layer, layer pills, forest and conditions layers |
 
 **Next epics** — ordered by priority, no version number: it is assigned when the epic is merged into `main` (see `system/workflows.spec.md`).
 
 | # | Epic | Status | Scope |
 |---|---|---|---|
-| 1 | Product epic: Observatory and zones base map | 🗂 | PRD in the Fungus project; opens first |
-| 2 | `epic/observatory-meteo` | 🗂 | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
+| 1 | `epic/observatory-navigation` | 🚧 | One navigation model for the map on desktop and phone (tabs Meteo / Zonas / Bosque, Vista); front end only |
+| 2 | `epic/observatory-zones-of-interest` | 🗂 | «Zonas de interés» on the map, with endpoint and data. Full stack |
+| 3 | `epic/observatory-meteo` | 🗂 | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
 | — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ | Android app, paused 2026-10-10. Scaffold, nav, design system, zones done; species + map pending. Merged into `main` without tag, not distributed |
-| 3 | Shared package | 🗂 | Scoring, constants, types, i18n extracted as monorepo internal packages |
-| 4 | SEO | 🗂 | Static prerendering + Core Web Vitals |
+| 4 | Shared package | 🗂 | Scoring, constants, types, i18n extracted as monorepo internal packages |
+| 5 | SEO | 🗂 | Static prerendering + Core Web Vitals |
 
 Detailed backlog: `memory/pending.md`
 

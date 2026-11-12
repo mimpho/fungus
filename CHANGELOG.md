@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Observatory map navigation: old shell retired and final pass (2026-11-12, `chore/observatory-navigation-retire-old`, T5 of `epic/observatory-navigation`)
+
+- **Old shell deleted:** `MapPills.jsx` (with `ViewPill`), `MapLayersBox.jsx`, `ForestTypeLegend.jsx` and `SavedPointsToggle`; also `holding` and `LayerLoadingPlaceholder` of `SpeciesLayerPicker`. No reference to any of them is left in `src/`, `README.md` or `system/`.
+- **16 orphan i18n keys removed** in ES, CA and EN (`obsChLayers`, `obsCornerSpeciesChosen`, `obsForestHint`, `obsLayerForest`, `obsLayersClose`, `obsLayersCollapse`, `obsLayersExpand`, `obsPhotoNoSpecies`, `obsPhotoUploading`, `obsPillOptions`, `obsPointLayer`, `obsPointLayerFor`, `obsPointLayerMean`, `obsPointObserve`, `obsSaveCancel`, `obsSavedBadge`). The dynamic families `obsChTitle_*`, `obsThC_*`, `obsThE_*`, `obsThH_*` stay. `obsHabSource` stays: `PointPanel` still uses `PointHabitat`.
+- **Contrast pass (≥ 4.5:1):** light `--nav-active` `#758847` → `#667739` (4.93:1 with white text; was 3.91:1); small texts of the panels, legend, day slider and tab labels `cream/50–70` → `cream/80` (on the dark surface `cream/70` was 4.33:1, tab labels included); the colour swatches of Bosque have a 1 px light border («Otros caducifolios» `#475569` was 1.07:1 against the panel). Disabled «Pronto» items are exempt.
+- **Vista: no mid-transition colours.** `transition-colors` removed from the elements that swap fill and text colour (Vista button, tab pills, Meteo segment, rain presets): in the light theme the text went white-on-white while the thread was busy loading the new base map.
+- **Phone: the Vista sheet folds before the base map changes** (`chooseBasemapAfterFold`, `SHEET_MS + 40` ms). Changing the base map held the thread while the sheet folded, leaving it half-folded with the labels and the check cut off.
+- Roadmap rows of `system/project.spec.md` and `README.md` brought up to date (v7.3 ✅, `epic/observatory-navigation` 🚧, `epic/observatory-zones-of-interest` Next; the «Product epic» row is gone, it was delivered by `epic/observatory-map`).
+
 ### Changed — Branch close skill moved into the repo (2026-11-11, `chore/claude-branch-close-skill`, outside any epic)
 
 - The `fungus-branch-close` skill now lives in `.claude/skills/fungus-branch-close/SKILL.md`, versioned with the code, instead of being synced from claude.ai: an edit reaches the next Claude Code session without waiting for the app's sync, and goes through a PR like `system/`.
