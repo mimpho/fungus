@@ -128,16 +128,16 @@ The task breakdown, with each task's spec and Gherkin scenarios, is in [`observa
 
 ## Definition of Done
 
-- [ ] Desktop and phone navigation match proposal C in the canvas (states: initial, each tab off, each tab on, Vista).
-- [ ] Layers accumulate on one map in the draw order of this PRD; Meteo shows one layer at a time.
-- [ ] Switch off = default; panel content dimmed and visible; switching on restores the last choices; dots follow the switches.
-- [ ] On phone the tab icons do not move when the sheet opens or closes.
-- [ ] A layer that is on and loading shows the bar on the map's top edge (not for cached answers); a failed one shows the notice with «Reintentar».
-- [ ] The existing behaviour of Condiciones (species, day slider with forecast, legend), Mis rincones (map and list modal) and Bosque is unchanged in function.
-- [ ] Rain, temperature, wind, Zonas de interés and Top 10 appear as inert rows, ready to be wired by their epics.
-- [ ] Open questions 1–9 answered or consciously deferred and written in `memory/decisions.md`.
-- [ ] Old pills, layers card and view dropdown removed; no orphan i18n keys.
-- [ ] ES / CA / EN, light and dark, iOS Safari and Android Chrome checked; keyboard and screen-reader pass on tabs, switches, checkboxes and sliders.
+- [x] Desktop and phone navigation match proposal C in the canvas (states: initial, each tab off, each tab on, Vista).
+- [x] Layers accumulate on one map in the draw order of this PRD; Meteo shows one layer at a time.
+- [x] Switch off = default; panel content dimmed and visible; switching on restores the last choices; dots follow the switches.
+- [x] On phone the tab icons do not move when the sheet opens or closes.
+- [x] A layer that is on and loading shows the bar on the map's top edge (not for cached answers); a failed one shows the notice with «Reintentar».
+- [x] The existing behaviour of Condiciones (species, day slider with forecast, legend), Mis rincones (map and list modal) and Bosque is unchanged in function.
+- [x] Rain, temperature, wind, Zonas de interés and Top 10 appear as inert rows, ready to be wired by their epics.
+- [x] Open questions 1–9 answered or consciously deferred and written in `memory/decisions.md`.
+- [x] Old pills, layers card and view dropdown removed; no orphan i18n keys.
+- [ ] ES / CA / EN, light and dark, iOS Safari and Android Chrome checked; keyboard and screen-reader pass on tabs, switches, checkboxes and sliders. — ES / CA / EN, light and dark, 390 and 1280 px and contrast done in T5 (2026-11-12); **left for Marcos:** iOS Safari, Android Chrome, real keyboard and screen reader.
 - [ ] Deployment readiness checks done.
 - [ ] All feature branches squash-merged into `epic/observatory-navigation`
 - [ ] Retrospective completed and workflow improvements applied

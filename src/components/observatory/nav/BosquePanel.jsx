@@ -8,7 +8,7 @@ const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-cream/50'
 /**
  * The Bosque tab's content: «Todos» / «Ninguno», the counter «{n} de {total}» and one checkbox per
  * forest class with its colour, in two columns. `active` is the Set of class keys drawn; `onChange`
- * receives the next Set. Replaces ForestTypeLegend (removed with the old shell in T5).
+ * receives the next Set.
  */
 export function BosquePanel({ active, onChange, loaded = true }) {
   const { t, lang } = useApp()
@@ -26,14 +26,14 @@ export function BosquePanel({ active, onChange, loaded = true }) {
       <div className="flex items-center gap-5">
         <button type="button" className={link} disabled={n === total} onClick={() => onChange(new Set(FOREST_TYPES.map(f => f.key)))}>{t.obsForestAll}</button>
         <button type="button" className={link} disabled={n === 0} onClick={() => onChange(new Set())}>{t.obsForestNone}</button>
-        <span className="ml-auto text-[14px] text-cream/70 tabular-nums" aria-live="polite">{fill(t.obsForestCount, { n, total }, lang)}</span>
+        <span className="ml-auto text-[14px] text-cream/80 tabular-nums" aria-live="polite">{fill(t.obsForestCount, { n, total }, lang)}</span>
       </div>
       <div role="group" aria-label={t.obsForestLegend} className="grid grid-cols-2 gap-x-4">
         {FOREST_TYPES.map(ft => (
           <NavCheckbox key={ft.key} checked={active.has(ft.key)} onChange={() => toggle(ft.key)} label={t[ft.label]} swatch={ft.hex} className="text-[14px]" />
         ))}
       </div>
-      <p className="mt-1 text-[11px] leading-snug text-cream/50">{loaded ? t.obsForestPanelHint : t.obsForestLoading}</p>
+      <p className="mt-1 text-[11px] leading-snug text-cream/80">{loaded ? t.obsForestPanelHint : t.obsForestLoading}</p>
     </div>
   )
 }

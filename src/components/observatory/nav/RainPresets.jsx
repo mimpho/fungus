@@ -14,7 +14,7 @@ export function RainPresets({ value, onChange }) {
             type="button"
             aria-pressed={on}
             onClick={() => onChange(p.id)}
-            className={`flex-1 h-[44px] rounded-full text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/50 ${on ? 'bg-[var(--nav-active)] text-white font-semibold' : 'bg-cream/[0.08] text-cream font-medium hover:bg-cream/[0.14]'}`}
+            className={`flex-1 h-[44px] rounded-full text-sm outline-none focus-visible:ring-2 focus-visible:ring-cream/50 ${on ? 'bg-[var(--nav-active)] text-white font-semibold' : 'bg-cream/[0.08] text-cream font-medium hover:bg-cream/[0.14]'}`}
           >
             {p.label}
           </button>

@@ -32,7 +32,7 @@ import { TabRail } from '../components/observatory/nav/TabRail'
 import { NavPanel } from '../components/observatory/nav/NavPanel'
 import { ViewButton, ViewPanel, ZoomButtons } from '../components/observatory/nav/ViewControls'
 import { MapLoadingBar } from '../components/observatory/nav/MapLoadingBar'
-import { PhoneTabBar } from '../components/observatory/nav/PhoneTabBar'
+import { PhoneTabBar, SHEET_MS } from '../components/observatory/nav/PhoneTabBar'
 
 const BASEMAPS = ['satellite', 'streets', 'relief']
 const NAV_PANEL_ID = 'obs-nav-panel'
@@ -217,6 +217,15 @@ export default function Observatory() {
     try { localStorage.setItem('fungus-obs-basemap', value) } catch (_e) { /* per-viewer convenience only */ }
   }
 
+  // On the phone the sheet folds in SHEET_MS and changing the base map keeps the thread busy: switch it once the fold is done,
+  // or the sheet stays half-folded (labels clipped) while the tiles load
+  const foldTimer = useRef(null)
+  useEffect(() => () => clearTimeout(foldTimer.current), [])
+  function chooseBasemapAfterFold(value) {
+    clearTimeout(foldTimer.current)
+    foldTimer.current = setTimeout(() => chooseBasemap(value), SHEET_MS + 40)
+  }
+
   // What the map is waiting for, for the loading bar on its top edge (only layers that are on count)
   const { busy, failed } = useMapBusy(useMemo(() => [
     { id: 'conditions', label: t.obsLayerProbability, on: probabilityOn, loading: layer.status === 'loading', error: layer.status === 'error', retry: layer.retry },
@@ -314,7 +323,7 @@ export default function Observatory() {
     />
   )
   // Condiciones, the first segment of the Meteo panel. `layerOn`: the layer is on (its data is then on its way or here)
-  const conditionsFor = (layerOn, holding = false) => (
+  const conditionsFor = layerOn => (
     <SpeciesLayerPicker
       speciesId={layerSpecies}
       onChange={chooseLayerSpecies}
@@ -324,7 +333,6 @@ export default function Observatory() {
       soilApplied={Boolean(substrate && elevation && (layerSpecies ? layer.data?.species?.substrate_factors : layer.data))}
       onDateChange={setLayerDate}
       layerOn={layerOn}
-      holding={holding}
     />
   )
   // A tab's panel, the same on both devices (beside the rail on desktop, in the bar's sheet on the phone)
@@ -483,7 +491,7 @@ export default function Observatory() {
                 panelId={NAV_PANEL_ID}
                 viewPanelId={VIEW_PANEL_ID}
                 renderPanel={tab => (tab === 'view'
-                  ? <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemap} onClose={nav.close} flat />
+                  ? <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemapAfterFold} onClose={nav.close} flat />
                   : navPanel(tab, { flat: true }))}
                 joined={Boolean(pending)}
                 onHeight={setBarH}

@@ -111,7 +111,7 @@ export function LayerDayControl({ lastDate, maxDate, forecastFrom, date, onChang
           </div>
         </div>
       )}
-      <div className="relative px-2 h-[28px] text-xs text-cream/60">
+      <div className="relative px-2 h-[28px] text-xs text-cream/80">
         <span className="absolute left-0 top-1/2 -translate-y-1/2" aria-hidden="true">−{DAYS_BACK} d</span>
         {ahead > 0 && <span className="absolute right-0 top-1/2 -translate-y-1/2" aria-hidden="true">+{ahead} d</span>}
         <span className="absolute inset-x-2 inset-y-0">

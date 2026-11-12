@@ -290,7 +290,7 @@
 
   /* Observatory map navigation — light: white surface, the buttons' green (--color-bar) for active */
   --map-surface:          #ffffff;   /* opaque: a translucent white lets the satellite show through the text */
-  --nav-active:           var(--color-bar);
+  --nav-active:           #667739;   /* olive darker than --color-bar (#758847, 3.9:1): 4.9:1 with white text */
   --switch-on:            var(--color-bar);
   --switch-off:           rgba(var(--color-cream-rgb), 0.35);
   --switch-thumb-on:      #ffffff;

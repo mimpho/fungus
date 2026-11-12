@@ -32,12 +32,12 @@ export function LayerLegend({ scale, lowLabel, highLabel, center = null, extra =
           />
         )}
       </div>
-      <div className="flex justify-between gap-2 text-[11px] text-cream/70 mt-1">
+      <div className="flex justify-between gap-2 text-[11px] text-cream/80 mt-1">
         <span>{low}</span>
-        {center && <span className="text-cream/50 text-center">{center}</span>}
+        {center && <span className="text-cream/80 text-center">{center}</span>}
         <span className="inline-flex items-center gap-1">{high}{extra}</span>
       </div>
-      {band && bandLabel && <p className="text-[11px] text-cream/60 mt-0.5">{bandLabel}</p>}
+      {band && bandLabel && <p className="text-[11px] text-cream/80 mt-0.5">{bandLabel}</p>}
     </div>
   )
 }
