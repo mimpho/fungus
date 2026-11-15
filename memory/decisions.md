@@ -999,3 +999,14 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 **Known:** `forestFactor` is 1 from 40 % forest, so most good forest reads «Excelente» and the altitude range is a hard cut ± 150 m: a nearly two-colour map is possible for species with weights near 1. To compare with field notes before judging the mapping.
 
 **Amended the same day (Marcos, after trying it):** switching Meteo on while Hábitat · De la seta is shown turns Hábitat off instead of showing a notice; applying a species while «De la seta» is shown does not turn Meteo on. Then the same the other way (Marcos): picking «De la seta» turns Meteo off, and so does switching Hábitat back on with it chosen. The notice stays only as a fallback for a page opened with both on. **Why:** the exclusion is the same, but the action the user just took wins and nothing is left hidden behind a message. **Discarded:** the notice in both directions; the notice in both directions.
+
+## Species filter T4: the species' sheet, one stack of bottom sheets and an accordion (2026-11-15)
+
+**Decision (Marcos, table of options, then live):** the active species gets a **sheet** (a bar that opens into a card) and the phone's bottom sheets become **one stack in the page's flow**: from the bottom, tab bar → species' sheet → point's sheet, in that fixed order. Only one is unfolded: the others fold to their title bar and unfold only when touched. Hiding the point's sheet **folds** it (it never removes the point; only its × does). Every bottom sheet drags from anywhere except clickable things, and its handle shows or hides it. The sheet is an experiment that can be removed (a folder and one line, or `localStorage` `fungus-obs-species-sheet` = `off`). With the sheet in place the search's species half is plain, and the old territory ranking under the map is gone.
+
+**Why:** a lens that can be seen and removed in one place is clearer than a coloured half of a search bar; the stack removes the ordering bugs of sheets positioned one by one (a gap showing the map when the one below folded, a sheet hidden behind another). Folding instead of removing keeps what the user picked.
+
+**Discarded:** the other two orders of the stack (tab bar → point → species; natural order of opening), kept as a one-line change; the sheet only on tap with no peek bar; absolute positions computed from measured heights (they lagged one frame and left gaps); the card sliding down onto the bar (replaced by both trading height); an «open» (third) state; keeping the filtered half of the search in ochre; closing the point's sheet with its handle.
+
+**Known:** the point's sheet height is measured and set as `max-height` in px (the transition needs a number); the alignment of the two × in the phone's stack depends on the point's sheet having no scroll bar.
+

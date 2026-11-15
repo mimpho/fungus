@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Observatory: the active species' sheet and the stack of bottom sheets (2026-11-15, `feat/observatory-species-filter-sheet`, T4 of `epic/observatory-species-filter`, an experiment)
+
+Front end only (no migration, no variable, no dependency, no back-end change). Plan, states and as-built notes: `memory/observatory-species-filter-plan.md`, «T4 · as built». It can be switched off with `localStorage` `fungus-obs-species-sheet` = `off`, or removed by deleting `src/components/observatory/speciesSheet/` and its line in `pages/Observatory.jsx`.
+
+- **Species' sheet** (`speciesSheet/`): while a species is active, a bar (square photo to the edge, «Mapa filtrado por», name in serif, a single ×) that opens into a card: photo, names, edibility, the season in words and a 12-month strip, the legend of the layer in view, the safety line for toxic and deadly species, «Ver ficha» and «Guardar seta» (favourites). The × takes the filter off and does not move between the folded and the open state. Folding the card never clears the filter. On the phone it is a bottom sheet (the bar and the card trade height; a drag follows the finger, up from the bar opens, down from the card folds); on desktop, the same block as a card of the bottom-left column (a chevron folds it).
+- **The stack:** one column in the page's flow above the tab bar (from the bottom: tab bar, species, point), so folding or unfolding one moves the others with it and no gap shows the map. On desktop the point's card and the species' card are the same column at the bottom left (396 px at every width above the phone). The search's dropdown is above both.
+- **Accordion on the phone:** only one sheet is unfolded. A tab's sheet or the species' card fold the point's sheet (it keeps its title bar); the point's sheet only unfolds when it is tapped or dragged up, or a new point is picked. The point's sheet folds by its handle or a drag down and only its × removes the point.
+- **Every bottom sheet is a drag handle** (`useSheetDrag`): a touch that moves in the sheet's direction drags it, except when it starts on something clickable (buttons, links, fields, sliders, switches; the Zonas / Hábitat checkbox rows and the wake-up overlay of an off layer still drag) or on content scrolled down. The handle (`SheetHandle`) is also a button: a tap shows or hides the sheet. Closing slides the sheet out from where the finger left it.
+- **Point card:** a fold chevron and a × (same place and size as the species' card), fold to the title bar (83 px); on the phone the sheet height is measured (no scroll bar, 2 px of slack) and a clear space is kept under it. «Observar zona» (white, ochre text in the light theme) and «Guardar rincón» (border) as the species' «Ver ficha» and «Guardar seta».
+- **Search bar:** with a species chosen, its half is plain (no ochre fill, no «FILTRADO POR», no bold): the species is now said by the sheet.
+- **i18n:** `obsSpSheet*` keys (ES / CA / EN) and `obsSheetHandle`.
+
+### Changed — Observatory: tab sheets on the phone
+
+- The tab bar's sheet has a handle and drags (its height follows the finger and closes past a third of it); the tab bar keeps its rounded corners with a point on the map and the point's sheet goes 24 px under it.
+
+### Removed — Observatory: the old territory ranking under the map
+
+- `TerritorySection` and `ZoneRanking` (the «¿A dónde voy este fin de semana?» block that showed when the point's sheet was dragged) and their `obsRank*` / `obsTer*` / `obsMapSpFiltered` keys. It is information that will go on the map.
+
 ### Added — Observatory: Hábitat · De la seta, where the chosen species can grow (2026-11-15, `feat/observatory-species-filter-habitat`, T3 of `epic/observatory-species-filter`)
 
 Front end only (no migration, no variable, no dependency, no back-end change). Plan and as-built notes: `memory/observatory-species-filter-plan.md`.
