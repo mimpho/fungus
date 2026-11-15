@@ -464,3 +464,19 @@ With `viewport-fit=cover` `env(safe-area-inset-top)` is real, but some browsers 
 
 ### ⚠️ An unselected segment in `text-cream/80` on `bg-cream/[0.08]` is 4.33:1 (found 2026-11-15, T3 of `epic/observatory-species-filter`)
 The Hábitat control used Meteo's inactive style and measured 4.33:1 in dark. Use `text-cream` for an enabled, unselected segment (5.7:1 dark, 12.4:1 light). Meteo's own enabled segments should be measured the same way; the disabled ones (Lluvia, Temp., Viento) are exempt.
+
+
+## Frontend — bottom sheets (found 2026-11-15, T4 of `epic/observatory-species-filter`)
+
+### ⚠️ A hook declared after an early `return null` crashes when the condition flips
+`SpeciesSheet` had a `useRef` below `if (!speciesId) return null`; removing the filter rendered fewer hooks than before and React threw «Rendered fewer hooks than expected» (the page went blank). Every hook goes above the first return.
+
+### ⚠️ A `max-height` taken from the element's own `scrollHeight` is circular
+The point's sheet set `max-height` from what it measured, and the content could not grow past it, so it never measured the real height again (a scroll bar appeared after folding and unfolding). Measure the **content wrapper** (a child that is not clamped) plus the paddings as constants, and add 2–3 px of slack so a rounded height never raises a scroll bar. A scroll bar also shifts everything by its width: it moved a × 6 px against its neighbour.
+
+### ⚠️ An effect that skips work «if the element is the same» breaks under StrictMode
+`useSheetDrag` skipped rewiring when `el` equalled the one it had wired; StrictMode runs the cleanup and the effect again, so the listeners were gone. The cleanup now forgets the element too.
+
+### ⚠️ The ring of a button is drawn outside its box
+A `ring-2` / `border` outside the button is clipped by the scroll area it ends in (the last button of the point's sheet lost its bottom edge). Leave a few px under the last element.
+

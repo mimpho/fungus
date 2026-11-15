@@ -38,6 +38,7 @@ export function NavPanel({ id, title, on, onSwitch, children, flat = false, clas
           <button
             type="button"
             onClick={wake}
+            data-drag-ok="" // the sheet still drags from here (a tap wakes the layer)
             aria-label={fill(t.obsWake, { capa: title }, lang)}
             className="absolute inset-0 w-full rounded-xl cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
           />

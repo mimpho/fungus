@@ -13,20 +13,13 @@ const NONE = '__none__' // the «Sin filtro» row
 // The dropdown never reaches below the visible screen (the keyboard on a phone takes part of it)
 const MIN_LIST_H = 160
 const PLACE_MIN = 56 // px the place half keeps (its magnifier and a few letters)
-// Width of the filled half beyond the name: 34 left (icon), 12 gap, 44 the cross, 6 right, and a little for the font's rounding
+// Width of the half beyond the name: 34 left (icon), 12 gap, 44 the cross, 6 right, and a little for the font's rounding
 const FIT_EXTRA = 98
 let measureCtx = null
-// Width of a name in the half's bold type (16 px at every width)
-// Width of the small «Filtrado por» line above it (10 px capitals, spaced by 0.04em)
-function labelWidth(text) {
-  measureCtx ??= document.createElement('canvas').getContext('2d')
-  measureCtx.font = '400 10px "DM Sans", system-ui, sans-serif'
-  const up = text.toUpperCase()
-  return measureCtx.measureText(up).width + up.length * 0.4
-}
+// Width of a name in the half's type (16 px at every width)
 function nameWidth(name) {
   measureCtx ??= document.createElement('canvas').getContext('2d')
-  measureCtx.font = `700 16px "DM Sans", system-ui, sans-serif`
+  measureCtx.font = `400 16px "DM Sans", system-ui, sans-serif`
   return measureCtx.measureText(name).width
 }
 
@@ -215,14 +208,14 @@ export function MapSpeciesSearch({ speciesId, onChoose, focused, collapsed, fit 
     </div>
   )
 
-  // At rest with a species: «Filtrado por» and its name in a pill whose cross takes the filter off. The place half
+  // At rest with a species: its name, plain, with a cross that takes the filter off. The place half
   // keeps only its magnifier meanwhile (MapSearchBar), so there is room for both.
   const showName = !focused && chosen
   // The half is as wide as «icon · name · ×» needs, as a number so the width animates (a jump with `auto`)
-  const fitW = chosen && barWidth ? Math.min(Math.ceil(Math.max(nameWidth(chosen.name), labelWidth(t.obsMapSpFiltered))) + FIT_EXTRA, barWidth - 4 - PLACE_MIN) : null
+  const fitW = chosen && barWidth ? Math.min(Math.ceil(nameWidth(chosen.name)) + FIT_EXTRA, barWidth - 4 - PLACE_MIN) : null
   return (
-    <BarHalf side="right" focused={focused} collapsed={collapsed} fitWidth={fit && showName ? fitW : null} filled={Boolean(showName)} dropdown={dropdown}>
-      <span aria-hidden="true" className={`absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none z-10 [&>svg]:w-[18px] [&>svg]:h-[18px] ${showName ? 'text-white' : 'search-light-text'}`}>
+    <BarHalf side="right" focused={focused} collapsed={collapsed} fitWidth={fit && showName ? fitW : null} dropdown={dropdown}>
+      <span aria-hidden="true" className={`absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none z-10 [&>svg]:w-[18px] [&>svg]:h-[18px] search-light-text`}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2C7.03 2 3 6.03 3 11h18c0-4.97-4.03-9-9-9z" />
           <path d="M9 11v8a1 1 0 001 1h4a1 1 0 001-1v-8" />
@@ -250,19 +243,16 @@ export function MapSpeciesSearch({ speciesId, onChoose, focused, collapsed, fit 
       />
       {focused && <CloseSearchButton label={t.obsSearchClose} onClick={close} />}
       {showName && (
-        <span className="pointer-events-none relative flex items-center justify-between gap-[12px] w-full h-[52px] min-w-0 pl-[34px] pr-[6px] text-white">
-          <span className="min-w-0 flex flex-col leading-[1.15]">
-            {/* Full white, not faded: on the brown a lighter white falls under 4.5:1 at this size */}
-            <span className="text-[10px] uppercase tracking-[0.04em] whitespace-nowrap">{t.obsMapSpFiltered}</span>
-            <span className="truncate text-[16px] font-bold">{chosen.name}</span>
-          </span>
+        <span className="pointer-events-none relative flex items-center justify-between gap-[12px] w-full h-[52px] min-w-0 pl-[34px] pr-[6px] search-light-text">
+          {/* Just the name, as plain text: the species' sheet says what is filtered */}
+          <span className="truncate text-[16px]">{chosen.name}</span>
           {/* The cross takes the filter off; its touch target reaches 44 px without a visible box */}
           <button
             type="button"
             onClick={() => { clearTimeout(applyTimer.current); onChoose(null) }}
             aria-label={t.obsMapSpRemove.replace('{name}', chosen.name)}
             title={t.obsMapSpRemove.replace('{name}', chosen.name)}
-            className="pointer-events-auto shrink-0 w-[44px] h-[44px] -my-[4px] flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            className="pointer-events-auto shrink-0 w-[44px] h-[44px] -my-[4px] flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
           >
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />

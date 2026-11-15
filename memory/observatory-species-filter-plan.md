@@ -1,7 +1,7 @@
 # Plan — `epic/observatory-species-filter`
 
 > Technical plan and task breakdown. Product contract: [`observatory-species-filter-prd.md`](observatory-species-filter-prd.md) (scope reworked 2026-11-13; reasons in `memory/decisions.md`, «Species filter: a lens, not a filter, and the Hábitat tab»).
-> Last updated: 2026-11-15 (T3 built)
+> Last updated: 2026-11-15 (T4 built, experiment)
 
 ---
 
@@ -12,7 +12,7 @@
 | T1 | `feat/observatory-species-filter-bar` | ✅ Squashed into the epic (#180, 2026-11-15; see «T1 · as built») |
 | T2 | `chore/observatory-species-filter-habitat-tab` | ✅ Built 2026-11-15, awaiting squash (see «T2 · as built») |
 | T3 | `feat/observatory-species-filter-habitat` | ✅ Built 2026-11-15, awaiting squash (see «T3 · as built») |
-| T4 | `feat/observatory-species-filter-sheet` | ⬜ Optional |
+| T4 | `feat/observatory-species-filter-sheet` | ✅ Built 2026-11-15 as an experiment, awaiting squash and Marcos's call (see «T4 · as built») |
 
 Order: T1 → T2 → T3 → T4. T1, T2 and T3 all touch `Observatory.jsx` and `i18n.js`, so they go one after the other. All branches are cut from `epic/observatory-species-filter` and squash-merged into it (*Squash and merge*, title = PR title).
 
@@ -351,9 +351,26 @@ What the spec above says and what was built. Everything else in the spec holds.
 
 ---
 
-## T4 · `feat/observatory-species-filter-sheet` — species sheet and fixed bar (optional)
+## T4 · `feat/observatory-species-filter-sheet` — species sheet and fixed bar (experiment)
 
-Only if the species field and the habitat fall short once T1 and T3 are seen live. Needs Q2 and Q6 of the PRD answered and the point-card work (item 6 of `memory/pending.md`) in sight. Not detailed here; if it opens, it gets its own states table before coding (`system/workflows.spec.md`, «Components with states») and its own spec and scenarios.
+Marcos wanted to see it live before deciding whether to keep it. The states table was agreed before coding (answers to Q2 and Q6 of the PRD: the card is transient, the bar always coexists with the point's sheet and the tabs; card = photo, names, edibility, season, legend, remove, link to the full card).
+
+## T4 · as built (2026-11-15)
+
+Everything lives in `src/components/observatory/speciesSheet/` (`SpeciesSheet` entry and flag, `SpeciesSlot` the block, `SpeciesCardBody`, `SeasonStrip`, `flag.js`), plus `SheetHandle.jsx`, `hooks/useSheetDrag.js` and one block in `pages/Observatory.jsx`. **To remove the experiment:** delete the folder and the `<SpeciesSheet …/>` line (and the stack wrapper if the point's card goes back to being alone), and the `obsSpSheet*` keys. A browser can switch it off with `localStorage` `fungus-obs-species-sheet` = `off`.
+
+| Agreed (table of options) | As built |
+|---|---|
+| States: none, bar only, medium card; no «open» state | Same. Bar (folded) and card (open) are **one block** that trades height (the bar's row shrinks as the card's body grows), so they animate together; a drag follows the finger |
+| Fixed bar duplicates the ochre half of the search | At first yes; **later the search's half became plain** (no fill, no «FILTRADO POR», no bold) once the sheet existed: the sheet says what is filtered |
+| Order of the stack: tab bar → species → point (option 1) | Done as a **column in the page's flow** (not absolute positions): from the bottom tab bar, species, point. Each sheet goes 24 px under the rounded top of the one above's foot |
+| Opens when the bar is tapped, never alone | Same; also by dragging the bar up. Folds with the handle, a drag down, Esc (focus goes back to the bar), focusing the search or tapping the map |
+| «Quitar filtro» and a link to the card | **One ×** (does not move) takes the filter off; «Ver ficha» and «Guardar seta» (favourites) at the foot, like the point's «Observar zona» and «Guardar rincón» |
+| Desktop: bar at the bottom centre | **Same block as a card of the bottom-left column**, under the point's card (396 px at every width above the phone), with a fold chevron |
+
+Added along the way (Marcos, live): every bottom sheet drags from anywhere except clickable things (`useSheetDrag`), the handle is a button that shows or hides the sheet, the tab bar's sheet has a handle, an **accordion on the phone** (one unfolded; the point's sheet folds, keeps its title bar, and unfolds only when touched), the point's sheet folds instead of closing (only its × closes), a fold chevron on the desktop card, the old territory ranking removed. The photo of the folded bar bleeds to the edge (square), the name is in serif, the season in words follows its title.
+
+**Not seen / not measured:** a real finger on iOS Safari and Android Chrome (the drags were tested with synthetic touch events), the animations in motion (the QA pane does not paint idle frames), the light theme on the sheet, contrast of the new buttons, intermediate widths between 640 and 700 px, a point with a very long content (the sheet scrolls only then), the favourites button (not pressed to keep Marcos's data).
 
 ---
 
