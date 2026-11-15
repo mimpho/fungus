@@ -8,6 +8,7 @@ import {
 import { CATALONIA_BOUNDS } from '../../lib/catalonia'
 import { cellFill, ALPHA_SCALE_BY_BASEMAP } from '../../lib/layerColors'
 import { reliefOverlay } from '../../lib/reliefLayer'
+import { habitatOverlay } from '../../lib/habitatLayer'
 import { forestTypeOverlay, FOREST_ALPHA_SCALE_BY_BASEMAP } from '../../lib/forestLayer'
 import { pinSvg } from '../../lib/cornerKinds'
 import { useApp } from '../../contexts/AppContext'
@@ -128,12 +129,13 @@ function afterPaint(work) {
  * Map of Catalonia. A click only reports the coordinates (onPick); what to do with them is the
  * page's. `observed` is the point being observed (green), `pending` the one just picked (a reticle).
  * `saved` are the user's corners, drawn as pins by kind and grouped in clusters (the «Mis rincones» layer) while `showSaved` is on.
+ * `habitatMap` = { elevation, species, rasters } draws where a species can grow (no weather) in the layer's place.
  * `layer` is the answer of /layer/probability. With the elevation raster (`elevation`) every pixel
  * is coloured by the score of its own elevation; without it every scored cell is a rectangle
  * coloured by its score. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
  * the forest is not one the species fits or the soil pH is not its own. Neither takes clicks, so picking a point works over the layer.
  */
-export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, dataSources = null, leafletZoom = true, onMap = null, onDrawing = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, habitatMap = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, dataSources = null, leafletZoom = true, onMap = null, onDrawing = null, className = '' }) {
   const { t, setCreditsOpen } = useApp()
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
@@ -286,18 +288,22 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
       layerRef.current?.remove()
       layerRef.current = next ? next.addTo(map) : null
     }
-    if (!baseReady || !layer?.cells?.length) { replace(null); setDrawing('layer', false); return undefined }
+    // `habitatMap` (Hábitat · De la seta) takes the place of the conditions picture: same pane, blend and opacity
+    if (!baseReady || (!habitatMap && !layer?.cells?.length)) { replace(null); setDrawing('layer', false); return undefined }
     setDrawing('layer', true)
     const cancel = afterPaint(() => {
       const options = { pane: LAYER_PANE, interactive: false }
       let next = null
       try {
-        const overlay = reliefOverlay(elevation, layer, habitat ?? {}, { alphaScale: ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1 }) // elevation null: blended by cell, without relief
+        const alphaScale = ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1
+        const overlay = habitatMap
+          ? habitatOverlay(habitatMap.elevation, habitatMap.species, habitatMap.rasters, { alphaScale })
+          : reliefOverlay(elevation, layer, habitat ?? {}, { alphaScale }) // elevation null: blended by cell, without relief
         if (overlay) next = L.imageOverlay(overlay.url, overlay.bounds, options)
       } catch (err) {
         console.warn('Probability layer: picture failed, drawing cells', err)
       }
-      if (!next) {
+      if (!next && !habitatMap) {
         const cells = layer.cells.filter(c => c.status === 'scored' && c.half_lat && c.half_lon)
         if (cells.length) {
           next = L.layerGroup()
@@ -313,7 +319,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
       setDrawing('layer', false)
     })
     return () => { cancel(); setDrawing('layer', false) }
-  }, [layer, elevation, habitat, basemap, baseReady]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [layer, elevation, habitat, habitatMap, basemap, baseReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Forest type layer: the forest raster painted by dominant type; `forestTypes` = { raster, active }
   useEffect(() => {

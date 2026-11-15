@@ -48,6 +48,11 @@ const HINT_FADE_MS = 1500 // and how long it takes to fade out
 const CORNERS_ROW_KEY = 'fungus-obs-zones-corners'
 const FOREST_CLASSES_KEY = 'fungus-obs-forest-classes'
 const ALL_FOREST = FOREST_TYPES.map(f => f.key)
+// Hábitat's segment: the forest classes or the chosen species' habitat
+const HABITAT_VIEW_KEY = 'fungus-obs-habitat-view'
+function storedHabitatView() {
+  try { return localStorage.getItem(HABITAT_VIEW_KEY) === 'species' ? 'species' : 'forest' } catch (_e) { return 'forest' }
+}
 
 function storedCornersRow() {
   try { return localStorage.getItem(CORNERS_ROW_KEY) !== 'off' } catch (_e) { return true }
@@ -140,6 +145,12 @@ export default function Observatory() {
   const setForestShown = next => { setForestShownState(next); store(FOREST_CLASSES_KEY, JSON.stringify(ALL_FOREST.filter(k => next.has(k)))) }
   const shownSpecies = layerSpecies
   const { species: catalog } = useSpecies()
+  // Hábitat · De la seta: stored «species» without an active species behaves as «forest». While it is shown, neither the
+  // conditions picture nor the forest classes are drawn (they would read as one map on the same scale)
+  const [habitatViewStored, setHabitatViewStored] = useState(storedHabitatView)
+  const habitatView = layerSpecies ? habitatViewStored : 'forest'
+  const setHabitatView = value => { setHabitatViewStored(value); store(HABITAT_VIEW_KEY, value) }
+  const habitatShown = forestOn && habitatView === 'species'
   // The URL says what Meteo shows while it is on (history replaced: Back does not walk through the days)
   useEffect(() => {
     setMeteo(meteoOn ? { layer: meteoKind, day: layerDate } : null)
@@ -154,7 +165,7 @@ export default function Observatory() {
   // Applying a species switches Condiciones on (the species is shown through it): Meteo on and its Condiciones segment
   const showConditions = () => { if (!nav.on.data) nav.setOn('data', true); if (meteoKind !== 'conditions') setMeteoKind('conditions') }
   const chooseSpecies = id => { setLayerSpecies(id); if (id) showConditions() }
-  const layerId = probabilityOn || pending ? (layerSpecies ?? ALL_EXCELLENT) : null
+  const layerId = probabilityOn || pending || habitatShown ? (layerSpecies ?? ALL_EXCELLENT) : null
   const layer = useProbabilityLayer(isAuthenticated ? layerId : null, { date: layerDate ?? undefined })
   const elevationState = useElevationRasterState(Boolean(layerId) && isAuthenticated)
   const forestState = useClassRasterState('forest', (Boolean(layerId) || forestOn) && isAuthenticated)
@@ -163,7 +174,18 @@ export default function Observatory() {
   const forest = forestState.raster
   const substrate = substrateState.raster
   const habitat = useMemo(() => ({ forest, substrate }), [forest, substrate])
-  const forestTypes = useMemo(() => (forestOn && forest ? { raster: forest, active: forestShown } : null), [forestOn, forest, forestShown])
+  const forestTypes = useMemo(() => (forestOn && !habitatShown && forest ? { raster: forest, active: forestShown } : null), [forestOn, habitatShown, forest, forestShown])
+  // The habitat picture waits for the layer's species block, the elevation and the forest raster; the soil may fail (the map then
+  // counts altitude and forest, and says so). A species with nothing to judge by shows a line instead.
+  const speciesBlock = !Array.isArray(layer.data?.species) ? layer.data?.species : null
+  const habitatReady = habitatShown && Boolean(speciesBlock && elevation && forest && (substrate || substrateState.status === 'error'))
+  const habitatMap = useMemo(() => (habitatReady ? { elevation, species: speciesBlock, rasters: { forest, substrate } } : null), [habitatReady, elevation, speciesBlock, forest, substrate])
+  const habitatInfo = habitatShown ? {
+    status: !habitatReady ? 'loading'
+      : speciesBlock.elevation_min_m == null && !speciesBlock.forest_classes && !speciesBlock.substrate_factors ? 'noinfo' : 'ready',
+    noForest: habitatReady && !speciesBlock.forest_classes,
+    noSoil: habitatReady && !substrate,
+  } : null
   // What the layer paints at the spot picked on the map ({ score, count }; null = nothing there)
   const layerValue = useMemo(() => {
     const data = layer.data
@@ -270,13 +292,13 @@ export default function Observatory() {
 
   // What the map is waiting for, for the loading bar on its top edge (only layers that are on count)
   const { busy, failed } = useMapBusy(useMemo(() => [
-    { id: 'conditions', label: t.obsLayerProbability, on: probabilityOn, loading: layer.status === 'loading', error: layer.status === 'error', retry: layer.retry },
-    { id: 'elevation', label: t.obsLayerProbability, on: probabilityOn, loading: elevationState.status === 'loading', error: false },
-    { id: 'substrate', label: t.obsLayerProbability, on: probabilityOn, loading: substrateState.status === 'loading', error: false },
+    { id: 'conditions', label: t.obsLayerProbability, on: probabilityOn || habitatShown, loading: layer.status === 'loading', error: layer.status === 'error', retry: layer.retry },
+    { id: 'elevation', label: t.obsLayerProbability, on: probabilityOn || habitatShown, loading: elevationState.status === 'loading', error: false },
+    { id: 'substrate', label: t.obsLayerProbability, on: probabilityOn || habitatShown, loading: substrateState.status === 'loading', error: false },
     { id: 'forest', label: t.obsTabHabitat, on: forestOn || probabilityOn, loading: forestState.status === 'loading', error: forestOn && forestState.status === 'error', retry: forestState.retry },
     { id: 'corners', label: t.obsLayerCorners, on: cornersOn, loading: saved.status === 'loading', error: saved.status === 'error', retry: saved.reload },
     { id: 'drawing', label: '', on: true, loading: drawing, error: false },
-  ], [drawing, t, probabilityOn, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
+  ], [drawing, t, probabilityOn, habitatShown, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
 
   // A tab or Vista opens its panel. Below 1024px the point card and a panel take turns; on the phone
   // (one sheet at a time) opening a tab's sheet or Vista also drops the picked point.
@@ -397,6 +419,7 @@ export default function Observatory() {
           onDateChange={setLayerDate}
           rainPreset={rainPreset}
           onRainPreset={setRainPreset}
+          hiddenNote={habitatShown && meteoOn ? t.obsMeteoHiddenByHabitat : null}
         />
       )}
       {tab === 'zones' && (
@@ -409,7 +432,17 @@ export default function Observatory() {
           }}
         />
       )}
-      {tab === 'habitat' && <HabitatPanel active={forestShown} onChange={setForestShown} loaded={Boolean(forest)} />}
+      {tab === 'habitat' && (
+        <HabitatPanel
+          active={forestShown}
+          onChange={setForestShown}
+          loaded={Boolean(forest)}
+          view={habitatView}
+          onView={setHabitatView}
+          speciesName={layerSpecies ? speciesLabel(layerSpecies) : null}
+          habitat={habitatInfo}
+        />
+      )}
     </NavPanel>
   )
   const savedList = <SavedPointsList saved={saved} observed={observed} onSelect={handleObserve} />
@@ -462,7 +495,8 @@ export default function Observatory() {
               saved={saved.points}
               showSaved={cornersOn}
               pinLabel={t.obsCornerPinLabel}
-              layer={probabilityOn ? layer.data : null}
+              layer={probabilityOn && !habitatShown ? layer.data : null}
+              habitatMap={habitatMap}
               elevation={elevation}
               habitat={habitat}
               forestTypes={forestTypes}
@@ -473,7 +507,7 @@ export default function Observatory() {
               label={t.obsMapLabel}
               basemap={basemap}
               flyTo={flyTo}
-              dataSources={[Boolean(layerId) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
+              dataSources={[(probabilityOn || pending) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
               centerAbove={phone ? { top: 72, bottomPx: barH + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
               className="h-full"
             />
