@@ -67,4 +67,7 @@ Read `memory/pending.md` (and the epic's plan file) and decide whether there is 
 
 ## Closing the message
 
-Give the human the exact next commands, **one command per fenced `bash` block, each on a single line** (no `\` continuations, no `&&` chains, no `$` prompt, no output inside the block): the desktop app only shows a Run button on single-line shell blocks. In order: `git push -u origin <branch>`; open the PR with the prepared title and body; and, only after the QA is confirmed, the squash and delete from the cheatsheet of `system/workflows.spec.md`, split into its separate commands (`git checkout <epic>`, `git merge --squash <branch>`, `git commit -m "<PR title>"`, `git branch -D <branch>`), with a line saying they go one after the other and the next only if the previous one succeeded.
+Give the human the exact next commands, **one command per fenced `bash` block, each on a single line** (no `\` continuations, no `&&` chains, no `$` prompt, no output inside the block): the desktop app only shows a Run button on single-line shell blocks. In order:
+
+1. `git push -u origin <branch>`, then open the PR with the prepared title and body (the PR is opened and integrated on GitHub with *Squash and merge*; never give `git merge --squash` or `git commit` to integrate it from the command line).
+2. After the QA is confirmed and the PR is squashed on GitHub, the local clean-up, one after the other and the next only if the previous one succeeded: `git checkout <epic>`, `git pull --ff-only` (brings the squash commit in), `git branch -D <branch>` (force, because a squash leaves the branch tip unreachable).
