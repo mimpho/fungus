@@ -2,7 +2,7 @@
 
 > Product Requirements Document. Written before the first feature branch.
 > Once all Open questions are resolved and DoD is written, development can start.
-> Last updated: 2026-11-13
+> Last updated: 2026-11-15 (epic closed, v7.5.0 once merged)
 >
 > Status: **scope and order approved by Marcos on 2026-11-12; scope reworked on 2026-11-13** (the species is a *lens*, not a filter that hides things: Bosque, Mis rincones and Zonas de interés are not filtered; the Bosque tab becomes **Hábitat** and gets the species' habitat map; see `memory/decisions.md`, «Species filter: a lens, not a filter, and the Hábitat tab»). The technical plan is [`observatory-species-filter-plan.md`](observatory-species-filter-plan.md). Born from item 7 of `memory/pending.md` («One species filter for the whole map»), raised by Marcos on 2026-11-12 during T4 of `epic/observatory-navigation`, which is now merged into `main` (v7.4.0). Cut from `main`.
 > Related: [`observatory-zones-of-interest-prd.md`](observatory-zones-of-interest-prd.md) (the zones' species filter depends on this one) and [`observatory-navigation-prd.md`](observatory-navigation-prd.md) (the Meteo / Zonas / Bosque tabs).
@@ -147,13 +147,13 @@ The mean of the excellent species without a species is the same rule the thermom
 
 ## Definition of Done
 
-- [ ] A species chosen in the search affects Condiciones and the habitat map (and, later, the Top 10); Bosques, Mis rincones and Zonas de interés are untouched.
-- [ ] With no species, every layer behaves as today.
-- [ ] The Bosque tab is called Hábitat in ES / CA / EN, keeps the stored choices, and «De la seta» paints where the species can grow without weather or date.
-- [ ] If T4 is built: the species sheet and the fixed bar work on phone and desktop; lowering the sheet does not clear the filter.
-- [ ] The species state is in the URL as decided in Q3 and is handed over to the observed zone.
-- [ ] The active species lives in one shared state (context/hook) ready for the Top 10 and Zonas de interés rows, which are still inert; checked on the hook.
-- [ ] «Filtrar por seta» is no longer in the Meteo panel.
-- [ ] Open questions answered or consciously deferred, and written in `memory/decisions.md`.
-- [ ] ES / CA / EN, light and dark, text contrast ≥ 4.5:1 measured per task; iOS Safari and Android Chrome checked after the deploy.
-- [ ] Branches squash-merged; retrospective done.
+- [x] A species chosen in the search affects Condiciones and the habitat map (and, later, the Top 10); Bosques, Mis rincones and Zonas de interés are untouched.
+- [x] With no species, every layer behaves as today.
+- [x] The Bosque tab is called Hábitat in ES / CA / EN, keeps the stored choices, and «De la seta» paints where the species can grow without weather or date.
+- [x] If T4 is built: the species sheet and the fixed bar work on phone and desktop; lowering the sheet does not clear the filter.
+- [x] The species state is in the URL as decided in Q3 and is handed over to the observed zone.
+- [x] The active species lives in one shared state (context/hook) ready for the Top 10 and Zonas de interés rows, which are still inert; checked on the hook.
+- [x] «Filtrar por seta» is no longer in the Meteo panel.
+- [x] Open questions answered or consciously deferred, and written in `memory/decisions.md`.
+- [ ] ES / CA / EN, light and dark, text contrast ≥ 4.5:1 measured per task; iOS Safari and Android Chrome checked after the deploy. *(Contrast measured in the dark theme per task; the light theme of T4 and the real devices are left for after the deploy: `memory/pending.md`, item 7.)*
+- [x] Branches squash-merged; retrospective done (2026-11-15; see `system/workflows.spec.md`).

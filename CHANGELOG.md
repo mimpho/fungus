@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Epic summary — Observatory species filter (2026-11-13 → 2026-11-15, `epic/observatory-species-filter`, to be released as v7.5.0 when merged into `main`)
+
+Front end only (no migration, no new variable, no dependency; `backend/pyproject.toml` 7.4.0 → 7.5.0 only for the version). One species chosen for the whole map, as a **lens** (it changes what answers a question about the species; it never hides what exists). What it delivers:
+
+- **Search bar in two halves** (T1): place and species, the focused one takes the whole width; the species list with an edibility selector, photos and the species' card; `seta` in the URL whatever Meteo does, handed to the observed zone and the point's card; «Filtrar por seta» left the Meteo panel. One shared state (`useActiveSpecies`) ready for the Top 10 and the zones of interest.
+- **Hábitat tab** (T2, T3): the Bosque tab renamed Hábitat (stored choices kept), with **De la seta**, the map of where the chosen species can grow (altitude × forest × soil, no weather, no date).
+- **Species' sheet and a stack of bottom sheets** (T4, an experiment that can be removed): a bar that opens into the species' card with «Ver ficha» and «Guardar seta»; the phone's sheets in one column above the tab bar working as an accordion, every sheet draggable from anywhere with a tappable handle; the same two cards stacked on desktop; the old territory ranking removed.
+- **Retro:** rules for stacked components, gesture testing on a real device, experiments with a removal recipe and pixel alignment (`system/workflows.spec.md`); the commit step of the branch-close skill (`git commit -- <paths>`).
+- **After the deploy:** check on iOS Safari and Android Chrome (drags with a real finger, the stack with the keyboard open), light theme and contrast of the new buttons, ES / CA / EN; decide whether the species' sheet stays; compare the habitat colours with field notes (*deliciosus*, *cibarius*, *cornucopioides*).
+
 ### Added — Observatory: the active species' sheet and the stack of bottom sheets (2026-11-15, `feat/observatory-species-filter-sheet`, T4 of `epic/observatory-species-filter`, an experiment)
 
 Front end only (no migration, no variable, no dependency, no back-end change). Plan, states and as-built notes: `memory/observatory-species-filter-plan.md`, «T4 · as built». It can be switched off with `localStorage` `fungus-obs-species-sheet` = `off`, or removed by deleting `src/components/observatory/speciesSheet/` and its line in `pages/Observatory.jsx`.
