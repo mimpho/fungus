@@ -23,7 +23,7 @@ import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker
 import { layerDays } from '../components/observatory/LayerDayControl'
 import { MeteoPanel } from '../components/observatory/nav/MeteoPanel'
 import { ZonasPanel } from '../components/observatory/nav/ZonasPanel'
-import { BosquePanel } from '../components/observatory/nav/BosquePanel'
+import { HabitatPanel } from '../components/observatory/nav/HabitatPanel'
 import { ObservedZone } from '../components/observatory/ObservedZone'
 import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList } from '../components/observatory/SavedPoints'
@@ -38,7 +38,7 @@ import { PhoneTabBar, SHEET_MS } from '../components/observatory/nav/PhoneTabBar
 const BASEMAPS = ['satellite', 'streets', 'relief']
 const NAV_PANEL_ID = 'obs-nav-panel'
 const VIEW_PANEL_ID = 'obs-view-panel'
-const TAB_TITLE = { data: 'obsTabMeteo', zones: 'obsTabZones', forest: 'obsTabForest' }
+const TAB_TITLE = { data: 'obsTabMeteo', zones: 'obsTabZones', habitat: 'obsTabHabitat' }
 // Desktop: what a panel covers at the right of the map (rail 16 + 76, gap 12, panel 360, margin 16)
 const PANEL_CLEAR_PX = 480
 const HINT_MS = 6000 // how long «Haz clic en el mapa…» stays
@@ -135,7 +135,7 @@ export default function Observatory() {
   const setCornersRow = value => { setCornersRowState(value); store(CORNERS_ROW_KEY, value ? 'on' : 'off') }
   const cornersOn = nav.on.zones && cornersRow
   // Forest type layer (Bosque): the forest raster by dominant type; the panel's checkboxes say which classes show
-  const forestOn = nav.on.forest
+  const forestOn = nav.on.habitat
   const [forestShown, setForestShownState] = useState(storedForestClasses)
   const setForestShown = next => { setForestShownState(next); store(FOREST_CLASSES_KEY, JSON.stringify(ALL_FOREST.filter(k => next.has(k)))) }
   const shownSpecies = layerSpecies
@@ -273,7 +273,7 @@ export default function Observatory() {
     { id: 'conditions', label: t.obsLayerProbability, on: probabilityOn, loading: layer.status === 'loading', error: layer.status === 'error', retry: layer.retry },
     { id: 'elevation', label: t.obsLayerProbability, on: probabilityOn, loading: elevationState.status === 'loading', error: false },
     { id: 'substrate', label: t.obsLayerProbability, on: probabilityOn, loading: substrateState.status === 'loading', error: false },
-    { id: 'forest', label: t.obsTabForest, on: forestOn || probabilityOn, loading: forestState.status === 'loading', error: forestOn && forestState.status === 'error', retry: forestState.retry },
+    { id: 'forest', label: t.obsTabHabitat, on: forestOn || probabilityOn, loading: forestState.status === 'loading', error: forestOn && forestState.status === 'error', retry: forestState.retry },
     { id: 'corners', label: t.obsLayerCorners, on: cornersOn, loading: saved.status === 'loading', error: saved.status === 'error', retry: saved.reload },
     { id: 'drawing', label: '', on: true, loading: drawing, error: false },
   ], [drawing, t, probabilityOn, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
@@ -409,7 +409,7 @@ export default function Observatory() {
           }}
         />
       )}
-      {tab === 'forest' && <BosquePanel active={forestShown} onChange={setForestShown} loaded={Boolean(forest)} />}
+      {tab === 'habitat' && <HabitatPanel active={forestShown} onChange={setForestShown} loaded={Boolean(forest)} />}
     </NavPanel>
   )
   const savedList = <SavedPointsList saved={saved} observed={observed} onSelect={handleObserve} />

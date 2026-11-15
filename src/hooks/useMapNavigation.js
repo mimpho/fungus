@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 
 // The map's navigation (memory/observatory-navigation-plan.md, T1): three tabs, each with a switch that
 // says whether its layer is drawn, and one panel open at a time (a tab's or Vista's).
-export const TABS = ['data', 'zones', 'forest']
+export const TABS = ['data', 'zones', 'habitat']
 
 // Where each switch is remembered in this browser. `zones` keeps the key «Mis rincones» used before the
-// tabs existed, so a choice made then still holds.
-const KEYS = { data: 'fungus-obs-data', zones: 'fungus-obs-corners', forest: 'fungus-obs-forest' }
+// tabs existed, so a choice made then still holds. `habitat` (the tab that was Bosque) keeps `fungus-obs-forest`
+// for the same reason: it was renamed in T2 of epic/observatory-species-filter, the stored choice was not.
+const KEYS = { data: 'fungus-obs-data', zones: 'fungus-obs-corners', habitat: 'fungus-obs-forest' }
 
 function stored(tab) {
   try {
@@ -20,11 +21,11 @@ function store(tab, value) {
 }
 
 /**
- * Open panel and switches of the map. First visit (nothing stored): Meteo on, Bosque off, Zonas on only
+ * Open panel and switches of the map. First visit (nothing stored): Meteo on, Hábitat off, Zonas on only
  * if the user has saved corners — decided once they have loaded (`cornersReady`), off until then.
  * After that each switch is whatever this browser last chose. `dataFromUrl`: the page was opened with a
  * Meteo layer in the URL, which wins over the stored switch (without storing it).
- * `openTab`: 'data' | 'zones' | 'forest' | 'view' | null. Opening one closes any other; opening the
+ * `openTab`: 'data' | 'zones' | 'habitat' | 'view' | null. Opening one closes any other; opening the
  * one already open closes it. A switch keeps its value when its panel closes.
  */
 export function useMapNavigation({ hasCorners = false, cornersReady = false, dataFromUrl = false } = {}) {
@@ -32,7 +33,7 @@ export function useMapNavigation({ hasCorners = false, cornersReady = false, dat
   const [on, setOnState] = useState(() => ({
     data: dataFromUrl || (stored('data') ?? true),
     zones: stored('zones') ?? false,
-    forest: stored('forest') ?? false,
+    habitat: stored('habitat') ?? false,
   }))
 
   // Zonas with nothing stored follows the corners: on when the user has some
