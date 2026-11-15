@@ -70,7 +70,7 @@ chore/* (project-wide)  ──squash──▶  main (directly)
 
 **feat/fix/chore → epic**: squash merge. One logical commit per feature, with Conventional Commits message. On GitHub, every PR into an `epic/*` branch is integrated with *Squash and merge* and the commit title is the PR title; never *Create a merge commit* (retro of `epic/observatory-navigation`: #164 and #174 entered with «Merge pull request #… from …»). The repository's squash default is set to «Pull request title», and merge commits are only for the epic → `main` merge, which is done locally.
 
-> ⚠️ **BEFORE running the squash-merge commands**, complete the doc checklist below. No exceptions — not even for small branches.
+> ⚠️ **BEFORE the squash and merge on GitHub**, complete the doc checklist below. No exceptions — not even for small branches.
 
 **Doc checklist (run this first, every time):**
 
@@ -115,7 +115,7 @@ git checkout epic/observatory && git merge main
 |---|---|
 | Never rebase `epic/*` or `main` | Shared branches — rewriting history breaks everyone's local copy |
 | Never `push --force` to `epic/*` or `main` | Same reason |
-| QA before squash | `git checkout <branch>` for manual QA. Only provide the squash+delete block after QA is confirmed |
+| QA before squash | `git checkout <branch>` for manual QA. Only provide the local clean-up commands after QA is confirmed and the PR is squashed on GitHub |
 | Tag after every epic merged into main | `git tag -a vX.Y.0` immediately after the merge, with the next free MINOR (the version is assigned here, not before) |
 | Delete feature branches after merge | Use `git branch -D` (force) — squash leaves the tip unreachable |
 
@@ -134,10 +134,9 @@ git fetch origin && git rebase epic/observatory
 # QA — checkout for manual inspection
 git checkout feat/observatory-scoring-v2
 
-# After QA passes — squash + delete (paste the whole block)
-git checkout epic/observatory && \
-git merge --squash feat/observatory-scoring-v2 && \
-git commit -m "feat(scoring): add scoring v2 (pure functions)" && \
+# After QA passes: Squash and merge on GitHub (the PR is integrated there, not from the command line), then clean up locally
+git checkout epic/observatory
+git pull --ff-only
 git branch -D feat/observatory-scoring-v2
 
 # Phase close — merge to main + tag
