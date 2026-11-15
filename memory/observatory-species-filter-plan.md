@@ -343,9 +343,9 @@ What the spec above says and what was built. Everything else in the spec holds.
 | `HabitatLegend.jsx` | Not a new file: `LayerLegend` with the five bands and its own labels («Poco adecuado» / «Muy adecuado»). The note is plain 11 px text, not an info tip. |
 | Factor → colour | `f × 100` through the five bands of Condiciones, as the spec. `forestFactor` saturates at 1 from 40 % forest, so good forest reads «Excelente» and the gradation is mostly at forest edges, soil misfit and the 10–40 % ramp; the altitude range is a hard cut. Not recalibrated yet (see «Calibration» below). |
 | Loading | Paints when the species block, the elevation and the forest raster are ready. A failed soil raster paints altitude and forest and says so; a failed forest raster shows the loading bar's retry. |
-| Meteo's notice | Only with Meteo on and Condiciones selected; a line above the controls, which are **not** dimmed (opacity would lower the text contrast). |
+| Meteo's notice | **Changed after QA (Marcos):** switching Meteo on while «De la seta» is shown turns the Hábitat switch off, picking «De la seta» (or switching Hábitat on with it chosen) turns Meteo off, and applying a species while it is shown does not turn Meteo on. The notice stays only as a fallback for a page opened with both on (stored choices, or `capa` in a link): a line above the controls, which are **not** dimmed (opacity would lower the text contrast). |
 | Switch of the tab | «De la seta» is drawn only with the Hábitat switch on (a tap on the dimmed panel wakes it, as for the classes). |
-| Picking a species while «De la seta» is shown | Still switches Meteo and Condiciones on (T1); they stay hidden by the exclusion. |
+| Picking a species while «De la seta» is shown | Does **not** switch Meteo on (it would be hidden by the exclusion); Meteo stays as it was. |
 
 **Calibration (open):** only *Boleto* was compared on screen, on the three base maps. Still to compare with the field notes: *Lactarius deliciosus*, *Cantharellus cibarius*, *Craterellus cornucopioides*. If the map reads too green, the options are bands of its own on `f` or a gentler `forestFactor`; record the result in `memory/decisions.md`.
 
