@@ -46,6 +46,8 @@ An epic of its own, `epic/observatory-species-filter`, front end only, in small 
 | Keyboard | **Tab** goes from one field to the other while the place search has no results; **with results open, Tab goes to the results first** and the species field comes after them. Arrow keys inside a list, Esc closes (as the × does) |
 | Desktop | The bar keeps today's width (it stops before the rail and an open panel); the same behaviour |
 
+> **As built (2026-11-15):** the table above is the starting design. What shipped differs in the species half (filled ochre, «FILTRADO POR» over the name, bare × to remove, no circled ×; «Filtrar por seta» placeholder; ≥ 50 % width) and in two things around it (fullscreen in Vista, Meteo turns on when a species is applied). See `memory/observatory-species-filter-plan.md`, «T1 · as built», and `memory/decisions.md` (2026-11-15).
+
 Two risks were raised and settled on 2026-11-12: (1) forgetting an active species while the place search is open: focus out or Esc closes its results and the species is seen again; (2) the same × meaning two things: **two looks**, a × inside a semi-transparent circle to **remove** the species filter and a bare × to **close** a dropdown (the place search or the species search), plus separate accessible names («Quitar filtro de seta» / «Cerrar búsqueda»). The circle must keep a 3:1 contrast against the bar (non-text) in both themes, and the difference never rests on colour alone.
 
 ---

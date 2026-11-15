@@ -440,3 +440,24 @@ Seen on real phones: `text-3xl` is 33.75px, `w-[9.5rem]` 171px, `w-10` 45px (not
 ### ⚠️ `transition-colors` on elements that swap fill and text colour freezes mid-way when the thread is busy
 
 The Vista button (open: green fill, white text; closed: light surface, dark text in the light theme) kept `transition-colors`. Changing the base map holds the main thread, the transition stalls near its start and the text stays white on a near-white fill: it «vanishes» in the light theme only (in dark both ends read). **Rule:** no transition on elements that swap fill and text colour together; instant. The same family on the phone: a sheet that folds with `grid-template-rows` (main thread) must not share its 300 ms with heavy work; run the heavy change after the fold (`chooseBasemapAfterFold`, `SHEET_MS + 40`).
+
+## Frontend — URL state, keys and animation (found 2026-11-15, T1 of `epic/observatory-species-filter`)
+
+### ⚠️ `setSearchParams(prev => …)` gives every call of the same tick the same stale `prev`
+React Router's functional form does not queue: two writers in one tick (Meteo's `capa`/`dia` and the species' `seta`) undid each other, and a mistyped `seta=nope` stayed in the URL after being dropped. `useObservatoryView` keeps a ref with the params as last written (`latest`) and each setter builds on it.
+
+### ⚠️ `stopPropagation()` on a React `keydown` also hides the key from `document` listeners
+React listens at the root, so stopping a synthetic event stops the native one before it reaches `document`. The species field stopped Esc to close its dropdown, and the species' sheet (a portal, listening on `document`) never heard it: both closed or neither did. While the sheet is open the field ignores Esc (`holdRef`).
+
+### ⚠️ Animate a flex half with `min-width`, never with `auto` or by swapping `grow`/`basis`
+`flex-basis: auto` cannot be animated (a jump), and moving `flex-grow` and `flex-basis` together makes the width dip by a pixel or two mid-way even when both ends are 50 %. The search bar's halves are always `flex: 1 1 0`; the one that needs more raises its `min-width` (a number it measures with a canvas) and nothing moves while the name fits in 50 %.
+
+### ⚠️ The QA pane does not paint frames while it is idle
+`getBoundingClientRect` and computed styles of a transition stay at the start value until something forces a frame (a screenshot). Measure final states after a screenshot; to judge the animation itself use a real browser. Transitions under test: also turn the `transition` off to measure a colour (`* { transition: none !important }`).
+
+### ⚠️ `search-light-input::placeholder` is 3.3:1
+The shared class draws the placeholder at 0.55 opacity (cream on `#4c5240`). Where a placeholder is the field's label (the map search) raise it: `placeholder:!opacity-80` gives 5.1:1 dark and 7.5:1 light.
+
+### ⚠️ A fullscreen map reaches under the camera hole
+With `viewport-fit=cover` `env(safe-area-inset-top)` is real, but some browsers report 0 in fullscreen: the search bar and the hint start at `max(env + 12 px, 40 px)` while the phone is in fullscreen (`fullscreenTop` in `pages/Observatory.jsx`). To confirm on a real Android and iPhone.
+

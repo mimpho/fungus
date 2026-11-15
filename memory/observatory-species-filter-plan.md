@@ -1,7 +1,7 @@
 # Plan — `epic/observatory-species-filter`
 
 > Technical plan and task breakdown. Product contract: [`observatory-species-filter-prd.md`](observatory-species-filter-prd.md) (scope reworked 2026-11-13; reasons in `memory/decisions.md`, «Species filter: a lens, not a filter, and the Hábitat tab»).
-> Last updated: 2026-11-13
+> Last updated: 2026-11-15
 
 ---
 
@@ -9,7 +9,7 @@
 
 | # | Branch | Status |
 |---|---|---|
-| T1 | `feat/observatory-species-filter-bar` | ⬜ Next |
+| T1 | `feat/observatory-species-filter-bar` | 🟡 Built 2026-11-15, awaiting QA and squash (see «T1 · as built») |
 | T2 | `chore/observatory-species-filter-habitat-tab` | ⬜ |
 | T3 | `feat/observatory-species-filter-habitat` | ⬜ |
 | T4 | `feat/observatory-species-filter-sheet` | ⬜ Optional |
@@ -189,6 +189,25 @@ Feature: Species field in the search bar
 ```
 
 **Done when** the scenarios pass by hand, `npm run build` is clean, contrast is measured, and Meteo no longer shows «Filtrar por seta».
+
+---
+
+## T1 · as built (2026-11-15)
+
+What the spec above says and what was built after trying it on screen (Marcos, phone and desktop). Everything else in the spec holds.
+
+| Spec | As built |
+|---|---|
+| Remove × in a circle on the species half | **Gone.** An interim design with a switch (pause = species remembered but not applied) was built and dropped. The filter is removed by the bare × of the filled half, by the first row of the list («Quitar filtro · {seta}», café border) and by the «Quitar ×» chip next to «Condiciones para {seta}» in Meteo. |
+| Species half at rest: name and ×, same surface | **Filled with `--nav-active`** (the buttons' ochre, white text): seta icon, «FILTRADO POR» in 10 px over the name, bare × (44 px target). The point card has no remove link (tried and dropped). |
+| Halves 50 / 50, the focused one takes all | Same, plus: with a species the half is **at least 50 %** and grows for a long name (it keeps 56 px for the place half, whose text ends in an ellipsis). Done with `min-width` only (see `memory/gotchas.md`). |
+| Placeholders «Buscar lugar» / «Buscar seta» | **«Filtrar por seta»** (CA «Filtra per bolet», EN «Filter by mushroom») in the species half; icons 18 px so it fits 155–181 px. |
+| Text 16 px phone / 14 px desktop | **16 px everywhere.** |
+| Species stays with Meteo off | Yes, but **applying a species switches Meteo and Condiciones on** if they were off. A link with only `seta` still does not. |
+| — | **Fullscreen** moved from the round button beside the search to a switch in Vista (phone and desktop); on the phone the bar and the hint keep clear of the safe area (≥ 40 px). |
+| — | **Picked point on the map:** the `Crosshair` icon of the zone's «Coordenadas» fact (cream over a dark halo) instead of the dashed circle. |
+
+Files: new `useActiveSpecies`, `MapSearchBar`, `MapSearch` (place half, rewritten), `MapSpeciesSearch`, `BarHalf`, `SpeciesRow`; `SpeciesPanel` draws its rows with `SpeciesRow` (same look, checked on a real zone); `SpeciesLayerPicker` lost the field; `ViewPanel` got the fullscreen switch. Left for QA after the deploy: iOS Safari and Android Chrome (keyboard, camera hole), the bar's animation in motion, the filled half in light theme, CA and EN.
 
 ---
 
