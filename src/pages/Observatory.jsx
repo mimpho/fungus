@@ -149,7 +149,8 @@ export default function Observatory() {
   // conditions picture nor the forest classes are drawn (they would read as one map on the same scale)
   const [habitatViewStored, setHabitatViewStored] = useState(storedHabitatView)
   const habitatView = layerSpecies ? habitatViewStored : 'forest'
-  const setHabitatView = value => { setHabitatViewStored(value); store(HABITAT_VIEW_KEY, value) }
+  // Picking «De la seta» turns Meteo off: its Condiciones would be hidden by the habitat (same scale)
+  const setHabitatView = value => { setHabitatViewStored(value); store(HABITAT_VIEW_KEY, value); if (value === 'species') nav.setOn('data', false) }
   const habitatShown = forestOn && habitatView === 'species'
   // The URL says what Meteo shows while it is on (history replaced: Back does not walk through the days)
   useEffect(() => {
@@ -164,7 +165,8 @@ export default function Observatory() {
   // point's summary always shows the probability, the mean of the excellent edibles if no species is chosen
   // Applying a species switches Condiciones on (the species is shown through it): Meteo on and its Condiciones segment
   const showConditions = () => { if (!nav.on.data) nav.setOn('data', true); if (meteoKind !== 'conditions') setMeteoKind('conditions') }
-  const chooseSpecies = id => { setLayerSpecies(id); if (id) showConditions() }
+  // With «De la seta» shown the species is being looked at there: Meteo stays as it is
+  const chooseSpecies = id => { setLayerSpecies(id); if (id && !habitatShown) showConditions() }
   const layerId = probabilityOn || pending || habitatShown ? (layerSpecies ?? ALL_EXCELLENT) : null
   const layer = useProbabilityLayer(isAuthenticated ? layerId : null, { date: layerDate ?? undefined })
   const elevationState = useElevationRasterState(Boolean(layerId) && isAuthenticated)
@@ -406,7 +408,12 @@ export default function Observatory() {
       id={NAV_PANEL_ID}
       title={t[TAB_TITLE[tab]]}
       on={nav.on[tab]}
-      onSwitch={value => nav.setOn(tab, value)}
+      // Switching Meteo on while Hábitat shows the species turns Hábitat off: the two maps would be on the same scale
+      onSwitch={value => {
+        nav.setOn(tab, value)
+        if (tab === 'data' && value && habitatShown) nav.setOn('habitat', false)
+        if (tab === 'habitat' && value && habitatView === 'species') nav.setOn('data', false) // Hábitat back on with «De la seta» chosen
+      }}
       flat={flat}
       className={className}
     >
