@@ -461,3 +461,6 @@ The shared class draws the placeholder at 0.55 opacity (cream on `#4c5240`). Whe
 ### ⚠️ A fullscreen map reaches under the camera hole
 With `viewport-fit=cover` `env(safe-area-inset-top)` is real, but some browsers report 0 in fullscreen: the search bar and the hint start at `max(env + 12 px, 40 px)` while the phone is in fullscreen (`fullscreenTop` in `pages/Observatory.jsx`). To confirm on a real Android and iPhone.
 
+
+### ⚠️ An unselected segment in `text-cream/80` on `bg-cream/[0.08]` is 4.33:1 (found 2026-11-15, T3 of `epic/observatory-species-filter`)
+The Hábitat control used Meteo's inactive style and measured 4.33:1 in dark. Use `text-cream` for an enabled, unselected segment (5.7:1 dark, 12.4:1 light). Meteo's own enabled segments should be measured the same way; the disabled ones (Lluvia, Temp., Viento) are exempt.

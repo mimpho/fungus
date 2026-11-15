@@ -987,3 +987,13 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 **Why:** a lone segment, already selected, looked like a pressed button that does nothing. A heading says «this is the forest list» without promising an interaction; the real control belongs to the task that adds the second segment. The icon changes now because the name already says more than forests (altitude, soil) and T3 would have had to change it.
 
 **Discarded:** keeping `TreePine` (reads as forests only); the one-segment control (looked clickable); renaming the layer and raster code (`forestOn`, the `forest` raster kind) along with the tab id, because they name the layer, which is still the forest classes; renaming the `fungus-obs-forest*` storage keys (a choice made before would be lost).
+
+## Species filter T3: Hábitat · De la seta, how it reads and what it hides (2026-11-15)
+
+**Decision (Marcos, table of options):** the habitat of the chosen species is painted with the five bands of Condiciones on `factor × 100` (0.5 reads «Regular»), calibrated live afterwards; the second segment is «De la seta» / «Del bolet» / «By mushroom» with the title «Hábitat de {name}» («Hàbitat: {name}», «Habitat of {name}»); the legend is a visible bar with «Poco adecuado» → «Muy adecuado» and a visible note «No depende de la fecha ni del clima»; the map waits for the species block, the elevation and the forest raster (a failed soil raster paints without it and says so); Meteo's «Condiciones queda oculto mientras Hábitat muestra la seta» shows only with Meteo on.
+
+**Why:** the five bands already mean red-to-green fit for the user, so the habitat reads without a second legend to learn. The note is what tells it apart from Condiciones, so it is not hidden in a tip. With Meteo off nothing is hidden, so a notice would be false. Built by hand, `habitatFactors` is the existing bulk version of `factorAt`.
+
+**Discarded:** bands of its own or a single hue with opacity (revisit after the field comparison); painting altitude first and refining (a flicker with a wrong first picture); dimming Condiciones' controls under the notice (lowers text contrast); the note in an `InfoTip`; «Hàbitat d'{name}» (elision).
+
+**Known:** `forestFactor` is 1 from 40 % forest, so most good forest reads «Excelente» and the altitude range is a hard cut ± 150 m: a nearly two-colour map is possible for species with weights near 1. To compare with field notes before judging the mapping.

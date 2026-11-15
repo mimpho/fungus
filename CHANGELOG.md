@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Observatory: Hábitat · De la seta, where the chosen species can grow (2026-11-15, `feat/observatory-species-filter-habitat`, T3 of `epic/observatory-species-filter`)
+
+Front end only (no migration, no variable, no dependency, no back-end change). Plan and as-built notes: `memory/observatory-species-filter-plan.md`.
+
+- **Segments:** the heading «Bosques» of the Hábitat panel is now the control **Bosques · De la seta** (as Meteo's, `aria-pressed`). Without an active species the second segment is `aria-disabled` and says «Elige una seta» (CA «Tria un bolet», EN «Pick a mushroom»). Names: «De la seta» / «Del bolet» / «By mushroom»; title «Hábitat de {name}» / «Hàbitat: {name}» / «Habitat of {name}». The choice is stored in `fungus-obs-habitat-view` (`forest` | `species`); a stored `species` with no active species behaves as `forest`.
+- **Map:** per pixel of the elevation grid, nothing outside the species' altitude range ± 150 m; inside it the habitat factor (forest share × weights through `forestFactor`, times the soil pH fit), coloured with the five bands of Condiciones on `factor × 100` (0.5 reads «Regular»); under 0.05 nothing. No cells, no weather, no day, no season: out of season it still paints. New `src/lib/habitatLayer.js`; `reliefLayer.js` exports `habitatFactors`, `matchClasses`, `RANGE_MARGIN_M` and `MIN_FACTOR`. Same pane (350), blend and opacity per base map as Condiciones (`ObservatoryMap` takes `habitatMap`).
+- **Data:** the species block of the layer answer (`useProbabilityLayer`), also asked while «De la seta» is shown with Meteo off, plus the elevation, forest and substrate rasters. It paints when the block, the elevation and the forest raster are ready; if the soil raster fails it paints altitude and forest and says so.
+- **Legend:** five-block bar «Poco adecuado» → «Muy adecuado», the note «No depende de la fecha ni del clima» (visible, not in a tip), «Calculando el hábitat…» while it loads, «Sin datos de bosque para esta seta…» when `forest_classes` is null and a line when the species gives nothing to judge by.
+- **Exclusion:** while «De la seta» is shown (tab switch on) the Condiciones picture and the forest classes are not drawn; Meteo's panel says so («Condiciones queda oculto mientras Hábitat muestra la seta») only when Meteo is on. Going back to Bosques, switching Hábitat off or clearing the species brings back what was there. The credit «Open-Meteo» on the map follows Meteo or a picked point, not the habitat.
+- **Contrast (DOM, 375 px phone and desktop pane, dark / light):** selected segment 5.4:1 / 4.9:1; unselected segment 5.7:1 / 12.4:1 (it was 4.33:1 with `cream/80`, now `text-cream`); title 6.9:1 / 14.5:1; legend ends and note 5.1:1 / 7.5:1; Meteo's notice 5.7:1 / 12.4:1.
+- **Not measured / not seen:** exactly 390 and 1280 px (the pane is 800 px and the emulator 375 px), keyboard and screen reader, a real device, the field calibration with *deliciosus*, *cibarius* and *cornucopioides* (only *Boleto* was looked at), the habitat with forecast data (the local database has none).
+
 ### Changed — Observatory: the Bosque tab is now Hábitat (2026-11-15, `chore/observatory-species-filter-habitat-tab`, T2 of `epic/observatory-species-filter`)
 
 Front end only. A rename with no new logic; T3 gives the tab its second map (where the chosen species can grow).
