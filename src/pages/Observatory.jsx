@@ -25,7 +25,6 @@ import { MeteoPanel } from '../components/observatory/nav/MeteoPanel'
 import { ZonasPanel } from '../components/observatory/nav/ZonasPanel'
 import { HabitatPanel } from '../components/observatory/nav/HabitatPanel'
 import { ObservedZone } from '../components/observatory/ObservedZone'
-import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList } from '../components/observatory/SavedPoints'
 import { ObsModal, isDialogAbove } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
@@ -33,6 +32,7 @@ import { TabRail } from '../components/observatory/nav/TabRail'
 import { NavPanel } from '../components/observatory/nav/NavPanel'
 import { ViewButton, ViewPanel, ZoomButtons } from '../components/observatory/nav/ViewControls'
 import { MapLoadingBar } from '../components/observatory/nav/MapLoadingBar'
+import { SpeciesSheet } from '../components/observatory/speciesSheet/SpeciesSheet'
 import { PhoneTabBar, SHEET_MS } from '../components/observatory/nav/PhoneTabBar'
 
 const BASEMAPS = ['satellite', 'streets', 'relief']
@@ -233,6 +233,9 @@ export default function Observatory() {
   const [fullscreenState, setFullscreenState] = useState(false)
   const fullscreen = fullscreenState
   const safeTop = fullscreen && phone // the phone's fullscreen reaches under the camera hole: see fullscreenTop
+  const [speciesH, setSpeciesH] = useState(0) // the species' bar (or card) on the phone: the point's sheet rides above it
+  // The point's sheet folds when another sheet is unfolded, and only unfolds when it is itself tapped (or a new point is picked)
+  const [pointFolded, setPointFolded] = useState(false)
   const [sheetH, setSheetH] = useState(0) // height of the point's sheet on the phone, for the map to keep the point above it
   const [barH, setBarH] = useState(0) // height the phone's tab bar covers (with a tab's sheet open, the sheet too)
   const [barRestH, setBarRestH] = useState(0) // the bar alone: the map's own controls at the bottom (zoom, credits) sit above it
@@ -304,10 +307,21 @@ export default function Observatory() {
 
   // A tab or Vista opens its panel. Below 1024px the point card and a panel take turns; on the phone
   // (one sheet at a time) opening a tab's sheet or Vista also drops the picked point.
+  // On the phone the sheets work as an accordion: only one is unfolded. A tab's sheet folds the point's sheet and the species' card
+  // (they stay in view, folded); unfolding one of them closes the tab's sheet. Wider screens take turns instead.
+  const [speciesCloseSignal, setSpeciesCloseSignal] = useState(0)
   function toggleNav(tab) {
-    if (!wide && nav.openTab !== tab) setPending(null)
+    if (nav.openTab !== tab) {
+      if (!wide && !phone) setPending(null)
+      if (phone) setPointFolded(true)
+      setSpeciesCloseSignal(n => n + 1)
+    }
     nav.toggleTab(tab)
   }
+  // The species' card went up (or down): unfolding it closes a tab's sheet
+  const onSpeciesOpenChange = value => { if (value && phone) { nav.close(); setPointFolded(true) } }
+  // Tapping the point's folded sheet unfolds it: the others fold or close
+  const expandPoint = () => { setPointFolded(false); setSpeciesCloseSignal(n => n + 1); nav.close() }
 
   // Esc, one layer at a time: the phone's fullscreen, then the zone's layer, then an open panel, then the point's card
   // (through a ref: the listener must see the current zone)
@@ -345,6 +359,7 @@ export default function Observatory() {
       setPending(null)
       return
     }
+    setPointFolded(false)
     setPending({ lat, lon })
   }
 
@@ -515,7 +530,7 @@ export default function Observatory() {
               basemap={basemap}
               flyTo={flyTo}
               dataSources={[(probabilityOn || pending) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
-              centerAbove={phone ? { top: 72, bottomPx: barH + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
+              centerAbove={phone ? { top: 72, bottomPx: barH + (speciesH > 24 ? speciesH - 24 : 0) + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
               className="h-full"
             />
             {/* The hint is a toast under the search (it used to sit on the tab bar): it goes after a few seconds, or as soon as the map is used */}
@@ -567,18 +582,29 @@ export default function Observatory() {
                 renderPanel={tab => (tab === 'view'
                   ? <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemapAfterFold} onClose={nav.close} flat fullscreen={fullscreen} onFullscreen={setFullscreenAfterFold} />
                   : navPanel(tab, { flat: true }))}
-                joined={Boolean(pending)}
+                reservePx={(speciesH > 24 ? speciesH - 24 : 0) + (pending ? Math.max(0, sheetH - 24) : 0)}
                 onHeight={setBarH}
                 onBarHeight={setBarRestH}
               />
             )}
             {/* Desktop: the search never reaches the rail, nor an open panel (rail 16 + 76, panel 12 + 360, gap 12) */}
-            <div className={`absolute z-[1100] ${safeTop ? '' : 'top-3 left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(12) : undefined}>
+            <div className={`absolute z-[1115] ${safeTop ? '' : 'top-3 left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(12) : undefined}>
               <MapSearchBar onPlace={handleSearchSelect} speciesId={layerSpecies} onSpecies={chooseSpecies} className={`pointer-events-auto w-full ${phone ? '' : 'max-w-[30rem]'}`} />
             </div>
-            {pending && (
-              <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} onSheetHeight={setSheetH} sheetBottomPx={phone ? barH : 0} />
-            )}
+            {/* The point's sheet and the species' sheet are one stack in the page's flow (from the bottom: species, point), so folding or
+                unfolding one moves the ones above it with it and none ever leaves a gap. Phone: above the tab bar, as bottom sheets.
+                Desktop (and tablet): the same two blocks as cards, in a column at the bottom left. */}
+            <div
+              className={phone
+                ? 'absolute inset-x-0 z-[1100] flex flex-col justify-end pointer-events-none'
+                : 'absolute z-[1100] left-3 bottom-3 w-[396px] max-w-[calc(100%-6rem)] max-h-[calc(100%-6rem)] flex flex-col justify-end gap-2 pointer-events-none'}
+              style={phone ? { top: 72, bottom: Math.max(0, barH - 24) } : undefined}
+            >
+              {pending && (
+                <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} folded={phone && pointFolded} onExpand={expandPoint} onSheetHeight={setSheetH} />
+              )}
+              <SpeciesSheet speciesId={layerSpecies} lens={habitatShown ? 'habitat' : probabilityOn ? 'conditions' : null} onClear={() => setLayerSpecies(null)} phone={phone} onOpenChange={onSpeciesOpenChange} onStackHeight={setSpeciesH} closeSignal={speciesCloseSignal} />
+            </div>
           </div>
           </div>
 
@@ -616,11 +642,6 @@ export default function Observatory() {
             </div>,
             document.body,
           )}
-
-          {/* What is below the map keeps the site's width */}
-          <div className="max-w-7xl mx-auto px-4 pt-8 pb-20">
-            <TerritorySection active={observed} onObserve={handleObserve} />
-          </div>
         </>
       )}
 

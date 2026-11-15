@@ -13,6 +13,7 @@ export function NavCheckbox({ checked, onChange, label, swatch = null, disabled 
     <button
       type="button"
       role="checkbox"
+      data-drag-ok=""
       aria-checked={checked}
       aria-disabled={disabled || undefined}
       aria-label={ariaLabel}
