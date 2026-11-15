@@ -1,10 +1,10 @@
-import { Gauge, Map as MapIcon, TreePine } from 'lucide-react'
+import { Gauge, Map as MapIcon, Mountain } from 'lucide-react'
 import { useApp } from '../../../contexts/AppContext'
 
 export const TAB_META = {
   data: { icon: Gauge, label: 'obsTabMeteo' },
   zones: { icon: MapIcon, label: 'obsTabZones' },
-  forest: { icon: TreePine, label: 'obsTabForest' },
+  habitat: { icon: Mountain, label: 'obsTabHabitat' },
 }
 
 const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-cream/50'
@@ -36,7 +36,7 @@ export function TabRail({ openTab, on, onToggle, panelId }) {
   const { t } = useApp()
   return (
     <nav aria-label={t.obsLayersTitle} className="w-[76px] rounded-[22px] map-surface shadow-float p-1.5 py-2 flex flex-col gap-1">
-      {['data', 'zones', 'forest'].map(id => (
+      {['data', 'zones', 'habitat'].map(id => (
         <TabButton key={id} id={id} open={openTab === id} on={on[id]} onClick={() => onToggle(id)} panelId={panelId} className="w-full h-[68px]" />
       ))}
     </nav>

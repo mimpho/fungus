@@ -46,7 +46,7 @@ export function scoreAtElevation(bands, elevation, step) {
 // neighbour takes over, so the colour changes over a whole cell width instead of at a border.
 const REACH = 2
 // Same slack the backend gives a species' altitude range (altitude_fit)
-const RANGE_MARGIN_M = 150
+export const RANGE_MARGIN_M = 150
 // Share of forest the species fits below which nothing is painted (the point's species list uses
 // the same 10 %), and the share from which the forest does not lower the probability any more.
 const FOREST_MIN = 0.1
@@ -54,7 +54,7 @@ const FOREST_FULL = 0.4
 // Substrate shares below this (of the pixel) count as 'no data': the soil does not judge it
 const SOIL_MIN_SHARE = 0.05
 // A habitat factor below this paints nothing
-const MIN_FACTOR = 0.05
+export const MIN_FACTOR = 0.05
 
 /**
  * [[index in the raster, weight], ...] of the forest classes a species fits. `weights` is the
@@ -144,7 +144,7 @@ export function buildReliefGrid(raster, cells) {
  *    raster; the pixel takes the mean over the classes present there (no filter where no data).
  * Rasters that do not share the elevation raster's grid are ignored.
  */
-function habitatFactors(grid, habitat) {
+export function habitatFactors(grid, habitat) {
   const N = grid.width * grid.height
   if (!habitat || grid.flat) return null
   const usable = r => r && r.width * r.height === N
@@ -478,7 +478,7 @@ export function reliefGrid(raster, cells) {
 }
 
 /** The species' soil factors in the order of the raster's classes (by name; 1 where unknown). */
-function matchClasses(names, factors, rasterClasses) {
+export function matchClasses(names, factors, rasterClasses) {
   return rasterClasses.map(c => {
     const i = names?.indexOf(c) ?? -1
     return i >= 0 ? factors[i] : 1

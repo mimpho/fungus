@@ -70,7 +70,7 @@ chore/* (project-wide)  ──squash──▶  main (directly)
 
 **feat/fix/chore → epic**: squash merge. One logical commit per feature, with Conventional Commits message. On GitHub, every PR into an `epic/*` branch is integrated with *Squash and merge* and the commit title is the PR title; never *Create a merge commit* (retro of `epic/observatory-navigation`: #164 and #174 entered with «Merge pull request #… from …»). The repository's squash default is set to «Pull request title», and merge commits are only for the epic → `main` merge, which is done locally.
 
-> ⚠️ **BEFORE running the squash-merge commands**, complete the doc checklist below. No exceptions — not even for small branches.
+> ⚠️ **BEFORE the squash and merge on GitHub**, complete the doc checklist below. No exceptions — not even for small branches.
 
 **Doc checklist (run this first, every time):**
 
@@ -115,7 +115,7 @@ git checkout epic/observatory && git merge main
 |---|---|
 | Never rebase `epic/*` or `main` | Shared branches — rewriting history breaks everyone's local copy |
 | Never `push --force` to `epic/*` or `main` | Same reason |
-| QA before squash | `git checkout <branch>` for manual QA. Only provide the squash+delete block after QA is confirmed |
+| QA before squash | `git checkout <branch>` for manual QA. Only provide the local clean-up commands after QA is confirmed and the PR is squashed on GitHub |
 | Tag after every epic merged into main | `git tag -a vX.Y.0` immediately after the merge, with the next free MINOR (the version is assigned here, not before) |
 | Delete feature branches after merge | Use `git branch -D` (force) — squash leaves the tip unreachable |
 
@@ -134,10 +134,9 @@ git fetch origin && git rebase epic/observatory
 # QA — checkout for manual inspection
 git checkout feat/observatory-scoring-v2
 
-# After QA passes — squash + delete (paste the whole block)
-git checkout epic/observatory && \
-git merge --squash feat/observatory-scoring-v2 && \
-git commit -m "feat(scoring): add scoring v2 (pure functions)" && \
+# After QA passes: Squash and merge on GitHub (the PR is integrated there, not from the command line), then clean up locally
+git checkout epic/observatory
+git pull --ff-only
 git branch -D feat/observatory-scoring-v2
 
 # Phase close — merge to main + tag
@@ -201,9 +200,17 @@ Produce two documents in `memory/`:
 
 **Components with states:** a component with several states or behaviours (accordion, sticky bar, placeholder, popover) is agreed with a table of options before it is coded, with the states it has and what stays the same height; the visual iterations then adjust details, not the model.
 
+**Stacked components (retro of `epic/observatory-species-filter`):** when several elements share an edge (the phone's bottom sheets: tab bar, species, point), the kick-off table also gives, per device, the **order of the stack, what folds when another one opens, what only a tap on it unfolds, and what really closes**. T4 settled these live (accordion, fold instead of close, desktop column) after building positions one by one, and the stack had to be rebuilt as one column in the page's flow. Stacked elements go in the same flow container, never positioned one by one from measured heights.
+
 **Where each control sits:** the same kick-off table gives, for every new control, its place on desktop and on phone (Vista moved twice in `epic/observatory-navigation`, and on the phone it only found its place in T2).
 
 **Heavy work and transitions:** a change that holds the main thread (a new base map, a layer picture) is not started in the same click as a transition (a folding sheet, a colour swap): run it after the transition ends, and do not put `transition-colors` on elements that swap fill and text colour together. See `memory/gotchas.md`, «Frontend — transitions and busy threads».
+
+**Gestures and animation on a real device:** a drag, a swipe or a fold animation is checked with a finger on a phone before its task closes. Synthetic touch events and the QA pane (it paints no idle frames) only prove the logic.
+
+**Experiments:** a task that Marcos wants to see live before deciding is built as an experiment: its own folder, one hook-in line in the page and a switch (`localStorage`), with the recipe to remove it written in the plan («as built»), as in T4 of `epic/observatory-species-filter`. Anything it removes or reworks outside its scope (the old territory ranking, the phone's tab bar) is said in the plan and in the CHANGELOG, or gets its own task.
+
+**Pixel alignment:** controls that must line up with another element (a ×, a handle) use px, not `rem` (base 18 px), and fixed heights where a neighbour's position depends on them; a scroll bar changes the width of what it holds, so a sheet that must not scroll gets its height from its content with a few px of slack (`memory/gotchas.md`, «Frontend — bottom sheets»).
 
 **Contrast per task:** a UI task of an epic with a contrast target in its PRD (≥ 4.5:1 for text) measures it in the light and the dark theme before it closes, with the real surface behind the text; it does not wait for the last task (T5 of `epic/observatory-navigation` found failures from T1–T4). Disabled items are exempt.
 

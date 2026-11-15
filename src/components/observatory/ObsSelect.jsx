@@ -2,14 +2,15 @@
  * Select of the Observatory: no border, soft fill, and the chevron placed inside on the right
  * (the native arrow is hidden). `className` goes on the wrapper, so the caller decides its width.
  */
-export function ObsSelect({ id, value, onChange, children, className = '' }) {
+export function ObsSelect({ id, value, onChange, children, className = '', disabled = false }) {
   return (
     <div className={`relative ${className}`}>
       <select
         id={id}
         value={value}
         onChange={onChange}
-        className="appearance-none w-full pl-3 pr-9 py-2 rounded-xl bg-cream/[0.08] hover:bg-cream/[0.12] text-base md:text-sm text-cream outline-none focus-visible:ring-2 focus-visible:ring-cream/30 cursor-pointer transition-colors [&>option]:bg-modal [&>option]:text-cream"
+        disabled={disabled}
+        className="appearance-none w-full pl-3 pr-9 py-2 rounded-xl bg-cream/[0.08] hover:bg-cream/[0.12] text-base md:text-sm text-cream outline-none focus-visible:ring-2 focus-visible:ring-cream/30 cursor-pointer disabled:cursor-default disabled:opacity-60 transition-colors [&>option]:bg-modal [&>option]:text-cream"
       >
         {children}
       </select>

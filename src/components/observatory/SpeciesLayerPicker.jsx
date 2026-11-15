@@ -1,8 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
-import { useSpecies } from '../../hooks/useSpecies'
 import { LEGEND_BANDS } from '../../lib/layerColors'
-import { buildPickerRows, matchesQuery } from '../../lib/speciesList'
 import { fill, formatDay } from '../../lib/thermometer'
 import { LayerDayControl, layerDays } from './LayerDayControl'
 import { LayerLegend } from './nav/LayerLegend'
@@ -27,95 +24,17 @@ export function seasonNote(data, speciesId, t, lang) {
 }
 
 /**
- * Condiciones, the first segment of the Meteo tab: a combobox that filters the whole catalogue as you
- * type (scientific name, common names in the app language, Latin synonyms — the same match as the
- * species list of a point). One species at a time (none = the mean of the excellent ones): choosing
- * another replaces it, so the colour scale always means the same; comparing is switching species.
+ * Condiciones, the first segment of the Meteo tab. The species is the map's (the second half of the search
+ * bar), not this panel's: a line says which one the colours are for (none = the mean of the excellent ones).
  * Under it, the shared day slider and the legend, always shown (with Meteo off the panel dims them),
  * and what the layer is doing (calculating, error, season, nothing to show).
- * `layer` is the useProbabilityLayer state of the chosen species; `date` the reference day asked for
- * (null = the last day with data) and `onDateChange` how the slider changes it. `layerOn`: the layer is
- * switched on, so a missing answer means it is on its way.
+ * `speciesId` / `speciesName`: the map's active species (or null); `onClearSpecies` takes it off (the «Quitar» chip). `layer` is the useProbabilityLayer state
+ * of that species; `date` the reference day asked for (null = the last day with data) and `onDateChange`
+ * how the slider changes it. `layerOn`: the layer is switched on, so a missing answer means it is on its way.
  */
-export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, onDateChange, forestApplied = false, soilApplied = false, layerOn = false, className = '' }) {
+export function SpeciesLayerPicker({ speciesId, speciesName = null, onClearSpecies = null, layer, date = null, onDateChange, forestApplied = false, soilApplied = false, layerOn = false, className = '' }) {
   const { t, lang } = useApp()
-  const { species: catalog } = useSpecies()
-  const listId = useId()
-  const rows = useMemo(() => buildPickerRows(catalog, lang), [catalog, lang])
-  const chosen = useMemo(() => rows.find(r => r.id === speciesId) ?? null, [rows, speciesId])
-  const [text, setText] = useState('')
-  const [open, setOpen] = useState(false)
-  const [active, setActive] = useState(-1)
-  const inputRef = useRef(null)
-  const rootRef = useRef(null)
-  const typedRef = useRef(false) // the text was typed (a search), not put there by choosing
 
-  // The box shows the chosen species' name; typing turns it into a search
-  useEffect(() => {
-    if (chosen && !typedRef.current) setText(chosen.name)
-    if (!speciesId) setText('')
-  }, [chosen, speciesId])
-
-  const options = useMemo(
-    () => (typedRef.current && text.trim() ? rows.filter(r => matchesQuery(r, text)) : rows),
-    [rows, text],
-  )
-
-  // Click outside closes the list
-  useEffect(() => {
-    if (!open) return undefined
-    const onDown = e => {
-      if (rootRef.current?.contains(e.target)) return
-      setOpen(false)
-      typedRef.current = false
-      setText(chosen?.name ?? '')
-    }
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [open, chosen])
-
-  function choose(row) {
-    if (!row) return
-    typedRef.current = false
-    setText(row.name)
-    setOpen(false)
-    setActive(-1)
-    inputRef.current?.blur()
-    onChange(row.id)
-  }
-
-  function clear() {
-    typedRef.current = false
-    setText(''); setActive(-1); setOpen(false)
-    onChange(null)
-    inputRef.current?.focus()
-  }
-
-  function onKeyDown(e) {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      if (!options.length) return
-      e.preventDefault()
-      setOpen(true)
-      const step = e.key === 'ArrowDown' ? 1 : -1
-      setActive(a => (a + step + options.length) % options.length)
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      if (open && options.length) choose(options[active] ?? options[0])
-    } else if (e.key === 'Escape' && open) {
-      e.stopPropagation() // closes the list only, not the point panel (page-level Esc)
-      setOpen(false)
-      typedRef.current = false
-      setText(chosen?.name ?? '')
-    }
-  }
-
-  // Keep the highlighted option in view while moving with the arrows
-  useEffect(() => {
-    if (active < 0) return
-    document.getElementById(`${listId}-${active}`)?.scrollIntoView({ block: 'nearest' })
-  }, [active, listId])
-
-  const showList = open && rows.length > 0
   // With Meteo off the panel shows only the controls: the data it may hold is the point's (another species)
   const data = layerOn ? layer.data : null
   const status = layerOn ? layer.status : 'idle'
@@ -125,72 +44,28 @@ export function SpeciesLayerPicker({ speciesId, onChange, layer, date = null, on
   const season = data?.date && status !== 'error' ? seasonNote(data, speciesId, t, lang) : null
 
   return (
-    <div ref={rootRef} className={className} role="group" aria-label={t.obsLayLabel}>
+    <div className={className} role="group" aria-label={t.obsLayLabel}>
       <div className="space-y-2">
-        <div className="relative">
-          <input
-            ref={inputRef}
-            data-wake-focus=""
-            type="text"
-            role="combobox"
-            aria-label={t.obsLaySearchLabel}
-            aria-expanded={showList}
-            aria-controls={listId}
-            aria-autocomplete="list"
-            aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            value={text}
-            placeholder={t.obsLayPlaceholder}
-            onChange={e => { typedRef.current = true; setText(e.target.value); setOpen(true); setActive(-1) }}
-            onFocus={e => { setOpen(true); if (chosen) e.target.select() }}
-            onKeyDown={onKeyDown}
-            className="w-full rounded-xl bg-cream/[0.08] pl-3 pr-10 py-2 text-base md:text-sm text-cream placeholder:text-cream/50 outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors"
-          />
-          {(text || speciesId) && (
-            <button
-              type="button"
-              onMouseDown={e => e.preventDefault()}
-              onClick={clear}
-              aria-label={t.obsLayClear}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-cream/60 hover:text-cream hover:bg-cream/10 transition-colors"
-            >
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {showList && (
-          <ul
-            id={listId}
-            role="listbox"
-            aria-label={t.obsLaySearchLabel}
-            className="max-h-56 overflow-auto rounded-xl bg-modal/95 py-1"
-          >
-            {options.length === 0 && (
-              <li role="presentation" className="px-3 py-2.5 text-sm text-cream/80">{t.obsLayNoMatch}</li>
-            )}
-            {options.map((o, i) => (
-              <li
-                key={o.id}
-                id={`${listId}-${i}`}
-                role="option"
-                aria-selected={o.id === speciesId}
-                onPointerDown={e => e.preventDefault()}
-                onClick={() => choose(o)}
-                onMouseEnter={() => setActive(i)}
-                className={`px-3 py-2 cursor-pointer ${i === active ? 'bg-white/10' : ''}`}
+        {speciesId && speciesName && (
+          <div className="px-1 flex items-center justify-between gap-2 min-h-[30px]">
+            <p className="min-w-0 text-[15px] font-semibold text-cream" data-testid="conditions-for">
+              {t.obsLayFor.replace('{name}', speciesName)}
+            </p>
+            {onClearSpecies && (
+              <button
+                type="button"
+                onClick={onClearSpecies}
+                aria-label={t.obsMapSpRemove.replace('{name}', speciesName)}
+                title={t.obsMapSpRemove.replace('{name}', speciesName)}
+                className="shrink-0 h-[30px] pl-3 pr-2.5 rounded-full bg-cream/[0.12] hover:bg-cream/[0.2] text-cream text-[13px] font-medium inline-flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
               >
-                <span className={`block text-sm text-cream ${o.id === speciesId ? 'font-semibold' : ''}`}>{o.name}</span>
-                {o.scientific && o.scientific !== o.name && (
-                  <span className="block text-xs text-cream/80 italic">{o.scientific}</span>
-                )}
-              </li>
-            ))}
-          </ul>
+                {t.obsMapSpRemoveShort}
+                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         )}
 
         <div className="px-1 pb-0.5 space-y-3" aria-live="polite">

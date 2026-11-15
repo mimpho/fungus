@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Maximize, Minimize } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
 import { useSavedPoints } from '../hooks/useSavedPoints'
@@ -12,19 +12,19 @@ import { pixelElevation, pixelScore, reliefGrid } from '../lib/reliefLayer'
 import { useElevationRasterState } from '../hooks/useElevationRaster'
 import { useClassRasterState } from '../hooks/useClassRaster'
 import { useSpecies } from '../hooks/useSpecies'
+import { useActiveSpecies } from '../hooks/useActiveSpecies'
 import { isInCatalonia } from '../lib/catalonia'
 import { samePoint } from '../lib/observatoryView'
 import { DEFAULT_METEO_LAYER, DEFAULT_RAIN_PRESET } from '../lib/meteoLayers'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
-import { MapSearch } from '../components/observatory/MapSearch'
+import { MapSearchBar } from '../components/observatory/MapSearchBar'
 import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
 import { layerDays } from '../components/observatory/LayerDayControl'
 import { MeteoPanel } from '../components/observatory/nav/MeteoPanel'
 import { ZonasPanel } from '../components/observatory/nav/ZonasPanel'
-import { BosquePanel } from '../components/observatory/nav/BosquePanel'
+import { HabitatPanel } from '../components/observatory/nav/HabitatPanel'
 import { ObservedZone } from '../components/observatory/ObservedZone'
-import { TerritorySection } from '../components/observatory/TerritorySection'
 import { SavedPointsList } from '../components/observatory/SavedPoints'
 import { ObsModal, isDialogAbove } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
@@ -32,12 +32,13 @@ import { TabRail } from '../components/observatory/nav/TabRail'
 import { NavPanel } from '../components/observatory/nav/NavPanel'
 import { ViewButton, ViewPanel, ZoomButtons } from '../components/observatory/nav/ViewControls'
 import { MapLoadingBar } from '../components/observatory/nav/MapLoadingBar'
+import { SpeciesSheet } from '../components/observatory/speciesSheet/SpeciesSheet'
 import { PhoneTabBar, SHEET_MS } from '../components/observatory/nav/PhoneTabBar'
 
 const BASEMAPS = ['satellite', 'streets', 'relief']
 const NAV_PANEL_ID = 'obs-nav-panel'
 const VIEW_PANEL_ID = 'obs-view-panel'
-const TAB_TITLE = { data: 'obsTabMeteo', zones: 'obsTabZones', forest: 'obsTabForest' }
+const TAB_TITLE = { data: 'obsTabMeteo', zones: 'obsTabZones', habitat: 'obsTabHabitat' }
 // Desktop: what a panel covers at the right of the map (rail 16 + 76, gap 12, panel 360, margin 16)
 const PANEL_CLEAR_PX = 480
 const HINT_MS = 6000 // how long «Haz clic en el mapa…» stays
@@ -47,6 +48,11 @@ const HINT_FADE_MS = 1500 // and how long it takes to fade out
 const CORNERS_ROW_KEY = 'fungus-obs-zones-corners'
 const FOREST_CLASSES_KEY = 'fungus-obs-forest-classes'
 const ALL_FOREST = FOREST_TYPES.map(f => f.key)
+// Hábitat's segment: the forest classes or the chosen species' habitat
+const HABITAT_VIEW_KEY = 'fungus-obs-habitat-view'
+function storedHabitatView() {
+  try { return localStorage.getItem(HABITAT_VIEW_KEY) === 'species' ? 'species' : 'forest' } catch (_e) { return 'forest' }
+}
 
 function storedCornersRow() {
   try { return localStorage.getItem(CORNERS_ROW_KEY) !== 'off' } catch (_e) { return true }
@@ -61,6 +67,17 @@ function storedForestClasses() {
   return new Set(ALL_FOREST)
 }
 
+// In fullscreen the map reaches the very top of the screen, under the phone's camera hole or notch: the search bar (and the hint
+// under it) start below the safe area (`viewport-fit=cover` makes env() real), and never closer than 40px to the top edge, for the
+// browsers that report no inset in fullscreen. `offset` is the usual distance from the map's top (12 for the bar, 80 for the hint).
+function fullscreenTop(offset) {
+  return {
+    top: `max(calc(env(safe-area-inset-top, 0px) + ${offset}px), ${offset + 28}px)`,
+    left: 'max(12px, calc(env(safe-area-inset-left, 0px) + 12px))',
+    right: 'max(12px, calc(env(safe-area-inset-right, 0px) + 12px))',
+  }
+}
+
 function store(key, value) {
   try { localStorage.setItem(key, value) } catch (_e) { /* per-viewer convenience only */ }
 }
@@ -73,7 +90,7 @@ function store(key, value) {
  */
 export default function Observatory() {
   const { t, isAuthenticated, authLoading, setAuthModal } = useApp()
-  const { point: observed, until, days, initialMeteo, observe, clear, setWindow, setMeteo } = useObservatoryView()
+  const { point: observed, until, days, initialMeteo, initialSpecies, observe, clear, setWindow, setMeteo, setSpecies: writeSpecies } = useObservatoryView()
   const saved = useSavedPoints(isAuthenticated)
   // A page opened on a point (URL) starts with that point's panel on the map
   const [pending, setPending] = useState(() => (observed ? { lat: observed.lat, lon: observed.lon } : null))
@@ -115,27 +132,30 @@ export default function Observatory() {
   const [rainPreset, setRainPreset] = useState(DEFAULT_RAIN_PRESET)
   // Probability layer (Meteo · Condiciones): one species at a time (null = the mean of the excellent ones)
   const probabilityOn = meteoOn && meteoKind === 'conditions'
-  const [layerSpecies, setLayerSpecies] = useState(initialMeteo?.species ?? null)
+  // The species is the whole map's (the search bar's second half, `seta` in the URL), not Meteo's: it stays with Meteo off
+  const { speciesId: layerSpecies, setSpecies: setLayerSpecies } = useActiveSpecies({ initial: initialSpecies, onChange: writeSpecies })
   const [layerDate, setLayerDate] = useState(initialMeteo?.day ?? null) // null = last day with data
   // Zonas: the switch draws the checked rows; only «Mis rincones» exists for now
   const [cornersRow, setCornersRowState] = useState(storedCornersRow)
   const setCornersRow = value => { setCornersRowState(value); store(CORNERS_ROW_KEY, value ? 'on' : 'off') }
   const cornersOn = nav.on.zones && cornersRow
   // Forest type layer (Bosque): the forest raster by dominant type; the panel's checkboxes say which classes show
-  const forestOn = nav.on.forest
+  const forestOn = nav.on.habitat
   const [forestShown, setForestShownState] = useState(storedForestClasses)
   const setForestShown = next => { setForestShownState(next); store(FOREST_CLASSES_KEY, JSON.stringify(ALL_FOREST.filter(k => next.has(k)))) }
-  const shownSpecies = probabilityOn ? layerSpecies : null
+  const shownSpecies = layerSpecies
   const { species: catalog } = useSpecies()
-  // A species the catalogue does not have (an old or mistyped link) is dropped without a notice: the
-  // layer falls back to the mean of the excellent ones
-  useEffect(() => {
-    if (layerSpecies && catalog?.length && !catalog.some(x => x.id === layerSpecies)) setLayerSpecies(null)
-  }, [catalog, layerSpecies])
+  // Hábitat · De la seta: stored «species» without an active species behaves as «forest». While it is shown, neither the
+  // conditions picture nor the forest classes are drawn (they would read as one map on the same scale)
+  const [habitatViewStored, setHabitatViewStored] = useState(storedHabitatView)
+  const habitatView = layerSpecies ? habitatViewStored : 'forest'
+  // Picking «De la seta» turns Meteo off: its Condiciones would be hidden by the habitat (same scale)
+  const setHabitatView = value => { setHabitatViewStored(value); store(HABITAT_VIEW_KEY, value); if (value === 'species') nav.setOn('data', false) }
+  const habitatShown = forestOn && habitatView === 'species'
   // The URL says what Meteo shows while it is on (history replaced: Back does not walk through the days)
   useEffect(() => {
-    setMeteo(meteoOn ? { layer: meteoKind, species: layerSpecies, day: layerDate } : null)
-  }, [meteoOn, meteoKind, layerSpecies, layerDate, setMeteo])
+    setMeteo(meteoOn ? { layer: meteoKind, day: layerDate } : null)
+  }, [meteoOn, meteoKind, layerDate, setMeteo])
   const speciesLabel = id => {
     const s = (catalog ?? []).find(x => x.id === id)
     return s?.commonNames?.[0] || s?.scientificName || ''
@@ -143,9 +163,12 @@ export default function Observatory() {
   // Switched on without a species: the mean of the excellent edibles that grow at each point
   // The layer's data is also loaded (not drawn) while a point is picked with the layer off: the
   // point's summary always shows the probability, the mean of the excellent edibles if no species is chosen
-  const layerId = probabilityOn ? (layerSpecies ?? ALL_EXCELLENT) : pending ? ALL_EXCELLENT : null
+  // Applying a species switches Condiciones on (the species is shown through it): Meteo on and its Condiciones segment
+  const showConditions = () => { if (!nav.on.data) nav.setOn('data', true); if (meteoKind !== 'conditions') setMeteoKind('conditions') }
+  // With «De la seta» shown the species is being looked at there: Meteo stays as it is
+  const chooseSpecies = id => { setLayerSpecies(id); if (id && !habitatShown) showConditions() }
+  const layerId = probabilityOn || pending || habitatShown ? (layerSpecies ?? ALL_EXCELLENT) : null
   const layer = useProbabilityLayer(isAuthenticated ? layerId : null, { date: layerDate ?? undefined })
-  const chooseLayerSpecies = id => { setLayerSpecies(id); setLayerDate(null) }
   const elevationState = useElevationRasterState(Boolean(layerId) && isAuthenticated)
   const forestState = useClassRasterState('forest', (Boolean(layerId) || forestOn) && isAuthenticated)
   const substrateState = useClassRasterState('substrate', Boolean(layerId) && isAuthenticated)
@@ -153,7 +176,18 @@ export default function Observatory() {
   const forest = forestState.raster
   const substrate = substrateState.raster
   const habitat = useMemo(() => ({ forest, substrate }), [forest, substrate])
-  const forestTypes = useMemo(() => (forestOn && forest ? { raster: forest, active: forestShown } : null), [forestOn, forest, forestShown])
+  const forestTypes = useMemo(() => (forestOn && !habitatShown && forest ? { raster: forest, active: forestShown } : null), [forestOn, habitatShown, forest, forestShown])
+  // The habitat picture waits for the layer's species block, the elevation and the forest raster; the soil may fail (the map then
+  // counts altitude and forest, and says so). A species with nothing to judge by shows a line instead.
+  const speciesBlock = !Array.isArray(layer.data?.species) ? layer.data?.species : null
+  const habitatReady = habitatShown && Boolean(speciesBlock && elevation && forest && (substrate || substrateState.status === 'error'))
+  const habitatMap = useMemo(() => (habitatReady ? { elevation, species: speciesBlock, rasters: { forest, substrate } } : null), [habitatReady, elevation, speciesBlock, forest, substrate])
+  const habitatInfo = habitatShown ? {
+    status: !habitatReady ? 'loading'
+      : speciesBlock.elevation_min_m == null && !speciesBlock.forest_classes && !speciesBlock.substrate_factors ? 'noinfo' : 'ready',
+    noForest: habitatReady && !speciesBlock.forest_classes,
+    noSoil: habitatReady && !substrate,
+  } : null
   // What the layer paints at the spot picked on the map ({ score, count }; null = nothing there)
   const layerValue = useMemo(() => {
     const data = layer.data
@@ -194,10 +228,14 @@ export default function Observatory() {
     window.addEventListener('resize', check)
     return () => { scroller.removeEventListener('scroll', check); window.removeEventListener('resize', check) }
   }, [layerOpen, observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Phone only: the map over the whole screen (the site's header too) and, where the browser allows it, the browser's own
+  // The map over the whole screen (the site's header too) and, where the browser allows it, the browser's own
   // fullscreen (iPhone Safari has none: there only the header goes). The state follows the browser leaving fullscreen by itself.
   const [fullscreenState, setFullscreenState] = useState(false)
-  const fullscreen = fullscreenState && phone
+  const fullscreen = fullscreenState
+  const safeTop = fullscreen && phone // the phone's fullscreen reaches under the camera hole: see fullscreenTop
+  const [speciesH, setSpeciesH] = useState(0) // the species' bar (or card) on the phone: the point's sheet rides above it
+  // The point's sheet folds when another sheet is unfolded, and only unfolds when it is itself tapped (or a new point is picked)
+  const [pointFolded, setPointFolded] = useState(false)
   const [sheetH, setSheetH] = useState(0) // height of the point's sheet on the phone, for the map to keep the point above it
   const [barH, setBarH] = useState(0) // height the phone's tab bar covers (with a tab's sheet open, the sheet too)
   const [barRestH, setBarRestH] = useState(0) // the bar alone: the map's own controls at the bottom (zoom, credits) sit above it
@@ -250,23 +288,40 @@ export default function Observatory() {
     clearTimeout(foldTimer.current)
     foldTimer.current = setTimeout(() => chooseBasemap(value), SHEET_MS + 40)
   }
+  // The fullscreen switch of the phone's Vista sheet: the sheet folds first, then the page changes (the same reason)
+  function setFullscreenAfterFold(on) {
+    nav.close()
+    clearTimeout(foldTimer.current)
+    foldTimer.current = setTimeout(() => (on ? enterFullscreen() : exitFullscreen()), SHEET_MS + 40)
+  }
 
   // What the map is waiting for, for the loading bar on its top edge (only layers that are on count)
   const { busy, failed } = useMapBusy(useMemo(() => [
-    { id: 'conditions', label: t.obsLayerProbability, on: probabilityOn, loading: layer.status === 'loading', error: layer.status === 'error', retry: layer.retry },
-    { id: 'elevation', label: t.obsLayerProbability, on: probabilityOn, loading: elevationState.status === 'loading', error: false },
-    { id: 'substrate', label: t.obsLayerProbability, on: probabilityOn, loading: substrateState.status === 'loading', error: false },
-    { id: 'forest', label: t.obsTabForest, on: forestOn || probabilityOn, loading: forestState.status === 'loading', error: forestOn && forestState.status === 'error', retry: forestState.retry },
+    { id: 'conditions', label: t.obsLayerProbability, on: probabilityOn || habitatShown, loading: layer.status === 'loading', error: layer.status === 'error', retry: layer.retry },
+    { id: 'elevation', label: t.obsLayerProbability, on: probabilityOn || habitatShown, loading: elevationState.status === 'loading', error: false },
+    { id: 'substrate', label: t.obsLayerProbability, on: probabilityOn || habitatShown, loading: substrateState.status === 'loading', error: false },
+    { id: 'forest', label: t.obsTabHabitat, on: forestOn || probabilityOn, loading: forestState.status === 'loading', error: forestOn && forestState.status === 'error', retry: forestState.retry },
     { id: 'corners', label: t.obsLayerCorners, on: cornersOn, loading: saved.status === 'loading', error: saved.status === 'error', retry: saved.reload },
     { id: 'drawing', label: '', on: true, loading: drawing, error: false },
-  ], [drawing, t, probabilityOn, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
+  ], [drawing, t, probabilityOn, habitatShown, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
 
   // A tab or Vista opens its panel. Below 1024px the point card and a panel take turns; on the phone
   // (one sheet at a time) opening a tab's sheet or Vista also drops the picked point.
+  // On the phone the sheets work as an accordion: only one is unfolded. A tab's sheet folds the point's sheet and the species' card
+  // (they stay in view, folded); unfolding one of them closes the tab's sheet. Wider screens take turns instead.
+  const [speciesCloseSignal, setSpeciesCloseSignal] = useState(0)
   function toggleNav(tab) {
-    if (!wide && nav.openTab !== tab) setPending(null)
+    if (nav.openTab !== tab) {
+      if (!wide && !phone) setPending(null)
+      if (phone) setPointFolded(true)
+      setSpeciesCloseSignal(n => n + 1)
+    }
     nav.toggleTab(tab)
   }
+  // The species' card went up (or down): unfolding it closes a tab's sheet
+  const onSpeciesOpenChange = value => { if (value && phone) { nav.close(); setPointFolded(true) } }
+  // Tapping the point's folded sheet unfolds it: the others fold or close
+  const expandPoint = () => { setPointFolded(false); setSpeciesCloseSignal(n => n + 1); nav.close() }
 
   // Esc, one layer at a time: the phone's fullscreen, then the zone's layer, then an open panel, then the point's card
   // (through a ref: the listener must see the current zone)
@@ -304,6 +359,7 @@ export default function Observatory() {
       setPending(null)
       return
     }
+    setPointFolded(false)
     setPending({ lat, lon })
   }
 
@@ -351,7 +407,8 @@ export default function Observatory() {
   const conditionsFor = layerOn => (
     <SpeciesLayerPicker
       speciesId={layerSpecies}
-      onChange={chooseLayerSpecies}
+      speciesName={layerSpecies ? speciesLabel(layerSpecies) : null}
+      onClearSpecies={() => setLayerSpecies(null)}
       layer={layer}
       date={layerDate}
       forestApplied={Boolean(forest && elevation && (layerSpecies ? layer.data?.species?.forest_classes : layer.data))}
@@ -366,7 +423,12 @@ export default function Observatory() {
       id={NAV_PANEL_ID}
       title={t[TAB_TITLE[tab]]}
       on={nav.on[tab]}
-      onSwitch={value => nav.setOn(tab, value)}
+      // Switching Meteo on while Hábitat shows the species turns Hábitat off: the two maps would be on the same scale
+      onSwitch={value => {
+        nav.setOn(tab, value)
+        if (tab === 'data' && value && habitatShown) nav.setOn('habitat', false)
+        if (tab === 'habitat' && value && habitatView === 'species') nav.setOn('data', false) // Hábitat back on with «De la seta» chosen
+      }}
       flat={flat}
       className={className}
     >
@@ -379,6 +441,7 @@ export default function Observatory() {
           onDateChange={setLayerDate}
           rainPreset={rainPreset}
           onRainPreset={setRainPreset}
+          hiddenNote={habitatShown && meteoOn ? t.obsMeteoHiddenByHabitat : null}
         />
       )}
       {tab === 'zones' && (
@@ -391,7 +454,17 @@ export default function Observatory() {
           }}
         />
       )}
-      {tab === 'forest' && <BosquePanel active={forestShown} onChange={setForestShown} loaded={Boolean(forest)} />}
+      {tab === 'habitat' && (
+        <HabitatPanel
+          active={forestShown}
+          onChange={setForestShown}
+          loaded={Boolean(forest)}
+          view={habitatView}
+          onView={setHabitatView}
+          speciesName={layerSpecies ? speciesLabel(layerSpecies) : null}
+          habitat={habitatInfo}
+        />
+      )}
     </NavPanel>
   )
   const savedList = <SavedPointsList saved={saved} observed={observed} onSelect={handleObserve} />
@@ -444,7 +517,8 @@ export default function Observatory() {
               saved={saved.points}
               showSaved={cornersOn}
               pinLabel={t.obsCornerPinLabel}
-              layer={probabilityOn ? layer.data : null}
+              layer={probabilityOn && !habitatShown ? layer.data : null}
+              habitatMap={habitatMap}
               elevation={elevation}
               habitat={habitat}
               forestTypes={forestTypes}
@@ -455,30 +529,17 @@ export default function Observatory() {
               label={t.obsMapLabel}
               basemap={basemap}
               flyTo={flyTo}
-              dataSources={[Boolean(layerId) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
-              centerAbove={phone ? { top: 72, bottomPx: barH + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
+              dataSources={[(probabilityOn || pending) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
+              centerAbove={phone ? { top: 72, bottomPx: barH + (speciesH > 24 ? speciesH - 24 : 0) + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
               className="h-full"
             />
             {/* The hint is a toast under the search (it used to sit on the tab bar): it goes after a few seconds, or as soon as the map is used */}
             {!hintGone && !pending && !observed && !(phone && nav.openTab) && (
-              <div style={{ transitionDuration: `${HINT_FADE_MS}ms` }} className={`absolute z-[1100] top-[80px] left-3 ${phone ? 'right-[64px]' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
+              <div style={{ transitionDuration: `${HINT_FADE_MS}ms`, ...(safeTop ? fullscreenTop(80) : {}) }} className={`absolute z-[1100] ${safeTop ? '' : 'top-[80px] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
                 <p role="status" className="w-fit max-w-[30rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white">
                   {t.obsMapHint}
                 </p>
               </div>
-            )}
-            {/* Phone: the fullscreen at the top, level with the search (44 px, centred on the 52 px search) */}
-            {phone && (
-              <button
-                type="button"
-                onClick={fullscreen ? exitFullscreen : enterFullscreen}
-                aria-pressed={fullscreen}
-                aria-label={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
-                title={fullscreen ? t.obsFullscreenExit : t.obsFullscreenEnter}
-                className="absolute z-[1100] top-[16px] right-3 w-[44px] h-[44px] rounded-full map-surface text-cream shadow-float flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
-              >
-                {fullscreen ? <Minimize size={20} aria-hidden="true" /> : <Maximize size={20} aria-hidden="true" />}
-              </button>
             )}
             {/* Desktop: Vista and the zoom at the bottom right; Vista's panel opens to their left. On the phone Vista is the
                 tab bar's fourth button and the map is zoomed with the fingers */}
@@ -490,7 +551,7 @@ export default function Observatory() {
                 </div>
                 {nav.openTab === 'view' && (
                   <div className="absolute z-[1100] right-[104px] bottom-5 w-[360px]">
-                    <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemap} onClose={nav.close} />
+                    <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemap} onClose={nav.close} fullscreen={fullscreen} onFullscreen={setFullscreenAfterFold} />
                   </div>
                 )}
               </>
@@ -519,20 +580,31 @@ export default function Observatory() {
                 panelId={NAV_PANEL_ID}
                 viewPanelId={VIEW_PANEL_ID}
                 renderPanel={tab => (tab === 'view'
-                  ? <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemapAfterFold} onClose={nav.close} flat />
+                  ? <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemapAfterFold} onClose={nav.close} flat fullscreen={fullscreen} onFullscreen={setFullscreenAfterFold} />
                   : navPanel(tab, { flat: true }))}
-                joined={Boolean(pending)}
+                reservePx={(speciesH > 24 ? speciesH - 24 : 0) + (pending ? Math.max(0, sheetH - 24) : 0)}
                 onHeight={setBarH}
                 onBarHeight={setBarRestH}
               />
             )}
             {/* Desktop: the search never reaches the rail, nor an open panel (rail 16 + 76, panel 12 + 360, gap 12) */}
-            <div className={`absolute z-[1100] top-3 left-3 ${phone ? 'right-[64px]' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`}>
-              <MapSearch onSelect={handleSearchSelect} className={`pointer-events-auto w-full ${phone ? '' : 'max-w-[30rem]'}`} />
+            <div className={`absolute z-[1115] ${safeTop ? '' : 'top-3 left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(12) : undefined}>
+              <MapSearchBar onPlace={handleSearchSelect} speciesId={layerSpecies} onSpecies={chooseSpecies} className={`pointer-events-auto w-full ${phone ? '' : 'max-w-[30rem]'}`} />
             </div>
-            {pending && (
-              <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} onSheetHeight={setSheetH} sheetBottomPx={phone ? barH : 0} />
-            )}
+            {/* The point's sheet and the species' sheet are one stack in the page's flow (from the bottom: species, point), so folding or
+                unfolding one moves the ones above it with it and none ever leaves a gap. Phone: above the tab bar, as bottom sheets.
+                Desktop (and tablet): the same two blocks as cards, in a column at the bottom left. */}
+            <div
+              className={phone
+                ? 'absolute inset-x-0 z-[1100] flex flex-col justify-end pointer-events-none'
+                : 'absolute z-[1100] left-3 bottom-3 w-[396px] max-w-[calc(100%-6rem)] max-h-[calc(100%-6rem)] flex flex-col justify-end gap-2 pointer-events-none'}
+              style={phone ? { top: 72, bottom: Math.max(0, barH - 24) } : undefined}
+            >
+              {pending && (
+                <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} folded={phone && pointFolded} onExpand={expandPoint} onSheetHeight={setSheetH} />
+              )}
+              <SpeciesSheet speciesId={layerSpecies} lens={habitatShown ? 'habitat' : probabilityOn ? 'conditions' : null} onClear={() => setLayerSpecies(null)} phone={phone} onOpenChange={onSpeciesOpenChange} onStackHeight={setSpeciesH} closeSignal={speciesCloseSignal} />
+            </div>
           </div>
           </div>
 
@@ -570,11 +642,6 @@ export default function Observatory() {
             </div>,
             document.body,
           )}
-
-          {/* What is below the map keeps the site's width */}
-          <div className="max-w-7xl mx-auto px-4 pt-8 pb-20">
-            <TerritorySection active={observed} onObserve={handleObserve} />
-          </div>
         </>
       )}
 

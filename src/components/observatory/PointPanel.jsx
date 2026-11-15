@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { Binoculars } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Binoculars, ChevronDown, X } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { fetchPointForest } from '../../services/observatoryService'
 import { formatCoords } from '../../lib/observatoryView'
+import { SheetHandle } from './SheetHandle'
+import { useSheetDrag } from '../../hooks/useSheetDrag'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { PointHabitat } from './PointHabitat'
 import { InfoTip } from './InfoTip'
@@ -12,6 +14,10 @@ import { CornerModals } from './CornerModals'
 import { DEFAULT_KIND, kindMeta, pinSvg } from '../../lib/cornerKinds'
 import { IC } from '../../lib/helpers'
 import { getScoreBand } from '../../lib/scoreBands'
+
+const BODY_PAD_Y = 9 // the unfolded body's padding: pt-1 (4.5) + pb-[4px] (rounded up)
+const UNFOLDED_PAD = 60 // clear space under the unfolded sheet's content, outside the scroll (36 of it show above the sheet below it)
+const FOLDED_PX = 104 // what the phone's point sheet shows of itself while folded: handle, title and coordinates
 
 const MACRO_KEY = {
   conifera: 'obsMacroConifera',
@@ -27,12 +33,38 @@ const MACRO_KEY = {
  * than 80% of the map: its content scrolls. `bottomPx`: it rises from above the phone's tab bar (which
  * stays over it, so the sheet slides in and out from behind the bar).
  */
-function PointSheet({ label, onClose, onHeight, bottomPx = 0, children }) {
+function PointSheet({ label, onFold, onExpand, leaving = false, folded = false, onHeight, children }) {
   const [entered, setEntered] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [dragging, setDragging] = useState(false)
-  const startY = useRef(0)
+  const [pull, setPull] = useState(0) // px the folded sheet has been pulled up by the finger
   const ref = useRef(null)
+  const bodyRef = useRef(null)
+  const contentRef = useRef(null)
+  // Natural height of the whole sheet (the folded and the unfolded heights are both px, so the change animates); folded, it shows its
+  // handle and its title block (one or two lines of name, the coordinates), no more. Unfolded it keeps 36 px clear of the sheet under it (24 of the 60 go under that sheet's rounded top)
+  const [fullPx, setFullPx] = useState(0)
+  const [foldedPx, setFoldedPx] = useState(FOLDED_PX)
+  useEffect(() => {
+    const content = contentRef.current
+    if (!content || typeof ResizeObserver === 'undefined') return undefined
+    // The handle plus the body's natural height (the body itself is clamped by this very max-height, so its content is what is watched)
+    // Always computed for the unfolded sheet, whatever state it is in now (folded, the body loses its top padding, so its own scrollHeight
+    // would come out short): handle + body's paddings + the content + the clear space under it, and 3 px of slack so a rounded height
+    // never raises a scroll bar
+    const measure = () => setFullPx(Math.ceil((ref.current?.firstElementChild?.getBoundingClientRect().height ?? 0) + BODY_PAD_Y + content.getBoundingClientRect().height + UNFOLDED_PAD + 3))
+    const ro = new ResizeObserver(measure)
+    ro.observe(content)
+    measure()
+    return () => ro.disconnect()
+  }, [])
+  useLayoutEffect(() => {
+    if (!folded) return
+    if (bodyRef.current) bodyRef.current.scrollTop = 0 // folded, the sheet only shows its title block: it must not stay scrolled
+    const el = ref.current
+    const head = el?.querySelector('[data-point-head]')
+    if (el && head) setFoldedPx(Math.ceil(head.getBoundingClientRect().bottom - el.getBoundingClientRect().top + 12))
+  }, [folded, label])
 
   useEffect(() => {
     let inner = 0
@@ -51,40 +83,80 @@ function PointSheet({ label, onClose, onHeight, bottomPx = 0, children }) {
     return () => { ro.disconnect(); onHeightRef.current?.(0) }
   }, [])
 
-  const onTouchStart = e => { startY.current = e.touches[0].clientY; setDragY(0); setDragging(true) }
-  const onTouchMove = e => setDragY(Math.max(0, e.touches[0].clientY - startY.current))
-  const onTouchEnd = () => {
-    const h = ref.current?.offsetHeight || 300
-    setDragging(false)
-    if (dragY > Math.min(h * 0.4, 120)) onClose()
-    setDragY(0)
-  }
+  // Dragging down folds the sheet (it stays, as a title bar, in the stack); dragging the folded one up, or tapping it, unfolds it
+  useSheetDrag(ref, {
+    direction: folded ? 'up' : 'down',
+    onStart: () => { setDragY(0); setPull(0); setDragging(true) },
+    onMove: dy => { if (folded) setPull(Math.max(0, -dy)); else setDragY(Math.max(0, dy)) }, // the sheet follows the finger: it grows (folded) or goes down
+    onEnd: dy => {
+      const h = ref.current?.offsetHeight || 300
+      setDragging(false)
+      setDragY(0)
+      setPull(0)
+      if (folded) { if (dy < -40) onExpand?.() } else if (dy > Math.min(h * 0.3, 90)) onFold?.()
+    },
+  })
 
+  // A block of the bottom stack (in the page's flow, above the species' sheet): when the sheets under it fold or unfold it moves with them
   return (
     <div
       ref={ref}
       role="dialog"
       aria-label={label}
       data-testid="point-sheet"
-      className="absolute z-[1100] inset-x-0 flex flex-col overflow-hidden map-surface rounded-t-[24px] shadow-bottom"
+      onClick={folded ? e => { if (!e.target.closest('button, a')) onExpand?.() } : undefined}
+      className={`relative z-[1] shrink min-h-0 flex flex-col overflow-hidden map-surface rounded-t-[24px] shadow-bottom pointer-events-auto ${folded ? 'cursor-pointer' : ''}`}
       style={{
-        bottom: bottomPx,
-        maxHeight: `calc(80% - ${bottomPx}px)`,
-        transform: dragging ? `translateY(${dragY}px)` : entered ? 'translateY(0)' : 'translateY(100%)',
-        transition: dragging ? 'none' : 'transform 0.3s cubic-bezier(0.32,0.72,0,1)',
+        paddingBottom: folded ? 0 : UNFOLDED_PAD,
+        // Folded (another sheet is open under it): just its handle and title stay in view (24 px of its foot go under the sheet below)
+        maxHeight: folded ? `${fullPx ? Math.min(fullPx, foldedPx + 24 + pull) : foldedPx + 24}px` : fullPx ? `${fullPx}px` : undefined,
+        transform: leaving ? 'translateY(100%)' : dragging ? `translateY(${dragY}px)` : entered ? 'translateY(0)' : 'translateY(100%)',
+        transition: dragging && !leaving ? 'none' : 'transform 0.3s cubic-bezier(0.32,0.72,0,1), max-height 0.3s cubic-bezier(0.32,0.72,0,1)',
       }}
     >
-      <div
-        className="shrink-0 pt-3 pb-2 flex justify-center touch-none cursor-grab select-none"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        <div className="w-10 h-1 rounded-full bg-cream/25" />
+      <SheetHandle onToggle={folded ? onExpand : onFold} />
+      {/* pb-[4px]: the last button's ring is drawn outside its box and the scroll area would clip it */}
+      <div ref={bodyRef} className={`min-h-0 overscroll-contain px-4 ${folded ? 'pt-0 overflow-hidden' : 'pt-1 overflow-y-auto'} pb-[4px] space-y-3`}>
+        <div ref={contentRef} className="space-y-3">{children}</div>
       </div>
-      <div className={`min-h-0 overflow-y-auto overscroll-contain px-4 pt-1 space-y-3 ${bottomPx ? 'pb-4' : 'pb-[max(1rem,env(safe-area-inset-bottom))]'}`}>
-        {children}
-      </div>
+    </div>
+  )
+}
+
+/**
+ * The point's card on desktop: a block of the bottom-left stack. Folded it keeps its title bar (the chevron in its header folds and
+ * unfolds it, as on the phone's sheet); the height change is animated between two measured px values.
+ */
+function PointCard({ label, folded, onUnfold, children }) {
+  const ref = useRef(null)
+  const contentRef = useRef(null)
+  const [fullPx, setFullPx] = useState(0)
+  const [foldedPx, setFoldedPx] = useState(0)
+  useEffect(() => {
+    const content = contentRef.current
+    if (!content || typeof ResizeObserver === 'undefined') return undefined
+    const measure = () => {
+      const el = ref.current
+      const head = el?.querySelector('[data-point-head]')
+      if (!el) return
+      setFullPx(el.scrollHeight + 1) // the card's own natural height (content and padding); 1 px of slack so a rounded height never raises a scroll bar
+      if (head) setFoldedPx(Math.ceil(head.getBoundingClientRect().bottom - el.getBoundingClientRect().top + 16))
+    }
+    const ro = new ResizeObserver(measure)
+    ro.observe(content)
+    measure()
+    return () => ro.disconnect()
+  }, [])
+  return (
+    <div
+      ref={ref}
+      role="dialog"
+      aria-label={label}
+      onClick={folded ? e => { if (!e.target.closest('button, a')) onUnfold?.() } : undefined}
+      className={`relative shrink min-h-0 ${folded ? 'overflow-hidden cursor-pointer' : 'overflow-y-auto'} map-surface rounded-2xl p-4 shadow-float pointer-events-auto`}
+      style={{ maxHeight: folded ? (foldedPx ? `${foldedPx}px` : undefined) : fullPx ? `${fullPx}px` : undefined, transition: 'max-height 0.3s cubic-bezier(0.32,0.72,0,1)' }}
+    >
+      <div ref={contentRef} className="space-y-3">{children}</div>
     </div>
   )
 }
@@ -97,11 +169,24 @@ function PointSheet({ label, onClose, onHeight, bottomPx = 0, children }) {
  * mean of that many species), null = nothing there, undefined = no layer to speak of.
  * `saved` is the user's corners: if this point is one, its pin, name, species and notes show under the title, with «Editar».
  */
-export function PointPanel({ point, saved, onObserve, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, sheet = false, onSheetHeight, sheetBottomPx = 0 }) {
+export function PointPanel({ point, saved, onObserve, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, sheet = false, folded = false, onExpand, onSheetHeight }) {
   const { t } = useApp()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [attempt, setAttempt] = useState(0)
   const [mode, setMode] = useState('idle')
+  // Hiding the sheet (its handle, a drag down) folds it to its title bar; only its cross removes the point from the map
+  const [userFolded, setUserFolded] = useState(false)
+  useEffect(() => { setUserFolded(false) }, [point.lat, point.lon])
+  // On the phone the sheet slides down before the page drops it (the cross, the handle and a drag all close this way)
+  const [leaving, setLeaving] = useState(false)
+  const leaveTimer = useRef(null)
+  useEffect(() => () => clearTimeout(leaveTimer.current), [])
+  const requestClose = () => {
+    if (!sheet) { onClose(); return }
+    if (leaving) return
+    setLeaving(true)
+    leaveTimer.current = setTimeout(onClose, 300)
+  }
   const corner = saved.find(point)
   const speciesRows = useSpeciesRows()
 
@@ -139,7 +224,7 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
 
   const content = (
     <>
-      <div className="flex items-start justify-between gap-3">
+      <div data-point-head="" className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-display text-xl text-cream leading-tight break-words">{title}</p>
           <p className="text-xs text-cream/60 mt-0.5">
@@ -151,13 +236,35 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
             ].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <button
-          onClick={onClose}
-          aria-label={t.obsPointClose}
-          className="shrink-0 p-1.5 rounded-lg text-cream/60 hover:text-cream hover:bg-white/10 transition-colors"
-        >
-          ✕
-        </button>
+        {sheet ? (
+          <button
+            onClick={requestClose}
+            aria-label={t.obsPointClose}
+            className="shrink-0 p-1.5 rounded-lg text-cream/60 hover:text-cream hover:bg-white/10 transition-colors"
+          >
+            ✕
+          </button>
+        ) : (
+          // Desktop card: the same two buttons, in the same place and size, as the species' card (fold, close)
+          <div className={`shrink-0 flex ${userFolded ? 'mt-[5.5px]' : '-mt-1'}`}>
+            {!userFolded && (
+              <button
+                type="button"
+                onClick={() => setUserFolded(true)}
+                aria-label={t.obsSheetHandle}
+                title={t.obsSheetHandle}
+                className="w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+              ><ChevronDown size={20} aria-hidden="true" /></button>
+            )}
+            <button
+              type="button"
+              onClick={requestClose}
+              aria-label={t.obsPointClose}
+              title={t.obsPointClose}
+              className="w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream/70 hover:text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+            ><X size={20} aria-hidden="true" /></button>
+          </div>
+        )}
       </div>
 
       {corner && (
@@ -229,7 +336,7 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
         <button
           type="button"
           onClick={() => onObserve(point)}
-          className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-bar hover:bg-[#a0834d] text-white text-sm font-medium transition-all"
+          className="inline-flex items-center justify-center gap-2 px-3 min-h-[44px] rounded-xl bg-white text-[var(--nav-active)] [[data-theme=light]_&]:bg-[var(--nav-active)] [[data-theme=light]_&]:text-white text-sm font-semibold hover:brightness-95 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
         >
           <Binoculars size={16} aria-hidden="true" />
           {t.obsPointObserveShort}
@@ -238,7 +345,7 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
           <button
             type="button"
             onClick={() => setMode('create')}
-            className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-coffee/25 ring-2 ring-bar backdrop-blur-[16px] text-cream text-sm font-medium hover:bg-coffee/35 transition-all"
+            className="inline-flex items-center justify-center gap-2 px-3 min-h-[44px] rounded-xl border border-cream/60 text-cream text-sm font-medium hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
           >
             <span aria-hidden="true" className="[&>svg]:w-4 [&>svg]:h-4">{IC.heart(false)}</span>
             {t.obsSaveZoneButton}
@@ -250,15 +357,7 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
     </>
   )
 
-  // On a phone: a bottom sheet that leaves the map usable above it (no backdrop)
-  if (sheet) return <PointSheet label={title} onClose={onClose} onHeight={onSheetHeight} bottomPx={sheetBottomPx}>{content}</PointSheet>
-  return (
-    <div
-      role="dialog"
-      aria-label={title}
-      className="absolute z-[1100] left-3 right-16 bottom-14 md:bottom-3 md:right-auto md:w-[22rem] max-h-[calc(100%-11.5rem)] md:max-h-[calc(100%-6rem)] overflow-y-auto map-surface rounded-2xl p-4 space-y-3 shadow-float"
-    >
-      {content}
-    </div>
-  )
+  // On a phone: a bottom sheet that leaves the map usable above it (no backdrop). Elsewhere: a card, a block of the page's bottom-left stack
+  if (sheet) return <PointSheet label={title} leaving={leaving} folded={folded || userFolded} onFold={() => setUserFolded(true)} onExpand={() => { setUserFolded(false); onExpand?.() }} onHeight={onSheetHeight}>{content}</PointSheet>
+  return <PointCard label={title} folded={userFolded} onUnfold={() => setUserFolded(false)}>{content}</PointCard>
 }

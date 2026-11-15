@@ -8,6 +8,7 @@ import {
 import { CATALONIA_BOUNDS } from '../../lib/catalonia'
 import { cellFill, ALPHA_SCALE_BY_BASEMAP } from '../../lib/layerColors'
 import { reliefOverlay } from '../../lib/reliefLayer'
+import { habitatOverlay } from '../../lib/habitatLayer'
 import { forestTypeOverlay, FOREST_ALPHA_SCALE_BY_BASEMAP } from '../../lib/forestLayer'
 import { pinSvg } from '../../lib/cornerKinds'
 import { useApp } from '../../contexts/AppContext'
@@ -21,7 +22,14 @@ const ensureCluster = () => (clusterLoad ??= import('leaflet.markercluster').cat
 // Leaflet draws SVG outside React's DOM: colours are literal hex, never CSS vars
 // (see the Leaflet entry in memory/gotchas.md).
 const OBSERVED_STYLE = { radius: 10, color: '#f4ebe1', weight: 2, fillColor: '#4a7c59', fillOpacity: 0.95 }
-const PENDING_STYLE  = { radius: 9, color: '#f0d9a8', weight: 3, dashArray: '3 3', fillColor: '#c4a06b', fillOpacity: 0.45 }
+// The point just picked: the same ring-with-ticks icon as the zone's «Coordenadas» fact (lucide `Crosshair`, same geometry), cream over a
+// dark halo so it reads on satellite, streets and relief. Hex literals: Leaflet draws it outside the React DOM.
+const RETICLE_SIZE = 38
+const RETICLE_SVG = (() => {
+  const parts = '<circle cx="12" cy="12" r="10"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/>'
+  return `<svg width="${RETICLE_SIZE}" height="${RETICLE_SIZE}" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g stroke="#1e2419" stroke-opacity=".6" stroke-width="3.6">${parts}</g><g stroke="#f4ebe1" stroke-width="1.6">${parts}</g></svg>`
+})()
+const reticleIcon = () => L.divIcon({ className: 'obs-reticle', html: RETICLE_SVG, iconSize: [RETICLE_SIZE, RETICLE_SIZE], iconAnchor: [RETICLE_SIZE / 2, RETICLE_SIZE / 2] })
 
 const BOUNDS = L.latLngBounds(
   [CATALONIA_BOUNDS.lat[0], CATALONIA_BOUNDS.lon[0]],
@@ -119,14 +127,15 @@ function afterPaint(work) {
 
 /**
  * Map of Catalonia. A click only reports the coordinates (onPick); what to do with them is the
- * page's. `observed` is the point being observed (green), `pending` the one just picked (dashed).
+ * page's. `observed` is the point being observed (green), `pending` the one just picked (a reticle).
  * `saved` are the user's corners, drawn as pins by kind and grouped in clusters (the «Mis rincones» layer) while `showSaved` is on.
+ * `habitatMap` = { elevation, species, rasters } draws where a species can grow (no weather) in the layer's place.
  * `layer` is the answer of /layer/probability. With the elevation raster (`elevation`) every pixel
  * is coloured by the score of its own elevation; without it every scored cell is a rectangle
  * coloured by its score. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
  * the forest is not one the species fits or the soil pH is not its own. Neither takes clicks, so picking a point works over the layer.
  */
-export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, dataSources = null, leafletZoom = true, onMap = null, onDrawing = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, habitatMap = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, dataSources = null, leafletZoom = true, onMap = null, onDrawing = null, className = '' }) {
   const { t, setCreditsOpen } = useApp()
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
@@ -279,18 +288,22 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
       layerRef.current?.remove()
       layerRef.current = next ? next.addTo(map) : null
     }
-    if (!baseReady || !layer?.cells?.length) { replace(null); setDrawing('layer', false); return undefined }
+    // `habitatMap` (Hábitat · De la seta) takes the place of the conditions picture: same pane, blend and opacity
+    if (!baseReady || (!habitatMap && !layer?.cells?.length)) { replace(null); setDrawing('layer', false); return undefined }
     setDrawing('layer', true)
     const cancel = afterPaint(() => {
       const options = { pane: LAYER_PANE, interactive: false }
       let next = null
       try {
-        const overlay = reliefOverlay(elevation, layer, habitat ?? {}, { alphaScale: ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1 }) // elevation null: blended by cell, without relief
+        const alphaScale = ALPHA_SCALE_BY_BASEMAP[basemap] ?? 1
+        const overlay = habitatMap
+          ? habitatOverlay(habitatMap.elevation, habitatMap.species, habitatMap.rasters, { alphaScale })
+          : reliefOverlay(elevation, layer, habitat ?? {}, { alphaScale }) // elevation null: blended by cell, without relief
         if (overlay) next = L.imageOverlay(overlay.url, overlay.bounds, options)
       } catch (err) {
         console.warn('Probability layer: picture failed, drawing cells', err)
       }
-      if (!next) {
+      if (!next && !habitatMap) {
         const cells = layer.cells.filter(c => c.status === 'scored' && c.half_lat && c.half_lon)
         if (cells.length) {
           next = L.layerGroup()
@@ -306,7 +319,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
       setDrawing('layer', false)
     })
     return () => { cancel(); setDrawing('layer', false) }
-  }, [layer, elevation, habitat, basemap, baseReady]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [layer, elevation, habitat, habitatMap, basemap, baseReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Forest type layer: the forest raster painted by dominant type; `forestTypes` = { raster, active }
   useEffect(() => {
@@ -393,7 +406,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     pendingRef.current?.remove()
     pendingRef.current = null
     if (!pending) return
-    pendingRef.current = L.circleMarker([pending.lat, pending.lon], { ...PENDING_STYLE, interactive: false }).addTo(map)
+    pendingRef.current = L.marker([pending.lat, pending.lon], { icon: reticleIcon(), interactive: false, keyboard: false }).addTo(map)
     // Too far out to tell what is around the point: the map flies to it first (the card stays where it is)
     // and, with a bottom sheet over the map (phone), it is then kept clear of the sheet
     const clear = () => keepClear(map, pending, centerRef.current)

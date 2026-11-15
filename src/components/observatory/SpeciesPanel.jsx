@@ -1,13 +1,13 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
-import { getEdibilityColor, resolveUrl } from '../../lib/helpers'
 import {
   DEFAULT_EDIB_GROUP, EDIB_GROUPS, buildRows, countGroups, filterRows,
 } from '../../lib/speciesList'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { ObsSelect } from './ObsSelect'
 import { SpeciesPreview } from './SpeciesPreview'
+import { SpeciesRow } from './SpeciesRow'
 
 const MARK = { met: '✓', pending: '…', not_met: '✗' }
 const ALL = 'all'
@@ -16,65 +16,16 @@ const FIELD = 'rounded-xl bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-fi
 function Row({ row, selected, onSelect, onOpenCard }) {
   const { t } = useApp()
   const [open, setOpen] = useState(false)
-  const edib = getEdibilityColor(row.edibility)
   const detailsId = `obs-sp-${row.id}`
   return (
-    <li data-testid="species-row" className={`obs-card [[data-theme=light]_&]:shadow-none relative rounded-xl overflow-hidden ${selected ? 'bg-bar/10' : `bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-filter-pill-bg)]`}`}>
-      {/* Selection outline drawn inside the card (above the photo) so the list never clips it */}
-      {selected && <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 rounded-xl ring-2 ring-inset ring-bar" />}
-      <div className="flex items-stretch">
-        {/* The row is one big button (an overlay) so the card icon next to the edibility tag is not
-            a button inside a button; the content above it lets clicks through, except that icon */}
-        <div className="relative flex-1 min-w-0 flex items-stretch">
-          <button
-            type="button"
-            onClick={() => onSelect(selected ? null : row.id)}
-            aria-pressed={selected}
-            aria-label={t.obsSpPick.replace('{name}', row.name)}
-            className="absolute inset-0 z-0 hover:bg-cream/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cream/50"
-          />
-          {/* The catalogue's photo, to the card's edge (no padding) and as tall as the row */}
-          <span aria-hidden="true" className="pointer-events-none relative shrink-0 w-20 bg-cream/[0.08]">
-            {row.photo && (
-              <img
-                src={resolveUrl(row.photo)}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                onError={e => { e.currentTarget.style.visibility = 'hidden' }}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            )}
-          </span>
-          <span className="pointer-events-none relative flex-1 min-w-0 flex items-center gap-2.5 pl-3 pr-1 py-2.5">
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-cream [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] truncate">
-                {row.followed && <span aria-label={t.obsSpFollowed} title={t.obsSpFollowed}>★ </span>}
-                {row.name}
-              </span>
-              <span className="block text-xs text-cream/60 [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] opacity-80 truncate italic">{row.scientific}</span>
-              <span className="mt-0.5 flex items-center gap-1.5">
-                <span className={`inline-block text-[11px] px-1.5 py-px rounded-full ${edib.bg} ${edib.text}`}>{t[edib.tKey]}</span>
-                <button
-                  type="button"
-                  onClick={() => onOpenCard(row.id)}
-                  title={t.ver_ficha}
-                  aria-label={t.obsCornerSpeciesOpen.replace('{name}', row.name)}
-                  className="pointer-events-auto relative z-10 inline-flex items-center justify-center size-6 -my-1 rounded-full text-cream/60 [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] [[data-theme=light]_&]:hover:text-[var(--ui-filter-pill-text)] hover:text-cream hover:bg-cream/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
-                >
-                  {/* A file card with lines */}
-                  <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-                    <path d="M14 3v5h5" />
-                    <path d="M9 13h6M9 17h6" />
-                  </svg>
-                </button>
-              </span>
-            </span>
-            {/* The score, at the right end next to the arrow that opens the details */}
-            <span className={`font-display text-2xl font-bold shrink-0 min-w-9 text-right ${row.band.text}`}>{row.score}</span>
-          </span>
-        </div>
+    <SpeciesRow
+      row={row}
+      selected={selected}
+      onPick={() => onSelect(selected ? null : row.id)}
+      onOpenCard={onOpenCard}
+      // The score, at the right end next to the arrow that opens the details
+      score={<span className={`font-display text-2xl font-bold shrink-0 min-w-9 text-right ${row.band.text}`}>{row.score}</span>}
+      aside={(
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
@@ -85,7 +36,8 @@ function Row({ row, selected, onSelect, onOpenCard }) {
         >
           <span aria-hidden="true">{open ? '▾' : '▸'}</span>
         </button>
-      </div>
+      )}
+    >
       <div id={detailsId} hidden={!open} className="px-3 pb-3 space-y-1.5">
         {row.window && <p className="text-xs text-cream/80 glass-warm rounded-lg px-2.5 py-1.5">{row.window}</p>}
         <ul className="space-y-1">
@@ -98,7 +50,7 @@ function Row({ row, selected, onSelect, onOpenCard }) {
           ))}
         </ul>
       </div>
-    </li>
+    </SpeciesRow>
   )
 }
 

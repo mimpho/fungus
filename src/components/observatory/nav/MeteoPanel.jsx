@@ -15,9 +15,10 @@ const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-cream/50'
  * segment's controls. Layers not built yet carry «Pronto» and `aria-disabled`; in a development build
  * they still open their placeholder panels (src/lib/meteoLayers.js). `conditions` is the Condiciones
  * content (species field, day slider, legend); the others share the same day (`date`, `onDateChange`).
- * `rainPreset` / `onRainPreset`: the rain window's length.
+ * `rainPreset` / `onRainPreset`: the rain window's length. `hiddenNote`: a line over Condiciones saying why the map does not
+ * draw it (Hábitat · De la seta is shown).
  */
-export function MeteoPanel({ kind, onKind, conditions, date, onDateChange, rainPreset, onRainPreset }) {
+export function MeteoPanel({ kind, onKind, conditions, date, onDateChange, rainPreset, onRainPreset, hiddenNote = null }) {
   const { t } = useApp()
   return (
     <div className="flex flex-col gap-3">
@@ -41,6 +42,9 @@ export function MeteoPanel({ kind, onKind, conditions, date, onDateChange, rainP
           )
         })}
       </div>
+      {kind === 'conditions' && hiddenNote && (
+        <p role="status" data-testid="meteo-hidden-note" className="px-3 py-2 rounded-lg bg-cream/[0.08] text-[13px] leading-snug text-cream">{hiddenNote}</p>
+      )}
       {kind === 'conditions' ? conditions : (
         <PreviewPanel kind={kind} date={date} onDateChange={onDateChange} rainPreset={rainPreset} onRainPreset={onRainPreset} />
       )}

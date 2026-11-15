@@ -1,5 +1,6 @@
-import { Check, Layers, Minus, Plus, X } from 'lucide-react'
+import { Check, Layers, Maximize, Minus, Plus, X } from 'lucide-react'
 import { useApp } from '../../../contexts/AppContext'
+import { PanelSwitch } from './PanelSwitch'
 import {
   CARTO_NOLABELS_URL, CARTO_TILES_URL, ICGC_HYBRID_TILES_URL, ICGC_RELIEF_TILES_URL,
 } from '../../../lib/basemap'
@@ -40,9 +41,10 @@ export function ViewButton({ open, onClick, panelId }) {
 
 /**
  * The base map: three thumbnails; picking one closes the panel. `flat`: no surface of its own, for when it
- * sits inside the phone's tab bar sheet.
+ * sits inside the phone's tab bar sheet. It also holds the fullscreen switch (`onFullscreen(on)`, `fullscreen`):
+ * the page's own button next to the search took width from the two search fields.
  */
-export function ViewPanel({ id, basemap, onBasemap, onClose, flat = false, className = '' }) {
+export function ViewPanel({ id, basemap, onBasemap, onClose, flat = false, fullscreen = false, onFullscreen = null, className = '' }) {
   const { t } = useApp()
   return (
     <div id={id} role="dialog" aria-label={t.obsViewTitle} className={`${flat ? 'p-4' : 'rounded-[22px] map-surface shadow-float p-3.5 pb-4'} flex flex-col gap-3 ${className}`}>
@@ -77,6 +79,15 @@ export function ViewPanel({ id, basemap, onBasemap, onClose, flat = false, class
           )
         })}
       </div>
+      {onFullscreen && (
+        <div className="flex items-center justify-between gap-3 border-t border-cream/15 pt-3">
+          <span className="flex items-center gap-2.5 text-[15px] font-medium text-cream">
+            <Maximize size={18} aria-hidden="true" />
+            {t.obsFullscreenEnter}
+          </span>
+          <PanelSwitch checked={fullscreen} onChange={onFullscreen} label={t.obsFullscreenEnter} />
+        </div>
+      )}
     </div>
   )
 }

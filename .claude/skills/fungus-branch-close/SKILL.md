@@ -38,6 +38,7 @@ Staging and committing are local and reversible; pushing is not part of this ski
 1. Show `git status` and `git diff --stat` before touching the index.
 2. Stage explicit paths only. Never `git add -A` or `git add .`. Never stage `backend/.env`, `.env.local`, `local-data/`, dumps or anything with credentials; if one of them appears in `status`, stop and say so. Files the branch did not make (for example an untracked `.claude/launch.json`) stay out.
 3. Two commits, code first and docs after, using the messages of Phase A and the attribution trailers the session requires (commits and the end of the PR body).
+   Commit with explicit paths (`git commit -- <paths>`) so that whatever is already in the index (a `git rm` stages at once) does not slip into the wrong commit; a staged deletion of the branch's code goes in the code commit. Run each `git add` / `git commit` as its own command: a failing `git add` inside a `&&` chain does not stop the next line of a multi-line command.
 4. Show `git log --oneline -3` as proof.
 5. If the commit leaves a `.lock` file or fails, report it and stop; do not force anything and do not ask for broader permissions.
 
@@ -67,4 +68,7 @@ Read `memory/pending.md` (and the epic's plan file) and decide whether there is 
 
 ## Closing the message
 
-Give the human the exact next commands, **one command per fenced `bash` block, each on a single line** (no `\` continuations, no `&&` chains, no `$` prompt, no output inside the block): the desktop app only shows a Run button on single-line shell blocks. In order: `git push -u origin <branch>`; open the PR with the prepared title and body; and, only after the QA is confirmed, the squash and delete from the cheatsheet of `system/workflows.spec.md`, split into its separate commands (`git checkout <epic>`, `git merge --squash <branch>`, `git commit -m "<PR title>"`, `git branch -D <branch>`), with a line saying they go one after the other and the next only if the previous one succeeded.
+Give the human the exact next commands, **one command per fenced `bash` block, each on a single line** (no `\` continuations, no `&&` chains, no `$` prompt, no output inside the block): the desktop app only shows a Run button on single-line shell blocks. In order:
+
+1. `git push -u origin <branch>`, then open the PR with the prepared title and body (the PR is opened and integrated on GitHub with *Squash and merge*; never give `git merge --squash` or `git commit` to integrate it from the command line).
+2. After the QA is confirmed and the PR is squashed on GitHub, the local clean-up, one after the other and the next only if the previous one succeeded: `git checkout <epic>`, `git pull --ff-only` (brings the squash commit in), `git branch -D <branch>` (force, because a squash leaves the branch tip unreachable).

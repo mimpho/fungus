@@ -9,7 +9,7 @@
 
 Fungus is a mycological prediction web app for Catalonia/Spain. It combines real meteorological data, soil conditions and a scoring algorithm with a seasonal factor to predict the best zones and timing for mushroom foraging.
 
-**Current version**: v7.4 frontend · v7.4 backend (on release of `epic/observatory-navigation`; the backend only changes its version number)
+**Current version**: v7.5 frontend · v7.5 backend (on release of `epic/observatory-species-filter`; the backend only changes its version number)
 **Frontend deploy**: Vercel → `fungus-ashen.vercel.app` (branch `main`)
 **Backend deploy**: Render → `https://fungus-api.onrender.com`
 **Database**: Supabase — PostgreSQL + PostGIS (Ireland region)
@@ -518,6 +518,7 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v7.2 | ✅ Done | Observatory (web): scoring v2, free map by coordinates, conditions and forest layers, «Mis rincones» with photos (`epic/observatory`) |
 | v7.3 | ✅ Done | Observatory map as the page: zone layer, layer pills, forest and conditions layers (`epic/observatory-map`, front end only) |
 | v7.4 | ✅ Done | Observatory map navigation: tabs Meteo / Zonas / Bosque and Vista on desktop and phone, layers that accumulate, URL state, old shell retired (`epic/observatory-navigation`, front end only) |
+| v7.5 | ✅ Done | Observatory species filter: the species as a lens for the whole map (search bar in two halves, `seta` in the URL), the Hábitat tab with «De la seta», the species' sheet and the stack of bottom sheets (`epic/observatory-species-filter`, front end only) |
 
 **Next epics** — ordered by priority, no version number (assigned when the epic is merged into `main`; see `system/workflows.spec.md`):
 

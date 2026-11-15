@@ -9,6 +9,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Epic summary — Observatory species filter (2026-11-13 → 2026-11-15, `epic/observatory-species-filter`, to be released as v7.5.0 when merged into `main`)
+
+Front end only (no migration, no new variable, no dependency; `backend/pyproject.toml` 7.4.0 → 7.5.0 only for the version). One species chosen for the whole map, as a **lens** (it changes what answers a question about the species; it never hides what exists). What it delivers:
+
+- **Search bar in two halves** (T1): place and species, the focused one takes the whole width; the species list with an edibility selector, photos and the species' card; `seta` in the URL whatever Meteo does, handed to the observed zone and the point's card; «Filtrar por seta» left the Meteo panel. One shared state (`useActiveSpecies`) ready for the Top 10 and the zones of interest.
+- **Hábitat tab** (T2, T3): the Bosque tab renamed Hábitat (stored choices kept), with **De la seta**, the map of where the chosen species can grow (altitude × forest × soil, no weather, no date).
+- **Species' sheet and a stack of bottom sheets** (T4, an experiment that can be removed): a bar that opens into the species' card with «Ver ficha» and «Guardar seta»; the phone's sheets in one column above the tab bar working as an accordion, every sheet draggable from anywhere with a tappable handle; the same two cards stacked on desktop; the old territory ranking removed.
+- **Retro:** rules for stacked components, gesture testing on a real device, experiments with a removal recipe and pixel alignment (`system/workflows.spec.md`); the commit step of the branch-close skill (`git commit -- <paths>`).
+- **After the deploy:** check on iOS Safari and Android Chrome (drags with a real finger, the stack with the keyboard open), light theme and contrast of the new buttons, ES / CA / EN; decide whether the species' sheet stays; compare the habitat colours with field notes (*deliciosus*, *cibarius*, *cornucopioides*).
+
+### Added — Observatory: the active species' sheet and the stack of bottom sheets (2026-11-15, `feat/observatory-species-filter-sheet`, T4 of `epic/observatory-species-filter`, an experiment)
+
+Front end only (no migration, no variable, no dependency, no back-end change). Plan, states and as-built notes: `memory/observatory-species-filter-plan.md`, «T4 · as built». It can be switched off with `localStorage` `fungus-obs-species-sheet` = `off`, or removed by deleting `src/components/observatory/speciesSheet/` and its line in `pages/Observatory.jsx`.
+
+- **Species' sheet** (`speciesSheet/`): while a species is active, a bar (square photo to the edge, «Mapa filtrado por», name in serif, a single ×) that opens into a card: photo, names, edibility, the season in words and a 12-month strip, the legend of the layer in view, the safety line for toxic and deadly species, «Ver ficha» and «Guardar seta» (favourites). The × takes the filter off and does not move between the folded and the open state. Folding the card never clears the filter. On the phone it is a bottom sheet (the bar and the card trade height; a drag follows the finger, up from the bar opens, down from the card folds); on desktop, the same block as a card of the bottom-left column (a chevron folds it).
+- **The stack:** one column in the page's flow above the tab bar (from the bottom: tab bar, species, point), so folding or unfolding one moves the others with it and no gap shows the map. On desktop the point's card and the species' card are the same column at the bottom left (396 px at every width above the phone). The search's dropdown is above both.
+- **Accordion on the phone:** only one sheet is unfolded. A tab's sheet or the species' card fold the point's sheet (it keeps its title bar); the point's sheet only unfolds when it is tapped or dragged up, or a new point is picked. The point's sheet folds by its handle or a drag down and only its × removes the point.
+- **Every bottom sheet is a drag handle** (`useSheetDrag`): a touch that moves in the sheet's direction drags it, except when it starts on something clickable (buttons, links, fields, sliders, switches; the Zonas / Hábitat checkbox rows and the wake-up overlay of an off layer still drag) or on content scrolled down. The handle (`SheetHandle`) is also a button: a tap shows or hides the sheet. Closing slides the sheet out from where the finger left it.
+- **Point card:** a fold chevron and a × (same place and size as the species' card), fold to the title bar (83 px); on the phone the sheet height is measured (no scroll bar, 2 px of slack) and a clear space is kept under it. «Observar zona» (white, ochre text in the light theme) and «Guardar rincón» (border) as the species' «Ver ficha» and «Guardar seta».
+- **Search bar:** with a species chosen, its half is plain (no ochre fill, no «FILTRADO POR», no bold): the species is now said by the sheet.
+- **i18n:** `obsSpSheet*` keys (ES / CA / EN) and `obsSheetHandle`.
+
+### Changed — Observatory: tab sheets on the phone
+
+- The tab bar's sheet has a handle and drags (its height follows the finger and closes past a third of it); the tab bar keeps its rounded corners with a point on the map and the point's sheet goes 24 px under it.
+
+### Removed — Observatory: the old territory ranking under the map
+
+- `TerritorySection` and `ZoneRanking` (the «¿A dónde voy este fin de semana?» block that showed when the point's sheet was dragged) and their `obsRank*` / `obsTer*` / `obsMapSpFiltered` keys. It is information that will go on the map.
+
+### Added — Observatory: Hábitat · De la seta, where the chosen species can grow (2026-11-15, `feat/observatory-species-filter-habitat`, T3 of `epic/observatory-species-filter`)
+
+Front end only (no migration, no variable, no dependency, no back-end change). Plan and as-built notes: `memory/observatory-species-filter-plan.md`.
+
+- **Segments:** the heading «Bosques» of the Hábitat panel is now the control **Bosques · De la seta** (as Meteo's, `aria-pressed`). Without an active species the second segment is `aria-disabled` and says «Elige una seta» (CA «Tria un bolet», EN «Pick a mushroom»). Names: «De la seta» / «Del bolet» / «By mushroom»; title «Hábitat de {name}» / «Hàbitat: {name}» / «Habitat of {name}». The choice is stored in `fungus-obs-habitat-view` (`forest` | `species`); a stored `species` with no active species behaves as `forest`.
+- **Map:** per pixel of the elevation grid, nothing outside the species' altitude range ± 150 m; inside it the habitat factor (forest share × weights through `forestFactor`, times the soil pH fit), coloured with the five bands of Condiciones on `factor × 100` (0.5 reads «Regular»); under 0.05 nothing. No cells, no weather, no day, no season: out of season it still paints. New `src/lib/habitatLayer.js`; `reliefLayer.js` exports `habitatFactors`, `matchClasses`, `RANGE_MARGIN_M` and `MIN_FACTOR`. Same pane (350), blend and opacity per base map as Condiciones (`ObservatoryMap` takes `habitatMap`).
+- **Data:** the species block of the layer answer (`useProbabilityLayer`), also asked while «De la seta» is shown with Meteo off, plus the elevation, forest and substrate rasters. It paints when the block, the elevation and the forest raster are ready; if the soil raster fails it paints altitude and forest and says so.
+- **Legend:** five-block bar «Poco adecuado» → «Muy adecuado», the note «No depende de la fecha ni del clima» (visible, not in a tip), «Calculando el hábitat…» while it loads, «Sin datos de bosque para esta seta…» when `forest_classes` is null and a line when the species gives nothing to judge by.
+- **Exclusion:** while «De la seta» is shown (tab switch on) the Condiciones picture and the forest classes are not drawn; **The two never show together:** switching Meteo on while «De la seta» is shown turns Hábitat off; picking «De la seta» (or switching Hábitat back on with it chosen) turns Meteo off; applying a species while it is shown does not turn Meteo on. Only a page opened with both stored on (or a link with `capa` and the stored «De la seta») can still have both: Meteo's panel then says so («Condiciones queda oculto mientras Hábitat muestra la seta»). Going back to Bosques, switching Hábitat off or clearing the species brings back what was there. The credit «Open-Meteo» on the map follows Meteo or a picked point, not the habitat.
+- **Contrast (DOM, 375 px phone and desktop pane, dark / light):** selected segment 5.4:1 / 4.9:1; unselected segment 5.7:1 / 12.4:1 (it was 4.33:1 with `cream/80`, now `text-cream`); title 6.9:1 / 14.5:1; legend ends and note 5.1:1 / 7.5:1; Meteo's notice 5.7:1 / 12.4:1.
+- **Not measured / not seen:** exactly 390 and 1280 px (the pane is 800 px and the emulator 375 px), keyboard and screen reader, a real device, the field calibration with *deliciosus*, *cibarius* and *cornucopioides* (only *Boleto* was looked at), the habitat with forecast data (the local database has none).
+
+### Changed — Observatory: the Bosque tab is now Hábitat (2026-11-15, `chore/observatory-species-filter-habitat-tab`, T2 of `epic/observatory-species-filter`)
+
+Front end only. A rename with no new logic; T3 gives the tab its second map (where the chosen species can grow).
+
+- **Tab:** «Bosque» / «Bosc» / «Forest» become **Hábitat / Hàbitat / Habitat**, with the `Mountain` icon (the tab will also hold altitude and soil, not only forests). Code id `forest` → `habitat`; `obsTabForest` → `obsTabHabitat`; `BosquePanel.jsx` → `HabitatPanel.jsx`.
+- **Panel:** same content (Todos / Ninguno, counter, eleven classes) under a small heading «Bosques» / «Boscos» / «Forests». T3 turns the heading into a two-segment control (Bosques · De la seta). A one-segment control was tried and looked like a pressed button.
+- **Kept:** the `localStorage` keys `fungus-obs-forest` and `fungus-obs-forest-classes` keep their names, so a choice made before still holds (checked: Bosque on with only «Hayedo» came back as it was). No URL change. The layer and raster code (`forestOn`, `forestShown`, the `forest` raster kind) is not renamed.
+- **Contrast (DOM, 390 and 1280 px, dark / light):** heading 5.1:1 / 7.5:1; tab label 6.9:1 / 14.5:1. No text left under 4.5:1.
+- **Not seen:** real iOS Safari and Android Chrome; CA and EN on screen (read in code only).
+
+### Added — Observatory species filter: shared species and the search bar in two halves (2026-11-15, `feat/observatory-species-filter-bar`, T1 of `epic/observatory-species-filter`)
+
+Front end only (no migration, no variable, no dependency). The species is now the map's, not Meteo's. Plan and as-built notes: `memory/observatory-species-filter-plan.md`.
+
+- **Shared species:** hook `useActiveSpecies` (id or none; a species the catalogue does not have is dropped without a notice). `seta` in the URL is independent of `capa`: it stays with Meteo off and a link with only `seta` does not turn Meteo on; old `capa=…&seta=…&dia=…` links keep working. The observed zone (`initialSpecies`) and the point card get the species with Meteo off too. The day of the slider is kept when the species changes.
+- **Meteo:** «Filtrar por seta» leaves the panel. A line «Condiciones para {seta}» says which species the colours are for, with a «Quitar ×» chip that takes the filter off. **Applying a species switches Meteo and its Condiciones segment on** if they were off.
+- **Search bar in two halves** (`MapSearchBar`, `MapSearch`, `MapSpeciesSearch`, `BarHalf`): place (left) and mushroom (right), 52 px high, a 4 px gap between them. The focused half takes the whole width and the other folds away but stays focusable (Tab goes from one to the other; with place results open Tab goes to them first); a bare × closes the search, Esc and focus out close it and drop what was typed. 16 px text at every width.
+- **Species list in the bar:** the cards of the observed zone's panel (new shared `SpeciesRow`: photo, common and Latin name, edibility tag, button that opens the species' sheet without closing the dropdown), an edibility selector that only works while exploring (with text typed the whole catalogue is searched and the selector reads «Todas las setas»), and a first row «Quitar filtro · {seta}» with a café border when a species is on. `SpeciesPanel` keeps its look; it now draws its rows with `SpeciesRow`.
+- **Active filter look:** the species half is filled with the buttons' ochre (`--nav-active`, white text 5.4:1 dark / 4.9:1 light by token) and reads «FILTRADO POR» over the name, the seta icon and a bare × at the right (44 px touch target) that removes the filter. It is at least half of the bar and grows for a long name (up to leaving 56 px to the place half, whose text then ends in an ellipsis). The width goes through `min-width`, never `auto` or a swap of `flex-grow`, so the 50 / 50 case does not move.
+- **Fullscreen moved into Vista:** the round button next to the search is gone (it took width from the two fields). Vista's panel has a «Pantalla completa» switch, on phone and on desktop (fullscreen now also exists on desktop; Esc leaves it). On the phone the bar and the hint start below the safe area, at least 40 px from the top edge, so the camera hole does not cover them.
+- **Point picked on the map:** the dashed circle is now the `Crosshair` icon of the zone's «Coordenadas» fact (same geometry), cream over a dark halo.
+- **Contrast (DOM, 390 px):** placeholders 5.1:1 dark / 7.5:1 light (the global `search-light-input` 0.55 opacity was 3.3:1; raised to 0.8 here), chosen text 6.9:1 / 14.5:1, edibility tag and Latin name in the bar's list ≥ 4.5:1 (the cards sit on a solid `modal` base there; in light theme they use the theme's text colour instead of `--ui-filter-pill-text`, which was 3.8:1).
+- **Not measured / not seen:** real iOS Safari and Android Chrome (keyboard open, camera hole), the bar's animation in motion (the QA pane does not paint frames), the filled half in light theme and CA / EN at 390 px.
+
 ### Changed — Observatory on a phone: adjustments from real devices (2026-11-13, `chore/observatory-mobile-adjustments`, outside any epic)
 
 Seven adjustments seen on Android Chrome and desktop Chrome with v7.4.0 in production. Front end only.
