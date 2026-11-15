@@ -145,6 +145,7 @@ POST /api/v1/images/set-order                 ← admin only
 | v7.2 | ✅ | Observatory (web): scoring v2, free map by coordinates, conditions and forest layers, «Mis rincones» with photos |
 | v7.3 | ✅ | Observatory map as the page: zone layer, layer pills, forest and conditions layers |
 | v7.4 | ✅ | Observatory map navigation: tabs Meteo / Zonas / Bosque and Vista on desktop and phone, layers that accumulate |
+| v7.5 | ✅ | Observatory species filter: one species as a lens for the whole map, Hábitat tab with «De la seta», the species' sheet and the stack of bottom sheets |
 
 **Next epics** — ordered by priority, no version number: it is assigned when the epic is merged into `main` (see `system/workflows.spec.md`).
 

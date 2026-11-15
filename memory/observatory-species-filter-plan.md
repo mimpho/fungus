@@ -1,7 +1,7 @@
 # Plan — `epic/observatory-species-filter`
 
 > Technical plan and task breakdown. Product contract: [`observatory-species-filter-prd.md`](observatory-species-filter-prd.md) (scope reworked 2026-11-13; reasons in `memory/decisions.md`, «Species filter: a lens, not a filter, and the Hábitat tab»).
-> Last updated: 2026-11-15 (T4 built, experiment)
+> Last updated: 2026-11-15 (epic closed: T1–T4 squashed into the epic; release v7.5.0 when merged into `main`)
 
 ---
 
@@ -10,9 +10,9 @@
 | # | Branch | Status |
 |---|---|---|
 | T1 | `feat/observatory-species-filter-bar` | ✅ Squashed into the epic (#180, 2026-11-15; see «T1 · as built») |
-| T2 | `chore/observatory-species-filter-habitat-tab` | ✅ Built 2026-11-15, awaiting squash (see «T2 · as built») |
-| T3 | `feat/observatory-species-filter-habitat` | ✅ Built 2026-11-15, awaiting squash (see «T3 · as built») |
-| T4 | `feat/observatory-species-filter-sheet` | ✅ Built 2026-11-15 as an experiment, awaiting squash and Marcos's call (see «T4 · as built») |
+| T2 | `chore/observatory-species-filter-habitat-tab` | ✅ Squashed into the epic (#182, 2026-11-15; see «T2 · as built») |
+| T3 | `feat/observatory-species-filter-habitat` | ✅ Squashed into the epic (#183, 2026-11-15; see «T3 · as built») |
+| T4 | `feat/observatory-species-filter-sheet` | ✅ Squashed into the epic (#184, 2026-11-15) as an experiment; Marcos decides whether it stays (see «T4 · as built») |
 
 Order: T1 → T2 → T3 → T4. T1, T2 and T3 all touch `Observatory.jsx` and `i18n.js`, so they go one after the other. All branches are cut from `epic/observatory-species-filter` and squash-merged into it (*Squash and merge*, title = PR title).
 

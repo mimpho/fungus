@@ -200,9 +200,17 @@ Produce two documents in `memory/`:
 
 **Components with states:** a component with several states or behaviours (accordion, sticky bar, placeholder, popover) is agreed with a table of options before it is coded, with the states it has and what stays the same height; the visual iterations then adjust details, not the model.
 
+**Stacked components (retro of `epic/observatory-species-filter`):** when several elements share an edge (the phone's bottom sheets: tab bar, species, point), the kick-off table also gives, per device, the **order of the stack, what folds when another one opens, what only a tap on it unfolds, and what really closes**. T4 settled these live (accordion, fold instead of close, desktop column) after building positions one by one, and the stack had to be rebuilt as one column in the page's flow. Stacked elements go in the same flow container, never positioned one by one from measured heights.
+
 **Where each control sits:** the same kick-off table gives, for every new control, its place on desktop and on phone (Vista moved twice in `epic/observatory-navigation`, and on the phone it only found its place in T2).
 
 **Heavy work and transitions:** a change that holds the main thread (a new base map, a layer picture) is not started in the same click as a transition (a folding sheet, a colour swap): run it after the transition ends, and do not put `transition-colors` on elements that swap fill and text colour together. See `memory/gotchas.md`, «Frontend — transitions and busy threads».
+
+**Gestures and animation on a real device:** a drag, a swipe or a fold animation is checked with a finger on a phone before its task closes. Synthetic touch events and the QA pane (it paints no idle frames) only prove the logic.
+
+**Experiments:** a task that Marcos wants to see live before deciding is built as an experiment: its own folder, one hook-in line in the page and a switch (`localStorage`), with the recipe to remove it written in the plan («as built»), as in T4 of `epic/observatory-species-filter`. Anything it removes or reworks outside its scope (the old territory ranking, the phone's tab bar) is said in the plan and in the CHANGELOG, or gets its own task.
+
+**Pixel alignment:** controls that must line up with another element (a ×, a handle) use px, not `rem` (base 18 px), and fixed heights where a neighbour's position depends on them; a scroll bar changes the width of what it holds, so a sheet that must not scroll gets its height from its content with a few px of slack (`memory/gotchas.md`, «Frontend — bottom sheets»).
 
 **Contrast per task:** a UI task of an epic with a contrast target in its PRD (≥ 4.5:1 for text) measures it in the light and the dark theme before it closes, with the real surface behind the text; it does not wait for the last task (T5 of `epic/observatory-navigation` found failures from T1–T4). Disabled items are exempt.
 
