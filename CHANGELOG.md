@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Observatory species filter: shared species and the search bar in two halves (2026-11-15, `feat/observatory-species-filter-bar`, T1 of `epic/observatory-species-filter`)
+
+Front end only (no migration, no variable, no dependency). The species is now the map's, not Meteo's. Plan and as-built notes: `memory/observatory-species-filter-plan.md`.
+
+- **Shared species:** hook `useActiveSpecies` (id or none; a species the catalogue does not have is dropped without a notice). `seta` in the URL is independent of `capa`: it stays with Meteo off and a link with only `seta` does not turn Meteo on; old `capa=…&seta=…&dia=…` links keep working. The observed zone (`initialSpecies`) and the point card get the species with Meteo off too. The day of the slider is kept when the species changes.
+- **Meteo:** «Filtrar por seta» leaves the panel. A line «Condiciones para {seta}» says which species the colours are for, with a «Quitar ×» chip that takes the filter off. **Applying a species switches Meteo and its Condiciones segment on** if they were off.
+- **Search bar in two halves** (`MapSearchBar`, `MapSearch`, `MapSpeciesSearch`, `BarHalf`): place (left) and mushroom (right), 52 px high, a 4 px gap between them. The focused half takes the whole width and the other folds away but stays focusable (Tab goes from one to the other; with place results open Tab goes to them first); a bare × closes the search, Esc and focus out close it and drop what was typed. 16 px text at every width.
+- **Species list in the bar:** the cards of the observed zone's panel (new shared `SpeciesRow`: photo, common and Latin name, edibility tag, button that opens the species' sheet without closing the dropdown), an edibility selector that only works while exploring (with text typed the whole catalogue is searched and the selector reads «Todas las setas»), and a first row «Quitar filtro · {seta}» with a café border when a species is on. `SpeciesPanel` keeps its look; it now draws its rows with `SpeciesRow`.
+- **Active filter look:** the species half is filled with the buttons' ochre (`--nav-active`, white text 5.4:1 dark / 4.9:1 light by token) and reads «FILTRADO POR» over the name, the seta icon and a bare × at the right (44 px touch target) that removes the filter. It is at least half of the bar and grows for a long name (up to leaving 56 px to the place half, whose text then ends in an ellipsis). The width goes through `min-width`, never `auto` or a swap of `flex-grow`, so the 50 / 50 case does not move.
+- **Fullscreen moved into Vista:** the round button next to the search is gone (it took width from the two fields). Vista's panel has a «Pantalla completa» switch, on phone and on desktop (fullscreen now also exists on desktop; Esc leaves it). On the phone the bar and the hint start below the safe area, at least 40 px from the top edge, so the camera hole does not cover them.
+- **Point picked on the map:** the dashed circle is now the `Crosshair` icon of the zone's «Coordenadas» fact (same geometry), cream over a dark halo.
+- **Contrast (DOM, 390 px):** placeholders 5.1:1 dark / 7.5:1 light (the global `search-light-input` 0.55 opacity was 3.3:1; raised to 0.8 here), chosen text 6.9:1 / 14.5:1, edibility tag and Latin name in the bar's list ≥ 4.5:1 (the cards sit on a solid `modal` base there; in light theme they use the theme's text colour instead of `--ui-filter-pill-text`, which was 3.8:1).
+- **Not measured / not seen:** real iOS Safari and Android Chrome (keyboard open, camera hole), the bar's animation in motion (the QA pane does not paint frames), the filled half in light theme and CA / EN at 390 px.
+
 ### Changed — Observatory on a phone: adjustments from real devices (2026-11-13, `chore/observatory-mobile-adjustments`, outside any epic)
 
 Seven adjustments seen on Android Chrome and desktop Chrome with v7.4.0 in production. Front end only.

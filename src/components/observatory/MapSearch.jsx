@@ -4,7 +4,10 @@ import { parseCoordinates } from '../../lib/placeSearch'
 import { searchPlaces } from '../../services/geocodingService'
 import { formatCoords } from '../../lib/observatoryView'
 import { IC } from '../../lib/helpers'
+import { useIsPhone } from '../../hooks/useIsPhone'
+import { BarHalf, CloseSearchButton } from './BarHalf'
 
+const COMPACT_W = 52 // px: the least the place half shrinks to (its magnifier and a few letters)
 const MIN_CHARS = 3
 const DEBOUNCE_MS = 300
 const RECENT_MAX = 5
@@ -33,21 +36,24 @@ const KIND_KEYS = {
 }
 
 /**
- * Search box over the map: a place in Catalonia (Open-Meteo geocoding) or a coordinate pair.
+ * The place half of the map's search bar: a place in Catalonia (Open-Meteo geocoding) or a coordinate pair.
  * Choosing a result reports it with onSelect({ lat, lon }); what happens next is the page's.
+ * The bar (MapSearchBar) says whether this half is `focused` (it has the whole width), `collapsed` (the
+ * species half has it) or at rest; `onFocus` asks for the width and `onClose` gives it back. When it stops
+ * being focused whatever was typed is dropped, so the bar always comes back to rest.
+ * `compact`: the species half is showing a filter and may take more than half: this one shrinks, its text ending in an ellipsis.
  */
-export function MapSearch({ onSelect, className = '' }) {
+export function MapSearch({ onSelect, focused, collapsed, compact = false, onFocus, onClose }) {
   const { t } = useApp()
+  const phone = useIsPhone()
   const listId = useId()
   const [text, setText] = useState('')
-  const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
   const [places, setPlaces] = useState([])
   const [status, setStatus] = useState('idle') // idle | loading | done | error
   const [recents, setRecents] = useState(loadRecents)
   const inputRef = useRef(null)
-  const rootRef = useRef(null)
-  const chosenRef = useRef(null) // text put in the box by choosing a result: not a new search
+  const listRef = useRef(null)
 
   const query = text.trim()
   const coords = useMemo(() => parseCoordinates(query), [query])
@@ -70,8 +76,7 @@ export function MapSearch({ onSelect, className = '' }) {
 
   // Debounced place search; the previous request is cancelled when the text changes
   useEffect(() => {
-    if (query === chosenRef.current) return
-    if (coords || query.length < MIN_CHARS) { setPlaces([]); setStatus('idle'); return }
+    if (coords || query.length < MIN_CHARS) { setPlaces([]); setStatus('idle'); return undefined }
     const ctrl = new AbortController()
     setStatus('loading')
     const timer = setTimeout(async () => {
@@ -86,13 +91,11 @@ export function MapSearch({ onSelect, className = '' }) {
     return () => { clearTimeout(timer); ctrl.abort() }
   }, [query, coords])
 
-  // Click outside closes the list
+  // Not focused any more (chosen, closed, Esc, focus out): the typed text goes, the bar is at rest
   useEffect(() => {
-    if (!open) return
-    const onDown = e => { if (!rootRef.current?.contains(e.target)) setOpen(false) }
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [open])
+    if (focused) return
+    setText(''); setPlaces([]); setStatus('idle'); setActive(-1)
+  }, [focused])
 
   // The chosen place goes first in the last searches (once, newest first, at most five)
   function remember(option) {
@@ -104,27 +107,23 @@ export function MapSearch({ onSelect, className = '' }) {
     })
   }
 
+  function close() {
+    onClose()
+    inputRef.current?.blur()
+  }
+
   function choose(option) {
     if (!option) return
-    setOpen(false)
-    setActive(-1)
-    if (option.key !== 'coords') { chosenRef.current = option.title; setText(option.title) }
     remember(option)
-    inputRef.current?.blur()
+    close()
     onSelect(option.point)
   }
 
-  function clear() {
-    chosenRef.current = null
-    setText(''); setPlaces([]); setStatus('idle'); setActive(-1); setOpen(true)
-    inputRef.current?.focus()
-  }
-
-  function onKeyDown(e) {
+  // Moves through the options from the field or from the list (Tab can put the focus on the list)
+  function onNavKey(e) {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       if (!options.length) return
       e.preventDefault()
-      setOpen(true)
       const step = e.key === 'ArrowDown' ? 1 : -1
       setActive(a => (a + step + options.length) % options.length)
     } else if (e.key === 'Enter') {
@@ -132,11 +131,28 @@ export function MapSearch({ onSelect, className = '' }) {
       // Enter on an empty box does not pick a last search by itself: it needs an arrow first
       if (!query && active < 0) return
       choose(options[active] ?? options[0])
-    } else if (e.key === 'Escape' && open) {
-      e.stopPropagation() // closes the list only, not the point panel (page-level Esc)
-      setOpen(false)
+    } else if (e.key === 'Escape' && focused) {
+      e.stopPropagation() // closes the search only, not the point panel (page-level Esc)
+      close()
     }
   }
+
+  function onKeyDown(e) {
+    // With results open, Tab goes to them first and then on to the species half
+    if (e.key === 'Tab' && !e.shiftKey && showList && options.length) {
+      e.preventDefault()
+      setActive(a => (a < 0 ? 0 : a))
+      listRef.current?.focus()
+      return
+    }
+    onNavKey(e)
+  }
+
+  // Keep the highlighted option in view while moving with the arrows
+  useEffect(() => {
+    if (active < 0) return
+    document.getElementById(`${listId}-${active}`)?.scrollIntoView({ block: 'nearest' })
+  }, [active, listId])
 
   // What the list says when there is nothing to choose
   let message = null
@@ -146,13 +162,53 @@ export function MapSearch({ onSelect, className = '' }) {
     else if (!coords && status === 'error') message = t.obsSearchError
     else if (!coords && status === 'done' && !places.length) message = t.obsSearchNoResults
   }
-  const showList = open && (options.length > 0 || message)
+  const showList = focused && (options.length > 0 || message)
 
-  // Same pill as the zones search (SearchFilterBar): 52px high, fully rounded, search icon on the
-  // left and a round clear button. `glass-search` keeps it readable over the satellite image.
+  const dropdown = showList && (
+    <ul
+      ref={listRef}
+      id={listId}
+      role="listbox"
+      tabIndex={-1}
+      aria-label={t.obsSearchLabel}
+      aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
+      onKeyDown={onNavKey}
+      className="absolute left-0 right-0 top-full mt-2 max-h-72 overflow-auto rounded-2xl map-surface py-1 shadow-float outline-none"
+    >
+      {!query && (
+        <li role="presentation" className="px-5 pt-2 pb-1 text-[11px] uppercase tracking-[1px] text-cream/55">{t.obsSearchRecent}</li>
+      )}
+      {options.map((o, i) => (
+        <li
+          key={o.key}
+          id={`${listId}-${i}`}
+          role="option"
+          aria-selected={i === active}
+          onPointerDown={e => e.preventDefault()}
+          onClick={() => choose(o)}
+          onMouseEnter={() => setActive(i)}
+          className={`px-5 py-2.5 cursor-pointer ${i === active ? 'bg-white/10' : ''}`}
+        >
+          <span className="flex items-center gap-2 text-base text-cream">
+            {o.recent && (
+              <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-cream/50">
+                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+              </svg>
+            )}
+            {o.title}
+          </span>
+          {o.sub && <span className="block text-xs text-cream/55">{o.sub}</span>}
+        </li>
+      ))}
+      {options.length === 0 && message && (
+        <li role="presentation" className="px-5 py-3 text-sm text-cream/60">{message}</li>
+      )}
+    </ul>
+  )
+
   return (
-    <div ref={rootRef} className={`relative ${className}`}>
-      <span className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none z-10 search-light-text">{IC.search}</span>
+    <BarHalf side="left" focused={focused} collapsed={collapsed} minWidth={compact ? COMPACT_W : 0} dropdown={dropdown}>
+      <span className="absolute top-1/2 -translate-y-1/2 pointer-events-none z-10 search-light-text [&>svg]:w-[18px] [&>svg]:h-[18px]" style={{ left: '10px' }}>{IC.search}</span>
       <input
         ref={inputRef}
         type="text"
@@ -166,65 +222,14 @@ export function MapSearch({ onSelect, className = '' }) {
         autoCorrect="off"
         spellCheck={false}
         value={text}
-        placeholder={t.obsSearchPlaceholder}
-        onChange={e => { chosenRef.current = null; setText(e.target.value); setOpen(true); setActive(-1) }}
-        onFocus={() => setOpen(true)}
+        placeholder={phone ? t.obsSearchPlaceholderShort : t.obsSearchPlaceholder}
+        onChange={e => { setText(e.target.value); setActive(-1) }}
+        onFocus={onFocus}
         onKeyDown={onKeyDown}
-        className="w-full glass-search map-surface search-light-input text-base md:text-sm outline-none pl-12 pr-12 shadow-float"
-        style={{ height: '52px', borderRadius: '26px' }}
+        className="h-full w-full bg-transparent search-light-input placeholder:!opacity-80 text-[16px] outline-none truncate pl-[34px]"
+        style={{ paddingRight: focused ? '44px' : '6px' }}
       />
-      {text && (
-        <button
-          type="button"
-          onMouseDown={e => e.preventDefault()}
-          onClick={clear}
-          aria-label={t.obsSearchClear}
-          className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full transition-all search-light-text opacity-60 hover:opacity-100 hover:bg-black/10"
-          style={{ width: '32px', height: '32px' }}
-        >
-          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      )}
-
-      {showList && (
-        <ul
-          id={listId}
-          role="listbox"
-          aria-label={t.obsSearchLabel}
-          className="absolute left-0 right-0 top-full mt-2 max-h-72 overflow-auto rounded-2xl map-surface py-1 shadow-float"
-        >
-          {!query && (
-            <li role="presentation" className="px-5 pt-2 pb-1 text-[11px] uppercase tracking-[1px] text-cream/55">{t.obsSearchRecent}</li>
-          )}
-          {options.map((o, i) => (
-            <li
-              key={o.key}
-              id={`${listId}-${i}`}
-              role="option"
-              aria-selected={i === active}
-              onPointerDown={e => e.preventDefault()}
-              onClick={() => choose(o)}
-              onMouseEnter={() => setActive(i)}
-              className={`px-5 py-2.5 cursor-pointer ${i === active ? 'bg-white/10' : ''}`}
-            >
-              <span className="flex items-center gap-2 text-base text-cream">
-                {o.recent && (
-                  <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-cream/50">
-                    <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
-                  </svg>
-                )}
-                {o.title}
-              </span>
-              {o.sub && <span className="block text-xs text-cream/55">{o.sub}</span>}
-            </li>
-          ))}
-          {options.length === 0 && message && (
-            <li role="presentation" className="px-5 py-3 text-sm text-cream/60">{message}</li>
-          )}
-        </ul>
-      )}
-    </div>
+      {focused && <CloseSearchButton label={t.obsSearchClose} onClick={close} />}
+    </BarHalf>
   )
 }
