@@ -51,7 +51,7 @@ export function countGroups(rows) {
 /**
  * Rows for the map-layer species picker: every species of the catalogue, by name for people
  * (first common name of the app language, else the scientific one), sorted in that language.
- * `photo` is the catalogue's main photo URL (or null); `edibility` the catalogue's value. `search` has the scientific name, the common names and the Latin synonyms (see matchesQuery).
+ * `photo` is the catalogue's main photo URL (or null); `edibility` the catalogue's value and `edibGroup` its group (see EDIB_GROUPS). `search` has the scientific name, the common names and the Latin synonyms (see matchesQuery).
  */
 export function buildPickerRows(catalog, lang) {
   const collator = new Intl.Collator(LOCALES[lang] ?? LOCALES.es)
@@ -63,6 +63,7 @@ export function buildPickerRows(catalog, lang) {
       scientific: s.scientificName ?? '',
       photo: s.photo?.url ?? null,
       edibility: s.edibility ?? null,
+      edibGroup: edibilityGroup(s.edibility),
       search: searchText(s.scientificName, s),
     }))
     .sort((a, b) => collator.compare(a.name, b.name))

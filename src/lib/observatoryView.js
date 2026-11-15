@@ -10,10 +10,11 @@
 // The timeline window adds two more: `hasta` (last day of the window, YYYY-MM-DD; missing = the
 // last day with data) and `dias` (its length, 7–180; missing = 20).
 // The Meteo tab adds what the map is showing, only while Meteo is on: `capa` (the data layer, e.g.
-// `condiciones`), `seta` (species id; missing = the mean of the excellent ones) and `dia` (the
+// `condiciones`) and `dia` (the
 // reference day, YYYY-MM-DD; missing = the last day with data). `dia` is clamped to −30…+7 days from
-// today; `seta` and `dia` mean nothing without `capa`. Whether `seta` exists in the catalogue is
-// checked by the page once the catalogue has loaded.
+// today and means nothing without `capa`. `seta` (species id) belongs to the whole map, not to Meteo:
+// it stays with Meteo off, and a link with only `seta` does not turn Meteo on. Whether it exists in the
+// catalogue is checked by the page once the catalogue has loaded.
 // =====================================================
 import { isInCatalonia } from './catalonia'
 import { addDays, todayIso } from './layerDays'
@@ -59,18 +60,27 @@ export function clampDay(raw, today = todayIso()) {
 }
 
 /**
- * The Meteo state in the URL: { layer, species, day } or null when there is no valid `capa` (Meteo is
- * then whatever this browser stored). `layer` is a meteoLayers id.
+ * The Meteo state in the URL: { layer, day } or null when there is no valid `capa` (Meteo is then
+ * whatever this browser stored). `layer` is a meteoLayers id. The species is not Meteo's: see parseSpecies.
  */
 export function parseMeteo(params, today = todayIso()) {
   const layer = layerFromParam(params.get('capa'))
   if (!layer) return null
+  return { layer, day: clampDay(params.get('dia'), today) }
+}
+
+/** The map's active species in the URL (`seta`, a species id), or null. It does not depend on Meteo. */
+export function parseSpecies(params) {
   const seta = params.get('seta')
-  return {
-    layer,
-    species: typeof seta === 'string' && SPECIES_ID.test(seta) ? seta : null,
-    day: clampDay(params.get('dia'), today),
-  }
+  return typeof seta === 'string' && SPECIES_ID.test(seta) ? seta : null
+}
+
+/** New params with the active species set, or removed with null; every other parameter is kept. */
+export function withSpecies(params, id) {
+  const next = new URLSearchParams(params)
+  if (id) next.set('seta', id)
+  else next.delete('seta')
+  return next
 }
 
 /**
@@ -82,13 +92,10 @@ export function withMeteo(params, meteo) {
   const capa = meteo ? paramOfLayer(meteo.layer) : null
   if (capa) {
     next.set('capa', capa)
-    if (meteo.species) next.set('seta', meteo.species)
-    else next.delete('seta')
     if (meteo.day) next.set('dia', meteo.day)
     else next.delete('dia')
   } else {
     next.delete('capa')
-    next.delete('seta')
     next.delete('dia')
   }
   return next
@@ -147,8 +154,8 @@ export function formatCoords(point) {
 /**
  * The URL's canonical form, or null when it already is. A link with a broken point loses it (and
  * the window with it), duplicated lat/lon collapse to the valid one, coordinates are rounded and
- * a broken or default window is dropped, and so are a `capa` that names no built layer (with its `seta`
- * and `dia`), a broken `seta` or `dia`; a `dia` out of range is clamped: the address bar always says
+ * a broken or default window is dropped, and so are a `capa` that names no built layer (with its `dia`),
+ * a broken `seta` or `dia`; a `dia` out of range is clamped: the address bar always says
  * what the page shows.
  */
 export function canonicalParams(params, today = todayIso()) {
@@ -158,6 +165,6 @@ export function canonicalParams(params, today = todayIso()) {
   const withView = view.point
     ? withWindow(withPoint(params, view.point), { until: view.until, days: view.days })
     : withPoint(params, null)
-  const canonical = withMeteo(withView, parseMeteo(params, today))
+  const canonical = withSpecies(withMeteo(withView, parseMeteo(params, today)), parseSpecies(params))
   return canonical.toString() === params.toString() ? null : canonical
 }
