@@ -9,8 +9,8 @@
 
 | # | Branch | Status |
 |---|---|---|
-| T1 | `feat/observatory-species-filter-bar` | 🟡 Built 2026-11-15, awaiting QA and squash (see «T1 · as built») |
-| T2 | `chore/observatory-species-filter-habitat-tab` | ⬜ |
+| T1 | `feat/observatory-species-filter-bar` | ✅ Squashed into the epic (#180, 2026-11-15; see «T1 · as built») |
+| T2 | `chore/observatory-species-filter-habitat-tab` | ✅ Built 2026-11-15, awaiting squash (see «T2 · as built») |
 | T3 | `feat/observatory-species-filter-habitat` | ⬜ |
 | T4 | `feat/observatory-species-filter-sheet` | ⬜ Optional |
 
@@ -243,6 +243,21 @@ Feature: Hábitat tab
 ```
 
 **Done when** the scenarios pass, `npm run build` is clean and a grep of `obsTabForest` and the old tab id finds nothing.
+
+---
+
+## T2 · as built (2026-11-15)
+
+What the spec above says and what was built. Everything else in the spec holds.
+
+| Spec | As built |
+|---|---|
+| «Under a segment Bosques (one segment for now)» | **A small heading «Bosques» / «Boscos» / «Forests»**, not a control. A one-segment control was built first and, seen on screen, read as a pressed button. **T3 replaces the heading with the two-segment control** (Bosques · De la seta), as Meteo's. |
+| «The icon stays unless it reads wrong» | **`Mountain`** instead of `TreePine`: Hábitat also means altitude and soil, and T3 would have had to change it anyway. |
+| Tab id `forest` → `habitat` | Done in `TABS`, `TabRail`, `useMapNavigation` (`nav.on.habitat`) and `Observatory.jsx`. The layer and raster names (`forestOn`, `forestShown`, `FOREST_PANE`, the `forest` raster kind, the `forest` entry of the busy bar) are **not** renamed: they are the layer, not the tab. |
+| Storage keys keep their names | Kept; `KEYS.habitat` is `fungus-obs-forest`, with a comment saying why. |
+| `obsTabForest` orphan? | Renamed to `obsTabHabitat`, no key left unused; two new keys, `obsHabitatSegForests` (the heading; T3 reuses it for the segment). |
+| `system/project.spec.md` / navigation plan | `project.spec.md` and `README.md` keep «Bosque» in the v7.4 row (history of what shipped). A note at the top of `memory/observatory-navigation-plan.md` says the tab was renamed. |
 
 ---
 

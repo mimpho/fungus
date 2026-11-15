@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — Observatory: the Bosque tab is now Hábitat (2026-11-15, `chore/observatory-species-filter-habitat-tab`, T2 of `epic/observatory-species-filter`)
+
+Front end only. A rename with no new logic; T3 gives the tab its second map (where the chosen species can grow).
+
+- **Tab:** «Bosque» / «Bosc» / «Forest» become **Hábitat / Hàbitat / Habitat**, with the `Mountain` icon (the tab will also hold altitude and soil, not only forests). Code id `forest` → `habitat`; `obsTabForest` → `obsTabHabitat`; `BosquePanel.jsx` → `HabitatPanel.jsx`.
+- **Panel:** same content (Todos / Ninguno, counter, eleven classes) under a small heading «Bosques» / «Boscos» / «Forests». T3 turns the heading into a two-segment control (Bosques · De la seta). A one-segment control was tried and looked like a pressed button.
+- **Kept:** the `localStorage` keys `fungus-obs-forest` and `fungus-obs-forest-classes` keep their names, so a choice made before still holds (checked: Bosque on with only «Hayedo» came back as it was). No URL change. The layer and raster code (`forestOn`, `forestShown`, the `forest` raster kind) is not renamed.
+- **Contrast (DOM, 390 and 1280 px, dark / light):** heading 5.1:1 / 7.5:1; tab label 6.9:1 / 14.5:1. No text left under 4.5:1.
+- **Not seen:** real iOS Safari and Android Chrome; CA and EN on screen (read in code only).
+
 ### Added — Observatory species filter: shared species and the search bar in two halves (2026-11-15, `feat/observatory-species-filter-bar`, T1 of `epic/observatory-species-filter`)
 
 Front end only (no migration, no variable, no dependency). The species is now the map's, not Meteo's. Plan and as-built notes: `memory/observatory-species-filter-plan.md`.

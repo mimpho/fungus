@@ -980,3 +980,10 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 
 **Also:** the placeholder is «Filtrar por seta» / «Filtra per bolet» / «Filter by mushroom». Over the bar's list the cards sit on a solid `modal` base (the translucent tint of the zone's panel gave the tag and the Latin name 3–3.7:1) and in light theme use the theme's text colour (the zone's `--ui-filter-pill-text` is 3.8:1 on white; the zone's own panel is untouched).
 
+## Species filter T2: the Hábitat tab, its icon and its first heading (2026-11-15)
+
+**Decision (Marcos):** the tab that was Bosque is **Hábitat** now, with the `Mountain` icon, and its panel opens with a plain heading «Bosques» instead of a one-segment control. T3 will turn that heading into the segmented control Bosques · De la seta.
+
+**Why:** a lone segment, already selected, looked like a pressed button that does nothing. A heading says «this is the forest list» without promising an interaction; the real control belongs to the task that adds the second segment. The icon changes now because the name already says more than forests (altitude, soil) and T3 would have had to change it.
+
+**Discarded:** keeping `TreePine` (reads as forests only); the one-segment control (looked clickable); renaming the layer and raster code (`forestOn`, the `forest` raster kind) along with the tab id, because they name the layer, which is still the forest classes; renaming the `fungus-obs-forest*` storage keys (a choice made before would be lost).

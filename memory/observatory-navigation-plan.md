@@ -1,5 +1,7 @@
 # Plan — `epic/observatory-navigation`
 
+> **2026-11-15:** the «Bosque» tab named below was renamed **Hábitat** (tab id `habitat`, `BosquePanel` → `HabitatPanel`, icon `Mountain`) in T2 of `epic/observatory-species-filter`. This plan is kept as it was written; its storage keys (`fungus-obs-forest`, `fungus-obs-forest-classes`) did not change.
+
 > Technical plan and task breakdown. Product contract: [`observatory-navigation-prd.md`](observatory-navigation-prd.md) (open questions answered 2026-11-10; reasons in `memory/decisions.md`, «Observatory navigation: answers to the PRD's open questions»).
 > Last updated: 2026-11-12
 
