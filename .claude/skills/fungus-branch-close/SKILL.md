@@ -38,6 +38,7 @@ Staging and committing are local and reversible; pushing is not part of this ski
 1. Show `git status` and `git diff --stat` before touching the index.
 2. Stage explicit paths only. Never `git add -A` or `git add .`. Never stage `backend/.env`, `.env.local`, `local-data/`, dumps or anything with credentials; if one of them appears in `status`, stop and say so. Files the branch did not make (for example an untracked `.claude/launch.json`) stay out.
 3. Two commits, code first and docs after, using the messages of Phase A and the attribution trailers the session requires (commits and the end of the PR body).
+   Commit with explicit paths (`git commit -- <paths>`) so that whatever is already in the index (a `git rm` stages at once) does not slip into the wrong commit; a staged deletion of the branch's code goes in the code commit. Run each `git add` / `git commit` as its own command: a failing `git add` inside a `&&` chain does not stop the next line of a multi-line command.
 4. Show `git log --oneline -3` as proof.
 5. If the commit leaves a `.lock` file or fails, report it and stop; do not force anything and do not ask for broader permissions.
 
