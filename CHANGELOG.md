@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — installable PWA (2026-11-17)
+
+- `public/manifest.webmanifest` (name, `start_url`, `display: standalone`, dark theme colours, the 192 and 512 px icons) linked from `index.html`, with `theme-color` and the `apple-mobile-web-app-*` tags: installed from the home screen the app opens without the browser's bars. The old `site.webmanifest` (empty names, wrong icon paths, shadowed by the SPA rewrite) is removed. No service worker.
+- **To check after the deploy:** `/manifest.webmanifest` answers JSON, Chrome on Android offers «Instalar app», Google sign-in inside the installed app, and on iOS that the login page is not under the status bar (`viewport-fit=cover` is only set by the map page).
+
 ### Changed — «Mi rincón» cards and the point sheet's drag up (2026-11-17)
 
 - The «Mi rincón» cards (the observed zone's and the point sheet's) lose their green ring: a lighter green background in the light theme, the coffee/earth colour in the dark one (the `.glass` pieces inside turn translucent white in light so they do not blend with it).
