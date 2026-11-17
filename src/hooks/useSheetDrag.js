@@ -4,6 +4,17 @@ import { useEffect, useRef } from 'react'
 const CLICKABLE = 'button, a[href], input, select, textarea, label, summary, [role="button"], [role="switch"], [role="checkbox"], [role="slider"], [role="option"], [role="tab"], [data-no-sheet-drag]'
 const SLOP = 8 // px of movement before a touch becomes a drag
 
+// Content under the finger that can still scroll down (a drag up must scroll it before it can open anything)
+function scrollableDown(from, root) {
+  for (let e = from; e && e !== root; e = e.parentElement) {
+    if (e.scrollHeight > e.clientHeight + 1 && e.scrollTop + e.clientHeight < e.scrollHeight - 1) {
+      const oy = getComputedStyle(e).overflowY
+      if (oy === 'auto' || oy === 'scroll') return true
+    }
+  }
+  return false
+}
+
 function scrolledInside(from, root) {
   for (let e = from; e && e !== root; e = e.parentElement) {
     if (e.scrollTop > 0 && e.scrollHeight > e.clientHeight + 1) {
@@ -15,7 +26,7 @@ function scrolledInside(from, root) {
 }
 
 /**
- * A whole bottom sheet is its own drag handle: a touch anywhere on it that moves `direction` ('down' folds, 'up' opens)
+ * A whole bottom sheet is its own drag handle: a touch anywhere on it that moves `direction` ('down' folds, 'up' opens, 'both' either way)
  * becomes a drag, except when it starts on something clickable (buttons, links, fields, sliders, switches; the sheet's
  * handle and anything marked `data-drag-ok` still drag) or on content that is scrolled down (the content scrolls first).
  * A drag never ends in a click on what was under the finger.
@@ -30,12 +41,17 @@ export function useSheetDrag(ref, { enabled = true, direction = 'down', onStart,
     let startY = null
     let dragging = false
     let blocked = false
+    let noDown = false // 'both': content scrolled down, a drag down scrolls it back first
+    let noUp = false // 'both': content with more below, a drag up scrolls it first
     let lastDy = 0
     const start = e => {
       blocked = e.touches.length !== 1 || cb.current.enabled === false
       const hit = e.target.closest?.(CLICKABLE)
       if (hit && el.contains(hit) && !hit.closest('[data-sheet-handle]') && !hit.hasAttribute('data-drag-ok')) blocked = true
-      if (cb.current.direction === 'down' && scrolledInside(e.target, el)) blocked = true
+      const d = cb.current.direction
+      if (d === 'down' && scrolledInside(e.target, el)) blocked = true
+      noDown = d === 'both' && scrolledInside(e.target, el)
+      noUp = d === 'both' && scrollableDown(e.target, el)
       startY = e.touches[0].clientY
       dragging = false
       lastDy = 0
@@ -46,7 +62,7 @@ export function useSheetDrag(ref, { enabled = true, direction = 'down', onStart,
       if (!dragging) {
         if (Math.abs(dy) < SLOP) return
         const dir = cb.current.direction
-        if ((dir === 'down' && dy < 0) || (dir === 'up' && dy > 0)) { blocked = true; return }
+        if ((dir === 'down' && dy < 0) || (dir === 'up' && dy > 0) || (dir === 'both' && ((dy > 0 && noDown) || (dy < 0 && noUp)))) { blocked = true; return }
         dragging = true
         cb.current.onStart?.()
       }

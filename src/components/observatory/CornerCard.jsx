@@ -12,7 +12,7 @@ import { notesAreSpeciesNames } from './CornerSummary'
 
 const ACTION_BTN = `${BTN_PRIMARY} inline-flex items-center gap-2`
 // The look of the corner's cards (the saved one and the one that invites to save)
-const CARD = 'rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/25 [[data-theme=light]_&]:bg-[var(--glass-white)] [[data-theme=light]_&_.glass]:!bg-bar/20 [[data-theme=light]_&_.glass]:hover:!bg-bar/30 ring-2 ring-bar backdrop-blur-[16px]'
+const CARD = 'rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/40 [[data-theme=light]_&]:bg-bar/20 [[data-theme=light]_&_.glass]:!bg-white/50 [[data-theme=light]_&_.glass]:hover:!bg-white/70 backdrop-blur-[16px]'
 
 /**
  * The saved corner of the observed zone, as one more card of the page: pin of its kind and name,

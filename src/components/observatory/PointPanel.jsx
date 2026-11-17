@@ -17,6 +17,7 @@ import { getScoreBand } from '../../lib/scoreBands'
 
 const BODY_PAD_Y = 9 // the unfolded body's padding: pt-1 (4.5) + pb-[4px] (rounded up)
 const UNFOLDED_PAD = 60 // clear space under the unfolded sheet's content, outside the scroll (36 of it show above the sheet below it)
+const OPEN_TOP_PX = 72 // a sheet pulled up opens the observed zone once its top is this far from the screen's top (under the map's top bar)
 const FOLDED_PX = 104 // what the phone's point sheet shows of itself while folded: handle, title and coordinates
 
 const MACRO_KEY = {
@@ -33,11 +34,14 @@ const MACRO_KEY = {
  * than 80% of the map: its content scrolls. `bottomPx`: it rises from above the phone's tab bar (which
  * stays over it, so the sheet slides in and out from behind the bar).
  */
-function PointSheet({ label, onFold, onExpand, leaving = false, folded = false, onHeight, children }) {
+function PointSheet({ label, onFold, onExpand, onOpenZone, leaving = false, folded = false, onHeight, children }) {
   const [entered, setEntered] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [pull, setPull] = useState(0) // px the folded sheet has been pulled up by the finger
+  const fired = useRef(false) // the pull up already opened the zone
+  const reach = useRef(0)
+  const [progress, setProgress] = useState(0) // 0..1 how far the unfolded sheet has been pulled up towards the full-screen zone
   const ref = useRef(null)
   const bodyRef = useRef(null)
   const contentRef = useRef(null)
@@ -85,14 +89,29 @@ function PointSheet({ label, onFold, onExpand, leaving = false, folded = false, 
 
   // Dragging down folds the sheet (it stays, as a title bar, in the stack); dragging the folded one up, or tapping it, unfolds it
   useSheetDrag(ref, {
-    direction: folded ? 'up' : 'down',
-    onStart: () => { setDragY(0); setPull(0); setDragging(true) },
-    onMove: dy => { if (folded) setPull(Math.max(0, -dy)); else setDragY(Math.max(0, dy)) }, // the sheet follows the finger: it grows (folded) or goes down
+    direction: folded ? 'up' : 'both',
+    onStart: () => {
+      setDragY(0); setPull(0); setDragging(true)
+      fired.current = false
+      // How far up the sheet may be pulled: until its top reaches the strip of the map's top bar
+      reach.current = Math.max(40, (ref.current?.getBoundingClientRect().top ?? 0) - OPEN_TOP_PX)
+    },
+    // The sheet follows the finger: folded, it grows; unfolded, down it goes down and up it grows until its top reaches the top bar (then the zone opens)
+    onMove: dy => {
+      if (folded) { setPull(Math.max(0, -dy)); return }
+      setDragY(Math.max(0, dy))
+      if (dy >= 0 || fired.current) { setPull(0); setProgress(0); return }
+      setPull(Math.min(-dy, reach.current))
+      setProgress(Math.min(1, -dy / reach.current))
+      if (-dy >= reach.current) { fired.current = true; setDragging(false); setPull(0); setProgress(0); onOpenZone?.() }
+    },
     onEnd: dy => {
       const h = ref.current?.offsetHeight || 300
       setDragging(false)
       setDragY(0)
       setPull(0)
+      setProgress(0)
+      if (fired.current) return
       if (folded) { if (dy < -40) onExpand?.() } else if (dy > Math.min(h * 0.3, 90)) onFold?.()
     },
   })
@@ -109,12 +128,16 @@ function PointSheet({ label, onFold, onExpand, leaving = false, folded = false, 
       style={{
         paddingBottom: folded ? 0 : UNFOLDED_PAD,
         // Folded (another sheet is open under it): just its handle and title stay in view (24 px of its foot go under the sheet below)
-        maxHeight: folded ? `${fullPx ? Math.min(fullPx, foldedPx + 24 + pull) : foldedPx + 24}px` : fullPx ? `${fullPx}px` : undefined,
+        maxHeight: folded ? `${fullPx ? Math.min(fullPx, foldedPx + 24 + pull) : foldedPx + 24}px` : fullPx ? `${fullPx + pull}px` : undefined,
+        // Its rounded top flattens as it rises, so it ends looking like the full-screen modal
+        ...(progress > 0 ? { borderTopLeftRadius: 24 * (1 - progress), borderTopRightRadius: 24 * (1 - progress) } : {}),
+        height: !folded && pull > 0 && fullPx ? `${fullPx + pull}px` : undefined,
         transform: leaving ? 'translateY(100%)' : dragging ? `translateY(${dragY}px)` : entered ? 'translateY(0)' : 'translateY(100%)',
         transition: dragging && !leaving ? 'none' : 'transform 0.3s cubic-bezier(0.32,0.72,0,1), max-height 0.3s cubic-bezier(0.32,0.72,0,1)',
       }}
     >
-      <SheetHandle onToggle={folded ? onExpand : onFold} />
+      {/* The handle fades as the sheet rises towards the full-screen zone */}
+      <div style={{ opacity: 1 - progress }}><SheetHandle onToggle={folded ? onExpand : onFold} /></div>
       {/* pb-[4px]: the last button's ring is drawn outside its box and the scroll area would clip it */}
       <div ref={bodyRef} className={`min-h-0 overscroll-contain px-4 ${folded ? 'pt-0 overflow-hidden' : 'pt-1 overflow-y-auto'} pb-[4px] space-y-3`}>
         <div ref={contentRef} className="space-y-3">{children}</div>
@@ -268,7 +291,7 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
       </div>
 
       {corner && (
-        <section data-testid="point-corner" aria-label={t.obsCornerSavedHere} className="rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/25 [[data-theme=light]_&]:bg-[var(--glass-white)] [[data-theme=light]_&_.glass]:!bg-bar/20 [[data-theme=light]_&_.glass]:hover:!bg-bar/30 ring-2 ring-bar backdrop-blur-[16px]">
+        <section data-testid="point-corner" aria-label={t.obsCornerSavedHere} className="rounded-2xl p-4 space-y-3 min-w-0 overflow-hidden bg-coffee/40 [[data-theme=light]_&]:bg-bar/20 [[data-theme=light]_&_.glass]:!bg-white/50 [[data-theme=light]_&_.glass]:hover:!bg-white/70 backdrop-blur-[16px]">
           {/* Same layout as the «Mi rincón» card: title (with the pencil to edit on its right), then the pin beside the kind and the name */}
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-display text-[27px] leading-tight text-cream">{t.obsCornerCardTitle}</h2>
@@ -358,6 +381,6 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
   )
 
   // On a phone: a bottom sheet that leaves the map usable above it (no backdrop). Elsewhere: a card, a block of the page's bottom-left stack
-  if (sheet) return <PointSheet label={title} leaving={leaving} folded={folded || userFolded} onFold={() => setUserFolded(true)} onExpand={() => { setUserFolded(false); onExpand?.() }} onHeight={onSheetHeight}>{content}</PointSheet>
+  if (sheet) return <PointSheet label={title} leaving={leaving} folded={folded || userFolded} onFold={() => setUserFolded(true)} onExpand={() => { setUserFolded(false); onExpand?.() }} onOpenZone={() => onObserve(point)} onHeight={onSheetHeight}>{content}</PointSheet>
   return <PointCard label={title} folded={userFolded} onUnfold={() => setUserFolded(false)}>{content}</PointCard>
 }
