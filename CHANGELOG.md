@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The observed zone's full-screen layer takes the page's background (the gradient of `body::after`, now shared as `.page-gradient`) instead of the modal's colour, which is white in the light theme.
 - The map page no longer scrolls (`body` overflow hidden while signed in, plus `overscroll-behavior: none` on `html`): a drag from the header moved the page up on a phone and broke the layout. The login card still scrolls.
 
+### Docs — epic → `main` goes by PR (2026-11-17)
+
+- `system/workflows.spec.md`, `system/agents.spec.md` and the `fungus-branch-close` skill: the epic's merge into `main` is a PR integrated with *Create a merge commit* (a local merge pushed to `main` is rejected by the ruleset, GH013), then the tag on the merge hash; decision recorded in `memory/decisions.md`.
+
 ### Epic summary — Observatory species filter (2026-11-13 → 2026-11-15, `epic/observatory-species-filter`, to be released as v7.5.0 when merged into `main`)
 
 Front end only (no migration, no new variable, no dependency; `backend/pyproject.toml` 7.4.0 → 7.5.0 only for the version). One species chosen for the whole map, as a **lens** (it changes what answers a question about the species; it never hides what exists). What it delivers:
