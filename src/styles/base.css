@@ -29,6 +29,11 @@ body::after {
   left: 0;
   height: 100vh;
   width: 100vw;
+}
+
+/* The page's background. Also the full-screen layers that cover it (the observed zone), so they look like the page and not like a panel */
+body::after,
+.page-gradient {
   background: linear-gradient(135deg, var(--gradient-a) 0%, var(--gradient-b) 50%, var(--gradient-c) 100%);
 }
 

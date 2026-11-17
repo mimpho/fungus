@@ -261,13 +261,19 @@ export default function Observatory() {
       document.removeEventListener('webkitfullscreenchange', onChange)
     }
   }, [])
-  // The page behind must not scroll under the full-screen map or the zone's layer
+  // The map page does not scroll: the map is the page (a drag from the header would otherwise move it up on a phone), and what
+  // is behind the full-screen map or the zone's layer must not scroll either. The login card (not signed in) scrolls as usual
   useEffect(() => {
-    if (!fullscreen && !layerOpen) return undefined
+    if (!isAuthenticated && !fullscreen && !layerOpen) return undefined
     const previous = document.body.style.overflow
+    const previousOverscroll = document.documentElement.style.overscrollBehavior
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = previous }
-  }, [fullscreen, layerOpen])
+    document.documentElement.style.overscrollBehavior = 'none'
+    return () => {
+      document.body.style.overflow = previous
+      document.documentElement.style.overscrollBehavior = previousOverscroll
+    }
+  }, [isAuthenticated, fullscreen, layerOpen])
   const [basemap, setBasemap] = useState(() => {
     try {
       const saved = localStorage.getItem('fungus-obs-basemap')
@@ -615,7 +621,7 @@ export default function Observatory() {
               role="dialog"
               aria-modal="true"
               aria-label={t.obsTitle}
-              className="fixed inset-0 z-[150] overflow-y-auto overscroll-contain bg-modal"
+              className="page-gradient fixed inset-0 z-[150] overflow-y-auto overscroll-contain"
             >
               {/* As tall as the site's header (--header-h, published by Layout), which the layer covers */}
               <div ref={layerHeaderRef} className="sticky top-0 z-10 bg-modal/95 backdrop-blur-sm border-b border-white/[0.06]">
