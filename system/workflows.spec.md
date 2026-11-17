@@ -61,14 +61,14 @@ An epic is merged into `main` (and so deployed) at least every two to three week
 ### Integration
 
 ```
-feat/<epic>-*          ──squash──▶  epic/<epic>  ──merge --no-ff──▶  main
+feat/<epic>-*          ──squash──▶  epic/<epic>  ──PR, merge commit──▶  main
 fix/<epic>-*           ──squash──▶
 chore/<epic>-* (code)  ──squash──▶
 
 chore/* (project-wide)  ──squash──▶  main (directly)
 ```
 
-**feat/fix/chore → epic**: squash merge. One logical commit per feature, with Conventional Commits message. On GitHub, every PR into an `epic/*` branch is integrated with *Squash and merge* and the commit title is the PR title; never *Create a merge commit* (retro of `epic/observatory-navigation`: #164 and #174 entered with «Merge pull request #… from …»). The repository's squash default is set to «Pull request title», and merge commits are only for the epic → `main` merge, which is done locally.
+**feat/fix/chore → epic**: squash merge. One logical commit per feature, with Conventional Commits message. On GitHub, every PR into an `epic/*` branch is integrated with *Squash and merge* and the commit title is the PR title; never *Create a merge commit* (retro of `epic/observatory-navigation`: #164 and #174 entered with «Merge pull request #… from …»). The repository's squash default is set to «Pull request title», and merge commits are only for the epic → `main` PR (see below).
 
 > ⚠️ **BEFORE the squash and merge on GitHub**, complete the doc checklist below. No exceptions — not even for small branches.
 
@@ -87,14 +87,21 @@ Only after those file edits are in place, Claude's job is done. Git follows the 
 
 The human pushes and merges.
 
-**Epic → main**: `--no-ff` merge commit. Creates a visible boundary in the graph.
+**Epic → main**: a PR from `epic/<name>` into `main`, integrated on GitHub with *Create a merge commit* (never *Squash*, never *Rebase*: they would flatten the epic's history, and the merge commit is the visible boundary in the graph). It cannot be a local `git merge` + `git push origin main`: the `main` ruleset requires a PR and its checks (Unit tests, Lint (ruff), Integration tests), so the push is rejected (GH013; seen closing `epic/observatory-species-filter`, whose local merge had to be thrown away and redone as PR #186). The PR title is the merge commit's title, so it is the Conventional Commit `chore: merge epic/<name> — release vX.Y.0`.
+
+Steps, all by the human (Claude only prepares the title and body):
 
 ```bash
-git checkout main
-git merge --no-ff epic/observatory -m "chore: merge epic/observatory — release vX.Y.0"
-git tag -a vX.Y.0 -m "vX.Y.0: Observatory complete"
-git push origin main --tags
+git checkout epic/observatory && git pull --ff-only
+git push -u origin epic/observatory
+# GitHub: open the PR epic/observatory → main, wait for the checks, «Create a merge commit»
+git checkout main && git pull --ff-only
+git log -1 --format='%H %P'   # the merge commit: two parents
+git tag -a vX.Y.0 <that hash> -m "vX.Y.0: Observatory complete"
+git push origin vX.Y.0
 ```
+
+The tag goes only once the merge is in `origin/main`, with the commit hash written out, and it is pushed on its own (no `--tags`). A later docs PR does not move it.
 
 **Syncing a feature branch with its epic**: rebase, never merge.
 
@@ -116,7 +123,8 @@ git checkout epic/observatory && git merge main
 | Never rebase `epic/*` or `main` | Shared branches — rewriting history breaks everyone's local copy |
 | Never `push --force` to `epic/*` or `main` | Same reason |
 | QA before squash | `git checkout <branch>` for manual QA. Only provide the local clean-up commands after QA is confirmed and the PR is squashed on GitHub |
-| Tag after every epic merged into main | `git tag -a vX.Y.0` immediately after the merge, with the next free MINOR (the version is assigned here, not before) |
+| Never push to `main` | The ruleset requires a PR and its checks; an epic goes in by PR with *Create a merge commit* (see Epic → main). A local merge pushed to `main` is rejected (GH013) |
+| Tag after every epic merged into main | `git tag -a vX.Y.0 <merge hash>` once the merge is in `origin/main` (after `git pull --ff-only`), with the next free MINOR (the version is assigned here, not before); pushed on its own with `git push origin vX.Y.0` |
 | Delete feature branches after merge | Use `git branch -D` (force) — squash leaves the tip unreachable |
 
 ### Cheatsheet
@@ -139,11 +147,14 @@ git checkout epic/observatory
 git pull --ff-only
 git branch -D feat/observatory-scoring-v2
 
-# Phase close — merge to main + tag
-git checkout main && \
-git merge --no-ff epic/observatory -m "chore: merge epic/observatory — release vX.Y.0" && \
-git tag -a vX.Y.0 -m "vX.Y.0: Observatory complete" && \
-git push origin main --tags
+# Phase close — PR epic → main («Create a merge commit»), then the tag
+git push -u origin epic/observatory
+# (GitHub: PR into main, checks green, «Create a merge commit»)
+git checkout main
+git pull --ff-only
+git log -1 --format='%H %P'
+git tag -a vX.Y.0 <merge hash> -m "vX.Y.0: Observatory complete"
+git push origin vX.Y.0
 ```
 
 ---
@@ -218,7 +229,7 @@ Produce two documents in `memory/`:
 
 ### 2. Epic retrospective (before epic → main merge)
 
-Held at the close of the epic, before the final `--no-ff` merge to `main`. Output: concrete improvements to `workflows.spec.md` (this file). The retro is not a document — it produces changes.
+Held at the close of the epic, before the epic's PR into `main`. Output: concrete improvements to `workflows.spec.md` (this file). The retro is not a document — it produces changes.
 
 Mandatory questions:
 
@@ -263,7 +274,7 @@ Everything above, plus:
 6. Prepare the PR (title + body inline in chat — see [PR preparation](#pr-preparation))
 
 **Git process after the PR is merged:**
-1. `git pull origin main && git tag -a vX.Y.0 -m "..." && git push origin vX.Y.0`
+1. `git pull --ff-only`, then `git tag -a vX.Y.0 <merge hash> -m "..."` and `git push origin vX.Y.0` (only for an epic's merge into `main`; see Epic → main)
 2. Apply SQL migrations on Supabase if any
 
 ### On making a relevant architectural decision

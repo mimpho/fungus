@@ -11,7 +11,7 @@ Runs the close of a `feat/*`, `fix/*` or `chore/*` branch before it is squashed 
 
 - The user says "integra", "squash", "prepara la PR", "cerramos la rama", or similar.
 - The user says the branch is finished, the QA passed or it is ready. Do not wait for the keyword: the documentation checklist runs anyway.
-- It does NOT apply to the final merge of an epic into `main` (that has its own retrospective and a `--no-ff` merge) nor to opening an epic.
+- It does NOT apply to the final merge of an epic into `main` (that has its own retrospective and a PR with a merge commit) nor to opening an epic.
 
 ## Phase A — always (no git writes)
 
@@ -60,7 +60,7 @@ Read `memory/pending.md` (and the epic's plan file) and decide whether there is 
   - what to read first (the `system/` files, `memory/pending.md` and the epic's PRD and plan, pointing at the exact block, including the «as built» sections of the tasks already done);
   - how to start the local services (when the task is checked in the browser): the `api` and `dev` configurations of `.claude/launch.json`. `api` must be on port 8000, because the front end points there (`VITE_API_BASE`): if it gets another port, stop it and tell the human instead of going on. `dev` on 5173. If a port is already taken by a process the new session did not start, say which one and ask before stopping it. Check that `http://localhost:8000/api/v1/health` answers `ok`. The local back end starts without migrations and refreshes the zones' weather from Open-Meteo at start-up only when it is stale, which is normal. Which database it uses depends on `backend/.env` (it may be a local one without fresh forecast: see `memory/gotchas.md`); never print its values. Open the page in the built-in browser and wait for the human to log in (the login is theirs);
   - the scope in and out; the open decisions that need the human before code (as a table of options); the constraints that apply (git scope of `CLAUDE.md`, docs in English, texts in ES/CA/EN in `src/data/i18n.js`, sizes in px and colours from `src/styles/tokens.css`, SQL against production only applied by the human); and how it is verified (what Claude checks, what the human checks on screen, `localStorage` keys restored at the end). No secrets, no coordinates of foraging spots, no values of environment variables.
-- If there is not: say so, and propose the epic close (retrospective, `--no-ff`, tag) instead of inventing a task.
+- If there is not: say so, and propose the epic close (retrospective, PR into `main` with a merge commit, tag) instead of inventing a task.
 
 ## Never, in any phase
 

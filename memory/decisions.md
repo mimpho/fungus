@@ -1010,3 +1010,13 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 
 **Known:** the point's sheet height is measured and set as `max-height` in px (the transition needs a number); the alignment of the two × in the phone's stack depends on the point's sheet having no scroll bar.
 
+
+## Epic → main goes by PR with a merge commit, never a local push (2026-11-17, close of `epic/observatory-species-filter`)
+
+**Decision:** an epic enters `main` through a PR from `epic/<name>`, integrated on GitHub with *Create a merge commit*; the release tag is created afterwards, by the human, on the merge commit's explicit hash, once `origin/main` has it. `system/workflows.spec.md` (Epic → main, invariable rules, cheatsheet) says so.
+
+**Why:** the first plan was the documented one (`git merge --no-ff` locally, then `git push origin main --tags`). The `main` ruleset rejected the push (GH013: PR required, with the checks Unit tests, Lint (ruff) and Integration tests), the local merge was discarded (`git reset --hard origin/main`) and the same merge was made as PR #186 (merge commit `c4e8f13`, two parents). The rule existed already («`main` has branch protection»), but the epic merge section still described a direct push.
+
+**Discarded:** switching the `main` ruleset off for the push (it is the safety net for production deploys: Vercel deploys on every merge to `main`); *Squash and merge* for the epic (one commit for the whole epic, the per-task history of the epic is lost and the boundary in the graph disappears); *Rebase and merge* (same flattening and it rewrites hashes).
+
+**Known:** the tag is pushed alone (`git push origin vX.Y.0`, no `--tags`) and a later docs PR does not move it; the merge commit's title is the PR's title, so the PR is titled as the Conventional Commit of the merge.
