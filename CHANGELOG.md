@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — «Mi rincón» cards and the point sheet's drag up (2026-11-17)
+
+- The «Mi rincón» cards (the observed zone's and the point sheet's) lose their green ring: a lighter green background in the light theme, the coffee/earth colour in the dark one (the `.glass` pieces inside turn translucent white in light so they do not blend with it).
+- **Point sheet, drag up:** once unfolded, dragging it up makes it grow with the finger, its rounded top flattens and its handle fades as it rises, and when its top reaches the map's top bar (`OPEN_TOP_PX`) the observed zone opens, the same as «Observar». Content that can still scroll down scrolls first. `useSheetDrag` takes `direction: 'both'`.
+
 ### Fixed — observed zone background and map page scroll (2026-11-17)
 
 - The observed zone's full-screen layer takes the page's background (the gradient of `body::after`, now shared as `.page-gradient`) instead of the modal's colour, which is white in the light theme.
