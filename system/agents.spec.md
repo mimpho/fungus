@@ -127,7 +127,7 @@ At the end of each work block, Claude proactively suggests next steps in three d
 **Git** — repo state and pending actions:
 - Uncommitted changes → suggest commit with Conventional Commits message
 - Finished feature branch → suggest squash merge to epic and branch deletion
-- Completed phase → suggest `--no-ff` merge to `main`, tag and push
+- Completed phase → suggest the epic's PR into `main` (*Create a merge commit*), then the tag on the merge hash
 - PR ready → provide title and description ready to paste into GitHub
 
 **Conversation** — continue here or new session:
