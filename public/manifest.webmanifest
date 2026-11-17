@@ -1,0 +1,17 @@
+{
+  "name": "Fungus",
+  "short_name": "Fungus",
+  "description": "Observatorio micológico: dónde y cuándo salen las setas.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2b3529",
+  "theme_color": "#2b3529",
+  "icons": [
+    { "src": "/assets/images/favicon/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/images/favicon/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
