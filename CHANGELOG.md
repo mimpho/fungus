@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Looks:** the same surface as the «Mi rincón» card in both themes (coffee 40 % in the dark one, the buttons' green 20 % in the light one, laid over `--gradient-b` so it is opaque). Light theme: white fields and cards at 65 %, the header's tag and icon buttons at 35 %. Switch: green track (`#667739` light, `bg-bar` dark) when on, grey when off, white thumb. Touch screens keep the drag handle; the others get a chevron.
 - **Zone facts** (comarca, coordinates, altitude, forest, soil): same background as the thermometer's card (`glass`) without its shadow. The **coordinates card is a button**: it copies them to the clipboard and a toast («Coordenadas copiadas», 2.5 s) says so; if the browser refuses, the toast says it could not.
 - `--shadow-bottom` 0.45 → 0.15 opacity (it is shared by the point's sheet, the zone's sheet and the phone's tab bar).
+- **«Detonantes y frenos» card:** the fixed 34 rem cap on desktop is gone: the right column never makes the row taller (`h-0` + `min-h-full`) and the card is as tall as its events but shrinks to what the corner's card leaves, so it is never taller than the chart's column beside it, with the list scrolling inside; on a phone the list's cap goes from 350 to 450 px.
 - New texts in ES / CA / EN (`obsSpSheetIdle*`, `obsSpSheetZone*`, `obsSpSheetSwitch`, `obsFactCoordsCopy*`); `obsSpFilterBtn`, `obsSpDetails` and `obsSpHide` removed.
 
 ### Added — installable PWA (2026-11-17)

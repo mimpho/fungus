@@ -156,7 +156,9 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
           )}
           {chart}
         </div>
-        <div className="flex flex-col gap-4 min-w-0">
+        {/* From lg up the right column adds nothing to the row's height (`h-0`) and then takes all of it (`min-h-full`): it is never taller than
+            the left column, and the events card, which takes what the corner's card leaves, scrolls its list inside */}
+        <div className="flex flex-col gap-4 min-w-0 lg:self-stretch lg:h-0 lg:min-h-full">
           {!single && <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} />}
           {events}
         </div>
