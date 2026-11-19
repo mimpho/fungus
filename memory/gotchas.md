@@ -480,3 +480,17 @@ The point's sheet set `max-height` from what it measured, and the content could 
 ### ⚠️ The ring of a button is drawn outside its box
 A `ring-2` / `border` outside the button is clipped by the scroll area it ends in (the last button of the point's sheet lost its bottom edge). Leave a few px under the last element.
 
+
+## Frontend — Tailwind arbitrary values, the clipboard and testing themes (found 2026-11-19, zone's species sheet)
+
+### ⚠️ `bg-[linear-gradient(…)]` is read as a colour; the layers must all be images
+Tailwind guessed a colour for `bg-[linear-gradient(...),var(--gradient-b)]` and emitted nothing usable. Write `bg-[image:linear-gradient(...),linear-gradient(var(--c),var(--c))]`: the `image:` hint, and a flat colour as a layer is only valid as a `linear-gradient(c, c)`.
+
+### ⚠️ The `--color-*-rgb` tokens are comma-separated: `rgb(var(--x)/0.4)` is invalid
+`--color-coffee-rgb` is `139, 111, 71`, so use `rgba(var(--color-coffee-rgb), 0.4)`. The browser drops the declaration silently (the element stays transparent), so check `getComputedStyle(el).backgroundImage` when a new surface shows nothing.
+
+### ⚠️ `navigator.clipboard.writeText` needs a focused page and a user gesture
+A click simulated from the console (or a page without focus) is rejected; a real click works. `PointFacts` falls back to a hidden textarea and `execCommand('copy')`, and tells the user when both fail.
+
+### ⚠️ Emulating the light theme in the built-in browser does not always reach the app
+`resize_window colorScheme` changes `prefers-color-scheme`, but the app keeps its own `themeMode`; to look at a theme, set `document.documentElement.setAttribute('data-theme', 'light' | 'dark')` (it resets on reload).
