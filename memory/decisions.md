@@ -1020,3 +1020,14 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 **Discarded:** switching the `main` ruleset off for the push (it is the safety net for production deploys: Vercel deploys on every merge to `main`); *Squash and merge* for the epic (one commit for the whole epic, the per-task history of the epic is lost and the boundary in the graph disappears); *Rebase and merge* (same flattening and it rewrites hashes).
 
 **Known:** the tag is pushed alone (`git push origin vX.Y.0`, no `--tags`) and a later docs PR does not move it; the merge commit's title is the PR's title, so the PR is titled as the Conventional Commit of the merge.
+
+
+## The observed zone's species filter: one bottom sheet with a switch (2026-11-19)
+
+**Decision (Marcos, live, with side-by-side proposals):** the zone's species filter is one **bottom sheet at every width**, built on the map's `SpeciesSlot` (a `zone` mode), and it is the only place to choose the species: the right-column card and the one-column dropdown go. With no species the bar is the way in (text + a button in «Mi rincón»'s button colour); with one it reads «Filtrado por» and carries a **switch**; switched off the sheet stays with the species dimmed, so one tap filters again, and the zone goes back to the excellent edibles together. Unfolded, the species' header is on top (ficha and save as icon buttons) and the list below, so another can be picked without taking the filter off first; picking folds the sheet. The score, the season strip and the species' conditions (the old details arrow of each list card) are not in the sheet: the thermometer's card says them.
+
+**Why:** an × reads as «close the sheet» but it took the filter off; a switch says what it does, and keeping the sheet when it is off makes it a real toggle. One entry point removes two copies of the same list with the same state, and a persistent bar answers «which species is this zone showing?» at a glance.
+
+**Discarded:** keeping the card and the dropdown beside the sheet (two lists, one state); an × or a «Quitar filtro» pill (the pill was tried first; the switch won because the sheet can stay when it is off); a «Cambiar de seta» button that swapped the header for the list (the list is always under the header instead); showing nothing when no species is chosen (the bar is the discoverable entry); the sheet's own olive in the light theme (it became the «Mi rincón» surface in both themes); the score in the bar.
+
+**Known:** `SpeciesSlot` now serves two sheets, so the map's removal recipe changed (`memory/pending.md`, 7a); the surface is the card's translucent colour laid over `--gradient-b`, so it can differ a little from the card depending on where the card sits on the page's gradient; `--shadow-bottom` is shared by three sheets (0.15 now).

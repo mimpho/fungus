@@ -156,7 +156,7 @@
   --count-badge-bg:       var(--color-coffee-light);   /* «Ver listado» count (Zonas): solid, as in the design */
   --count-badge-text:     #22281d;                     /* 6.3:1 on #c4a06b */
   --shadow-float:         0 4px 16px rgba(0, 0, 0, 0.45);   /* floating controls: search, buttons, rail, zoom, panels */
-  --shadow-bottom:        0 -4px 16px rgba(0, 0, 0, 0.45);  /* bars and sheets attached to the bottom edge */
+  --shadow-bottom:        0 -4px 16px rgba(0, 0, 0, 0.15);  /* bars and sheets attached to the bottom edge */
 
   /* Legend scales of the Meteo tab's weather layers (low → high), from the design's artboards. Placeholder
      until epic/observatory-meteo draws them on the map; the same in both themes. */

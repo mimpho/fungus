@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
-import { IC } from '../../lib/helpers'
 import { useSpecies } from '../../hooks/useSpecies'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { speciesName } from '../../lib/speciesList'
+import { useSpeciesRows } from '../../hooks/useSpeciesRows'
+import { SpeciesSlot } from './speciesSheet/SpeciesSlot'
 import { fill } from '../../lib/thermometer'
 import { usePointData } from '../../hooks/usePointData'
 import { fetchPointCalendar, fetchPointForest, fetchPointSnapshot, fetchPointSpecies, fetchSavedPointSpecies } from '../../services/observatoryService'
@@ -37,14 +37,21 @@ const MACRO_KEY = {
  * says that the species will not be listed. The place name is context: if it fails, coordinates
  * stand in and nothing is reported. Only the thermometer failing is an error to show.
  */
-export function ObservedZone({ point, saved, until = null, days, onWindow, initialSpecies = null, onOpenList, headerSlot = null, filtersSlot = null }) {
+export function ObservedZone({ point, saved, until = null, days, onWindow, initialSpecies = null, onOpenList, headerSlot = null, filtersSlot = null, sheetSlot = null }) {
   const { t, lang } = useApp()
   // Starts on the species the map layer shows, so the thermometer and the map speak of the same one
   const [speciesId, setSpeciesId] = useState(initialSpecies)
+  // The species whose filter the sheet's switch turned off: the sheet stays, dimmed, so one tap turns it back on
+  const [pausedId, setPausedId] = useState(null)
+  const chooseSpecies = id => { setSpeciesId(id); setPausedId(null) }
+  const toggleSpecies = () => {
+    if (speciesId) { setPausedId(speciesId); setSpeciesId(null) } else { setSpeciesId(pausedId); setPausedId(null) }
+  }
   // One column (under lg): the corner's card goes first, above the filter pills and the species filter
   const single = !useMediaQuery('(min-width: 1024px)')
-  const [filterOpen, setFilterOpen] = useState(false) // below lg the species filter is a button with a dropdown above the thermometer
   const { species: catalog } = useSpecies()
+  const pickerRows = useSpeciesRows()
+  const [sheetH, setSheetH] = useState(0) // height of the active species' sheet, kept free at the foot of the page
   // The thermometer and the species list are those of the window's last day (null = the last day
   // with data). Held back a moment so that stepping with the keyboard does not ask for every day.
   const date = useDebouncedValue(until, 250)
@@ -62,7 +69,9 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
   // species is chosen. The server calls it `species=excellent`.
   const activeId = speciesId ?? ENSEMBLE
   const activeName = speciesId ? speciesName(speciesId, null, byId) : t.obsThEnsembleName
-  const chosenName = speciesId ? speciesName(speciesId, null, byId) : null
+  // The active species' sheet: its identity (photo, names, edibility). The score is not in it: the thermometer says it.
+  const sheetId = speciesId ?? pausedId
+  const sheetRow = useMemo(() => (sheetId ? pickerRows.find(r => r.id === sheetId) ?? null : null), [sheetId, pickerRows])
   const chosenRange = useMemo(
     () => speciesRange(speciesList.data?.species?.find(s => s.id === activeId)),
     [speciesList.data, activeId],
@@ -119,11 +128,9 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
       )}
 
       {/* The active filters go in a bar under the layer's header (`filtersSlot`), fixed there when the zone scrolls up to it; no bar while there are none */}
-      {filtersSlot && (chosenName || until || days !== DEFAULT_WINDOW) && createPortal(
+      {filtersSlot && (until || days !== DEFAULT_WINDOW) && createPortal(
         <div className="max-w-7xl mx-auto px-4 pt-5 pb-0">
           <FilterPills
-            speciesName={chosenName}
-            onClearSpecies={() => setSpeciesId(null)}
             until={until}
             days={days}
             onClearWindow={() => onWindow(null, DEFAULT_WINDOW)}
@@ -139,36 +146,6 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
       <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_clamp(20rem,30%,30rem)] items-start">
         <div className="space-y-4 min-w-0">
           {!single && factsEl}
-          {/* Where the page is one column (under lg) the species filter is this button with the panel as its dropdown, above the thermometer; from lg up it is the card of the right column.
-              (Drawn only then, not hidden with CSS: a hidden first child would still give the thermometer the column's top margin.) */}
-          {single && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setFilterOpen(o => !o)}
-              aria-expanded={filterOpen}
-              aria-controls="obs-sp-dropdown"
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl glass obs-btn text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
-            >
-              <span className="flex items-center gap-2 min-w-0">
-                <span aria-hidden="true" className="shrink-0">{IC.filter}</span>
-                <span className="shrink-0">{t.obsSpFilterBtn}</span>
-                {chosenName && <span className="truncate text-cream/60 font-normal">· {chosenName}</span>}
-              </span>
-              <ChevronDown size={18} aria-hidden="true" className={`shrink-0 transition-transform ${filterOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {filterOpen && (
-              <div id="obs-sp-dropdown" className="mt-2">
-                <SpeciesPanel
-                  state={speciesList}
-                  selected={speciesId}
-                  // Choosing closes the dropdown so the thermometer below shows the change
-                  onSelect={id => { setSpeciesId(id); setFilterOpen(false) }}
-                />
-              </div>
-            )}
-          </div>
-          )}
           {/* Moving the window asks for another day: the last thermometer stays, dimmed, until it arrives */}
           {snap.data == null && snap.status === 'loading' && <ThermometerSkeleton />}
           {snap.status === 'error' && <ObservatoryNotice error={snap.error} onRetry={snap.retry} />}
@@ -179,15 +156,10 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
           )}
           {chart}
         </div>
-        <div className="flex flex-col gap-4 min-w-0">
+        {/* From lg up the right column adds nothing to the row's height (`h-0`) and then takes all of it (`min-h-full`): it is never taller than
+            the left column, and the events card, which takes what the corner's card leaves, scrolls its list inside */}
+        <div className="flex flex-col gap-4 min-w-0 lg:self-stretch lg:h-0 lg:min-h-full">
           {!single && <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} />}
-          {!single && <SpeciesPanel
-            state={speciesList}
-            selected={speciesId}
-            // Choosing (or unchoosing) a species re-asks the thermometer and the cards: bring the
-            // top of the zone into view so the person sees them change
-            onSelect={id => setSpeciesId(id)}
-          />}
           {events}
         </div>
       </div>
@@ -200,6 +172,27 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
 
         <CalendarSection cal={calendar} speciesName={activeName} />
       </div>
+
+      {/* Room for the sheet at the foot, so it never covers the last card */}
+      <div aria-hidden="true" style={{ height: sheetH }} />
+      {/* The zone's species filter: one bottom sheet at every width. With no species it is the way in (it unfolds to the list); with one it is
+          «Filtrado por …» with its switch, and «Cambiar de seta» goes back to the list */}
+      {sheetSlot && createPortal(
+        <SpeciesSlot
+          key={sheetRow?.id ?? 'idle'}
+          zone
+          row={sheetRow}
+          species={sheetRow ? byId.get(sheetRow.id) ?? null : null}
+          lens={null}
+          paused={!speciesId}
+          onToggle={toggleSpecies}
+          onStackHeight={setSheetH}
+          renderPicker={done => (
+            <SpeciesPanel embedded state={speciesList} selected={speciesId} onSelect={id => { chooseSpecies(id); done() }} />
+          )}
+        />,
+        sheetSlot,
+      )}
     </section>
   )
 }

@@ -6,8 +6,7 @@ const TONE_BG = { trigger: '#4a7c59', brake: '#c98a40' }
 /**
  * «Detonantes y frenos» of the chart window: the same numbered events as the circles on the chart,
  * each with what happened and what it is expected to do, and the coldest night of the period.
- * On desktop it takes the height of the chart beside it (the box that wraps it is relative) and
- * the list scrolls inside; on a phone the list is at most 350 px high.
+ * On desktop the card takes the height the page leaves it in the right column, which is never taller than the chart's column beside it (the list scrolls inside); on a phone the list is at most 450 px high and scrolls inside.
  */
 export function EventsList({ vm }) {
   const { t, lang } = useApp()
@@ -15,7 +14,7 @@ export function EventsList({ vm }) {
   const frost = frostLine(vm.lowest, t, lang)
 
   return (
-    <aside aria-labelledby="obs-ev-title" className="glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:max-h-[34rem]">
+    <aside aria-labelledby="obs-ev-title" className="glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:flex-[0_1_auto] lg:min-h-[14rem]">
       <div>
         <h3 id="obs-ev-title" className="font-display text-2xl text-cream">{t.obsChEvents}</h3>
         <p className="text-xs text-cream/60">{t.obsChEventsSub}</p>
@@ -27,7 +26,7 @@ export function EventsList({ vm }) {
           data-testid="events-list"
           tabIndex={0}
           aria-label={t.obsChEventsLabel}
-          className="max-h-[350px] lg:max-h-none lg:flex-1 lg:min-h-0 overflow-y-auto pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/50 rounded-xl"
+          className="max-h-[450px] lg:max-h-none lg:flex-[0_1_auto] lg:min-h-0 overflow-y-auto pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/50 rounded-xl"
         >
           {items.map(({ e, text }) => (
             <li key={`${e.type}-${e.start}-${e.n}`} data-testid="event-item" className="grid grid-cols-[1.75rem_1fr] gap-3 py-3 border-b border-cream/10 last:border-0">

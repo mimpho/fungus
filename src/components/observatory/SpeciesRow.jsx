@@ -12,24 +12,27 @@ import { getEdibilityColor, resolveUrl } from '../../lib/helpers'
  * `option`: the card is an option of a listbox (the map search): it takes `optionId`, is highlighted while
  * `active`, and its buttons are out of the tab order and do not take the focus from the field
  * (`keepFocus`), so typing and the dropdown go on while a card is pressed.
+ * `dark`: the card sits on a dark surface in both themes (the zone's bottom sheet), so it takes no light-theme text colours (and its card is white in the light one).
  */
 export function SpeciesRow({
   row, selected = false, onPick, onOpenCard, pickLabel, score = null, aside = null, children = null,
-  option = false, optionId, active = false, onHover,
+  option = false, optionId, active = false, onHover, dark = false,
 }) {
   const { t } = useApp()
   const edib = getEdibilityColor(row.edibility)
   const keep = option ? { tabIndex: -1, onPointerDown: e => e.preventDefault() } : {}
   // In the zone's panel the card is a translucent tint over the dark glass. Over the search bar's lighter surface the same tint
   // would not carry the text (the tag and the Latin name fell under 4.5:1), so there it is the same tint over a solid `modal` base
-  const tint = selected
-    ? 'bg-bar/10'
-    : active ? 'bg-cream/[0.16]' : 'bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-filter-pill-bg)]'
+  const tint = dark
+    ? (selected ? 'bg-bar/10 [[data-theme=light]_&]:bg-white/65' : 'bg-cream/[0.14] [[data-theme=light]_&]:bg-white/65')
+    : selected
+      ? 'bg-bar/10'
+      : active ? 'bg-cream/[0.16]' : 'bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-filter-pill-bg)]'
   const surface = option ? 'bg-modal' : tint
   // The zone's panel writes its text in `--ui-filter-pill-text` in the light theme (olive, 3.8:1 on white); the search bar's list
   // sits on a white surface and uses the theme's own text colour
-  const pillText = option ? '' : '[[data-theme=light]_&]:text-[var(--ui-filter-pill-text)]'
-  const pillHover = option ? '' : '[[data-theme=light]_&]:hover:text-[var(--ui-filter-pill-text)]'
+  const pillText = option || dark ? '' : '[[data-theme=light]_&]:text-[var(--ui-filter-pill-text)]'
+  const pillHover = option || dark ? '' : '[[data-theme=light]_&]:hover:text-[var(--ui-filter-pill-text)]'
   return (
     <li
       data-testid="species-row"

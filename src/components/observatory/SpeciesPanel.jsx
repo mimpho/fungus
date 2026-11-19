@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
 import {
@@ -9,48 +10,22 @@ import { ObsSelect } from './ObsSelect'
 import { SpeciesPreview } from './SpeciesPreview'
 import { SpeciesRow } from './SpeciesRow'
 
-const MARK = { met: '✓', pending: '…', not_met: '✗' }
 const ALL = 'all'
 const FIELD = 'rounded-xl bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-filter-pill-bg)] px-3 py-2 text-base md:text-sm text-cream [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] placeholder:text-cream/40 [[data-theme=light]_&]:placeholder:text-[rgb(136_133_87/0.65)] outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
+// The same on the zone sheet's surface (`embedded`): olive in the dark theme and a pale earth colour in the light one, where the fields are white at 65 %; the text is always the theme's own ink
+const FIELD_DARK = 'rounded-xl bg-cream/[0.14] [[data-theme=light]_&]:bg-white/65 px-3 py-2 text-base md:text-sm text-cream placeholder:text-cream/50 outline-none focus-visible:ring-2 focus-visible:ring-cream/40 transition-colors'
 
-function Row({ row, selected, onSelect, onOpenCard }) {
-  const { t } = useApp()
-  const [open, setOpen] = useState(false)
-  const detailsId = `obs-sp-${row.id}`
+function Row({ row, selected, onSelect, onOpenCard, dark = false }) {
   return (
     <SpeciesRow
+      dark={dark}
       row={row}
       selected={selected}
       onPick={() => onSelect(selected ? null : row.id)}
       onOpenCard={onOpenCard}
-      // The score, at the right end next to the arrow that opens the details
-      score={<span className={`font-display text-2xl font-bold shrink-0 min-w-9 text-right ${row.band.text}`}>{row.score}</span>}
-      aside={(
-        <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
-          aria-expanded={open}
-          aria-controls={detailsId}
-          aria-label={`${open ? t.obsSpHide : t.obsSpDetails}: ${row.name}`}
-          className="shrink-0 px-3 text-cream/60 [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] [[data-theme=light]_&]:hover:text-[var(--ui-filter-pill-text)] hover:text-cream transition-colors"
-        >
-          <span aria-hidden="true">{open ? '▾' : '▸'}</span>
-        </button>
-      )}
-    >
-      <div id={detailsId} hidden={!open} className="px-3 pb-3 space-y-1.5">
-        {row.window && <p className="text-xs text-cream/80 glass-warm rounded-lg px-2.5 py-1.5">{row.window}</p>}
-        <ul className="space-y-1">
-          {row.conditions.map(c => (
-            <li key={c.key} className="text-xs text-cream/70 flex gap-2">
-              <span aria-hidden="true" className="w-3 shrink-0 text-center">{MARK[c.status]}</span>
-              <span className="sr-only">{c.statusLabel}: </span>
-              <span>{c.text}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </SpeciesRow>
+      // The score, at the right end of the card. What lies behind it (the conditions) is in the thermometer's card
+      score={<span className={`font-display text-2xl font-bold shrink-0 min-w-9 text-right pr-3 ${row.band.text}`}>{row.score}</span>}
+    />
   )
 }
 
@@ -65,8 +40,9 @@ function Row({ row, selected, onSelect, onOpenCard }) {
  * `state` is the answer of /point/species (or of the saved point's endpoint, so that the forest
  * types the author gave decide): ObservedZone asks it, because the chart needs the selected
  * species' thermal range too.
+ * `embedded`: inside the zone's bottom sheet (`SpeciesSlot`): no card of its own, no fixed height and no explanation tooltip.
  */
-export function SpeciesPanel({ state, selected, onSelect, className = '' }) {
+export function SpeciesPanel({ state, selected, onSelect, className = '', embedded = false }) {
   const { t, lang } = useApp()
   const uid = useId()
   const { species: catalog } = useSpecies()
@@ -96,10 +72,10 @@ export function SpeciesPanel({ state, selected, onSelect, className = '' }) {
   const groups = EDIB_GROUPS.filter(g => counts[g] > 0 || g === group)
 
   return (
-    <aside aria-labelledby={`${uid}-title`} className={`glass obs-card rounded-2xl p-4 flex flex-col gap-3 lg:h-[36rem] transition-opacity ${state.stale ? 'opacity-70' : ''} ${className}`}>
+    <aside aria-labelledby={`${uid}-title`} className={`${embedded ? '' : 'glass obs-card rounded-2xl p-4 lg:h-[36rem]'} flex flex-col gap-3 transition-opacity ${state.stale ? 'opacity-70' : ''} ${className}`}>
       <div className="flex items-center justify-between gap-2">
-        <h3 id={`${uid}-title`} className="font-display text-2xl text-cream">{t.obsSpTitle}</h3>
-        <div
+        <h3 id={`${uid}-title`} className={`font-display text-cream ${embedded ? 'text-xl' : 'text-2xl'}`}>{t.obsSpTitle}</h3>
+        {!embedded && <div
           className="relative"
           onMouseEnter={() => setInfoHover(true)}
           onMouseLeave={() => setInfoHover(false)}
@@ -128,7 +104,7 @@ export function SpeciesPanel({ state, selected, onSelect, className = '' }) {
           >
             {t.obsSpInfo}
           </p>
-        </div>
+        </div>}
       </div>
 
       {state.status === 'loading' && !state.data && <p className="text-sm text-cream/60 animate-pulse">{t.obsSpLoading}</p>}
@@ -140,6 +116,7 @@ export function SpeciesPanel({ state, selected, onSelect, className = '' }) {
         <>
           <div className="space-y-2">
             <div className="relative">
+              <Search size={16} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-cream/50 pointer-events-none" />
               <input
                 type="search"
                 value={query}
@@ -147,7 +124,7 @@ export function SpeciesPanel({ state, selected, onSelect, className = '' }) {
                 aria-label={t.obsSpSearchLabel}
                 placeholder={t.obsSpSearch}
                 autoComplete="off"
-                className={`${FIELD} w-full pr-10 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none`}
+                className={`${embedded ? FIELD_DARK : FIELD} w-full pl-9 pr-10 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none`}
               />
               {/* Own clear button: the browser's native one is blue and ignores the theme */}
               {query && (
@@ -165,7 +142,7 @@ export function SpeciesPanel({ state, selected, onSelect, className = '' }) {
             </div>
             <div className="flex items-center gap-2">
               <label htmlFor={`${uid}-edib`} className="text-xs text-cream/60 shrink-0">{t.obsSpEdib}</label>
-              <ObsSelect id={`${uid}-edib`} value={group} onChange={e => setGroup(e.target.value)} className="flex-1 min-w-0 [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)] [[data-theme=light]_&_select]:!text-[var(--ui-filter-pill-text)] [[data-theme=light]_&_svg]:!text-[var(--ui-filter-pill-text)]">
+              <ObsSelect id={`${uid}-edib`} value={group} onChange={e => setGroup(e.target.value)} className={`flex-1 min-w-0 ${embedded ? '[[data-theme=light]_&_select]:!bg-white/65' : '[[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)] [[data-theme=light]_&_select]:!text-[var(--ui-filter-pill-text)] [[data-theme=light]_&_svg]:!text-[var(--ui-filter-pill-text)]'}`}>
                 <option value={ALL}>{t.obsSpAll} ({rows.length})</option>
                 {groups.map(g => <option key={g} value={g}>{t[g]} ({counts[g]})</option>)}
               </ObsSelect>
@@ -178,10 +155,10 @@ export function SpeciesPanel({ state, selected, onSelect, className = '' }) {
               data-testid="species-scroll"
               tabIndex={0}
               aria-label={t.obsSpListLabel}
-              className="space-y-2 max-h-[350px] lg:max-h-none lg:flex-1 lg:min-h-0 overflow-y-auto pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/50 rounded-xl"
+              className={`space-y-2 ${embedded ? 'max-h-[min(350px,38dvh)]' : 'max-h-[350px] lg:max-h-none lg:flex-1 lg:min-h-0'} overflow-y-auto pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/50 rounded-xl`}
             >
               {shown.map(row => (
-                <Row key={row.id} row={row} selected={row.id === selected} onSelect={onSelect} onOpenCard={setViewing} />
+                <Row key={row.id} dark={embedded} row={row} selected={row.id === selected} onSelect={onSelect} onOpenCard={setViewing} />
               ))}
             </ul>
           )}

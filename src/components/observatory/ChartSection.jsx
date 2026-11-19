@@ -84,7 +84,7 @@ export function ChartSection({ point, species, speciesName, range, until, days, 
     </section>
   )
   const events = shown && shown.all.length > 0 && (
-    <div className={`transition-opacity ${dim}`}>
+    <div className={`transition-opacity ${dim} flex flex-col lg:flex-[0_1_auto] lg:min-h-0`}>
       <EventsList vm={shown.vm} />
     </div>
   )
