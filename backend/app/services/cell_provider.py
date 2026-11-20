@@ -1,8 +1,9 @@
 """
 Per-cell climate provider for the free-map Observatory.
 
-A click is resolved to an Open-Meteo grid cell (memory LRU -> cell_lookup table -> one cheap
-API call), and the cell's history is loaded on demand the first time anybody asks for it.
+A click is resolved to an Open-Meteo grid cell (memory LRU -> cell_lookup table -> the
+footprints of the stored cells -> one cheap API call as the last resort), and the cell's
+history is loaded on demand the first time anybody asks for it.
 Cached cells are served from the database with no network. Open-Meteo is the source of truth;
 everything stored here can be rebuilt.
 
@@ -20,6 +21,7 @@ from app.connectors.base import DailyWeatherData, ProviderRateLimited, ProviderU
 from app.connectors.open_meteo import ARCHIVE_CUTOFF_DAYS, OpenMeteoConnector
 from app.models.climate_cell import cell_id as make_cell_id
 from app.models.climate_cell import lookup_key
+from app.services.cell_discovery import build_grid
 
 log = logging.getLogger(__name__)
 
@@ -72,6 +74,7 @@ class CellStore(Protocol):
     async def get_lookup(self, key: tuple[int, int]) -> str | None: ...
     async def save_lookup(self, key: tuple[int, int], cell_id: str) -> None: ...
     async def get_cell(self, cell_id: str) -> CellInfo | None: ...
+    async def list_cells(self) -> list[CellInfo]: ...
     async def create_cell(self, cell: CellInfo) -> None: ...
     async def count_cells_created_since(self, since: datetime) -> int: ...
     async def count_cells_created_by_since(self, user_id: int, since: datetime) -> int: ...
@@ -123,6 +126,26 @@ def build_rows(
     rows = [row(r, r.date <= cutoff) for r in history]
     rows += [row(r, False) for r in forecast]
     return rows
+
+
+def find_stored_cell(cells: list[CellInfo], lat: float, lon: float) -> CellInfo | None:
+    """The stored cell whose footprint contains the point, or None (no cell contains it, or too
+    few cells to tell the grid). The footprint comes from `build_grid` (rows, and a width per
+    row), not from a fixed step: Open-Meteo assigns a point to the nearest grid centre, so a
+    point inside the rectangle of a stored cell belongs to it even if a neighbour is missing."""
+    grid = build_grid((c.lat, c.lon) for c in cells)
+    if grid is None:
+        return None
+    best: tuple[float, CellInfo] | None = None
+    for c in cells:
+        half_lon = grid.half_lon(c.lat)
+        if grid.half_lat <= 0 or half_lon <= 0:
+            continue
+        # 1.0 = on the edge of the footprint; the smallest is the nearest centre
+        d = max(abs(lat - c.lat) / grid.half_lat, abs(lon - c.lon) / half_lon)
+        if d <= 1.0 and (best is None or d < best[0]):
+            best = (d, c)
+    return best[1] if best else None
 
 
 def _seconds_to_next_utc_midnight(now: datetime) -> int:
@@ -219,6 +242,12 @@ class CellProvider:
         known = await store.get_lookup(key)
         if known:
             return known
+        # Local first: a point inside a stored cell needs no Open-Meteo call (the provider may be
+        # over its quota). No limit applies, the cell exists. The call is the last resort.
+        local = find_stored_cell(await store.list_cells(), lat, lon)
+        if local is not None:
+            await store.save_lookup(key, local.id)
+            return local.id
         glat, glon, elev = await self._factory("resolve", lat, lon, "nan").resolve_grid()
         cell_id = make_cell_id(glat, glon)
         async with self._create_lock:

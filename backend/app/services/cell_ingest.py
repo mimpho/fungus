@@ -19,6 +19,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol
 
 import httpx
@@ -228,3 +229,43 @@ async def refresh_all(
         lambda cid: loader.refresh_recent(store, cid), stats, "refreshed", sleep, pace,
     )
     return stats
+
+
+# ── start-up recovery ─────────────────────────────────────────────────────────
+
+def refresh_due(
+    cells: Sequence[CellInfo], now: datetime, slot_hour: int, slot_minute: int
+) -> bool:
+    """True when the daily refresh missed its slot: its time today (UTC) has passed and some
+    loaded cell was not refreshed today. Before the slot nothing is due (the scheduler will run
+    it; starting now would spend the budget twice). One stale cell is enough, not only an old
+    newest one: a click that loads a new cell must not hide that the other cells are stale."""
+    if (now.hour, now.minute) < (slot_hour, slot_minute):
+        return False
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    return any(
+        c.refreshed_at is None or c.refreshed_at < midnight
+        for c in cells
+        if c.loaded_to is not None
+    )
+
+
+async def startup_refresh(
+    store: IngestStore,
+    loader: CellLoader,
+    max_calls: int,
+    now: datetime,
+    slot_hour: int,
+    slot_minute: int,
+    paused_for: int = 0,
+    *,
+    sleep: Sleep = asyncio.sleep,
+) -> IngestStats | None:
+    """Recovers a daily refresh the service slept through (a restart after its slot). Returns
+    None when nothing was run: no budget, the provider is paused after a quota 429 (`paused_for`
+    seconds left: a request now would only extend it), or the cells are fresh / not yet due."""
+    if max_calls <= 0 or paused_for > 0:
+        return None
+    if not refresh_due(await store.list_cells(), now, slot_hour, slot_minute):
+        return None
+    return await refresh_all(store, loader, max_calls, sleep=sleep)

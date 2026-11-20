@@ -17,7 +17,7 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
@@ -33,6 +33,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
 from app.config import settings
+from app.connectors.open_meteo import rate_limit_pause
 from app.database import AsyncSessionLocal, dispose_engine
 from app.models.scores_cache import ScoresCache
 from app.routers import (
@@ -47,7 +48,7 @@ from app.routers import (
     weather,
     zones,
 )
-from app.services.cell_ingest import refresh_all
+from app.services.cell_ingest import refresh_all, startup_refresh
 from app.services.cell_store import SqlCellStore
 from app.services.ingest import run_backfill, run_daily_ingest
 from app.services.raster_loader import retry_missing, startup_load
@@ -134,18 +135,46 @@ async def _scheduled_ingest() -> None:
             log.exception("Scheduled ingest failed: %s", exc)
 
 
+# One cell refresh at a time: the 00:40 job and the start-up recovery must not both spend the
+# budget (the lock is per process, which is the whole deployment: one Render instance).
+_cell_refresh_lock = asyncio.Lock()
+
+
 async def _scheduled_cell_refresh() -> None:
     """Refresh the last days and the forecast of every stored Observatory cell, within the
     daily call budget (the cells load at first click or with scripts/ingest_cells.py)."""
     budget = settings.observatory_cell_refresh_budget
     if budget <= 0:
         return
-    async with AsyncSessionLocal() as db:
+    async with _cell_refresh_lock, AsyncSessionLocal() as db:
         try:
             stats = await refresh_all(SqlCellStore(db), observatory.get_cell_provider(), budget)
             log.info("Cell refresh finished: %s", stats.summary())
         except Exception as exc:
             log.exception("Cell refresh failed: %s", exc)
+
+
+async def _startup_cell_refresh() -> None:
+    """
+    On startup, run the cell refresh if its slot (00:40 UTC) has passed and some cell was not
+    refreshed today: a restart after the slot (Render, 2026-11-17 at 00:45) would otherwise
+    leave the map without its forecast until the next night. Same budget as the job, skipped
+    while Open-Meteo is paused after a quota 429. Background: does not block app startup.
+    """
+    async with _cell_refresh_lock, AsyncSessionLocal() as db:
+        try:
+            stats = await startup_refresh(
+                SqlCellStore(db), observatory.get_cell_provider(),
+                settings.observatory_cell_refresh_budget, datetime.now(UTC),
+                settings.ingest_cron_hour, settings.cell_refresh_cron_minute,
+                rate_limit_pause(),
+            )
+            if stats is None:
+                log.info("Cell refresh not due (or paused, or disabled) — skipping start-up run")
+            else:
+                log.info("Start-up cell refresh finished: %s", stats.summary())
+        except Exception as exc:
+            log.exception("Start-up cell refresh failed: %s", exc)
 
 
 async def _startup_ingest_if_empty() -> None:
@@ -270,6 +299,8 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     asyncio.create_task(_startup_ingest_if_empty())
     # Fire-and-forget: fill weather_cache if any zone lacks fresh weather
     asyncio.create_task(_startup_weather_refresh())
+    # Fire-and-forget: recover the cell refresh if the service slept through its slot
+    asyncio.create_task(_startup_cell_refresh())
 
     yield
 
