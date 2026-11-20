@@ -79,6 +79,9 @@ class FakeStore:
     async def get_cell(self, cell_id):
         return self.cells.get(cell_id)
 
+    async def list_cells(self):
+        return sorted(self.cells.values(), key=lambda c: c.id)
+
     async def create_cell(self, cell):
         self.cells[cell.id] = cell
         self.created_at[cell.id] = NOW
@@ -430,3 +433,104 @@ def test_cellinfo_defaults_to_unloaded():
 
 def test_cellinfo_defaults_to_no_creator():
     assert CellInfo("c", 1.0, 2.0, 3.0).created_by is None
+
+
+# ── Local resolution against the stored cells ────────────────────────────────
+
+# Rows 0.07 deg of latitude apart; the second row has wider cells and its own offset, as the
+# real grid does (a width per row, never a fixed 0.1 deg lattice).
+_ROW_A = (41.00, [1.000, 1.127, 1.254, 1.381])
+_ROW_B = (41.07, [1.060, 1.200, 1.340])
+_ROW_C = (41.14, [1.000, 1.127, 1.254, 1.381])
+
+
+def _stored_grid(rows=(_ROW_A, _ROW_B, _ROW_C), loaded=True) -> FakeStore:
+    store = FakeStore()
+    for lat, lons in rows:
+        for lon in lons:
+            cid = make_cell_id(lat, lon)
+            store.cells[cid] = CellInfo(
+                cid, lat, lon, 500.0, loaded_to=TODAY - timedelta(days=1) if loaded else None
+            )
+    return store
+
+
+class _RateLimitedConnector(FakeConnector):
+    async def resolve_grid(self):
+        from app.connectors.base import ProviderRateLimited
+
+        self.log["resolve"].append((self.lat, self.lon))
+        raise ProviderRateLimited("over its limit", retry_after=3600, reason="daily")
+
+
+class TestLocalResolution:
+    async def test_a_point_inside_a_stored_cell_makes_no_open_meteo_call(self):
+        provider, log = _provider()
+        store = _stored_grid()
+        result = await provider.get(store, 41.012, 1.130)  # inside 41.0_1.127
+        assert result.cell.id == make_cell_id(41.00, 1.127) and result.source == "stored"
+        assert log == {"resolve": [], "fetch": []}
+
+    async def test_it_works_with_the_quota_exhausted(self):
+        log = {"resolve": [], "fetch": []}
+        provider = CellProvider(
+            connector_factory=lambda cid, lat, lon, el: _RateLimitedConnector(
+                log, cid, lat, lon, el
+            ),
+            today=lambda: TODAY, now=lambda: NOW,
+        )
+        result = await provider.get(_stored_grid(), 41.075, 1.19)
+        assert result.cell.id == make_cell_id(41.07, 1.200) and log["resolve"] == []
+
+    async def test_the_width_of_each_row_is_its_own(self):
+        provider, _ = _provider()
+        store = _stored_grid()
+        # Same longitude, two rows: 1.265 is 0.011 from row A's 1.254 and 0.065 from row B's
+        # 1.200 (B's cells are wider: half width 0.07). Each row uses its own width.
+        in_a = await provider.get(store, 41.001, 1.265)
+        in_b = await provider.get(store, 41.069, 1.265)
+        assert in_a.cell.id == make_cell_id(41.00, 1.254)
+        assert in_b.cell.id == make_cell_id(41.07, 1.200)
+
+    async def test_the_lookup_is_saved_so_the_next_process_skips_even_the_scan(self):
+        provider, _ = _provider()
+        store = _stored_grid()
+        await provider.get(store, 41.012, 1.130)
+        assert store.lookups[lookup_key(41.012, 1.130)] == make_cell_id(41.00, 1.127)
+
+    async def test_no_new_cell_is_created_and_no_limit_applies(self):
+        provider, _ = _provider(max_new=0, max_per_user=1)
+        store = _stored_grid()
+        before = set(store.cells)
+        await provider.get(store, 41.012, 1.130, user_id=7)
+        assert set(store.cells) == before
+
+    async def test_a_point_outside_every_stored_cell_asks_open_meteo_as_a_last_resort(self):
+        provider, log = _provider()
+        store = _stored_grid()
+        result = await provider.get(store, 41.60, 1.2)  # far north of the stored rows
+        assert len(log["resolve"]) == 1 and result.source == "live"
+
+    async def test_new_cells_keep_the_global_and_user_limits(self):
+        store = _stored_grid()
+        provider, _ = _provider(max_new=0)
+        with pytest.raises(CellBudgetExceeded):
+            await provider.get(store, 41.60, 1.2, user_id=1)
+        provider, _ = _provider(max_per_user=0)  # 0 = no per-user limit
+        provider._max_new_per_user = 1
+        store.created_at["x"] = NOW
+        store.cells["x"] = CellInfo("x", 0.0, 0.0, 1.0, created_by=1)
+        with pytest.raises(UserCellLimitExceeded):
+            await provider.get(store, 41.60, 1.2, user_id=1)
+
+    async def test_with_too_few_cells_to_know_the_grid_it_asks_open_meteo(self):
+        provider, log = _provider()
+        store = _stored_grid(rows=(_ROW_A,))  # one row: no row spacing to infer
+        await provider.get(store, 41.01, 1.13)
+        assert len(log["resolve"]) == 1
+
+    async def test_a_stored_but_unloaded_cell_is_still_resolved_locally_then_loaded(self):
+        provider, log = _provider()
+        store = _stored_grid(loaded=False)
+        result = await provider.get(store, 41.012, 1.130)
+        assert log["resolve"] == [] and len(log["fetch"]) == 1 and result.source == "live"

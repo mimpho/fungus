@@ -17,6 +17,8 @@ from app.services.cell_ingest import (
     holes,
     load_pending,
     refresh_all,
+    refresh_due,
+    startup_refresh,
 )
 from app.services.cell_provider import CellInfo
 
@@ -257,3 +259,74 @@ class TestHoles:
         assert holes(await store.list_cells()) == []
         truth = {c.id for c in catalonia_cells(catalonia_grid_cells())}
         assert {c.id for c in catalonia_cells(await store.list_cells())} == truth
+
+
+# The daily slot is 00:40 UTC; Render restarted at 00:45 on 2026-11-17 and nothing recovered it.
+AFTER_SLOT = datetime(2026, 11, 17, 0, 45, tzinfo=UTC)
+BEFORE_SLOT = datetime(2026, 11, 17, 0, 10, tzinfo=UTC)
+YESTERDAY = datetime(2026, 11, 16, 0, 41, tzinfo=UTC)
+TODAY_RUN = datetime(2026, 11, 17, 0, 42, tzinfo=UTC)
+
+
+def loaded_cells(refreshed_at, n: int = 4) -> list[CellInfo]:
+    cells = catalonia_grid_cells(loaded=True)[:n]
+    for c in cells:
+        c.refreshed_at = refreshed_at
+    return cells
+
+
+class TestStartupRefresh:
+    async def test_runs_when_the_slot_passed_and_cells_are_from_yesterday(self):
+        cells, loader = loaded_cells(YESTERDAY), FakeLoader()
+        stats = await startup_refresh(
+            FakeStore(cells), loader, 10**6, AFTER_SLOT, 0, 40, sleep=no_sleep
+        )
+        assert stats is not None and stats.refreshed == 4 and len(loader.refreshed) == 4
+
+    async def test_a_cell_never_refreshed_counts_as_stale(self):
+        cells = loaded_cells(None, n=2)
+        assert refresh_due(cells, AFTER_SLOT, 0, 40)
+
+    async def test_skipped_when_every_cell_was_refreshed_today(self):
+        cells, loader = loaded_cells(TODAY_RUN), FakeLoader()
+        stats = await startup_refresh(FakeStore(cells), loader, 10**6, AFTER_SLOT, 0, 40)
+        assert stats is None and loader.refreshed == []
+
+    async def test_one_stale_cell_is_enough_even_if_another_was_loaded_today(self):
+        cells = loaded_cells(YESTERDAY)
+        cells[0].refreshed_at = AFTER_SLOT  # a click loaded this one a moment ago
+        assert refresh_due(cells, AFTER_SLOT, 0, 40)
+
+    async def test_skipped_before_the_slot_so_the_budget_is_not_spent_twice(self):
+        cells, loader = loaded_cells(YESTERDAY), FakeLoader()
+        stats = await startup_refresh(FakeStore(cells), loader, 10**6, BEFORE_SLOT, 0, 40)
+        assert stats is None and loader.refreshed == []
+
+    async def test_skipped_while_the_provider_is_paused(self):
+        cells, loader = loaded_cells(YESTERDAY), FakeLoader()
+        stats = await startup_refresh(
+            FakeStore(cells), loader, 10**6, AFTER_SLOT, 0, 40, paused_for=300
+        )
+        assert stats is None and loader.refreshed == []
+
+    async def test_skipped_with_no_budget(self):
+        cells, loader = loaded_cells(YESTERDAY), FakeLoader()
+        assert await startup_refresh(FakeStore(cells), loader, 0, AFTER_SLOT, 0, 40) is None
+
+    async def test_unloaded_cells_never_make_a_refresh_due(self):
+        assert not refresh_due(catalonia_grid_cells(loaded=False)[:5], AFTER_SLOT, 0, 40)
+
+    async def test_stays_within_the_budget(self):
+        cells = loaded_cells(YESTERDAY, n=6)
+        stats = await startup_refresh(
+            FakeStore(cells), FakeLoader(), REFRESH_COST * 2, AFTER_SLOT, 0, 40, sleep=no_sleep
+        )
+        assert stats.refreshed == 2 and stats.stopped == "budget"
+
+    async def test_a_quota_429_ends_the_run_without_raising(self):
+        cells = loaded_cells(YESTERDAY)
+        loader = FakeLoader({c.id: too_many_requests() for c in cells})
+        stats = await startup_refresh(
+            FakeStore(cells), loader, 10**6, AFTER_SLOT, 0, 40, sleep=no_sleep
+        )
+        assert stats.stopped == "rate-limit" and stats.refreshed == 0

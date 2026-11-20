@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — points in stored cells no longer need Open-Meteo, and the cell refresh recovers at start-up (2026-11-20, `fix/open-meteo-local-cell-resolve`)
+
+- **Point resolution:** a point whose 500 m bucket was not stored is looked up in the stored cells first (`find_stored_cell`, footprint per row from `build_grid`); Open-Meteo's `resolve_grid` is the last resort. With the daily quota gone, points inside any stored cell answer 200 instead of 503. The per-user and global limits still apply to new cells. `CellStore` gains `list_cells`.
+- **Cell refresh:** at start-up, if the 00:40 UTC slot has passed and some loaded cell was not refreshed today, `cell_refresh` runs in the background within its budget (not before the slot, not while Open-Meteo is paused, not together with the job). A restart after the slot (Render, 17 Nov 00:45) no longer leaves the map without its forecast for a day.
+- Tests in `test_cell_provider.py` and `test_cell_ingest.py`. Not verified against the real Open-Meteo or Render.
+
 ### Changed — the observed zone's species filter is a bottom sheet (2026-11-19, `feat/observatory-zone-species-sheet-1`)
 
 - **One bottom sheet at every width** (`SpeciesSlot` in its new `zone` mode, the map's species sheet generalised) replaces the «Filtrar por seta en esta zona» card of the right column and the one-column dropdown. It is the only way to choose the zone's species.
