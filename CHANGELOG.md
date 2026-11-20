@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — the installed PWA opens in fullscreen (2026-11-20, `fix/pwa-fullscreen`)
+
+- `public/manifest.webmanifest`: `display` goes from `standalone` to `fullscreen`, with `display_override: ["fullscreen", "standalone"]` so a device that cannot do fullscreen falls back to the old mode. On Android the installed app no longer leaves the system status bar at the top and the navigation bar at the bottom.
+- **Not changed:** iOS ignores `display: fullscreen`; there the app only reaches under the status bar with `viewport-fit=cover`, which is still set by the map page alone (the other pages would need `env(safe-area-inset-*)` first).
+- **To check after the deploy:** uninstall and reinstall the PWA (an installed one keeps the old manifest until Chrome refreshes it) and check on Android that both system bars are gone, that the map's top bar and the tab bar are not cut by the camera hole or the gesture area, and that Google sign-in still works inside the app. Not verified: `vite build` (no dependencies in the cloud sandbox) nor any real device.
+
 ### Fixed — points in stored cells no longer need Open-Meteo, and the cell refresh recovers at start-up (2026-11-20, `fix/open-meteo-local-cell-resolve`)
 
 - **Point resolution:** a point whose 500 m bucket was not stored is looked up in the stored cells first (`find_stored_cell`, footprint per row from `build_grid`); Open-Meteo's `resolve_grid` is the last resort. With the daily quota gone, points inside any stored cell answer 200 instead of 503. The per-user and global limits still apply to new cells. `CellStore` gains `list_cells`.
