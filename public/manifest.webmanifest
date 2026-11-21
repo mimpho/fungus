@@ -6,11 +6,10 @@
   "start_url": "/",
   "scope": "/",
   "id": "/",
-  "display": "fullscreen",
-  "display_override": ["fullscreen", "standalone"],
+  "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#2b3529",
-  "theme_color": "#2b3529",
+  "background_color": "#4c5240",
+  "theme_color": "#4c5240",
   "icons": [
     { "src": "/assets/images/favicon/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/assets/images/favicon/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
