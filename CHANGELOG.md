@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — the installed PWA goes back to standalone, with the Observatory bars' colour (2026-11-21, `fix/pwa-standalone-bar-colour`)
+
+- Tried on a phone, `display: fullscreen` (#193) left the app too close to the top and bottom edges. `public/manifest.webmanifest` goes back to `display: standalone` (no `display_override`).
+- **Bar colour:** `theme_color`, `background_color` and the initial `<meta name="theme-color">` are `#4c5240` (`--color-search-bg`, the dark `--map-surface` of the Observatory's tab bar and search), instead of `#2b3529`. `AppContext` sets that meta to `#4c5240` in the dark theme and `#ffffff` in the light one (`--map-surface`) whenever `data-theme` is applied, so the status bar follows the app's own theme, not only the OS's. The manifest is static: the splash colour stays the dark one.
+- **To check after the deploy** (uninstall and reinstall the PWA): that the status bar matches the Observatory's bars in both themes. If Android's bottom navigation bar still shows another colour, it takes the page background, not `theme-color`: the next step would be to give `body` that colour. Not verified: `vite build` (no dependencies in the cloud sandbox) nor any real device.
+
 ### Changed — the installed PWA opens in fullscreen (2026-11-20, `fix/pwa-fullscreen`)
 
 - `public/manifest.webmanifest`: `display` goes from `standalone` to `fullscreen`, with `display_override: ["fullscreen", "standalone"]` so a device that cannot do fullscreen falls back to the old mode. On Android the installed app no longer leaves the system status bar at the top and the navigation bar at the bottom.
