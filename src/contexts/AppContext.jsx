@@ -60,6 +60,8 @@ export function AppProvider({ children }) {
         resolved = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
       }
       document.documentElement.setAttribute('data-theme', resolved)
+      // The installed app's status bar takes this colour: the Observatory's bars (--map-surface) in each theme.
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolved === 'light' ? '#ffffff' : '#4c5240')
     }
     apply()
     const mq = window.matchMedia('(prefers-color-scheme: light)')
