@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — «Mi ubicación» button on the Observatory map (2026-11-22, branch `ccr-b38a831c-b5hpwb`)
+
+- New `LocateButton` (`nav/ViewControls.jsx`): a 44 px round `map-surface` button at the bottom right of the map. It asks the browser for the position (`navigator.geolocation`, high accuracy, 15 s timeout) and hands it to `handleLocate` in `pages/Observatory.jsx`, which picks that point (opens the point's card) and flies the map to it.
+- **Desktop:** under the zoom buttons in the bottom-right stack, centred under them. **Phone:** floating at the right, 12 px above what covers the bottom (tab bar + species bar + point sheet, the same sum `centerAbove` uses), so it rises with the sheets.
+- **Failures:** while waiting, a spinner; on a refused permission, timeout or no `geolocation`, the icon turns amber and a 4 s bubble says «No se pudo obtener tu ubicación»; outside Catalonia nothing is picked and the bubble says so.
+- New texts in ES / CA / EN (`obsLocate`, `obsLocateError`, `obsLocateOutside`).
+- `npm run build` passes. **Not tried in a browser or on a device.**
+
 ### Changed — the installed PWA goes back to standalone, with the Observatory bars' colour (2026-11-21, `fix/pwa-standalone-bar-colour`)
 
 - Tried on a phone, `display: fullscreen` (#193) left the app too close to the top and bottom edges. `public/manifest.webmanifest` goes back to `display: standalone` (no `display_override`).

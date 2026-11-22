@@ -1,4 +1,5 @@
-import { Check, Layers, Maximize, Minus, Plus, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Check, Layers, LocateFixed, Loader2, Maximize, Minus, Plus, X } from 'lucide-react'
 import { useApp } from '../../../contexts/AppContext'
 import { PanelSwitch } from './PanelSwitch'
 import {
@@ -105,6 +106,61 @@ export function ZoomButtons({ map }) {
       <button type="button" aria-label={t.obsZoomOut} title={t.obsZoomOut} disabled={!map} onClick={() => map?.zoomOut()} className={btn}>
         <Minus size={18} aria-hidden="true" />
       </button>
+    </div>
+  )
+}
+
+/**
+ * «My location»: asks the browser for the position and hands it to `onLocate(lat, lon)`, which answers
+ * `false` when the position is outside Catalonia. A short bubble to the left says why when it fails.
+ */
+export function LocateButton({ onLocate, className = '', style }) {
+  const { t } = useApp()
+  const [state, setState] = useState('idle') // 'idle' | 'locating' | 'error' | 'outside'
+  const timer = useRef(null)
+  const alive = useRef(true)
+  useEffect(() => () => { alive.current = false; clearTimeout(timer.current) }, [])
+
+  const fail = kind => {
+    if (!alive.current) return
+    setState(kind)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => alive.current && setState('idle'), 4000)
+  }
+  const locate = () => {
+    if (state === 'locating') return
+    if (!navigator.geolocation) { fail('error'); return }
+    setState('locating')
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        if (!alive.current) return
+        const ok = onLocate(pos.coords.latitude, pos.coords.longitude)
+        if (ok === false) fail('outside'); else setState('idle')
+      },
+      () => fail('error'),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
+    )
+  }
+  const message = state === 'error' ? t.obsLocateError : state === 'outside' ? t.obsLocateOutside : null
+  return (
+    <div className={className} style={style}>
+      <button
+        type="button"
+        onClick={locate}
+        aria-label={t.obsLocate}
+        title={t.obsLocate}
+        aria-busy={state === 'locating'}
+        className={`w-[44px] h-[44px] rounded-full map-surface shadow-float flex items-center justify-center hover:brightness-110 ${state === 'error' || state === 'outside' ? 'text-amber-400' : 'text-cream'} ${FOCUS}`}
+      >
+        {state === 'locating'
+          ? <Loader2 size={18} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
+          : <LocateFixed size={18} aria-hidden="true" />}
+      </button>
+      {message && (
+        <p role="status" className="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-max max-w-[14rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white pointer-events-none">
+          {message}
+        </p>
+      )}
     </div>
   )
 }
