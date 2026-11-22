@@ -4,8 +4,8 @@ import { SpeciesSlot } from './SpeciesSlot'
 import { speciesSheetEnabled } from './flag'
 
 /**
- * T4 (experiment): the chosen species' sheet. A bar (thumbnail, «Mapa filtrado por», name, ×) while a species is active; the card
- * (transient) opens from it, and folding it never clears the filter: only the × does. It does not touch the search bar's own
+ * T4 (experiment): the chosen species' sheet. A bar (thumbnail, «Mapa filtrado por», and a pill with the name and the ×) while a species is active; the card
+ * (transient) opens from it, and folding it never clears the filter: only the × (the pill's, or the open card's) does. It does not touch the search bar's own
  * filled half. Phone and desktop are the same block (`SpeciesSlot`): on the phone it is a bottom sheet of the stack above the
  * tab bar, on desktop a card of the bottom-left stack under the point's card; the page places it.
  * `speciesId`; `lens`: 'conditions' | 'habitat' | null (which legend to show); `onClear()`; `phone`; `onOpenChange(open)`;

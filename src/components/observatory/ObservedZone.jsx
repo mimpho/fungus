@@ -4,7 +4,7 @@ import { useApp } from '../../contexts/AppContext'
 import { useSpecies } from '../../hooks/useSpecies'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
-import { speciesName } from '../../lib/speciesList'
+import { buildRows, seasonSummary, speciesName } from '../../lib/speciesList'
 import { useSpeciesRows } from '../../hooks/useSpeciesRows'
 import { SpeciesSlot } from './speciesSheet/SpeciesSlot'
 import { fill } from '../../lib/thermometer'
@@ -41,12 +41,6 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
   const { t, lang } = useApp()
   // Starts on the species the map layer shows, so the thermometer and the map speak of the same one
   const [speciesId, setSpeciesId] = useState(initialSpecies)
-  // The species whose filter the sheet's switch turned off: the sheet stays, dimmed, so one tap turns it back on
-  const [pausedId, setPausedId] = useState(null)
-  const chooseSpecies = id => { setSpeciesId(id); setPausedId(null) }
-  const toggleSpecies = () => {
-    if (speciesId) { setPausedId(speciesId); setSpeciesId(null) } else { setSpeciesId(pausedId); setPausedId(null) }
-  }
   // One column (under lg): the corner's card goes first, above the filter pills and the species filter
   const single = !useMediaQuery('(min-width: 1024px)')
   const { species: catalog } = useSpecies()
@@ -70,8 +64,10 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
   const activeId = speciesId ?? ENSEMBLE
   const activeName = speciesId ? speciesName(speciesId, null, byId) : t.obsThEnsembleName
   // The active species' sheet: its identity (photo, names, edibility). The score is not in it: the thermometer says it.
-  const sheetId = speciesId ?? pausedId
-  const sheetRow = useMemo(() => (sheetId ? pickerRows.find(r => r.id === sheetId) ?? null : null), [sheetId, pickerRows])
+  const sheetRow = useMemo(() => (speciesId ? pickerRows.find(r => r.id === speciesId) ?? null : null), [speciesId, pickerRows])
+  // The line under the sheet's title when no species is chosen: what is in season at this point and how good the conditions are (nothing while the list loads)
+  const listRows = useMemo(() => buildRows(speciesList.data, byId, t, lang), [speciesList.data, byId, t, lang])
+  const sheetSummary = useMemo(() => seasonSummary(listRows, until, t, lang), [listRows, until, t, lang])
   const chosenRange = useMemo(
     () => speciesRange(speciesList.data?.species?.find(s => s.id === activeId)),
     [speciesList.data, activeId],
@@ -175,8 +171,8 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
 
       {/* Room for the sheet at the foot, so it never covers the last card */}
       <div aria-hidden="true" style={{ height: sheetH }} />
-      {/* The zone's species filter: one bottom sheet at every width. With no species it is the way in (it unfolds to the list); with one it is
-          «Filtrado por …» with its switch, and «Cambiar de seta» goes back to the list */}
+      {/* The zone's species filter: one bottom sheet at every width. With no species it is the way in (the title, what is in season and a
+          magnifier; it unfolds to the list); with one it shows its photo and «Filtrant per» + the pill that takes the filter off */}
       {sheetSlot && createPortal(
         <SpeciesSlot
           key={sheetRow?.id ?? 'idle'}
@@ -184,11 +180,11 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
           row={sheetRow}
           species={sheetRow ? byId.get(sheetRow.id) ?? null : null}
           lens={null}
-          paused={!speciesId}
-          onToggle={toggleSpecies}
+          summary={sheetSummary}
+          onClear={() => setSpeciesId(null)}
           onStackHeight={setSheetH}
           renderPicker={done => (
-            <SpeciesPanel embedded state={speciesList} selected={speciesId} onSelect={id => { chooseSpecies(id); done() }} />
+            <SpeciesPanel embedded state={speciesList} selected={speciesId} onSelect={id => { setSpeciesId(id); done() }} />
           )}
         />,
         sheetSlot,

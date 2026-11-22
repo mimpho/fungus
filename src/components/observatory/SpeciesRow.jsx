@@ -13,10 +13,11 @@ import { getEdibilityColor, resolveUrl } from '../../lib/helpers'
  * `active`, and its buttons are out of the tab order and do not take the focus from the field
  * (`keepFocus`), so typing and the dropdown go on while a card is pressed.
  * `dark`: the card sits on a dark surface in both themes (the zone's bottom sheet), so it takes no light-theme text colours (and its card is white in the light one).
+ * `dim`: the species is out of season: the card is toned down (it is still pickable).
  */
 export function SpeciesRow({
   row, selected = false, onPick, onOpenCard, pickLabel, score = null, aside = null, children = null,
-  option = false, optionId, active = false, onHover, dark = false,
+  option = false, optionId, active = false, onHover, dark = false, dim = false,
 }) {
   const { t } = useApp()
   const edib = getEdibilityColor(row.edibility)
@@ -40,7 +41,7 @@ export function SpeciesRow({
       role={option ? 'option' : undefined}
       aria-selected={option ? selected : undefined}
       onMouseEnter={onHover}
-      className={`obs-card [[data-theme=light]_&]:shadow-none relative rounded-xl overflow-hidden ${surface}`}
+      className={`obs-card [[data-theme=light]_&]:shadow-none relative rounded-xl overflow-hidden ${surface} ${dim ? 'opacity-75' : ''}`}
     >
       {option && <span aria-hidden="true" className={`pointer-events-none absolute inset-0 ${tint}`} />}
       {/* Selection outline drawn inside the card (above the photo) so the list never clips it */}
