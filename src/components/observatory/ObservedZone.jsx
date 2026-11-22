@@ -135,11 +135,12 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
         filtersSlot,
       )}
 
-      {/* Two independent columns, so a card never waits for the height of the one beside it: on the left the
-          thermometer and the chart, on the right the corner, the species filter and the events list */}
+      {/* Two rows of two cells from lg up. On top the facts and the thermometer, and on the right the corner and the species filter, which takes
+          the height the corner leaves, up to where the chart begins (its list scrolls inside). Below, the chart and the events list, level with it.
+          Under lg one column: the species filter is the bottom sheet (see below) */}
       <ChartSection point={point} species={activeId} speciesName={activeName} range={chosenRange} until={until} days={days} onWindow={onWindow} calendar={calendar}>
         {({ chart, events }) => (
-      <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_clamp(20rem,30%,30rem)] items-start">
+      <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_clamp(20rem,30%,30rem)] items-start lg:items-stretch">
         <div className="space-y-4 min-w-0">
           {!single && factsEl}
           {/* Moving the window asks for another day: the last thermometer stays, dimmed, until it arrives */}
@@ -150,12 +151,22 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
               <Thermometer snap={snap.data} note={thermoNote} />
             </div>
           )}
-          {chart}
         </div>
-        {/* From lg up the right column adds nothing to the row's height (`h-0`) and then takes all of it (`min-h-full`): it is never taller than
-            the left column, and the events card, which takes what the corner's card leaves, scrolls its list inside */}
+        {!single && (
+          <div className="flex flex-col gap-4 min-w-0">
+            <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} />
+            {/* The card never sets the row's height (it is laid over the slot, which has a minimum of its own): it takes what the corner's card leaves */}
+            <div className="relative flex-1 min-h-[320px]">
+              <div className="absolute inset-0">
+                <SpeciesPanel state={speciesList} selected={speciesId} onSelect={setSpeciesId} summary={sheetSummary} />
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="min-w-0">{chart}</div>
+        {/* The events list adds nothing to the row's height (`h-0`) and then takes all of it (`min-h-full`): it is as tall as the chart beside it
+            and scrolls its list inside */}
         <div className="flex flex-col gap-4 min-w-0 lg:self-stretch lg:h-0 lg:min-h-full">
-          {!single && <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} />}
           {events}
         </div>
       </div>
@@ -171,9 +182,10 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
 
       {/* Room for the sheet at the foot, so it never covers the last card */}
       <div aria-hidden="true" style={{ height: sheetH }} />
-      {/* The zone's species filter: one bottom sheet at every width. With no species it is the way in (the title, what is in season and a
-          magnifier; it unfolds to the list); with one it shows its photo and «Filtrant per» + the pill that takes the filter off */}
-      {sheetSlot && createPortal(
+      {/* The zone's species filter under lg: a bottom sheet. With no species it is the way in (the title, what is in season and a
+          magnifier; it unfolds to the list); with one it shows its photo and «Filtrant per» + the pill that takes the filter off.
+          From lg up it is a card of the right column (above) */}
+      {single && sheetSlot && createPortal(
         <SpeciesSlot
           key={sheetRow?.id ?? 'idle'}
           zone

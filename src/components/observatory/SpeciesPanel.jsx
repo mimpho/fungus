@@ -62,14 +62,15 @@ function ActiveSpecies({ name, photo, onClear, removeLabel, dark }) {
  * The ones in season come first, by score; the ones out of season go after a divider, by name, with their months.
  * Choosing one re-asks the thermometer with that species' own temperature range; choosing it again (or the ✕ of the
  * field that shows it) goes back to the general model.
- * On desktop the panel takes the height of the thermometer beside it (see ObservedZone) and the
- * list scrolls inside; on a phone the list is at most 350 px high.
+ * On desktop (from lg) it is a card of the right column that fills the height left under the corner's card, up to where the
+ * score chart begins (see ObservedZone): the list scrolls inside. On a phone it is the zone's bottom sheet (`embedded`).
  * `state` is the answer of /point/species (or of the saved point's endpoint, so that the forest
  * types the author gave decide): ObservedZone asks it, because the chart needs the selected
  * species' thermal range too.
  * `embedded`: inside the zone's bottom sheet (`SpeciesSlot`): no card of its own, no fixed height and no explanation tooltip.
+ * `summary`: the line under the title in the card (what is in season and how good: see seasonSummary).
  */
-export function SpeciesPanel({ state, selected, onSelect, className = '', embedded = false }) {
+export function SpeciesPanel({ state, selected, onSelect, className = '', embedded = false, summary = null }) {
   const { t, lang } = useApp()
   const uid = useId()
   const { species: catalog } = useSpecies()
@@ -104,9 +105,12 @@ export function SpeciesPanel({ state, selected, onSelect, className = '', embedd
   const pick = id => { setQuery(''); onSelect(id) }
 
   return (
-    <aside aria-labelledby={`${uid}-title`} className={`${embedded ? '' : 'glass obs-card rounded-2xl p-4 lg:h-[36rem]'} flex flex-col gap-3 transition-opacity ${state.stale ? 'opacity-70' : ''} ${className}`}>
-      <div className="flex items-center justify-between gap-2">
-        <h3 id={`${uid}-title`} className={`font-display text-cream ${embedded ? 'text-xl' : 'text-2xl'}`}>{embedded ? t.obsSpSheetHeading : t.obsSpTitle}</h3>
+    <aside aria-labelledby={`${uid}-title`} className={`${embedded ? '' : 'glass obs-card rounded-2xl p-4 h-full min-h-0'} flex flex-col gap-3 transition-opacity ${state.stale ? 'opacity-70' : ''} ${className}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 id={`${uid}-title`} className="font-display text-cream text-xl leading-tight">{t.obsSpSheetHeading}</h3>
+          {!embedded && summary && <p className="text-sm text-cream/80 mt-0.5">{summary}</p>}
+        </div>
         {!embedded && <div
           className="relative"
           onMouseEnter={() => setInfoHover(true)}
@@ -171,7 +175,7 @@ export function SpeciesPanel({ state, selected, onSelect, className = '', embedd
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   aria-label={t.obsSpSearchLabel}
-                  placeholder={embedded ? t.obsSpSearchZone : t.obsSpSearch}
+                  placeholder={t.obsSpSearchZone}
                   autoComplete="off"
                   className={`${embedded ? FIELD_DARK : FIELD} w-full pl-9 pr-10 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none`}
                 />
@@ -198,7 +202,7 @@ export function SpeciesPanel({ state, selected, onSelect, className = '', embedd
               data-testid="species-scroll"
               tabIndex={0}
               aria-label={t.obsSpListLabel}
-              className={`space-y-2 ${embedded ? 'max-h-[min(350px,38dvh)]' : 'max-h-[350px] lg:max-h-none lg:flex-1 lg:min-h-0'} overflow-y-auto pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/50 rounded-xl`}
+              className={`space-y-2 ${embedded ? 'max-h-[min(350px,38dvh)]' : 'flex-1 min-h-0'} overflow-y-auto pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/50 rounded-xl`}
             >
               {shown.map((row, i) => (
                 <Fragment key={row.id}>
