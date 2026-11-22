@@ -30,7 +30,7 @@ import { ObsModal, isDialogAbove } from '../components/observatory/ObsModal'
 import { PointPanel } from '../components/observatory/PointPanel'
 import { TabRail } from '../components/observatory/nav/TabRail'
 import { NavPanel } from '../components/observatory/nav/NavPanel'
-import { ViewButton, ViewPanel, ZoomButtons } from '../components/observatory/nav/ViewControls'
+import { LocateButton, ViewButton, ViewPanel, ZoomButtons } from '../components/observatory/nav/ViewControls'
 import { MapLoadingBar } from '../components/observatory/nav/MapLoadingBar'
 import { SpeciesSheet } from '../components/observatory/speciesSheet/SpeciesSheet'
 import { PhoneTabBar, SHEET_MS } from '../components/observatory/nav/PhoneTabBar'
@@ -383,6 +383,15 @@ export default function Observatory() {
     setFlyTo({ ...point, n: Date.now() })
   }
 
+  // «My location»: a pick at the device's position that also moves the map to it; false when it is outside Catalonia
+  function handleLocate(lat, lon) {
+    if (!isInCatalonia(lat, lon)) return false
+    if (phone) nav.close()
+    handlePick(lat, lon)
+    setFlyTo({ lat, lon, n: Date.now() })
+    return true
+  }
+
   function handleObserve(point) {
     // The zone opens on the Meteo day: its window ends there, or on the last day with real data when the
     // day is a forecast one
@@ -556,6 +565,7 @@ export default function Observatory() {
                 <div className="absolute z-[1100] right-4 bottom-5 flex flex-col items-end gap-2.5">
                   <ViewButton open={nav.openTab === 'view'} onClick={() => toggleNav('view')} panelId={VIEW_PANEL_ID} />
                   <ZoomButtons map={mapInst} />
+                  <LocateButton onLocate={handleLocate} className="relative mr-[16px]" />
                 </div>
                 {nav.openTab === 'view' && (
                   <div className="absolute z-[1100] right-[104px] bottom-5 w-[360px]">
@@ -563,6 +573,14 @@ export default function Observatory() {
                   </div>
                 )}
               </>
+            )}
+            {/* Phone: «My location» at the bottom right, above whatever the bottom holds (tab bar, species bar, point sheet) */}
+            {phone && (
+              <LocateButton
+                onLocate={handleLocate}
+                className="absolute z-[1100] right-3"
+                style={{ bottom: barH + (speciesH > 24 ? speciesH - 24 : 0) + (pending ? sheetH : 0) + 12 }}
+              />
             )}
             {/* Desktop: the tabs at the top right; a panel opens to the left of them */}
             {!phone && (
