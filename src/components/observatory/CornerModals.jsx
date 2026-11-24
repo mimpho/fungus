@@ -36,7 +36,7 @@ export function CornerModals({ mode, setMode, onClose, point, saved, suggestedNa
 
   if (mode === 'create' && !existing) {
     return (
-      <ObsModal title={t.obsSaveZoneTitle} onClose={onClose} size="lg" sheet titleNowrap>
+      <ObsModal title={t.obsSaveZoneTitle} onClose={onClose} size="lg" titleNowrap>
         <SavePointForm
           key="new"
           photos={(
@@ -55,7 +55,7 @@ export function CornerModals({ mode, setMode, onClose, point, saved, suggestedNa
   }
   if (mode === 'edit' && existing) {
     return (
-      <ObsModal title={t.obsSavedEditTitle} onClose={onClose} size="lg" sheet titleNowrap>
+      <ObsModal title={t.obsSavedEditTitle} onClose={onClose} size="lg" titleNowrap>
         <SavePointForm
           key={`edit-${existing.id}`}
           // Photos act at once (upload, tag, delete), not with «Guardar cambios»: a section of the form between the species and the notes

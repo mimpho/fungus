@@ -674,7 +674,7 @@ export default function Observatory() {
       )}
 
       {savedOpen && (
-        <ObsModal title={t.obsSavedListTitle} onClose={() => setSavedOpen(false)} wide sheet>
+        <ObsModal title={t.obsSavedListTitle} onClose={() => setSavedOpen(false)} wide>
           {savedList}
         </ObsModal>
       )}
