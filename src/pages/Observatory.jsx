@@ -13,6 +13,7 @@ import { useElevationRasterState } from '../hooks/useElevationRaster'
 import { useClassRasterState } from '../hooks/useClassRaster'
 import { useSpecies } from '../hooks/useSpecies'
 import { useActiveSpecies } from '../hooks/useActiveSpecies'
+import { useHeldWhile } from '../hooks/useHeldWhile'
 import { isInCatalonia } from '../lib/catalonia'
 import { samePoint } from '../lib/observatoryView'
 import { DEFAULT_METEO_LAYER, DEFAULT_RAIN_PRESET } from '../lib/meteoLayers'
@@ -134,6 +135,12 @@ export default function Observatory() {
   const probabilityOn = meteoOn && meteoKind === 'conditions'
   // The species is the whole map's (the search bar's second half, `seta` in the URL), not Meteo's: it stays with Meteo off
   const { speciesId: layerSpecies, setSpecies: setLayerSpecies } = useActiveSpecies({ initial: initialSpecies, onChange: writeSpecies })
+  // The observed zone is a layer over the whole screen, open while the URL has the point. It shares the active species with the map
+  // (it reads and writes the same one), but the map under it does not follow it: it keeps the species it had when the zone opened
+  // and takes the final one when the zone closes, so it is not repainted for every change made up there. Nothing else of the map
+  // changes with the zone (Meteo stays on or off as it was): the species is only a lens there
+  const zoneOpen = Boolean(observed) && isAuthenticated
+  const mapSpecies = useHeldWhile(zoneOpen, layerSpecies)
   const [layerDate, setLayerDate] = useState(initialMeteo?.day ?? null) // null = last day with data
   // Zonas: the switch draws the checked rows; only «Mis rincones» exists for now
   const [cornersRow, setCornersRowState] = useState(storedCornersRow)
@@ -143,7 +150,7 @@ export default function Observatory() {
   const forestOn = nav.on.habitat
   const [forestShown, setForestShownState] = useState(storedForestClasses)
   const setForestShown = next => { setForestShownState(next); store(FOREST_CLASSES_KEY, JSON.stringify(ALL_FOREST.filter(k => next.has(k)))) }
-  const shownSpecies = layerSpecies
+  const shownSpecies = mapSpecies
   const { species: catalog } = useSpecies()
   // Hábitat · De la seta: stored «species» without an active species behaves as «forest». While it is shown, neither the
   // conditions picture nor the forest classes are drawn (they would read as one map on the same scale)
@@ -167,7 +174,7 @@ export default function Observatory() {
   const showConditions = () => { if (!nav.on.data) nav.setOn('data', true); if (meteoKind !== 'conditions') setMeteoKind('conditions') }
   // With «De la seta» shown the species is being looked at there: Meteo stays as it is
   const chooseSpecies = id => { setLayerSpecies(id); if (id && !habitatShown) showConditions() }
-  const layerId = probabilityOn || pending || habitatShown ? (layerSpecies ?? ALL_EXCELLENT) : null
+  const layerId = probabilityOn || pending || habitatShown ? (mapSpecies ?? ALL_EXCELLENT) : null
   const layer = useProbabilityLayer(isAuthenticated ? layerId : null, { date: layerDate ?? undefined })
   const elevationState = useElevationRasterState(Boolean(layerId) && isAuthenticated)
   const forestState = useClassRasterState('forest', (Boolean(layerId) || forestOn) && isAuthenticated)
@@ -209,7 +216,6 @@ export default function Observatory() {
   const wide = useIsWide() // from 1024px the point card and a map panel fit side by side
   const [mapInst, setMapInst] = useState(null) // the Leaflet map, for the desktop zoom buttons
   const [drawing, setDrawing] = useState(false) // the map is working out a layer's picture
-  const layerOpen = Boolean(observed) && isAuthenticated
   const [headerSlot, setHeaderSlot] = useState(null) // where the zone puts its title: the header of the layer
   const [filtersSlot, setFiltersSlot] = useState(null) // and its active filters: a bar under that header, so they stay in view while the zone scrolls
   // The bar of filters is fixed under the header once the zone scrolls up to it; only then do its pills get a shadow
@@ -220,14 +226,14 @@ export default function Observatory() {
     const head = layerHeaderRef.current
     const sentinel = sentinelRef.current
     const scroller = sentinel?.closest('.overflow-y-auto')
-    if (!layerOpen || !head || !sentinel || !scroller) return undefined
+    if (!zoneOpen || !head || !sentinel || !scroller) return undefined
     // Stuck = the sentinel (just above the bar) has gone up behind the header
     const check = () => setFiltersStuck(sentinel.getBoundingClientRect().top < head.getBoundingClientRect().bottom - 1)
     check()
     scroller.addEventListener('scroll', check, { passive: true })
     window.addEventListener('resize', check)
     return () => { scroller.removeEventListener('scroll', check); window.removeEventListener('resize', check) }
-  }, [layerOpen, observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zoneOpen, observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
   // The map over the whole screen (the site's header too) and, where the browser allows it, the browser's own
   // fullscreen (iPhone Safari has none: there only the header goes). The state follows the browser leaving fullscreen by itself.
   const [fullscreenState, setFullscreenState] = useState(false)
@@ -264,7 +270,7 @@ export default function Observatory() {
   // The map page does not scroll: the map is the page (a drag from the header would otherwise move it up on a phone), and what
   // is behind the full-screen map or the zone's layer must not scroll either. The login card (not signed in) scrolls as usual
   useEffect(() => {
-    if (!isAuthenticated && !fullscreen && !layerOpen) return undefined
+    if (!isAuthenticated && !fullscreen && !zoneOpen) return undefined
     const previous = document.body.style.overflow
     const previousOverscroll = document.documentElement.style.overscrollBehavior
     document.body.style.overflow = 'hidden'
@@ -273,7 +279,7 @@ export default function Observatory() {
       document.body.style.overflow = previous
       document.documentElement.style.overscrollBehavior = previousOverscroll
     }
-  }, [isAuthenticated, fullscreen, layerOpen])
+  }, [isAuthenticated, fullscreen, zoneOpen])
   const [basemap, setBasemap] = useState(() => {
     try {
       const saved = localStorage.getItem('fungus-obs-basemap')
@@ -335,17 +341,17 @@ export default function Observatory() {
   const desktopPanel = !phone && nav.openTab
   const anyPanel = Boolean(nav.openTab)
   useEffect(() => {
-    if (!pending && !fullscreen && !layerOpen && !anyPanel) return
+    if (!pending && !fullscreen && !zoneOpen && !anyPanel) return
     const onKey = e => {
       if (e.key !== 'Escape' || isDialogAbove()) return // a dialog on top takes this Esc
       if (fullscreen) exitFullscreen()
-      else if (layerOpen) closeZone()
+      else if (zoneOpen) closeZone()
       else if (anyPanel) nav.close() // a map panel goes before the point's card
       else closePanelRef.current()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pending, fullscreen, layerOpen, anyPanel]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pending, fullscreen, zoneOpen, anyPanel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Closing the zone's layer: the point's card stays on the map (the layer was opened from it, or from a link to the point)
   function closeZone() {
@@ -413,7 +419,8 @@ export default function Observatory() {
       until={until}
       days={days}
       onWindow={setWindow}
-      initialSpecies={shownSpecies}
+      speciesId={layerSpecies}
+      onSpeciesChange={setLayerSpecies}
       headerSlot={headerSlot}
       filtersSlot={filtersSlot}
     />
@@ -633,7 +640,7 @@ export default function Observatory() {
           </div>
 
           {/* The observed zone: a layer over the whole screen (the header too), above the map, which stays mounted under it */}
-          {layerOpen && createPortal(
+          {zoneOpen && createPortal(
             <div
               key={`${observed.lat},${observed.lon}`}
               role="dialog"

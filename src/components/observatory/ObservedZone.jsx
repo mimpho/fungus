@@ -36,10 +36,10 @@ const MACRO_KEY = {
  * says that the species will not be listed. The place name is context: if it fails, coordinates
  * stand in and nothing is reported. Only the thermometer failing is an error to show.
  */
-export function ObservedZone({ point, saved, until = null, days, onWindow, initialSpecies = null, onOpenList, headerSlot = null, filtersSlot = null }) {
+export function ObservedZone({ point, saved, until = null, days, onWindow, speciesId = null, onSpeciesChange, onOpenList, headerSlot = null, filtersSlot = null }) {
   const { t, lang } = useApp()
-  // Starts on the species the map layer shows, so the thermometer and the map speak of the same one
-  const [speciesId, setSpeciesId] = useState(initialSpecies)
+  // The species is the page's (the map's active one, `seta` in the URL): the zone reads and writes the same one, so a change here stays when the zone closes
+  const setSpeciesId = onSpeciesChange
   // One column (under lg): the corner's card goes first, above the filter pills and the species filter
   const single = !useMediaQuery('(min-width: 1024px)')
   const { species: catalog } = useSpecies()
