@@ -150,6 +150,19 @@ def build_series(
     return SeriesWindow(last, end, bool(to and to > last), out, events, lowest_min)
 
 
+TREND_DAYS = 7  # the thermometer's trend: the score now against the one this many days earlier
+
+
+def _trend(series: Sequence[Any], ref: date) -> dict | None:
+    """How the score moved over the last TREND_DAYS days; None if the series is shorter."""
+    back = ref - timedelta(days=TREND_DAYS)
+    before = next((r for r in series if r.date == back), None)
+    if before is None:
+        return None
+    delta = series[-1].score - before.score
+    return {"days": TREND_DAYS, "from_score": before.score, "delta": delta}
+
+
 def build_snapshot(
     rows: Sequence[Any],
     today: date,
@@ -170,8 +183,11 @@ def build_snapshot(
     if not upto:
         return None  # the date is before the first day the cell has
     ref = upto[-1].date  # a day missing from the cell scores as the nearest one before it
-    warm_up = ref - timedelta(days=V2_WINDOW_DAYS)
-    series = score_series([d for d in upto if d.date >= warm_up], elevation, species, ref)
+    # The week before `ref` is scored too (with as long a warm-up behind it) for the trend
+    warm_up = ref - timedelta(days=V2_WINDOW_DAYS + TREND_DAYS)
+    series = score_series(
+        [d for d in upto if d.date >= warm_up], elevation, species, ref - timedelta(days=TREND_DAYS)
+    )
     if not series or series[-1].date != ref:
         return None
     result = series[-1]
@@ -187,6 +203,7 @@ def build_snapshot(
         "factors": v2["factors"],
         "warm": v2["warm"],
         "estimated": v2["estimated"],
+        "trend": _trend(series, ref),
         "key_facts": {
             "soil_water_mm": v2["soil_water_mm"],
             "soil_temp_7d_c": v2["soil_temp_7d_c"],
