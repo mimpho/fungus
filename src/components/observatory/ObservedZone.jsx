@@ -124,9 +124,13 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
       )}
 
       {/* The active filters go in a bar under the layer's header (`filtersSlot`), fixed there when the zone scrolls up to it; no bar while there are none */}
-      {filtersSlot && (until || days !== DEFAULT_WINDOW) && createPortal(
+      {/* From lg up the species filter is one of them (it changes the thermometer, the chart and the calendar, as the window does); on the phone it is the bottom sheet */}
+      {filtersSlot && (until || days !== DEFAULT_WINDOW || (!single && speciesId)) && createPortal(
         <div className="max-w-7xl mx-auto px-4 pt-5 pb-0">
           <FilterPills
+            speciesName={!single && speciesId ? activeName : null}
+            speciesPhoto={byId.get(speciesId)?.photo?.url ?? null}
+            onClearSpecies={() => setSpeciesId(null)}
             until={until}
             days={days}
             onClearWindow={() => onWindow(null, DEFAULT_WINDOW)}
@@ -136,10 +140,10 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
       )}
 
       {/* Two rows of two cells from lg up. On top the facts and the thermometer, and on the right the corner and the species filter, which takes
-          the height the corner leaves, up to where the chart begins (its list scrolls inside). Below, the chart and the events list, level with it.
+          the height the corner leaves, down to the foot of the chart (its list scrolls inside). Below the facts, the chart (its events list is inside its card).
           Under lg one column: the species filter is the bottom sheet (see below) */}
       <ChartSection point={point} species={activeId} speciesName={activeName} range={chosenRange} until={until} days={days} onWindow={onWindow} calendar={calendar}>
-        {({ chart, events }) => (
+        {({ chart }) => (
       <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_clamp(20rem,30%,30rem)] items-start lg:items-stretch">
         <div className="space-y-4 min-w-0">
           {!single && factsEl}
@@ -153,7 +157,7 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
           )}
         </div>
         {!single && (
-          <div className="flex flex-col gap-4 min-w-0">
+          <div className="flex flex-col gap-4 min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
             <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} />
             {/* The card never sets the row's height (it is laid over the slot, which has a minimum of its own): it takes what the corner's card leaves */}
             <div className="relative flex-1 min-h-[320px]">
@@ -163,12 +167,7 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
             </div>
           </div>
         )}
-        <div className="min-w-0">{chart}</div>
-        {/* The events list adds nothing to the row's height (`h-0`) and then takes all of it (`min-h-full`): it is as tall as the chart beside it
-            and scrolls its list inside */}
-        <div className="flex flex-col gap-4 min-w-0 lg:self-stretch lg:h-0 lg:min-h-full">
-          {events}
-        </div>
+        <div className="min-w-0 lg:col-start-1">{chart}</div>
       </div>
         )}
       </ChartSection>

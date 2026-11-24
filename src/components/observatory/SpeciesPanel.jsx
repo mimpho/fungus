@@ -33,10 +33,10 @@ function Row({ row, selected, onSelect, onOpenCard, dark = false, lang }) {
   )
 }
 
-/** The species the filter holds, in place of the search field: its round photo, its name and what takes the filter off: on the phone's sheet one block of the darker tone with no ring and the × bare; on the desktop card (`actionLabel`) the field's own colour with the «Eliminar filtro ×» pill in the darker tone. */
-function ActiveSpecies({ name, photo, onClear, removeLabel, actionLabel = null }) {
+/** The species the filter holds on the phone's sheet, in place of the search field: its round photo, its name and the bare × that takes the filter off (on desktop the filter is a pill of the fixed bar). */
+function ActiveSpecies({ name, photo, onClear, removeLabel }) {
   return (
-    <div className={`flex items-center gap-2.5 pl-1.5 py-1 min-h-[44px] ${actionLabel ? `pr-0 ring-1 ring-bar ${FIELD}` : 'pr-1 rounded-xl bg-black/25 text-cream'}`} data-testid="active-species">
+    <div className="flex items-center gap-2.5 pl-1.5 pr-1 py-1 min-h-[44px] rounded-xl bg-black/25 text-cream" data-testid="active-species">
       <span aria-hidden="true" className="shrink-0 size-8 rounded-full overflow-hidden bg-cream/[0.08]">
         {photo && <img src={resolveUrl(photo)} alt="" className="w-full h-full object-cover" onError={e => { e.currentTarget.style.visibility = 'hidden' }} />}
       </span>
@@ -46,8 +46,8 @@ function ActiveSpecies({ name, photo, onClear, removeLabel, actionLabel = null }
         onClick={onClear}
         aria-label={removeLabel}
         title={removeLabel}
-        className={`shrink-0 flex items-center text-cream outline-none focus-visible:ring-2 focus-visible:ring-cream/60 ${actionLabel ? 'h-8 mr-1.5 gap-1.5 pl-3 pr-2.5 text-sm rounded-full bg-black/25 hover:bg-black/35' : 'h-11 w-11 justify-center rounded-xl hover:bg-cream/10'}`}
-      >{actionLabel}<X size={actionLabel ? 14 : 16} aria-hidden="true" /></button>
+        className="shrink-0 flex items-center justify-center h-11 w-11 text-cream rounded-xl hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+      ><X size={16} aria-hidden="true" /></button>
     </div>
   )
 }
@@ -58,8 +58,8 @@ function ActiveSpecies({ name, photo, onClear, removeLabel, actionLabel = null }
  * excellent edibles; the edibility selector and a search box (scientific name, names in the app
  * language and Latin synonyms) narrow it. With text typed the search runs over the whole list (the selector is off).
  * The ones in season come first, by score; the ones out of season go after a divider, by name, with their months.
- * Choosing one re-asks the thermometer with that species' own temperature range; choosing it again (or the ✕ of the
- * field that shows it) goes back to the general model.
+ * Choosing one re-asks the thermometer with that species' own temperature range; choosing it again (or the ✕ of its pill in the
+ * filter bar, or of the field that shows it on the phone) goes back to the general model.
  * On desktop (from lg) it is a card of the right column that fills the height left under the corner's card, up to where the
  * score chart begins (see ObservedZone): the list scrolls inside. On a phone it is the zone's bottom sheet (`embedded`).
  * `state` is the answer of /point/species (or of the saved point's endpoint, so that the forest
@@ -157,13 +157,12 @@ export function SpeciesPanel({ state, selected, onSelect, className = '', embedd
                 {groups.map(g => <option key={g} value={g}>{t[g]} ({counts[g]})</option>)}
               </ObsSelect>
             </div>
-            {selected ? (
+            {embedded && selected ? (
               <ActiveSpecies
                 name={activeName}
                 photo={byId.get(selected)?.photo?.url ?? null}
                 onClear={() => pick(null)}
                 removeLabel={t.obsSpSheetRemove.replace('{name}', activeName)}
-                actionLabel={embedded ? null : t.obsSpSheetRemoveFilter}
               />
             ) : (
               <div className="relative">

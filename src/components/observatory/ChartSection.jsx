@@ -6,14 +6,13 @@ import { MAX_API_DAYS, futureDays, prepareSeries } from '../../lib/chartData'
 import { commitOf, resolveWindow, sameWindow } from '../../lib/timeline'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { WeatherChart } from './WeatherChart'
-import { EventsList } from './EventsList'
 
 function Skeleton() {
   return <div aria-hidden="true" className="glass obs-card rounded-2xl h-[28rem] animate-pulse" />
 }
 
 /**
- * Charts and events of the observed point. One request per species brings the whole series
+ * The chart of the observed point (its events list is at the foot of its card). One request per species brings the whole series
  * (MAX_API_DAYS days); the window over it ({ until, days } of the URL) is only a slice of it, so
  * moving the timeline asks for nothing. While the window is being dragged the chart follows the
  * pointer (`draft`) and the page's window is only changed on release. `species` is the id being
@@ -83,19 +82,6 @@ export function ChartSection({ point, species, speciesName, range, until, days, 
       )}
     </section>
   )
-  const events = shown && shown.all.length > 0 && (
-    <div className={`transition-opacity ${dim} flex flex-col lg:flex-[0_1_auto] lg:min-h-0`}>
-      <EventsList vm={shown.vm} />
-    </div>
-  )
-
-  // The page can put the chart and the events list in the columns it wants (see ObservedZone);
-  // without a render function they go side by side
-  if (typeof children === 'function') return children({ chart, events })
-  return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] items-start">
-      {chart}
-      {events}
-    </div>
-  )
+  // The page can put the chart where it wants (see ObservedZone); the events list is inside its card
+  return typeof children === 'function' ? children({ chart }) : chart
 }
