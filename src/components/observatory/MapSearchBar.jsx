@@ -11,7 +11,8 @@ import { MapSpeciesSearch } from './MapSpeciesSearch'
  * stays in the page, so Tab goes from one to the other). Leaving the bar (focus out, Esc, its bare ×) goes
  * back to rest, drops what was typed and keeps the chosen species. While a species is chosen, its half is as wide as its
  * pill needs (half of the bar at least) and the place half gives way, its text ending in an ellipsis.
- * `speciesId` / `onSpecies(id | null)`: the map's active species. `onPlace({ lat, lon })`: a place was chosen.
+ * One shadow for the whole bar (`drop-shadow` follows what is painted, the gap included, and the dropdowns), not one per half, so the half on top
+ * does not shadow the other. `speciesId` / `onSpecies(id | null)`: the map's active species. `onPlace({ lat, lon })`: a place was chosen.
  */
 export function MapSearchBar({ onPlace, speciesId, onSpecies, className = '' }) {
   const { t } = useApp()
@@ -50,7 +51,7 @@ export function MapSearchBar({ onPlace, speciesId, onSpecies, className = '' }) 
       ref={rootRef}
       onBlur={onBlur}
       role="search"
-      className={`relative flex ${className}`}
+      className={`relative flex [filter:drop-shadow(0_4px_16px_rgba(0,0,0,0.45))] ${className}`}
       style={{ height: `${BAR_H}px`, gap: rest ? `${BAR_GAP}px` : 0 }}
     >
       <MapSearch

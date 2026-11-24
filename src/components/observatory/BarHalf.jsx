@@ -11,7 +11,8 @@ export const FIELD_MS = 200 // how long a half takes to give way to the other
  * grows and the other one is squeezed (its text gets an ellipsis). The caller keeps it clear of the other half's minimum.
  * `minWidth` (px): the least this half shrinks to (the place half keeps its magnifier and a few letters).
  * `filled`: the whole half is the buttons' ochre (--nav-active, the darker --color-bar that carries white text at 4.5:1) with white text (a filter is on).
- * `dropdown` is drawn under the half, as wide as it is.
+ * `dropdown` is drawn under the half, as wide as it is. The shadow is not the halves' own: the bar carries one for both (see MapSearchBar), so that
+ * the half on top does not cast it over the other. The surface is the opaque `map-surface` (white in the light theme).
  */
 export function BarHalf({ side, collapsed, focused, fitWidth = null, filled = false, minWidth = 0, children, dropdown = null }) {
   const fitting = fitWidth != null && !focused && !collapsed
@@ -35,7 +36,7 @@ export function BarHalf({ side, collapsed, focused, fitWidth = null, filled = fa
       }}
     >
       <div
-        className="relative glass-search map-surface shadow-float transition-[border-radius]"
+        className="relative map-surface transition-[border-radius]"
         style={{ height: `${BAR_H}px`, borderRadius: radius, transitionDuration: `${FIELD_MS}ms`, ...(filled ? { background: 'var(--nav-active)', color: '#ffffff' } : {}) }}
       >
         {children}
