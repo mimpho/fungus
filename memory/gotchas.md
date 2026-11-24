@@ -494,3 +494,29 @@ A click simulated from the console (or a page without focus) is rejected; a real
 
 ### ⚠️ Emulating the light theme in the built-in browser does not always reach the app
 `resize_window colorScheme` changes `prefers-color-scheme`, but the app keeps its own `themeMode`; to look at a theme, set `document.documentElement.setAttribute('data-theme', 'light' | 'dark')` (it resets on reload).
+
+---
+
+## Frontend — dev double mount, HTTP cache, Leaflet limits, filters (found 2026-11-25, `ccr-11b63324-2lx2eg`)
+
+### ⚠️ A «mounted» ref set to `false` in a cleanup stays `false` in development
+`<React.StrictMode>` mounts, cleans up and mounts again. `useEffect(() => () => { alive.current = false }, [])` leaves `alive` false for good, so a guard `if (!alive.current) return` swallowed every answer of the «Mi ubicación» button (a spinner for ever, no bubble, no move) while production, with one mount, worked. Set it in the effect's body too: `alive.current = true; return () => { alive.current = false }`.
+
+### ⚠️ The browser keeps every GET for an hour (`Cache-Control: public, max-age=3600`)
+`add_cache_control` in `app/main.py`: a field added to an endpoint (`trend` in `/point/snapshot`) did not show in the browser that had the answer cached, with the back end already updated, and a nearby point (another URL) did. When a new field «does not arrive», hard-reload, or look at the URL in Network (`(disk cache)`), before reading the back end's code.
+
+### ⚠️ `setMaxBounds` recentres the map when the limits are smaller than the screen
+Leaflet keeps a view larger than the bounds centred on them. Growing the drag limits by the width of a panel (so that the east of Catalonia can be dragged out from under it) moved the whole map left by half the panel each time one opened, but only when Catalonia was fully in view. `fitDragBounds` now grows them only when the limits are wider than the screen.
+
+### ⚠️ `filter: drop-shadow` on a parent
+It follows what is painted (the gap between two halves, a dropdown), which is why the double search uses it for one shadow; but a `backdrop-filter` inside it stops blurring (the surfaces there must be opaque), and a child's own `box-shadow` is shadowed again, so give the children none.
+
+### ⚠️ In this app `1rem` is 18 px
+`pb-6` is 27 px and `36rem` is 648 px; a layout that must meet a measure in px (the 24 px by which the sheets go under the tab bar, a photo's height) needs `[24px]`, not a `rem` class. It cost a 3 px gap under the species' photo.
+
+### ⚠️ A class cannot override an inline `style`; a custom property can be given back with `inherit`
+`TINT_STYLE = { '--color-cream-rgb': '255, 255, 255' }` (white text on the dark sheet) could not be undone by a light-theme class. Use classes: `[--color-cream-rgb:255,255,255] [[data-theme=light]_&]:[--color-cream-rgb:inherit]`.
+
+### ⚠️ Geolocation in Brave
+`getCurrentPosition` can hit its timeout with the permission granted for the site (the macOS settings too): Brave turns off Google's location service by default (`brave://settings/privacy`). It worked in production in the same browser, so a local failure there is not necessarily the code; read `error.code` (1 refused, 2 unavailable, 3 timeout).
+

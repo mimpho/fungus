@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — the observed zone and the map's filters, cards and controls (2026-11-24/25, branch `ccr-11b63324-2lx2eg`)
+
+**Back end**
+- `species_for_point` now lists the species outside their fruiting months, with the season condition `not_met` and never among the excellent ones, so the zone's «Fuera de temporada» divider shows (`point_species.py`, tests).
+- `/point/snapshot` carries `trend`: `{ days: 7, from_score, delta }`, the score of the day against the one 7 days earlier (`null` if the series does not reach back). The scored window starts 7 days earlier for it (`point_series.py`, test).
+
+**Observed zone**
+- **The species filter is a pill of the fixed bar** (`FilterPills`, with the species' photo) from lg up, next to the time window, because it changes the thermometer, the chart and the calendar as the window does. The species card keeps only the list and the search, with the active row outlined. On the phone the zone's bottom sheet is gone: the list is a card of the flow, after the thermometer, and the pill is in the same bar. `SpeciesSlot` lost its `zone` mode and `SpeciesPanel` its `embedded` one.
+- **Right column:** the corner's card scrolls with the page and the species card sticks under the layer's header (1 rem below it, as tall as the screen shows) on screens at least 48 rem tall; on a shorter one it goes with the page (28 rem tall). The forecast and the calendar are stacked in the left column.
+- **«Detonantes y frenos»** is a foldable row at the foot of the chart's card (count in its summary, the frost line inside); the data-table button moved to the card's header (icon only on a phone).
+- **Thermometer:** titled «Condiciones de fructificación» (plural, like the map's «Condiciones»; also the chart's tab and the old zone modal). The «Estado de la zona» tile («En marcha», which only said it had rained enough lately) is replaced by **«Tendencia»** (rising / steady / falling over the last 7 days, ±8 points, `TREND_STEP` in `lib/thermometer.js`); the score breakdown is a foldable row. The texts that said «la zona está en marcha / en frío» now say it has or has not rained enough in the last 3 weeks.
+- **Shared species:** the zone reads and writes the page's active species (`seta` in the URL) instead of keeping its own; the map keeps the species it had while the zone is open and takes the final one when it closes (`useHeldWhile`), so it is not repainted for every change; Meteo is not touched.
+- A saved corner's card hides the photos block while it has none (the first one is added in the edit dialog).
+- `ObsModal` is a bottom sheet on the phone by default (`sheet={false}` keeps the centred one).
+
+**Map**
+- **Cards:** the point's and the species' cards have the same bare cross (and, on desktop, the chevron that folds them) folded or open, aligned between them (45–46 px under the sheet's edge on the phone); the species' folded bar shows «Mapa filtrado por» and the name in the title face, the photo fills the visible bar; the open sheet's header sits 6 px higher and its bottom margin is 12 px instead of 21. In the light theme the species' sheet is a pale green (the theme's green at 20 % over the map surface) with the theme's ink.
+- **Filter strip** (`MapFilterStrip`) under the search, 14 px below it as the search is under the header: «Mapa del 15 nov ✕» while Meteo is on and its day is not today; the text opens the Meteo panel, the cross takes the day back to today.
+- **Double search:** one `drop-shadow` for the whole bar (the half on top no longer shadows the other) and the opaque `map-surface` instead of the translucent white of `glass-search`.
+- **Controls at the bottom right (desktop):** «Mi ubicación» is 76 × 76 with Vista's radius, above Vista (one `CONTROL_RADIUS` for the three); on the phone it is 52 px, 32 px above what covers the bottom, with the 24 px overlap of the species' bar and the point's sheet accounted for (`locateBottom`). It answers in development too (a `StrictMode` double mount had left its `alive` flag false), tells apart a blocked location, an unanswered browser question, an unavailable position and a timeout, and asks for GPS accuracy only on touch screens.
+- **Opening a panel no longer slides the map** sideways when all Catalonia is in view: the drag limits only grow for the panel when the map is wider than the screen (`fitDragBounds`).
+- **Light theme:** `--map-surface` is `#f8f6f0`, the header's cream, so every map surface (search, cards, panels, buttons, tab bar) takes it; the zone's selectors, species names, search field, icons and secondary buttons (`.obs-btn`) use the theme's ink instead of olive.
+
+**Texts:** new ES / CA / EN keys `obsPointRemove`, `obsMapDay*`, `obsThTileTrend`, `obsThTrend*`, `obsThWhySub`, `obsChEv*`, `obsLocate*`; removed `obsSpSheetFiltering`, `obsSpSheetRemoveFilter`, `obsThTileState`, `obsThState*`, `obsThHideBtn`.
+**Verified:** `npm run build`, the back end's 1,116 unit tests, ruff on the touched files, and each change in the built-in browser at 1280 and 375 px (the light theme where it matters). **Not verified:** a real phone, iOS Safari, 1024 px, a species name or place title that wraps to three lines, the light theme on the desktop species card.
+
 ### Added — «Mi ubicación» button on the Observatory map (2026-11-22, branch `ccr-b38a831c-b5hpwb`)
 
 - New `LocateButton` (`nav/ViewControls.jsx`): a 44 px round `map-surface` button at the bottom right of the map. It asks the browser for the position (`navigator.geolocation`, high accuracy, 15 s timeout) and hands it to `handleLocate` in `pages/Observatory.jsx`, which picks that point (opens the point's card) and flies the map to it.
