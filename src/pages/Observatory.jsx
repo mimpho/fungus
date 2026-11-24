@@ -244,6 +244,10 @@ export default function Observatory() {
   const [pointFolded, setPointFolded] = useState(false)
   const [sheetH, setSheetH] = useState(0) // height of the point's sheet on the phone, for the map to keep the point above it
   const [barH, setBarH] = useState(0) // height the phone's tab bar covers (with a tab's sheet open, the sheet too)
+  // The phone's «My location»: 32 px above the top of whatever the bottom holds. The point's sheet and the species' bar are a stack that rises
+  // from 24 px under the tab bar's top (they overlap it), so with either of them its top is 24 px lower than the bar's plus their heights
+  const onStack = speciesH > 24 || Boolean(pending)
+  const locateBottom = (onStack ? Math.max(0, barH - 24) : barH) + (speciesH > 24 ? speciesH : 0) + (pending ? sheetH : 0) + 32
   const [barRestH, setBarRestH] = useState(0) // the bar alone: the map's own controls at the bottom (zoom, credits) sit above it
   const nativeFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement
   function enterFullscreen() {
@@ -563,14 +567,14 @@ export default function Observatory() {
                 </p>
               </div>
             )}
-            {/* Desktop: Vista and the zoom at the bottom right; Vista's panel opens to their left. On the phone Vista is the
+            {/* Desktop: My location, Vista and the zoom at the bottom right, one radius and one width; Vista's panel opens to their left. On the phone Vista is the
                 tab bar's fourth button and the map is zoomed with the fingers */}
             {!phone && (
               <>
                 <div className="absolute z-[1100] right-4 bottom-5 flex flex-col items-end gap-2.5">
+                  <LocateButton desktop onLocate={handleLocate} className="relative" />
                   <ViewButton open={nav.openTab === 'view'} onClick={() => toggleNav('view')} panelId={VIEW_PANEL_ID} />
                   <ZoomButtons map={mapInst} />
-                  <LocateButton onLocate={handleLocate} className="relative mr-[16px]" />
                 </div>
                 {nav.openTab === 'view' && (
                   <div className="absolute z-[1100] right-[104px] bottom-5 w-[360px]">
@@ -579,12 +583,12 @@ export default function Observatory() {
                 )}
               </>
             )}
-            {/* Phone: «My location» at the bottom right, above whatever the bottom holds (tab bar, species bar, point sheet) */}
+            {/* Phone: «My location» at the bottom right, above whatever the bottom holds (tab bar, species bar, point sheet); 32 px up and in from the corner so that the map's attribution stays clear */}
             {phone && (
               <LocateButton
                 onLocate={handleLocate}
-                className="absolute z-[1100] right-3"
-                style={{ bottom: barH + (speciesH > 24 ? speciesH - 24 : 0) + (pending ? sheetH : 0) + 12 }}
+                className="absolute z-[1100] right-8"
+                style={{ bottom: locateBottom }}
               />
             )}
             {/* Desktop: the tabs at the top right; a panel opens to the left of them */}
