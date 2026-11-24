@@ -114,37 +114,72 @@ export function ZoomButtons({ map }) {
 
 /**
  * «My location»: asks the browser for the position and hands it to `onLocate(lat, lon)`, which answers
- * `false` when the position is outside Catalonia. A short bubble to the left says why when it fails. `desktop`: the size and the radius
+ * `false` when the position is outside Catalonia. A short bubble to the left says why when it fails (the browser blocks the location, it waits for the user's answer, the position cannot be had, it takes too long). `desktop`: the size and the radius
  * of the Vista button, with no text (as in the usual map apps); on the phone it is a round button of 52 px.
  */
 export function LocateButton({ onLocate, className = '', style, desktop = false }) {
   const { t } = useApp()
-  const [state, setState] = useState('idle') // 'idle' | 'locating' | 'error' | 'outside'
+  // 'idle' | 'locating' | a failure: 'denied' (the browser blocks the location) | 'ask' (it waits for the answer to its question) | 'unavailable' | 'timeout' | 'error' | 'outside'
+  const [state, setState] = useState('idle')
   const timer = useRef(null)
+  const watchdog = useRef(null)
+  const attempt = useRef(0) // each tap is one attempt; a late answer to an older one is ignored
   const alive = useRef(true)
-  useEffect(() => () => { alive.current = false; clearTimeout(timer.current) }, [])
+  // Set on mount too: React's dev double mount runs the cleanup once, and without this the button would think it is gone and never answer
+  useEffect(() => {
+    alive.current = true
+    return () => { alive.current = false; clearTimeout(timer.current); clearTimeout(watchdog.current) }
+  }, [])
 
-  const fail = kind => {
+  const fail = (kind, ms = 4000) => {
     if (!alive.current) return
+    clearTimeout(watchdog.current)
     setState(kind)
     clearTimeout(timer.current)
-    timer.current = setTimeout(() => alive.current && setState('idle'), 4000)
+    timer.current = setTimeout(() => alive.current && setState('idle'), ms)
   }
-  const locate = () => {
+  const permission = async () => {
+    try { return (await navigator.permissions?.query({ name: 'geolocation' }))?.state ?? null } catch { return null }
+  }
+  const locate = async () => {
     if (state === 'locating') return
-    if (!navigator.geolocation) { fail('error'); return }
+    if (!navigator.geolocation) { fail('unavailable'); return }
+    const id = ++attempt.current
     setState('locating')
+    // A location the browser already blocks does not ask again: say so at once instead of leaving the spinner
+    if (await permission() === 'denied') { if (id === attempt.current) fail('denied', 8000); return }
+    if (id !== attempt.current || !alive.current) return
+    // The spinner never stays for ever: if there is no answer, say whether the browser is still waiting for the user's
+    clearTimeout(watchdog.current)
+    watchdog.current = setTimeout(async () => {
+      if (id !== attempt.current) return
+      attempt.current += 1
+      fail(await permission() === 'prompt' ? 'ask' : 'timeout', 8000)
+    }, 15000)
+    // High accuracy (GPS) only where there is one: on a computer it only makes the browser take longer to answer
+    const gps = window.matchMedia?.('(pointer: coarse)').matches === true
     navigator.geolocation.getCurrentPosition(
       pos => {
-        if (!alive.current) return
+        if (id !== attempt.current || !alive.current) return
+        clearTimeout(watchdog.current)
         const ok = onLocate(pos.coords.latitude, pos.coords.longitude)
         if (ok === false) fail('outside'); else setState('idle')
       },
-      () => fail('error'),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
+      err => {
+        if (id !== attempt.current) return
+        if (err?.code === 1) fail('denied', 8000)
+        else if (err?.code === 2) fail('unavailable')
+        else if (err?.code === 3) fail('timeout')
+        else fail('error')
+      },
+      { enableHighAccuracy: gps, timeout: 10000, maximumAge: gps ? 30000 : 300000 },
     )
   }
-  const message = state === 'error' ? t.obsLocateError : state === 'outside' ? t.obsLocateOutside : null
+  const MESSAGES = {
+    denied: t.obsLocateDenied, ask: t.obsLocateAsk, unavailable: t.obsLocateUnavailable, timeout: t.obsLocateTimeout, error: t.obsLocateError, outside: t.obsLocateOutside,
+  }
+  const message = MESSAGES[state] ?? null
+  const failed = message !== null
   return (
     <div className={className} style={style}>
       <button
@@ -153,14 +188,14 @@ export function LocateButton({ onLocate, className = '', style, desktop = false 
         aria-label={t.obsLocate}
         title={t.obsLocate}
         aria-busy={state === 'locating'}
-        className={`${desktop ? `w-[76px] h-[76px] ${CONTROL_RADIUS}` : 'w-[52px] h-[52px] rounded-full'} map-surface shadow-float flex items-center justify-center hover:brightness-110 ${state === 'error' || state === 'outside' ? 'text-amber-400' : 'text-cream'} ${FOCUS}`}
+        className={`${desktop ? `w-[76px] h-[76px] ${CONTROL_RADIUS}` : 'w-[52px] h-[52px] rounded-full'} map-surface shadow-float flex items-center justify-center hover:brightness-110 ${failed ? 'text-amber-400' : 'text-cream'} ${FOCUS}`}
       >
         {state === 'locating'
           ? <Loader2 size={24} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
           : <LocateFixed size={24} aria-hidden="true" />}
       </button>
       {message && (
-        <p role="status" className="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-max max-w-[14rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white pointer-events-none">
+        <p role="status" className="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-max max-w-[16rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white pointer-events-none">
           {message}
         </p>
       )}
