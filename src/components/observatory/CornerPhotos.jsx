@@ -17,7 +17,7 @@ const SLOT_SMALL = 'shrink-0 w-[133px] h-[100px] rounded-xl overflow-hidden'
 
 /**
  * The photos of a saved corner: a row of thumbnails (up to five, scrolling sideways when narrow)
- * and, while there is room, a dashed «Añadir foto» slot that opens the file chooser. Any image
+ * and, while there is room, a dashed «Añadir foto» slot that opens the file chooser (the card draws none for a corner without photos: its first one is added in the edit dialog). Any image
  * format goes (the server converts it and drops the metadata); several files, chosen together or
  * dropped on the section, are uploaded one after another up to the free places, and a notice says
  * how many were left out when there are more than fit. A thumbnail opens the viewer, where the photo's mushrooms
@@ -159,6 +159,9 @@ export function CornerPhotos({ corner, onChanged, variant = 'card' }) {
       </>
     )
   }
+
+  // A corner without photos shows nothing in its card (no dashed slot taking height): adding the first one is in the edit dialog
+  if (variant === 'card' && corner.photo_count === 0 && photos.length === 0 && !working) return null
 
   if (status === 'loading') return <p className="text-sm text-cream/60">{t.obsPhotoLoading}</p>
 
