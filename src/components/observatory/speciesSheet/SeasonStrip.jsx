@@ -20,7 +20,7 @@ export function SeasonStrip({ months }) {
         {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
           <span
             key={m}
-            className={`flex-1 h-[22px] rounded-[4px] flex items-center justify-center text-[11px] font-medium ${set.has(m) ? 'bg-white text-[var(--nav-active)] font-bold' : 'bg-black/20 text-cream'} ${m === now ? 'underline underline-offset-2' : ''}`}
+            className={`flex-1 h-[22px] rounded-[4px] flex items-center justify-center text-[11px] font-medium ${set.has(m) ? 'bg-white text-[var(--nav-active)] [[data-theme=light]_&]:bg-[var(--nav-active)] [[data-theme=light]_&]:text-white font-bold' : 'bg-black/20 [[data-theme=light]_&]:bg-black/[0.07] text-cream'} ${m === now ? 'underline underline-offset-2' : ''}`}
           >{initial(m)}</span>
         ))}
       </div>

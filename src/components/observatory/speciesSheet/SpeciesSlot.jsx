@@ -8,8 +8,9 @@ import { SheetHandle } from '../SheetHandle'
 import { SpeciesCardBody } from './SpeciesCardBody'
 import { useSheetDrag } from '../../../hooks/useSheetDrag'
 
-export const TINT = 'bg-[var(--nav-active)]'
-export const TINT_STYLE = { '--color-cream-rgb': '255, 255, 255' }
+// The species' sheet. Dark theme: the theme's gold-brown with white text. Light theme: not in negative but a pale green (the theme's green at 20 %
+// over the map surface, so it is opaque) with the theme's own ink, as the other cards
+export const TINT = 'bg-[var(--nav-active)] [--color-cream-rgb:255,255,255] [[data-theme=light]_&]:[--color-cream-rgb:inherit] [[data-theme=light]_&]:bg-[image:linear-gradient(rgba(var(--color-bar-rgb),0.2),rgba(var(--color-bar-rgb),0.2)),linear-gradient(var(--map-surface),var(--map-surface))]'
 // Folded sizes. Desktop: as tall as the point's folded card (4 px top spacer + the row = 83), the photo is the whole card.
 // Phone: a 52 px row under the handle; the photo covers what shows above the sheet below it (handle + row).
 const SIZES = {
@@ -109,14 +110,13 @@ export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStack
       data-open={open}
       aria-label={t.obsSpSheetBarLabel.replace('{name}', row.name)}
       className={`relative overflow-hidden pointer-events-auto ${TINT} ${desktop ? 'shrink-0 rounded-2xl shadow-float' : 'z-[2] -mt-6 pb-6 rounded-t-[24px] shadow-bottom'}`}
-      style={TINT_STYLE}
     >
       <OpenScope key={open ? 'open' : 'closed'} />
       {/* Folded: the photo runs to the sheet's edge (top, left and bottom of what shows), square; the sheet's rounded corner crops it */}
       <span
         aria-hidden="true"
-        className="absolute left-0 top-0 overflow-hidden bg-cream/[0.08] pointer-events-none"
-        style={{ width: size.photo, height: size.photo, opacity: 1 - p, transition }}
+        className={`absolute left-0 top-0 overflow-hidden bg-cream/[0.08] pointer-events-none ${desktop ? '' : 'bottom-[24px]'}`}
+        style={{ width: size.photo, height: desktop ? size.photo : undefined, opacity: 1 - p, transition }}
       >
         {row?.photo && <img src={resolveUrl(row.photo)} alt="" loading="lazy" decoding="async" onError={e => { e.currentTarget.style.visibility = 'hidden' }} className="w-full h-full object-cover" />}
       </span>
@@ -135,13 +135,22 @@ export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStack
             className="absolute inset-0 w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
           />
           <div
-            className="pointer-events-none relative h-full flex items-center gap-2 pr-4 text-cream text-left"
+            className={`pointer-events-none relative h-full flex items-center gap-2 pr-4 text-cream text-left ${desktop ? '' : '-translate-y-[3px]'}`}
             style={{ paddingLeft: size.photo + 12 }}
           >
-            <span className="shrink-0 text-[11px] uppercase tracking-[0.04em] whitespace-nowrap">{t.obsSpSheetMapBy}</span>
-            <FilterPill name={row.name} onClear={onClear} label={removeLabel} />
-            {/* Desktop has no handle: the arrow says the bar opens */}
-            {desktop && <ChevronUp size={20} aria-hidden="true" className="ml-auto shrink-0 text-cream/80" />}
+            {/* The name and, at the right, the cross that takes the filter off (and on desktop the arrow: it has no handle, so it says the bar opens) */}
+            <span className="flex-1 min-w-0 flex flex-col leading-tight">
+              <span className="text-[11px] uppercase tracking-[0.04em] whitespace-nowrap">{t.obsSpSheetMapBy}</span>
+              <span className="truncate font-display text-xl leading-tight">{row.name}</span>
+            </span>
+            <button
+              type="button"
+              onClick={onClear}
+              aria-label={removeLabel}
+              title={removeLabel}
+              className={`pointer-events-auto shrink-0 w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60 ${desktop ? '' : '-mr-[9px] -translate-y-[7px]'}`}
+            ><X size={20} aria-hidden="true" /></button>
+            {desktop && <ChevronUp size={20} aria-hidden="true" className="shrink-0 ml-[2px] -mr-px text-cream" />}
           </div>
         </div>
       </div>
@@ -154,27 +163,11 @@ export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStack
         className="overflow-hidden"
         {...(open ? {} : { inert: '', 'aria-hidden': true })}
       >
-        <div ref={measureRef} className="px-4 pt-[12px] pb-4">
+        <div ref={measureRef} className={`px-4 ${desktop ? 'pt-[12px] pb-4' : 'pt-[3px] pb-2'}`}>
           {row && <SpeciesCardBody row={row} species={species} lens={lens} onLower={desktop ? closeIt : null} onClear={onClear} removeLabel={removeLabel} onView={() => setViewing(true)} titleRef={titleRef} />}
         </div>
       </div>
       {viewing && species && <SpeciesPreview species={species} onClose={() => { setViewing(false); titleRef.current?.focus({ preventScroll: true }) }} />}
     </section>
-  )
-}
-
-/** The species the filter holds, folded: its name and the × that takes the filter off, in one block of the darker tone with no ring and the × bare (a 44 px target around it). Only the × takes taps; the rest lets them through to the bar. */
-function FilterPill({ name, onClear, label, className = '' }) {
-  return (
-    <span className={`pointer-events-none inline-flex items-center min-w-0 max-w-full rounded-full bg-black/25 pl-3.5 pr-1 py-1 ${className}`}>
-      <span className="truncate leading-tight text-[14px] font-medium">{name}</span>
-      <button
-        type="button"
-        onClick={onClear}
-        aria-label={label}
-        title={label}
-        className="pointer-events-auto relative ml-1.5 shrink-0 size-6 rounded-full flex items-center justify-center text-cream outline-none focus-visible:ring-2 focus-visible:ring-cream/70 after:content-[''] after:absolute after:-inset-2.5"
-      ><X size={14} aria-hidden="true" /></button>
-    </span>
   )
 }

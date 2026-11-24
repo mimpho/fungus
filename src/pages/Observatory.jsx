@@ -22,6 +22,9 @@ import { MapSearchBar } from '../components/observatory/MapSearchBar'
 import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
 import { layerDays } from '../components/observatory/LayerDayControl'
+import { MapFilterStrip } from '../components/observatory/MapFilterStrip'
+import { todayIso } from '../lib/layerDays'
+import { formatDay } from '../lib/thermometer'
 import { MeteoPanel } from '../components/observatory/nav/MeteoPanel'
 import { ZonasPanel } from '../components/observatory/nav/ZonasPanel'
 import { HabitatPanel } from '../components/observatory/nav/HabitatPanel'
@@ -90,7 +93,7 @@ function store(key, value) {
  * the URL; the point just picked on the map, still without observing it, is local.
  */
 export default function Observatory() {
-  const { t, isAuthenticated, authLoading, setAuthModal } = useApp()
+  const { t, lang, isAuthenticated, authLoading, setAuthModal } = useApp()
   const { point: observed, until, days, initialMeteo, initialSpecies, observe, clear, setWindow, setMeteo, setSpecies: writeSpecies } = useObservatoryView()
   const saved = useSavedPoints(isAuthenticated)
   // A page opened on a point (URL) starts with that point's panel on the map
@@ -159,6 +162,8 @@ export default function Observatory() {
   // Picking «De la seta» turns Meteo off: its Condiciones would be hidden by the habitat (same scale)
   const setHabitatView = value => { setHabitatViewStored(value); store(HABITAT_VIEW_KEY, value); if (value === 'species') nav.setOn('data', false) }
   const habitatShown = forestOn && habitatView === 'species'
+  // The map's filter strip: the Meteo day while it is on and is not today (nothing to say when it is)
+  const dayFilter = meteoOn && layerDate && layerDate !== todayIso() ? formatDay(layerDate, lang) : null
   // The URL says what Meteo shows while it is on (history replaced: Back does not walk through the days)
   useEffect(() => {
     setMeteo(meteoOn ? { layer: meteoKind, day: layerDate } : null)
@@ -247,7 +252,8 @@ export default function Observatory() {
   // The phone's «My location»: 32 px above the top of whatever the bottom holds. The point's sheet and the species' bar are a stack that rises
   // from 24 px under the tab bar's top (they overlap it), so with either of them its top is 24 px lower than the bar's plus their heights
   const onStack = speciesH > 24 || Boolean(pending)
-  const locateBottom = (onStack ? Math.max(0, barH - 24) : barH) + (speciesH > 24 ? speciesH : 0) + (pending ? sheetH : 0) + 32
+  const bothSheets = speciesH > 24 && Boolean(pending) // the species' bar then overlaps the foot of the point's sheet by 24 px
+  const locateBottom = (onStack ? Math.max(0, barH - 24) : barH) + (speciesH > 24 ? speciesH : 0) + (pending ? sheetH : 0) - (bothSheets ? 24 : 0) + 32
   const [barRestH, setBarRestH] = useState(0) // the bar alone: the map's own controls at the bottom (zoom, credits) sit above it
   const nativeFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement
   function enterFullscreen() {
@@ -561,7 +567,7 @@ export default function Observatory() {
             />
             {/* The hint is a toast under the search (it used to sit on the tab bar): it goes after a few seconds, or as soon as the map is used */}
             {!hintGone && !pending && !observed && !(phone && nav.openTab) && (
-              <div style={{ transitionDuration: `${HINT_FADE_MS}ms`, ...(safeTop ? fullscreenTop(80) : {}) }} className={`absolute z-[1100] ${safeTop ? '' : 'top-[80px] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
+              <div style={{ transitionDuration: `${HINT_FADE_MS}ms`, ...(safeTop ? fullscreenTop(dayFilter ? 130 : 80) : {}) }} className={`absolute z-[1100] ${safeTop ? '' : dayFilter ? 'top-[130px] left-3' : 'top-[80px] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
                 <p role="status" className="w-fit max-w-[30rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white">
                   {t.obsMapHint}
                 </p>
@@ -626,14 +632,20 @@ export default function Observatory() {
             <div className={`absolute z-[1115] ${safeTop ? '' : 'top-3 left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(12) : undefined}>
               <MapSearchBar onPlace={handleSearchSelect} speciesId={layerSpecies} onSpecies={chooseSpecies} className={`pointer-events-auto w-full ${phone ? '' : 'max-w-[30rem]'}`} />
             </div>
+            {/* The active filters, under the search with the same gap the search has under the header (14 px): the Meteo day when it is not today */}
+            {dayFilter && (
+              <div className={`absolute z-[1114] ${safeTop ? '' : 'top-[80px] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(80) : undefined}>
+                <MapFilterStrip dayLabel={dayFilter} onEdit={() => { if (nav.openTab !== 'data') toggleNav('data') }} onClearDay={() => setLayerDate(null)} />
+              </div>
+            )}
             {/* The point's sheet and the species' sheet are one stack in the page's flow (from the bottom: species, point), so folding or
                 unfolding one moves the ones above it with it and none ever leaves a gap. Phone: above the tab bar, as bottom sheets.
                 Desktop (and tablet): the same two blocks as cards, in a column at the bottom left. */}
             <div
               className={phone
                 ? 'absolute inset-x-0 z-[1100] flex flex-col justify-end pointer-events-none'
-                : 'absolute z-[1100] left-3 bottom-3 w-[396px] max-w-[calc(100%-6rem)] max-h-[calc(100%-6rem)] flex flex-col justify-end gap-2 pointer-events-none'}
-              style={phone ? { top: 72, bottom: Math.max(0, barH - 24) } : undefined}
+                : `absolute z-[1100] left-3 bottom-3 w-[396px] max-w-[calc(100%-6rem)] ${dayFilter ? 'max-h-[calc(100%-9rem)]' : 'max-h-[calc(100%-6rem)]'} flex flex-col justify-end gap-2 pointer-events-none`}
+              style={phone ? { top: dayFilter ? 130 : 72, bottom: Math.max(0, barH - 24) } : undefined}
             >
               {pending && (
                 <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} folded={phone && pointFolded} onExpand={expandPoint} onSheetHeight={setSheetH} />
