@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, X } from 'lucide-react'
 import { useApp } from '../../../contexts/AppContext'
 import { IC, getEdibilityColor, resolveUrl } from '../../../lib/helpers'
 import { LEGEND_BANDS } from '../../../lib/layerColors'
@@ -9,11 +9,10 @@ const SCALE = { colors: LEGEND_BANDS.map(b => b.hex), stepped: true }
 
 /**
  * What the species' card says: photo, names, edibility, the safety line the season, the legend of the layer being looked at and,
- * at the foot, «Ver ficha» and «Guardar seta» (as the point's card has «Observar zona» and «Guardar rincón»). The sheet's × (it takes the filter off) is not here: it sits over the card's top right corner;
- * this card only leaves its place free (`crossTop`: margin that puts the 40 px gap where the × sits). `onLower`: desktop's chevron
+ * at the foot, «Ver ficha» and «Guardar seta» (as the point's card has «Observar zona» and «Guardar rincón»). `onClear`: the «Eliminar filtro» pill under the title. `onLower`: desktop's chevron
  * that folds the card (the phone folds with the handle). `titleRef`: where the focus goes when the card opens.
  */
-export function SpeciesCardBody({ row, species, lens, crossTop = 0, crossW = 40, onLower = null, onView, titleRef }) {
+export function SpeciesCardBody({ row, species, lens, onLower = null, onClear, removeLabel, onView, titleRef }) {
   const { t, favoriteSpecies, toggleFavorite } = useApp()
   const saved = Boolean(species) && favoriteSpecies.some(f => f.id === species.id)
   const edib = getEdibilityColor(row.edibility)
@@ -23,6 +22,21 @@ export function SpeciesCardBody({ row, species, lens, crossTop = 0, crossW = 40,
     : lens === 'conditions' ? { low: t.obsLayLow, high: t.obsLayHigh, note: null } : null
   return (
     <div className="space-y-3">
+      {/* The title and, on desktop, the chevron that folds the card. The pill that takes the filter off sits at the right of the photo and name */}
+      <div>
+        <div className="flex items-center justify-between gap-2 min-h-[28px]">
+          <p className="text-[11px] uppercase tracking-[0.04em] text-cream">{t.obsSpSheetMapBy}</p>
+          {onLower && (
+            <button
+              type="button"
+              onClick={e => onLower(e.detail === 0)}
+              aria-label={t.obsSpSheetLower}
+              title={t.obsSpSheetLower}
+              className="-my-2 -mr-2 w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+            ><ChevronDown size={20} aria-hidden="true" /></button>
+          )}
+        </div>
+      </div>
       <div className="flex items-start gap-3">
         <span aria-hidden="true" className="shrink-0 w-[72px] h-[72px] rounded-xl overflow-hidden bg-cream/[0.08]">
           {row.photo && <img src={resolveUrl(row.photo)} alt="" className="w-full h-full object-cover" onError={e => { e.currentTarget.style.visibility = 'hidden' }} />}
@@ -34,19 +48,13 @@ export function SpeciesCardBody({ row, species, lens, crossTop = 0, crossW = 40,
             <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-[3px] rounded-full bg-white/[0.08] text-white"><span aria-hidden="true" className={`w-[8px] h-[8px] rounded-full ${edib.solidBg}`} />{t[edib.tKey]}</span>
           </div>
         </div>
-        <div className="shrink-0 flex" style={{ marginTop: crossTop }}>
-          {onLower && (
-            <button
-              type="button"
-              onClick={e => onLower(e.detail === 0)}
-              aria-label={t.obsSpSheetLower}
-              title={t.obsSpSheetLower}
-              className="w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
-            ><ChevronDown size={20} aria-hidden="true" /></button>
-          )}
-          {/* Where the sheet's × sits (it is drawn over this gap) */}
-          <span aria-hidden="true" className="h-[40px]" style={{ width: crossW }} />
-        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label={removeLabel}
+          title={removeLabel}
+          className="shrink-0 flex items-center gap-1.5 min-h-[32px] rounded-full bg-black/25 pl-3.5 pr-2.5 text-[14px] text-cream hover:bg-black/35 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+        >{t.obsSpSheetRemoveFilter}<X size={14} aria-hidden="true" /></button>
       </div>
       {warn && <p role="note" className="text-[12px] rounded-lg px-3 py-2 border border-red-500/50 bg-red-500/10 text-cream">{warn}</p>}
       <SeasonStrip months={species?.fruitingMonths} />

@@ -16,12 +16,10 @@ export const TINT_STYLE = { '--color-cream-rgb': '255, 255, 255' }
 const ZONE_TINT = 'bg-[image:linear-gradient(rgba(var(--color-coffee-rgb),0.4),rgba(var(--color-coffee-rgb),0.4)),linear-gradient(var(--gradient-b),var(--gradient-b))] [[data-theme=light]_&]:bg-[image:linear-gradient(rgba(var(--color-bar-rgb),0.2),rgba(var(--color-bar-rgb),0.2)),linear-gradient(var(--gradient-b),var(--gradient-b))]'
 // Folded sizes. Desktop: as tall as the point's folded card (4 px top spacer + the row = 83), the photo is the whole card.
 // Phone: a 52 px row under the handle; the photo covers what shows above the sheet below it (handle + row).
-// `cross`/`right`: where the sheet's single × (40 px) sits, it never moves; `body`: where the open card's content starts (handle or
-// spacer + the card's padding), so the card can leave a gap under the ×.
 const SIZES = {
-  desktop: { row: 79, photo: 83, cross: 23.5, right: 18, body: 16 },
-  phone: { row: 52, photo: 72, cross: 24.5, right: 12, body: 35 },
-  zone: { row: 56, photo: 84, cross: 24.5, right: 12, body: 35 }, // the photo is as tall as the whole sheet (see `zone`)
+  desktop: { row: 79, photo: 83 },
+  phone: { row: 52, photo: 72 },
+  zone: { row: 56, photo: 84 }, // the photo is as tall as the whole sheet (see `zone`)
 }
 // Zone with a species: the folded bar holds the title and the filter's pill, so it is taller than the one with the title and its summary
 const ZONE_FILTERED_ROW = 66
@@ -184,10 +182,12 @@ export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStack
                 </span>
               </span>
             ) : (
-              <span className="flex-1 min-w-0 flex flex-col gap-1 leading-[1.15]">
-                <span className="text-[10px] uppercase tracking-[0.04em] whitespace-nowrap">{t.obsSpSheetMapBy}</span>
-                <FilterPill name={row.name} onClear={onClear} label={removeLabel} className="self-start" />
-              </span>
+              <>
+                <span className="shrink-0 text-[11px] uppercase tracking-[0.04em] whitespace-nowrap">{t.obsSpSheetMapBy}</span>
+                <FilterPill name={row.name} onClear={onClear} label={removeLabel} />
+                {/* Desktop has no handle: the arrow says the bar opens */}
+                {desktop && <ChevronUp size={20} aria-hidden="true" className="ml-auto shrink-0 text-cream/80" />}
+              </>
             )}
           </div>
         </div>
@@ -204,37 +204,25 @@ export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStack
         <div ref={measureRef} className="px-4 pt-[12px] pb-4">
           {zone
             ? renderPicker?.(donePicking)
-            : row && <SpeciesCardBody row={row} species={species} lens={lens} crossTop={size.cross - size.body} crossW={40} onLower={desktop ? closeIt : null} onView={() => setViewing(true)} titleRef={titleRef} />}
+            : row && <SpeciesCardBody row={row} species={species} lens={lens} onLower={desktop ? closeIt : null} onClear={onClear} removeLabel={removeLabel} onView={() => setViewing(true)} titleRef={titleRef} />}
         </div>
       </div>
-      {/* The map's open card keeps its × where it was (it takes the filter off); folded, the pill has its own. The zone has none: its field holds the species */}
-      {!zone && (
-        <button
-          type="button"
-          onClick={onClear}
-          aria-label={removeLabel}
-          title={removeLabel}
-          style={{ top: size.cross, right: size.right, opacity: p }}
-          className="absolute z-10 w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream/70 hover:text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
-          {...(open ? {} : { inert: '', 'aria-hidden': true })}
-        ><X size={20} aria-hidden="true" /></button>
-      )}
       {viewing && species && <SpeciesPreview species={species} onClose={() => { setViewing(false); titleRef.current?.focus({ preventScroll: true }) }} />}
     </section>
   )
 }
 
-/** The species the filter holds, folded: its name and the × that takes the filter off (a 44 px target around a 24 px circle). Only the × takes taps; the rest lets them through to the bar. */
+/** The species the filter holds, folded: its name and the × that takes the filter off, in one block of the darker tone with no ring and the × bare (a 44 px target around it). Only the × takes taps; the rest lets them through to the bar. */
 function FilterPill({ name, onClear, label, className = '' }) {
   return (
-    <span className={`pointer-events-none inline-flex items-center min-w-0 max-w-full rounded-full bg-cream/[0.14] ring-1 ring-cream/35 pl-3.5 pr-[3px] py-[3px] ${className}`}>
-      <span className="truncate font-display text-[16px] leading-tight">{name}</span>
+    <span className={`pointer-events-none inline-flex items-center min-w-0 max-w-full rounded-full bg-black/25 pl-3.5 pr-1 py-1 ${className}`}>
+      <span className="truncate leading-tight text-[14px] font-medium">{name}</span>
       <button
         type="button"
         onClick={onClear}
         aria-label={label}
         title={label}
-        className="pointer-events-auto relative ml-1.5 shrink-0 size-6 rounded-full bg-black/25 flex items-center justify-center text-cream outline-none focus-visible:ring-2 focus-visible:ring-cream/70 after:content-[''] after:absolute after:-inset-2.5"
+        className="pointer-events-auto relative ml-1.5 shrink-0 size-6 rounded-full flex items-center justify-center text-cream outline-none focus-visible:ring-2 focus-visible:ring-cream/70 after:content-[''] after:absolute after:-inset-2.5"
       ><X size={14} aria-hidden="true" /></button>
     </span>
   )

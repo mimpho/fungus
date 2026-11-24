@@ -33,10 +33,10 @@ function Row({ row, selected, onSelect, onOpenCard, dark = false, lang }) {
   )
 }
 
-/** The species the filter holds, in place of the search field: its round photo, its name and the × that takes the filter off. */
-function ActiveSpecies({ name, photo, onClear, removeLabel, dark }) {
+/** The species the filter holds, in place of the search field: its round photo, its name and what takes the filter off: on the phone's sheet one block of the darker tone with no ring and the × bare; on the desktop card (`actionLabel`) the field's own colour with the «Eliminar filtro ×» pill in the darker tone. */
+function ActiveSpecies({ name, photo, onClear, removeLabel, actionLabel = null }) {
   return (
-    <div className={`flex items-center gap-2.5 pl-1.5 pr-0 py-1 min-h-[44px] ring-1 ring-bar ${dark ? FIELD_DARK : FIELD}`} data-testid="active-species">
+    <div className={`flex items-center gap-2.5 pl-1.5 py-1 min-h-[44px] ${actionLabel ? `pr-0 ring-1 ring-bar ${FIELD}` : 'pr-1 rounded-xl bg-black/25 text-cream'}`} data-testid="active-species">
       <span aria-hidden="true" className="shrink-0 size-8 rounded-full overflow-hidden bg-cream/[0.08]">
         {photo && <img src={resolveUrl(photo)} alt="" className="w-full h-full object-cover" onError={e => { e.currentTarget.style.visibility = 'hidden' }} />}
       </span>
@@ -46,10 +46,8 @@ function ActiveSpecies({ name, photo, onClear, removeLabel, dark }) {
         onClick={onClear}
         aria-label={removeLabel}
         title={removeLabel}
-        className="shrink-0 size-11 flex items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
-      >
-        <span aria-hidden="true" className="size-[22px] rounded-full bg-black/25 flex items-center justify-center"><X size={13} /></span>
-      </button>
+        className={`shrink-0 flex items-center text-cream outline-none focus-visible:ring-2 focus-visible:ring-cream/60 ${actionLabel ? 'h-8 mr-1.5 gap-1.5 pl-3 pr-2.5 text-sm rounded-full bg-black/25 hover:bg-black/35' : 'h-11 w-11 justify-center rounded-xl hover:bg-cream/10'}`}
+      >{actionLabel}<X size={actionLabel ? 14 : 16} aria-hidden="true" /></button>
     </div>
   )
 }
@@ -165,7 +163,7 @@ export function SpeciesPanel({ state, selected, onSelect, className = '', embedd
                 photo={byId.get(selected)?.photo?.url ?? null}
                 onClear={() => pick(null)}
                 removeLabel={t.obsSpSheetRemove.replace('{name}', activeName)}
-                dark={embedded}
+                actionLabel={embedded ? null : t.obsSpSheetRemoveFilter}
               />
             ) : (
               <div className="relative">
