@@ -30,10 +30,6 @@ export function SpeciesRow({
       ? 'bg-bar/10'
       : active ? 'bg-cream/[0.16]' : 'bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-filter-pill-bg)]'
   const surface = option ? 'bg-modal' : tint
-  // The zone's panel writes its text in `--ui-filter-pill-text` in the light theme (olive, 3.8:1 on white); the search bar's list
-  // sits on a white surface and uses the theme's own text colour
-  const pillText = option || dark ? '' : '[[data-theme=light]_&]:text-[var(--ui-filter-pill-text)]'
-  const pillHover = option || dark ? '' : '[[data-theme=light]_&]:hover:text-[var(--ui-filter-pill-text)]'
   return (
     <li
       data-testid="species-row"
@@ -73,11 +69,11 @@ export function SpeciesRow({
           </span>
           <span className="pointer-events-none relative flex-1 min-w-0 flex items-center gap-2.5 pl-3 pr-1 py-2.5">
             <span className="min-w-0 flex-1">
-              <span className={`block text-sm font-medium text-cream ${pillText} truncate`}>
+              <span className={`block text-sm font-medium text-cream truncate`}>
                 {row.followed && <span aria-label={t.obsSpFollowed} title={t.obsSpFollowed}>★ </span>}
                 {row.name}
               </span>
-              <span className={`block text-xs ${pillText} truncate italic ${option ? 'text-cream/80' : 'text-cream/60 opacity-80'}`}>{row.scientific}</span>
+              <span className={`block text-xs truncate italic ${option ? 'text-cream/80' : 'text-cream/60 opacity-80 [[data-theme=light]_&]:text-cream/70 [[data-theme=light]_&]:opacity-100'}`}>{row.scientific}</span>
               <span className="mt-0.5 flex items-center gap-1.5">
                 <span className={`inline-block text-[11px] px-1.5 py-px rounded-full ${edib.bg} ${edib.text}`}>{t[edib.tKey]}</span>
                 <button
@@ -85,7 +81,7 @@ export function SpeciesRow({
                   onClick={() => onOpenCard(row.id)}
                   title={t.ver_ficha}
                   aria-label={t.obsCornerSpeciesOpen.replace('{name}', row.name)}
-                  className={`pointer-events-auto relative z-10 inline-flex items-center justify-center size-6 -my-1 rounded-full text-cream/60 ${pillText} ${pillHover} hover:text-cream hover:bg-cream/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/60`}
+                  className={`pointer-events-auto relative z-10 inline-flex items-center justify-center size-6 -my-1 rounded-full text-cream/60 hover:text-cream hover:bg-cream/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cream/60`}
                   {...keep}
                 >
                   {/* A file card with lines */}

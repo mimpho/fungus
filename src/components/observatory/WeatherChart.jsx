@@ -559,7 +559,7 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [], ta
       {phone ? (
         <div>
           <label htmlFor={`${uid}-tab`} className="sr-only">{t.obsChTabsLabel}</label>
-          <ObsSelect id={`${uid}-tab`} value={tab} onChange={e => setTab(e.target.value)} className="w-full [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)] [[data-theme=light]_&_select]:!text-[var(--ui-filter-pill-text)] [[data-theme=light]_&_svg]:!text-[var(--ui-filter-pill-text)]">
+          <ObsSelect id={`${uid}-tab`} value={tab} onChange={e => setTab(e.target.value)} className="w-full [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)]">
             {TABS.map(id => <option key={id} value={id}>{t[TAB_KEY[id]]}</option>)}
           </ObsSelect>
         </div>

@@ -11,7 +11,7 @@ import { SpeciesPreview } from './SpeciesPreview'
 import { SpeciesRow } from './SpeciesRow'
 
 const ALL = 'all'
-const FIELD = 'rounded-xl bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-filter-pill-bg)] px-3 py-2 text-base md:text-sm text-cream [[data-theme=light]_&]:text-[var(--ui-filter-pill-text)] placeholder:text-cream/40 [[data-theme=light]_&]:placeholder:text-[rgb(136_133_87/0.65)] outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
+const FIELD = 'rounded-xl bg-cream/[0.08] [[data-theme=light]_&]:bg-[var(--ui-filter-pill-bg)] px-3 py-2 text-base md:text-sm text-cream placeholder:text-cream/40 [[data-theme=light]_&]:placeholder:text-cream/50 outline-none focus-visible:ring-2 focus-visible:ring-cream/30 transition-colors'
 
 function Row({ row, selected, onSelect, onOpenCard, lang }) {
   return (
@@ -127,7 +127,7 @@ export function SpeciesPanel({ state, selected, onSelect, className = '', summar
             {/* The edibility comes first: it narrows the list the search box then works on */}
             <div className="flex items-center gap-2">
               <label htmlFor={`${uid}-edib`} className="text-xs text-cream/60 shrink-0">{t.obsSpEdib}</label>
-              <ObsSelect id={`${uid}-edib`} value={typing ? ALL : group} disabled={typing} onChange={e => setGroup(e.target.value)} className="flex-1 min-w-0 [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)] [[data-theme=light]_&_select]:!text-[var(--ui-filter-pill-text)] [[data-theme=light]_&_svg]:!text-[var(--ui-filter-pill-text)]">
+              <ObsSelect id={`${uid}-edib`} value={typing ? ALL : group} disabled={typing} onChange={e => setGroup(e.target.value)} className="flex-1 min-w-0 [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)]">
                 <option value={ALL}>{t.obsSpAll} ({rows.length})</option>
                 {groups.map(g => <option key={g} value={g}>{t[g]} ({counts[g]})</option>)}
               </ObsSelect>
