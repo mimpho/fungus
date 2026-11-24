@@ -6,7 +6,6 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { buildRows, seasonSummary, speciesName } from '../../lib/speciesList'
 import { useSpeciesRows } from '../../hooks/useSpeciesRows'
-import { SpeciesSlot } from './speciesSheet/SpeciesSlot'
 import { fill } from '../../lib/thermometer'
 import { usePointData } from '../../hooks/usePointData'
 import { fetchPointCalendar, fetchPointForest, fetchPointSnapshot, fetchPointSpecies, fetchSavedPointSpecies } from '../../services/observatoryService'
@@ -37,7 +36,7 @@ const MACRO_KEY = {
  * says that the species will not be listed. The place name is context: if it fails, coordinates
  * stand in and nothing is reported. Only the thermometer failing is an error to show.
  */
-export function ObservedZone({ point, saved, until = null, days, onWindow, initialSpecies = null, onOpenList, headerSlot = null, filtersSlot = null, sheetSlot = null }) {
+export function ObservedZone({ point, saved, until = null, days, onWindow, initialSpecies = null, onOpenList, headerSlot = null, filtersSlot = null }) {
   const { t, lang } = useApp()
   // Starts on the species the map layer shows, so the thermometer and the map speak of the same one
   const [speciesId, setSpeciesId] = useState(initialSpecies)
@@ -45,7 +44,6 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
   const single = !useMediaQuery('(min-width: 1024px)')
   const { species: catalog } = useSpecies()
   const pickerRows = useSpeciesRows()
-  const [sheetH, setSheetH] = useState(0) // height of the active species' sheet, kept free at the foot of the page
   // The thermometer and the species list are those of the window's last day (null = the last day
   // with data). Held back a moment so that stepping with the keyboard does not ask for every day.
   const date = useDebouncedValue(until, 250)
@@ -124,11 +122,11 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
       )}
 
       {/* The active filters go in a bar under the layer's header (`filtersSlot`), fixed there when the zone scrolls up to it; no bar while there are none */}
-      {/* From lg up the species filter is one of them (it changes the thermometer, the chart and the calendar, as the window does); on the phone it is the bottom sheet */}
-      {filtersSlot && (until || days !== DEFAULT_WINDOW || (!single && speciesId)) && createPortal(
+      {/* The species filter is one of them (it changes the thermometer, the chart and the calendar, as the window does) */}
+      {filtersSlot && (until || days !== DEFAULT_WINDOW || speciesId) && createPortal(
         <div className="max-w-7xl mx-auto px-4 pt-5 pb-0">
           <FilterPills
-            speciesName={!single && speciesId ? activeName : null}
+            speciesName={speciesId ? activeName : null}
             speciesPhoto={byId.get(speciesId)?.photo?.url ?? null}
             onClearSpecies={() => setSpeciesId(null)}
             until={until}
@@ -139,9 +137,9 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
         filtersSlot,
       )}
 
-      {/* Two rows of two cells from lg up. On top the facts and the thermometer, and on the right the corner and the species filter, which takes
-          the height the corner leaves, down to the foot of the chart (its list scrolls inside). Below the facts, the chart (its events list is inside its card).
-          Under lg one column: the species filter is the bottom sheet (see below) */}
+      {/* Two columns from lg up. On the left the whole zone: the facts, the thermometer, the chart, the forecast and the calendar. On the right the
+          corner and the species filter, the species filter sticks under the layer's header once the corner's card has scrolled away, as tall as the
+          screen shows (its list scrolls inside). Under lg one column: the species list is a card after the thermometer */}
       <ChartSection point={point} species={activeId} speciesName={activeName} range={chosenRange} until={until} days={days} onWindow={onWindow} calendar={calendar}>
         {({ chart }) => (
       <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_clamp(20rem,30%,30rem)] items-start lg:items-stretch">
@@ -155,51 +153,36 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, initi
               <Thermometer snap={snap.data} note={thermoNote} />
             </div>
           )}
+          {/* One column: the species list is a card of the flow, after the thermometer (from lg up it is the right column's) */}
+          {single && (
+            <div className="h-[28rem]">
+              <SpeciesPanel state={speciesList} selected={speciesId} onSelect={setSpeciesId} summary={sheetSummary} />
+            </div>
+          )}
+          {chart}
+          {/* One under the other: the left column is narrower than the page (the species filter takes the right one) */}
+          <ForecastSection point={point} zoneName={title} />
+          <CalendarSection cal={calendar} speciesName={activeName} />
         </div>
         {!single && (
-          <div className="flex flex-col gap-4 min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+          <div className="flex flex-col gap-4 min-w-0">
             <CornerCard point={point} saved={saved} onOpenList={onOpenList} suggestedName={d?.toponym?.name ?? d?.toponym?.label} toponym={d?.toponym} />
-            {/* The card never sets the row's height (it is laid over the slot, which has a minimum of its own): it takes what the corner's card leaves */}
-            <div className="relative flex-1 min-h-[320px]">
-              <div className="absolute inset-0">
-                <SpeciesPanel state={speciesList} selected={speciesId} onSelect={setSpeciesId} summary={sheetSummary} />
-              </div>
+            {/* The species filter sticks under the layer's header (one gap below it) when the corner's card has scrolled away, as tall as the screen shows; on a screen shorter than 48rem it goes with the page, 28rem tall */}
+            <div
+              className="min-h-[16rem] h-[28rem] [@media(min-height:48rem)]:sticky [@media(min-height:48rem)]:top-[var(--col-top)] [@media(min-height:48rem)]:h-[var(--col-h)]"
+              style={{
+                '--col-top': 'calc(var(--header-h, 5.5rem) + 1rem)',
+                '--col-h': 'calc(100dvh - var(--header-h, 5.5rem) - 2rem)',
+              }}
+            >
+              <SpeciesPanel state={speciesList} selected={speciesId} onSelect={setSpeciesId} summary={sheetSummary} />
             </div>
           </div>
         )}
-        <div className="min-w-0 lg:col-start-1">{chart}</div>
       </div>
         )}
       </ChartSection>
 
-      {/* From 1440 px up the forecast and the calendar sit side by side */}
-      <div className="grid gap-4 grid-cols-[minmax(0,1fr)] min-[1440px]:grid-cols-2 items-start">
-        <ForecastSection point={point} zoneName={title} />
-
-        <CalendarSection cal={calendar} speciesName={activeName} />
-      </div>
-
-      {/* Room for the sheet at the foot, so it never covers the last card */}
-      <div aria-hidden="true" style={{ height: sheetH }} />
-      {/* The zone's species filter under lg: a bottom sheet. With no species it is the way in (the title, what is in season and a
-          magnifier; it unfolds to the list); with one it shows its photo and «Filtrant per» + the pill that takes the filter off.
-          From lg up it is a card of the right column (above) */}
-      {single && sheetSlot && createPortal(
-        <SpeciesSlot
-          key={sheetRow?.id ?? 'idle'}
-          zone
-          row={sheetRow}
-          species={sheetRow ? byId.get(sheetRow.id) ?? null : null}
-          lens={null}
-          summary={sheetSummary}
-          onClear={() => setSpeciesId(null)}
-          onStackHeight={setSheetH}
-          renderPicker={done => (
-            <SpeciesPanel embedded state={speciesList} selected={speciesId} onSelect={id => { setSpeciesId(id); done() }} />
-          )}
-        />,
-        sheetSlot,
-      )}
     </section>
   )
 }

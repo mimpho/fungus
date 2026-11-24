@@ -211,7 +211,6 @@ export default function Observatory() {
   const [drawing, setDrawing] = useState(false) // the map is working out a layer's picture
   const layerOpen = Boolean(observed) && isAuthenticated
   const [headerSlot, setHeaderSlot] = useState(null) // where the zone puts its title: the header of the layer
-  const [sheetSlot, setSheetSlot] = useState(null) // and the active species' bottom sheet: fixed at the foot of the layer
   const [filtersSlot, setFiltersSlot] = useState(null) // and its active filters: a bar under that header, so they stay in view while the zone scrolls
   // The bar of filters is fixed under the header once the zone scrolls up to it; only then do its pills get a shadow
   const [filtersStuck, setFiltersStuck] = useState(false)
@@ -417,7 +416,6 @@ export default function Observatory() {
       initialSpecies={shownSpecies}
       headerSlot={headerSlot}
       filtersSlot={filtersSlot}
-      sheetSlot={sheetSlot}
     />
   )
   // Condiciones, the first segment of the Meteo panel. `layerOn`: the layer is on (its data is then on its way or here)
@@ -665,8 +663,6 @@ export default function Observatory() {
                 {zoneEl}
                 <p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p>
               </div>
-              {/* The active species' bottom sheet, at every width: fixed at the foot of the layer (the page leaves it room) */}
-              <div ref={setSheetSlot} className="fixed inset-x-0 bottom-0 z-20 flex justify-center pointer-events-none" />
             </div>,
             document.body,
           )}
