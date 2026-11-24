@@ -105,12 +105,15 @@ const DRAG_BOUNDS = BOUNDS.pad(0.25)
 function fitDragBounds(map, area) {
   const top = area?.top ?? 0
   const bottom = area?.bottomPx ?? 0
-  const right = area?.rightPx ?? 0
-  if (!top && !bottom && !right) { map.setMaxBounds(DRAG_BOUNDS); return }
   const zoom = map.getZoom()
-  const nw = map.project(DRAG_BOUNDS.getNorthWest(), zoom).subtract([0, top])
-  const se = map.project(DRAG_BOUNDS.getSouthEast(), zoom).add([right, bottom])
-  map.setMaxBounds(L.latLngBounds(map.unproject(nw, zoom), map.unproject(se, zoom)))
+  const nw = map.project(DRAG_BOUNDS.getNorthWest(), zoom)
+  const se = map.project(DRAG_BOUNDS.getSouthEast(), zoom)
+  // A panel at the right only grows the limits when the map is wider than the screen. With the whole of Catalonia in view
+  // (zoomed far out) the map cannot be dragged anyway and Leaflet keeps the limits centred on the screen: growing them would
+  // slide the map to the left every time a panel opens, and back when it closes
+  const right = se.x - nw.x >= map.getSize().x ? (area?.rightPx ?? 0) : 0
+  if (!top && !bottom && !right) { map.setMaxBounds(DRAG_BOUNDS); return }
+  map.setMaxBounds(L.latLngBounds(map.unproject(nw.subtract([0, top]), zoom), map.unproject(se.add([right, bottom]), zoom)))
 }
 
 // The first base tiles get this long to arrive before the layers are drawn anyway
