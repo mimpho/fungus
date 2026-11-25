@@ -71,6 +71,13 @@ The ingest, backfills, the `weather_cache` refresh job (~200/day since 2026-11-1
 
 ---
 
+## Backend — Database
+
+### ⚠️ A running local back end does not apply a new migration, and the front end then says «No se ha podido conectar»
+Alembic runs when the API **starts**; `uvicorn --reload` only reloads the code. After pulling or writing a migration, the running API has models that expect columns the local database lacks, so every query on that table answers 500 (login included). The front end's `translateApiError` turns any detail it does not know into `errRed` («No se ha podido conectar»), which reads as a network problem. Check with `alembic current` against `alembic heads` in `backend/` (host must be `localhost`) and run `alembic upgrade head`, or restart the API.
+
+---
+
 ## Backend — Logging
 
 ### ⚠️ Alembic's `fileConfig()` disables the app's loggers
