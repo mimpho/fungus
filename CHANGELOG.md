@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed — Lactarius deliciosus showed the photos of Boletus aereus (2026-11-26, branch `fix/species-photos`)
 
 - esp-035 pointed at the main and gallery photos of esp-002, in `src/data/species.js` and in the database seeded from it; its own files were already in `public/assets/images/content/species/`. The six references in the catalogue are fixed, and `migrations/049_lactarius_deliciosus_photos.sql` fixes the row (it only touches it while it still points at esp-002).
-- **Manual step:** apply `049` in Supabase. Not applied yet when this was written: the production API still answered with the esp-002 photos.
+- **`049` applied** by Marcos in Supabase (2026-11-26): the production API answers each of esp-002 and esp-035 with its own photos, in the list and in the detail.
 - **Likely cause, not proven:** in an early version of the catalogue (`micomapa-latest.html`) *L. deliciosus* was esp-002; when the photo paths were added (`0ee75be`) it was already esp-035 and got the paths of 002.
 - With the fix, the 202 species of the catalogue have 6 references to their own id. In production, galleries included, esp-035 was the only one pointing at another species.
 - Found on the way and noted in `memory/pending.md`, not fixed: 148 referenced files that do not exist (26 species) and one image shared by esp-070 and esp-073.
