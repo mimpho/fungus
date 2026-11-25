@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — the page stuck without scroll, and a dark strip in the Android app (2026-11-25, branch `fix/fullscreen-status-strip`)
+
+- **Scroll:** choosing a section in the mobile menu while on the Observatory left every page unable to scroll until a reload: the map and the menu each saved and restored `body.style.overflow`, and the menu put back the map's `hidden`. Both now go through `src/lib/scrollLock.js`, which frees the page when the last holder lets go.
+- **Android installed app:** the strip behind the status bar is now only for the iPhone's installed app. On the fullscreen Android app it looked like the system bar was still there.
+- **No jump on opening:** in the installed app `index.html` sets `viewport-fit=cover` before the first paint (in a browser tab `Layout` still adds it where needed). On a phone in the fullscreen app the menu button sits 16 px from the top on every page, as on the map.
+- `npm run build` passes. The scroll bug was reproduced and its fix checked in the built-in browser at phone size; the fullscreen app was **simulated** on the home page. **Not seen on a real device**, nor the jump on opening.
+
 ### Changed — the installed PWA opens in fullscreen again, and a bigger menu button there (2026-11-25, branch `fix/fullscreen-menu-button`)
 
 - `public/manifest.webmanifest`: `display` goes back to `fullscreen`, with `display_override: ["fullscreen", "standalone"]`. On Android the installed app hides the system bars; iPhone ignores it and stays as before.

@@ -4,8 +4,9 @@ import { useApp } from '../contexts/AppContext'
 import { IC } from '../lib/helpers'
 import UserMenu, { AccountItems, MENU_ROW } from './UserMenu'
 import FloatingMenu from './FloatingMenu'
-import { useImmersive } from '../hooks/useImmersive'
+import { isIosApp, useImmersive } from '../hooks/useImmersive'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { lockScroll } from '../lib/scrollLock'
 import { CreditsModal } from './CreditsModal'
 
 export default function Layout() {
@@ -25,13 +26,15 @@ export default function Layout() {
   const coverViewport = noHeader || pathname === '/observatorio'
   useEffect(() => {
     const meta = document.querySelector('meta[name="viewport"]')
-    if (!meta || !coverViewport) return undefined
+    // In the installed app index.html has already set it, for the first paint
+    if (!meta || !coverViewport || meta.getAttribute('content').includes('viewport-fit')) return undefined
     const previous = meta.getAttribute('content')
     meta.setAttribute('content', `${previous}, viewport-fit=cover`)
     return () => meta.setAttribute('content', previous)
   }, [coverViewport])
   useEffect(() => {
     document.documentElement.classList.toggle('no-header', noHeader)
+    document.documentElement.classList.toggle('ios-app', isIosApp())
     return () => document.documentElement.classList.remove('no-header')
   }, [noHeader])
   // The mobile menu is a fixed panel over the page, from under the header to the bottom. While it is open the
@@ -41,8 +44,7 @@ export default function Layout() {
   useEffect(() => { if (wideNav || noHeader) setMobileMenuOpen(false) }, [wideNav, noHeader])
   useEffect(() => {
     if (!mobileMenuOpen) return undefined
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlock = lockScroll()
     // Capture: this Esc closes the menu only, not also what the page under it listens for
     const onKey = e => {
       if (e.key !== 'Escape') return
@@ -51,7 +53,7 @@ export default function Layout() {
     }
     window.addEventListener('keydown', onKey, true)
     return () => {
-      document.body.style.overflow = previous
+      unlock()
       window.removeEventListener('keydown', onKey, true)
     }
   }, [mobileMenuOpen])

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useIsPhone } from '../hooks/useIsPhone'
-import { isIosApp } from '../hooks/useImmersive'
+import { isIosApp, useAppFullscreen } from '../hooks/useImmersive'
 import { AccountItems, MENU_ROW } from './UserMenu'
 
 /**
@@ -20,16 +20,22 @@ export default function FloatingMenu({ navItems, raised = false }) {
   const buttonRef = useRef(null)
   const panelId = useId()
 
+  // Phone in fullscreen (the map's, or the whole app's): the button goes 16px from the top, whatever the safe area. On the
+  // map it then sits above the search, which keeps the whole width and starts 76px or more from the top (16 + 52 of the
+  // button + 8, see fullscreenTop in pages/Observatory.jsx). Not in the iPhone's installed app: its status icons stay on top
+  const appFullscreen = useAppFullscreen()
+  const inStrip = (raised || appFullscreen) && phone && !isIosApp()
+
   // For the pages' own fixed bars (the sticky search): where to stop and how high to sit to be level with the button
   useEffect(() => {
     const root = document.documentElement.style
     root.setProperty('--float-menu-reserve', phone ? '76px' : '92px')
-    root.setProperty('--float-menu-top', `calc(var(--safe-top) + ${phone ? 12 : 16}px)`)
+    root.setProperty('--float-menu-top', inStrip ? '16px' : `calc(var(--safe-top) + ${phone ? 12 : 16}px)`)
     return () => {
       root.removeProperty('--float-menu-reserve')
       root.removeProperty('--float-menu-top')
     }
-  }, [phone])
+  }, [phone, inStrip])
 
   // Closes on navigation, outside press and Esc (focus goes back to the button).
   useEffect(() => { setOpen(false) }, [pathname])
@@ -55,10 +61,6 @@ export default function FloatingMenu({ navItems, raised = false }) {
   }, [open])
 
   const label = open ? t.menuClose : t.menuOpen
-  // Phone, map in fullscreen: the button sits above the search, 16px from the top, and the search keeps the whole width:
-  // it starts 76px or more from the top (16 + 52 of the button + 8, see fullscreenTop in pages/Observatory.jsx).
-  // Not in the iPhone's installed app: its status icons stay on top, so that strip is taken
-  const inStrip = raised && phone && !isIosApp()
 
   return (
     <div
