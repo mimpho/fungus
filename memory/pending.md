@@ -36,14 +36,16 @@ The epic is closed in the retrospective of 2026-11-05 (changes in `system/workfl
 - **Open points.** (1) Which series get the overlay: rain (accumulated) and temperature are direct; the previous year's **score** needs the scoring model run for that year (heavier, a second phase). (2) The forecast part of the window has no previous year: the overlay covers only the past days. (3) 29 February. (4) Phone: the timeline is not shown there, so the checkboxes need a place (a menu or a row under the chart). (5) Which cells to backfill: all 423, or only those with saved points or opened by someone.
 - **Next step when it is taken up.** Marcos runs a `SELECT` on `cells` (count of loaded cells and their `loaded_from`) to size the backfill; then backend (depth + backfill script by batches), then front end (checkboxes and line-only curves for rain and temperature), then the score if it is worth it. A paid Open-Meteo plan (item 2 of the 429 section) would make the backfill much easier; related loose end: `compare_years` (inherited, see Loose ends).
 
-## 🟡 No header in the installed app — to check after the deploy (`feat/floating-menu-immersive`, 2026-11-25)
+## 🟡 No header and fullscreen PWA — to check after the deploy (`feat/floating-menu-immersive`, `fix/fullscreen-menu-button`, 2026-11-25)
 
-Only seen simulated. Marcos, after the deploy, on a real phone:
+Only seen simulated. Marcos, after the deploy, on a real phone, **uninstalling and reinstalling the app** (an installed one may keep the old manifest):
 
-1. **Android, installed app:** no header, the menu button level with the map's search; `viewport-fit=cover` is now on every page there, so check that the gesture bar covers nothing (tab bar, dialogs, footer).
-2. **Android, map fullscreen** (app and Chrome): the 36 px button above the search, and that the camera does not cover it.
-3. **iPhone, installed app:** nothing under the clock; whether the white status icons read over the streets base map and in the light theme; «Mis rincones» and the other Observatory dialogs (not adjusted), the photo viewer's close button, the zone and article dialogs, the observed zone's header.
-4. If the system bar still bothers: Android's edge-to-edge for installed apps in `standalone` was not found in Chrome stable (see `decisions.md`); look again later.
+1. **Android, installed app:** it opens without the system bars; a swipe from the edge shows them and the screen is right after they hide.
+2. **Edges (why #193 was reverted: too close to the top and bottom):** the map's bottom tab bar (with a bottom inset of 0 it keeps only 10 px), dialogs, footer; `viewport-fit=cover` is now on every page there.
+3. **Camera:** it covers neither the menu button (52 px at 16 px from the top, search at 76 px or more) nor the content of the other pages.
+4. **Google sign-in** inside the installed app.
+5. **Android, Chrome tab:** the header is there; the map's «Pantalla completa» switch works both ways.
+6. **iPhone** (the manifest's fullscreen is ignored): nothing under the clock; whether the white status icons read over the streets base map and in the light theme; «Mis rincones» and the other Observatory dialogs (not adjusted), the photo viewer's close button, the zone and article dialogs, the observed zone's header.
 
 ## 🟡 Password recovery — to check after the deploy (`feat/password-reset`, 2026-11-25)
 

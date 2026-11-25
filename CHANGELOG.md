@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — the installed PWA opens in fullscreen again, and a bigger menu button there (2026-11-25, branch `fix/fullscreen-menu-button`)
+
+- `public/manifest.webmanifest`: `display` goes back to `fullscreen`, with `display_override: ["fullscreen", "standalone"]`. On Android the installed app hides the system bars; iPhone ignores it and stays as before.
+- Where the page is already in fullscreen without the Fullscreen API (the installed app, F11), the Observatory's map is laid out as fullscreen from the start: Vista has no «Pantalla completa» switch and Esc does not change it (`useAppFullscreen` in `hooks/useImmersive.js`).
+- Phone, map fullscreen: the menu button is 52 px, as everywhere else (it was 36 px), at 16 px from the top (it was 8); the search starts at 76 px or more (it was 52).
+- `npm run build` passes. Checked in the built-in browser with the display mode **simulated**. **Not seen on a real device**, nor that the manifest hides the system bars.
+
 ### Changed — no header in the installed app and in fullscreen; new mobile menu (2026-11-25, branch `feat/floating-menu-immersive`)
 
 - **No header** in the installed app, in the browser's fullscreen and in the map's «Pantalla completa»: only a floating menu button at the top right, with the sections and the account's entries (`FloatingMenu.jsx`, `hooks/useImmersive.js`). In a normal tab the header stays.
