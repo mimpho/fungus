@@ -40,6 +40,13 @@ class User(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    # Password recovery: SHA-256 of the single-use token emailed to the user (the token itself is
+    # never stored) and when it stops working. Both are cleared once the password is changed.
+    password_reset_token_hash: Mapped[str | None] = mapped_column(Text, nullable=True, index=True)
+    password_reset_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -162,6 +162,123 @@ async def send_verification_email(
         return False
 
 
+def _password_reset_html(reset_url: str, first_name: str | None) -> str:
+    """Same look as the verification email, with the reset link."""
+    greeting = f"Hola {first_name}," if first_name else "Hola,"
+    logo_url = f"{settings.email_assets_url.rstrip('/')}/static/logoFungusPortrait.png"
+    year = _current_year()
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restablece tu contraseña — Fungus</title>
+</head>
+<body style="margin:0;padding:0;background:#30372a;
+             font-family:'DM Sans',Arial,sans-serif;color:#f4ebe1;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0"
+               style="background:#1e2419;border-radius:16px;padding:44px 40px;
+                      max-width:480px;width:100%;">
+          <tr>
+            <td align="center" style="padding-bottom:32px;">
+              <img src="{logo_url}" alt="Fungus"
+                   width="163" height="163"
+                   style="display:block;border-radius:12px;" />
+            </td>
+          </tr>
+          <tr>
+            <td align="center">
+              <p style="margin:0 0 10px;font-size:22px;font-weight:700;
+                        text-align:center;">{greeting}</p>
+              <p style="margin:0 0 28px;font-size:15px;line-height:1.7;
+                        color:#d9cda1;text-align:center;">
+                Hemos recibido una solicitud para restablecer la contraseña de tu cuenta
+                de Fungus. Haz clic en el botón de abajo para elegir una nueva. El enlace
+                caduca en <strong style="color:#f4ebe1;">1 hora</strong> y solo se
+                puede usar una vez.
+              </p>
+              <a href="{reset_url}"
+                 style="display:inline-block;background:#8b6f47;color:#ffffff;
+                        text-decoration:none;padding:15px 36px;border-radius:10px;
+                        font-size:15px;font-weight:600;letter-spacing:0.2px;">
+                Restablecer contraseña
+              </a>
+              <p style="margin:32px 0 0;font-size:12px;color:#d9cda1;opacity:0.55;
+                        line-height:1.7;text-align:center;">
+                Si no lo has solicitado tú puedes ignorar este mensaje: tu contraseña
+                no cambiará.<br/>
+                O copia y pega este enlace en tu navegador:<br/>
+                <a href="{reset_url}"
+                   style="color:#93c5fd;word-break:break-all;
+                          text-decoration:underline;">{reset_url}</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:20px 0 0;font-size:12px;color:#f4ebe1;opacity:0.3;
+                  text-align:center;">
+          © {year} Fungus · Predicción micológica para Cataluña y España
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+
+async def send_password_reset_email(
+    email: str,
+    token: str,
+    first_name: str | None = None,
+) -> bool:
+    """
+    Send the password-reset link via Resend. Returns True on success, False on failure.
+
+    Never raises (it runs after the response, as a background task). Skipped, with a warning,
+    when RESEND_API_KEY is not configured. The token is never logged.
+    """
+    if not settings.has_resend:
+        log.warning("RESEND_API_KEY not configured — skipping password reset email to %s.", email)
+        return False
+
+    reset_url = f"{settings.frontend_url.rstrip('/')}/restablecer-contrasena?token={token}"
+    payload = {
+        "from": settings.email_from,
+        "to": [email],
+        "subject": "Restablece tu contraseña de Fungus 🍄",
+        "html": _password_reset_html(reset_url, first_name),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                _RESEND_API,
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {settings.resend_api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
+            log.info(
+                "Password reset email sent to %s (Resend id=%s)", email, response.json().get("id")
+            )
+            return True
+    except httpx.HTTPStatusError as exc:
+        log.error(
+            "Resend API error sending password reset to %s: %s %s",
+            email,
+            exc.response.status_code,
+            exc.response.text,
+        )
+        return False
+    except Exception as exc:  # noqa: BLE001
+        log.error("Unexpected error sending password reset email to %s: %s", email, exc)
+        return False
+
+
 async def send_ops_alert(subject: str, html: str) -> bool:
     """
     Send an operational alert to ALERT_EMAIL via Resend.
