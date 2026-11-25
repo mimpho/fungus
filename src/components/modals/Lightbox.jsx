@@ -45,7 +45,7 @@ export function Lightbox({ photos, initialIndex = 0, onClose }) {
       onClick={onClose} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
 
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4 z-10"
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 pb-4 pt-[calc(1rem+var(--safe-top))] z-10"
         onClick={e => e.stopPropagation()}>
         <span className="text-cream/60 text-sm font-medium">{idx + 1} / {photos.length}</span>
         <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-cream/70 hover:text-cream transition-colors">

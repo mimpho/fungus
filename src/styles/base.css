@@ -122,3 +122,17 @@ input[list]::-webkit-calendar-picker-indicator {
   font-variant-numeric: lining-nums;
   font-feature-settings: "lnum" 1;
 }
+
+/* ── Safe areas ───────────────────────────────────────────────────────────────
+   Real only with `viewport-fit=cover` (Layout sets it on the map and wherever there is no header). In the
+   installed app on iPhone (`black-translucent`) the page goes under the status bar, whose icons are white. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Behind the status bar on the pages that scroll, so its white icons stay readable in both themes. 0 tall where there is no inset */
+.status-strip {
+  height: var(--safe-top);
+  background: #4c5240;
+}

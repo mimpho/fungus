@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useOutletContext } from 'react-router-dom'
+import { isIosApp } from '../hooks/useImmersive'
 import { X } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
@@ -72,11 +74,11 @@ function storedForestClasses() {
 }
 
 // In fullscreen the map reaches the very top of the screen, under the phone's camera hole or notch: the search bar (and the hint
-// under it) start below the safe area (`viewport-fit=cover` makes env() real), and never closer than 40px to the top edge, for the
-// browsers that report no inset in fullscreen. `offset` is the usual distance from the map's top (12 for the bar, 80 for the hint).
+// under it) start below the safe area (`viewport-fit=cover` makes env() real), and never closer than 52px to the top edge: for the
+// browsers that report no inset in fullscreen, and because the floating menu button sits above the search. `offset` is the usual distance from the map's top (12 for the bar, 80 for the hint).
 function fullscreenTop(offset) {
   return {
-    top: `max(calc(env(safe-area-inset-top, 0px) + ${offset}px), ${offset + 28}px)`,
+    top: `max(calc(var(--safe-top) + ${offset}px), ${offset + 40}px)`,
     left: 'max(12px, calc(env(safe-area-inset-left, 0px) + 12px))',
     right: 'max(12px, calc(env(safe-area-inset-right, 0px) + 12px))',
   }
@@ -99,16 +101,6 @@ export default function Observatory() {
   // A page opened on a point (URL) starts with that point's panel on the map
   const [pending, setPending] = useState(() => (observed ? { lat: observed.lat, lon: observed.lon } : null))
   const [flyTo, setFlyTo] = useState(null)
-  // Android Chrome draws the gesture area below the page with the page's own background unless the page says it reaches
-  // the screen edge: `viewport-fit=cover` makes env(safe-area-inset-bottom) real and lets the tab bar's surface run down to it.
-  // Only on this page: the others do not handle the insets. It goes back as it was when the page is left.
-  useEffect(() => {
-    const meta = document.querySelector('meta[name="viewport"]')
-    if (!meta) return undefined
-    const previous = meta.getAttribute('content')
-    if (!/viewport-fit/.test(previous || '')) meta.setAttribute('content', `${previous}, viewport-fit=cover`)
-    return () => meta.setAttribute('content', previous)
-  }, [])
   // «Haz clic en el mapa…»: once per visit, for HINT_MS or until the map is used
   const [hintOn, setHintOn] = useState(true)
   const [hintGone, setHintGone] = useState(false) // taken out of the page once it has faded
@@ -241,9 +233,15 @@ export default function Observatory() {
   }, [zoneOpen, observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
   // The map over the whole screen (the site's header too) and, where the browser allows it, the browser's own
   // fullscreen (iPhone Safari has none: there only the header goes). The state follows the browser leaving fullscreen by itself.
-  const [fullscreenState, setFullscreenState] = useState(false)
+  // Starts on when the browser is already in fullscreen (the page was left through the menu and opened again)
+  const [fullscreenState, setFullscreenState] = useState(() => Boolean(document.fullscreenElement || document.webkitFullscreenElement))
   const fullscreen = fullscreenState
-  const safeTop = fullscreen && phone // the phone's fullscreen reaches under the camera hole: see fullscreenTop
+  // The phone's fullscreen reaches under the camera hole (see fullscreenTop). In the iPhone's installed app the status bar
+  // stays, so there fullscreen is laid out as the app without it
+  const safeTop = fullscreen && phone && !isIosApp()
+  const { noHeader, setMapState } = useOutletContext()
+  useEffect(() => { setMapState({ fullscreen, covered: Boolean(zoneOpen) }) }, [fullscreen, zoneOpen, setMapState])
+  useEffect(() => () => setMapState({ fullscreen: false, covered: false }), [setMapState])
   const [speciesH, setSpeciesH] = useState(0) // the species' bar (or card) on the phone: the point's sheet rides above it
   // The point's sheet folds when another sheet is unfolded, and only unfolds when it is itself tapped (or a new point is picked)
   const [pointFolded, setPointFolded] = useState(false)
@@ -350,6 +348,9 @@ export default function Observatory() {
   const closePanelRef = useRef(() => {})
   const desktopPanel = !phone && nav.openTab
   const anyPanel = Boolean(nav.openTab)
+  // Without the header the floating menu button takes the top right corner: on the phone the search stops before it (in the
+  // map's fullscreen the button sits above the search instead), and on desktop the tabs start under it
+  const searchRight = phone ? (noHeader && !safeTop ? 'right-[76px]' : 'right-3') : desktopPanel ? 'right-[488px]' : 'right-[104px]'
   useEffect(() => {
     if (!pending && !fullscreen && !zoneOpen && !anyPanel) return
     const onKey = e => {
@@ -541,7 +542,7 @@ export default function Observatory() {
       ) : (
         <>
           {/* The map fills the viewport under the header (--header-h is published by Layout) */}
-          <div className="h-[calc(100dvh-var(--header-h,5.5rem))] min-h-[420px]">
+          <div className={`${noHeader ? 'h-[100dvh]' : 'h-[calc(100dvh-var(--header-h,5.5rem))]'} min-h-[420px]`}>
           <div className={`${fullscreen ? 'fixed inset-0 z-[150]' : 'relative h-full'} isolate overflow-hidden`} style={{ '--obs-bottom-clear': `${phone ? barRestH : 0}px` }}>
             <ObservatoryMap
               observed={observed}
@@ -567,7 +568,7 @@ export default function Observatory() {
             />
             {/* The hint is a toast under the search (it used to sit on the tab bar): it goes after a few seconds, or as soon as the map is used */}
             {!hintGone && !pending && !observed && !(phone && nav.openTab) && (
-              <div style={{ transitionDuration: `${HINT_FADE_MS}ms`, ...(safeTop ? fullscreenTop(dayFilter ? 130 : 80) : {}) }} className={`absolute z-[1100] ${safeTop ? '' : dayFilter ? 'top-[130px] left-3' : 'top-[80px] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
+              <div style={{ transitionDuration: `${HINT_FADE_MS}ms`, ...(safeTop ? fullscreenTop(dayFilter ? 130 : 80) : {}) }} className={`absolute z-[1100] ${safeTop ? '' : dayFilter ? 'top-[calc(var(--safe-top)+130px)] left-3' : 'top-[calc(var(--safe-top)+80px)] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
                 <p role="status" className="w-fit max-w-[30rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white">
                   {t.obsMapHint}
                 </p>
@@ -600,11 +601,11 @@ export default function Observatory() {
             {/* Desktop: the tabs at the top right; a panel opens to the left of them */}
             {!phone && (
               <>
-                <div className="absolute z-[1100] top-4 right-4">
+                <div className={`absolute z-[1100] ${noHeader ? 'top-[calc(var(--safe-top)+80px)]' : 'top-[calc(var(--safe-top)+1rem)]'} right-4`}>
                   <TabRail openTab={nav.openTab} on={nav.on} onToggle={toggleNav} panelId={NAV_PANEL_ID} />
                 </div>
                 {TABS.includes(nav.openTab) && (
-                  <div className="absolute z-[1100] top-4 right-[104px] w-[360px] max-h-[calc(100%-2rem)] flex">
+                  <div className="absolute z-[1100] top-[calc(var(--safe-top)+1rem)] right-[104px] w-[360px] max-h-[calc(100%-2rem-var(--safe-top))] flex">
                     {navPanel(nav.openTab, { className: 'w-full max-h-full overflow-y-auto overscroll-contain' })}
                   </div>
                 )}
@@ -629,12 +630,12 @@ export default function Observatory() {
               />
             )}
             {/* Desktop: the search never reaches the rail, nor an open panel (rail 16 + 76, panel 12 + 360, gap 12) */}
-            <div className={`absolute z-[1115] ${safeTop ? '' : 'top-3 left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(12) : undefined}>
+            <div className={`absolute z-[1115] ${safeTop ? '' : 'top-[calc(var(--safe-top)+0.75rem)] left-3'} ${searchRight} pointer-events-none`} style={safeTop ? fullscreenTop(12) : undefined}>
               <MapSearchBar onPlace={handleSearchSelect} speciesId={layerSpecies} onSpecies={chooseSpecies} className={`pointer-events-auto w-full ${phone ? '' : 'max-w-[30rem]'}`} />
             </div>
             {/* The active filters, under the search with the same gap the search has under the header (14 px): the Meteo day when it is not today */}
             {dayFilter && (
-              <div className={`absolute z-[1114] ${safeTop ? '' : 'top-[80px] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(80) : undefined}>
+              <div className={`absolute z-[1114] ${safeTop ? '' : 'top-[calc(var(--safe-top)+80px)] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(80) : undefined}>
                 <MapFilterStrip dayLabel={dayFilter} onEdit={() => { if (nav.openTab !== 'data') toggleNav('data') }} onClearDay={() => setLayerDate(null)} />
               </div>
             )}
@@ -645,7 +646,7 @@ export default function Observatory() {
               className={phone
                 ? 'absolute inset-x-0 z-[1100] flex flex-col justify-end pointer-events-none'
                 : `absolute z-[1100] left-3 bottom-3 w-[396px] max-w-[calc(100%-6rem)] ${dayFilter ? 'max-h-[calc(100%-9rem)]' : 'max-h-[calc(100%-6rem)]'} flex flex-col justify-end gap-2 pointer-events-none`}
-              style={phone ? { top: dayFilter ? 130 : 72, bottom: Math.max(0, barH - 24) } : undefined}
+              style={phone ? { top: safeTop ? fullscreenTop(dayFilter ? 130 : 72).top : `calc(var(--safe-top) + ${dayFilter ? 130 : 72}px)`, bottom: Math.max(0, barH - 24) } : undefined}
             >
               {pending && (
                 <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} folded={phone && pointFolded} onExpand={expandPoint} onSheetHeight={setSheetH} />
@@ -666,6 +667,7 @@ export default function Observatory() {
             >
               {/* As tall as the site's header (--header-h, published by Layout), which the layer covers */}
               <div ref={layerHeaderRef} className="sticky top-0 z-10 bg-modal/95 backdrop-blur-sm border-b border-white/[0.06]">
+                <div className="status-strip" aria-hidden="true" />
                 <div className="max-w-7xl mx-auto h-[var(--header-h,5.5rem)] flex items-center gap-3 px-4">
                   <div ref={setHeaderSlot} className="min-w-0 flex-1" />
                   <button
@@ -681,7 +683,7 @@ export default function Observatory() {
               </div>
               {/* The zone's active filters (species, days): a bar under the header that keeps its place in the page and, when the zone scrolls up to it, stays fixed under the header. No background; its pills have a shadow only while it is fixed */}
               <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
-              <div ref={setFiltersSlot} data-stuck={filtersStuck} className="group sticky top-[calc(var(--header-h,5.5rem)+1px)] z-10 pointer-events-none empty:hidden" />
+              <div ref={setFiltersSlot} data-stuck={filtersStuck} className="group sticky top-[calc(var(--header-h,5.5rem)+var(--safe-top)+1px)] z-10 pointer-events-none empty:hidden" />
               <div className="max-w-7xl mx-auto px-4 pt-6 pb-24 space-y-6">
                 {zoneEl}
                 <p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p>

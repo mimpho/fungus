@@ -2,15 +2,59 @@ import { useState, useEffect, useRef } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { IC } from '../lib/helpers'
-import UserMenu from './UserMenu'
+import UserMenu, { AccountItems, MENU_ROW } from './UserMenu'
+import FloatingMenu from './FloatingMenu'
+import { useImmersive } from '../hooks/useImmersive'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { CreditsModal } from './CreditsModal'
 
 export default function Layout() {
   const { t, setCreditsOpen, isAuthenticated, authLoading } = useApp()
   // The Observatory's map is the page: edge to edge under the header, without the site's wrapper or footer.
   // (Logged out, the page is the login card, which keeps the normal layout.)
-  const fullBleed = useLocation().pathname === '/observatorio' && isAuthenticated && !authLoading
+  const { pathname } = useLocation()
+  const fullBleed = pathname === '/observatorio' && isAuthenticated && !authLoading
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  // Installed app, browser fullscreen or the map's own fullscreen (the only one iPhone Safari has): no header,
+  // just the floating menu button. The Observatory reports its map's fullscreen and zone layer through the Outlet.
+  const immersive = useImmersive()
+  const [mapState, setMapState] = useState({ fullscreen: false, covered: false })
+  const noHeader = immersive || mapState.fullscreen
+  // `viewport-fit=cover` makes the safe-area insets real: on the Observatory (its tab bar runs down to the screen's
+  // edge) and wherever there is no header, where every page handles them. One owner, so no page undoes another's.
+  const coverViewport = noHeader || pathname === '/observatorio'
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]')
+    if (!meta || !coverViewport) return undefined
+    const previous = meta.getAttribute('content')
+    meta.setAttribute('content', `${previous}, viewport-fit=cover`)
+    return () => meta.setAttribute('content', previous)
+  }, [coverViewport])
+  useEffect(() => {
+    document.documentElement.classList.toggle('no-header', noHeader)
+    return () => document.documentElement.classList.remove('no-header')
+  }, [noHeader])
+  // The mobile menu is a fixed panel over the page, from under the header to the bottom. While it is open the
+  // header stays whole at the top and the page behind does not scroll. It closes on Esc, and when the window
+  // widens or the header goes away.
+  const wideNav = useMediaQuery('(min-width: 768px)')
+  useEffect(() => { if (wideNav || noHeader) setMobileMenuOpen(false) }, [wideNav, noHeader])
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    // Capture: this Esc closes the menu only, not also what the page under it listens for
+    const onKey = e => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setMobileMenuOpen(false)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      document.body.style.overflow = previous
+      window.removeEventListener('keydown', onKey, true)
+    }
+  }, [mobileMenuOpen])
 
   // ── Header fixed + spacer ──────────────────────────────────────────────────
   // Phase 1 (scroll ≤ headerH): header scrolls up naturally with the content
@@ -29,8 +73,13 @@ export default function Layout() {
 
   // Measure header height with ResizeObserver.
   // Also publishes --header-h as a CSS variable (available to any child component).
+  // Without a header the variable goes away, so its readers use their fallback (the zone's own header keeps its height).
   useEffect(() => {
-    if (!headerRef.current) return
+    if (noHeader || !headerRef.current) {
+      setHeaderH(0)
+      document.documentElement.style.removeProperty('--header-h')
+      return undefined
+    }
     const ro = new ResizeObserver(entries => {
       const h = Math.ceil(entries[0].borderBoxSize?.[0]?.blockSize
                           ?? entries[0].contentRect.height)
@@ -40,7 +89,7 @@ export default function Layout() {
     })
     ro.observe(headerRef.current)
     return () => ro.disconnect()
-  }, [])
+  }, [noHeader])
 
   // Scroll handler: two phases
   useEffect(() => {
@@ -128,9 +177,11 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* Avatar menu (all widths) + hamburger (mobile only) */}
+        {/* Avatar menu (from md up) or hamburger (mobile, whose menu holds the account's entries too) */}
         <div className="ml-auto md:ml-0 flex items-center gap-1">
-          <UserMenu onOpen={() => setMobileMenuOpen(false)} />
+          <div className="hidden md:block">
+            <UserMenu onOpen={() => setMobileMenuOpen(false)} />
+          </div>
           <button
             onClick={() => setMobileMenuOpen(o => !o)}
             aria-label={mobileMenuOpen ? t.menuClose : t.menuOpen}
@@ -143,19 +194,6 @@ export default function Layout() {
           </button>
         </div>
       </div>
-
-      {/* Mobile dropdown menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden px-4 py-3 flex flex-col gap-1 anim-up border-t border-white/[0.06]">
-          {navItems.map(({ to, label, icon, end }) => (
-            <NavLink key={to} to={to} end={end}
-              onClick={() => setMobileMenuOpen(false)}
-              className={({ isActive }) => `nav-item relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all${isActive ? ' nav-item--active' : ''}`}>
-              {icon} {label}
-            </NavLink>
-          ))}
-        </div>
-      )}
     </>
   )
 
@@ -164,23 +202,53 @@ export default function Layout() {
       {/* Spacer: always takes up the header height so content is not hidden beneath it.
           When the header is measured by ResizeObserver, the spacer adjusts automatically
           if the mobile menu expands it. */}
-      <div style={{ height: headerH }} aria-hidden="true" />
+      {!noHeader && <div style={{ height: headerH }} aria-hidden="true" />}
+      {/* Without a header: the pages start below the status bar, and what scrolls goes behind a strip. The map runs under it */}
+      {noHeader && !fullBleed && (
+        <>
+          <div style={{ height: 'var(--safe-top)' }} aria-hidden="true" />
+          <div className="status-strip fixed top-0 inset-x-0 z-30" aria-hidden="true" />
+        </>
+      )}
 
-      {/* Fixed header: transform is managed by the scroll handler.
-          In Phase 1 it moves up with the content naturally. In Phase 2 it snaps up on scroll-up. */}
-      <header
-        ref={headerRef}
-        className="glass-olive fixed top-0 left-0 right-0 z-40"
-        style={{ transition: transitionRef.current, transform: `translateY(${headerTransform}px)` }}>
-        {headerContent}
-      </header>
+      {noHeader ? (
+        // Not under the observed zone's layer: its close cross is in the same corner
+        !(mapState.fullscreen && mapState.covered) && <FloatingMenu navItems={navItems} raised={mapState.fullscreen} />
+      ) : (
+        /* Fixed header: transform is managed by the scroll handler.
+           In Phase 1 it moves up with the content naturally. In Phase 2 it snaps up on scroll-up. */
+        <header
+          ref={headerRef}
+          className="glass-olive fixed top-0 left-0 right-0 z-40"
+          style={{ transition: transitionRef.current, transform: `translateY(${mobileMenuOpen ? 0 : headerTransform}px)` }}>
+          {headerContent}
+        </header>
+      )}
+
+      {/* Mobile menu: outside the header, so it neither grows it (and its spacer) nor moves the page */}
+      {!noHeader && mobileMenuOpen && (
+        <div
+          className="md:hidden glass-olive-92 fixed inset-x-0 bottom-0 z-40 overflow-y-auto overscroll-contain border-t border-white/[0.06] px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] flex flex-col gap-1 [animation:animUpOpacity_0.2s_ease_both] motion-reduce:[animation:none]"
+          style={{ top: headerH }}>
+          {navItems.map(({ to, label, icon, end }) => (
+            <NavLink key={to} to={to} end={end}
+              onClick={() => setMobileMenuOpen(false)}
+              className={({ isActive }) => `${MENU_ROW}${isActive ? ' nav-item--active' : ''}`}>
+              {icon} {label}
+            </NavLink>
+          ))}
+          <div role="menu" aria-label={t.userMenu} className="shrink-0 flex flex-col gap-1 mt-1 pt-2 border-t border-cream/15">
+            <AccountItems rows onDone={() => setMobileMenuOpen(false)} />
+          </div>
+        </div>
+      )}
 
       <main className={fullBleed ? undefined : 'max-w-7xl mx-auto px-4 py-8'}>
-        <Outlet />
+        <Outlet context={{ noHeader, setMapState }} />
       </main>
 
       {!fullBleed && (
-        <footer className="max-w-7xl mx-auto px-4 pb-6 text-center">
+        <footer className="max-w-7xl mx-auto px-4 pb-[calc(1.5rem+var(--safe-bottom))] text-center">
           <button type="button" onClick={() => setCreditsOpen(true)}
             className="text-xs text-cream/50 underline underline-offset-2 hover:text-cream transition-colors">
             {t.creditsLink}

@@ -30,7 +30,7 @@ export function MapLoadingBar({ busy, failed }) {
 
   if (failed && !busy) {
     return (
-      <div role="alert" className="absolute z-[1150] top-[4.25rem] left-1/2 -translate-x-1/2 max-w-[calc(100%-2rem)] flex items-center gap-3 rounded-full map-surface shadow-float pl-4 pr-1.5 py-1.5 text-sm text-cream">
+      <div role="alert" className="absolute z-[1150] top-[calc(var(--safe-top)+4.25rem)] left-1/2 -translate-x-1/2 max-w-[calc(100%-2rem)] flex items-center gap-3 rounded-full map-surface shadow-float pl-4 pr-1.5 py-1.5 text-sm text-cream">
         <span className="truncate">{fill(t.obsLayerFailed, { capa: failed.label }, lang)}</span>
         <button
           type="button"

@@ -95,7 +95,7 @@ src/
 │   ├── Micologia.jsx
 │   └── Profile.jsx
 ├── components/
-│   ├── Layout.jsx           ← Header: four sections (Inicio, Observatorio, Catálogo, Micología; Zonas is deprecated and out of the row) + mobile hamburger
+│   ├── Layout.jsx           ← Header: four sections (Inicio, Observatorio, Catálogo, Micología; Zonas is deprecated and out of the row) + mobile hamburger (fixed panel with the sections and the account entries); no header in the installed app or in fullscreen (`FloatingMenu.jsx`)
 │   ├── UserMenu.jsx         ← Avatar dropdown: Perfil, Generador de imágenes (admins), Cerrar sesión / Iniciar sesión
 │   ├── admin/
 │   │   ├── AdminGeneratorHub.jsx   ← Admin hub: gallery + AI generator

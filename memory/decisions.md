@@ -1072,3 +1072,13 @@ Closing the point panel on the map (× or Esc outside fullscreen) also clears th
 
 **Known:** the `.obs-btn` rule of the light theme now sets the ink for four buttons; the dark theme is unchanged everywhere; `SpeciesSlot` is the map's sheet only again.
 
+
+---
+
+## No header in the installed app and in fullscreen; the PWA stays `standalone` (2026-11-25, `feat/floating-menu-immersive`)
+
+**Decision:** where the browser's chrome is gone (installed app, browser fullscreen, the map's own fullscreen) the site's header goes too and a floating menu button takes its place. The manifest stays `display: standalone`. In the phone's map fullscreen the button is 36 px at 8 px from the top, above the search, which starts at 52 px or more (Marcos chose it among four positions).
+
+**Why:** inside the installed app there is no need to repeat the logo, and the header took height from the map. `display: fullscreen` (#193, reverted in #194) hides the clock and the system icons, too intrusive. What Marcos wants (the whole height with the system icons on top) is edge-to-edge: on iPhone it comes with `black-translucent` + `viewport-fit=cover` + safe-area margins; for Android installed apps it was not found in Chrome stable (sources of July–August 2026: a Chromium issue in progress and a third-party test build; the issue itself could not be read).
+
+**Discarded:** going back to `display: fullscreen`; asking for the browser's fullscreen on the app's start (it needs a tap); a reduced header holding only the menu button (it takes more height than a floating one); keeping the avatar on mobile beside the hamburger. For the button in the strip: 36 px at 12 px from the top (4 px to the search), 52 px with the search pushed to 72 px, and level with a shortened search.

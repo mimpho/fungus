@@ -63,6 +63,11 @@
   padding: 0;
 }
 
+/* No header (installed app, fullscreen): the dialogs start under the status bar */
+.no-header .modal-outer {
+  padding-top: var(--safe-top);
+}
+
 @media (max-width: 639px) {
   .modal-outer {
     align-items: flex-end !important;
@@ -77,6 +82,13 @@
     max-height: 100dvh !important;
     height: 100dvh !important;
     overflow-y: auto !important;
+  }
+
+  .no-header .modal-inner {
+    top: var(--safe-top) !important;
+    max-height: calc(100dvh - var(--safe-top)) !important;
+    height: calc(100dvh - var(--safe-top)) !important;
+    padding-bottom: var(--safe-bottom);
   }
 
   .modal-header {
