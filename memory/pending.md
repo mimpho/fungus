@@ -36,6 +36,58 @@ The epic is closed in the retrospective of 2026-11-05 (changes in `system/workfl
 - **Open points.** (1) Which series get the overlay: rain (accumulated) and temperature are direct; the previous year's **score** needs the scoring model run for that year (heavier, a second phase). (2) The forecast part of the window has no previous year: the overlay covers only the past days. (3) 29 February. (4) Phone: the timeline is not shown there, so the checkboxes need a place (a menu or a row under the chart). (5) Which cells to backfill: all 423, or only those with saved points or opened by someone.
 - **Next step when it is taken up.** Marcos runs a `SELECT` on `cells` (count of loaded cells and their `loaded_from`) to size the backfill; then backend (depth + backfill script by batches), then front end (checkboxes and line-only curves for rain and temperature), then the score if it is worth it. A paid Open-Meteo plan (item 2 of the 429 section) would make the backfill much easier; related loose end: `compare_years` (inherited, see Loose ends).
 
+## 🟡 esp-035 photos — apply `049` (`fix/species-photos`, 2026-11-26)
+
+Marcos: run `migrations/049_lactarius_deliciosus_photos.sql` in Supabase. Its last `SELECT` must give two rows, each with its own id in the three file names. The API's answers are cached for up to an hour, so the old photo may linger.
+
+## 🟡 Species photos — missing files and a duplicate (found 2026-11-26, `fix/species-photos`)
+
+Found while fixing esp-035, which showed the photos of esp-002 (`migrations/049`). The rule that caught it: each species has **6 references to its own id** in `src/data/species.js` (main and two gallery photos, each as `url` and `largeUrl`). All 202 pass it after the fix; it does not tell whether the files exist or show the right species. An automatic check of the rule was offered and left out for now.
+
+### Referenced files that do not exist (148 files, 26 species)
+
+Compared with `public/assets/images/content/species/`. Not found elsewhere in the repo under those names (`.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`; `node_modules`, `.git`, `.venv` and `dist` excluded) nor ever committed under them in any local branch. Not searched: outside the repo, or under another name. Two of them tried in production answered the app's HTML page, not an image. **Open:** where the images come from (a copy elsewhere, a download with their licences checked, or generated).
+
+**All six missing (main and gallery, two sizes): 22 species**
+
+| ID | Species |
+|---|---|
+| esp-097 | *Clitocybe geotropa* |
+| esp-100 | *Clitocybe dealbata* |
+| esp-101 | *Lepista nuda* |
+| esp-102 | *Lepista personata* |
+| esp-115 | *Cortinarius splendens* |
+| esp-116 | *Cortinarius praestans* |
+| esp-118 | *Inocybe rimosa* |
+| esp-119 | *Inocybe erubescens* |
+| esp-124 | *Phlegmacium calochroum* |
+| esp-125 | *Dermocybe sanguinea* |
+| esp-135 | *Polyporus squamosus* |
+| esp-136 | *Pycnoporus cinnabarinus* |
+| esp-137 | *Daedalea quercina* |
+| esp-145 | *Hygrocybe pratensis* |
+| esp-146 | *Hygrocybe psittacina* |
+| esp-153 | *Agrocybe aegerita* |
+| esp-164 | *Macrolepiota rhacodes* |
+| esp-165 | *Leucoagaricus leucothites* |
+| esp-169 | *Psathyrella candolleana* |
+| esp-175 | *Sarcodon scabrosus* |
+| esp-178 | *Bankera fuligineoalba* |
+| esp-182 | *Lycoperdon pyriforme* |
+
+**Main photo present, gallery missing (two photos, two sizes): 4 species** (their `main` and `main-large` exist)
+
+| ID | Species |
+|---|---|
+| esp-047 | *Cantharellus aurora* |
+| esp-054 | *Pseudocraterellus undulatus* |
+| esp-088 | *Tuber borchii* |
+| esp-121 | *Hebeloma sinapizans* |
+
+### The same image in two species
+
+`esp-070-main` (*Pleurotus ostreatus*) is the same file as `esp-073-foto1` (*Pleurotus pulmonarius*), in both sizes. **Open:** which species it shows (check against a reliable source) and what replaces it in the other. Only exact copies were searched for; no photo was checked by eye against its species.
+
 ## 🟡 No header and fullscreen PWA — to check after the deploy (`feat/floating-menu-immersive`, `fix/fullscreen-menu-button`, `fix/fullscreen-status-strip`, `fix/headerless-sticky-search`, 2026-11-25 and 26)
 
 Only seen simulated. The Android app installed after #200 already reports `display: fullscreen` (`chrome://webapks`). Marcos, after the deploy, on a real phone, closing the app for good and opening it again (the manifest has not changed since #200):

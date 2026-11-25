@@ -468,6 +468,9 @@ The shared class draws the placeholder at 0.55 opacity (cream on `#4c5240`). Whe
 ### ⚠️ Safe areas: use `--safe-top` / `--safe-bottom`, and only Layout touches the viewport meta
 `viewport-fit=cover` is set by `Layout` (the Observatory, and wherever there is no header); a page setting it by itself would undo it on unmount. With `black-translucent` the iPhone's installed app draws under the status bar (white icons): anything fixed to the top adds `var(--safe-top)`, and scrolling pages get `.status-strip`. To try it on a computer, set `--safe-top` on `<html>`. Not yet seen on a real iPhone.
 
+### ⚠️ A wrong photo path in the mock reaches the database
+`seed_catalog.py` loads the species from `src/data/species.js` and the mock's keys win over the stored ones, so a path there pointing at another species ends up in production (esp-035 showed esp-002's photos, `049`). Fix the mock and the row together. Quick check: each id appears in 6 photo paths, its own. A missing file does not answer 404 in production: the SPA rewrite returns the app's HTML with a 200, so check the content type.
+
 ### ⚠️ A phone's fullscreen: what reaches the middle stays below the camera
 It gains the top of the screen, with the camera in the middle. Anything wide or centred (a search, a title) keeps clear: the sticky searches use `--float-menu-top` (the same as `fullscreenTop`, `max(safe + 12 px, 76 px)`) and the page starts at `max(safe + 8 px, 28 px)`. These rules are for a phone's fullscreen only (`underCamera` in `Layout`, `inStrip` in `FloatingMenu`), whether the app's or the browser's (`useFullscreen`); the menu button, in a corner, goes 16 px from the top.
 

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — Lactarius deliciosus showed the photos of Boletus aereus (2026-11-26, branch `fix/species-photos`)
+
+- esp-035 pointed at the main and gallery photos of esp-002, in `src/data/species.js` and in the database seeded from it; its own files were already in `public/assets/images/content/species/`. The six references in the catalogue are fixed, and `migrations/049_lactarius_deliciosus_photos.sql` fixes the row (it only touches it while it still points at esp-002).
+- **Manual step:** apply `049` in Supabase. Not applied yet when this was written: the production API still answered with the esp-002 photos.
+- **Likely cause, not proven:** in an early version of the catalogue (`micomapa-latest.html`) *L. deliciosus* was esp-002; when the photo paths were added (`0ee75be`) it was already esp-035 and got the paths of 002.
+- With the fix, the 202 species of the catalogue have 6 references to their own id. In production, galleries included, esp-035 was the only one pointing at another species.
+- Found on the way and noted in `memory/pending.md`, not fixed: 148 referenced files that do not exist (26 species) and one image shared by esp-070 and esp-073.
+- `npm run build` passes. The three esp-035 images were looked at and the six files answer as images in production. The page was not checked in a browser.
+
 ### Fixed — the sticky search under the camera, and pages starting too low in a phone's fullscreen (2026-11-26, branch `fix/headerless-sticky-search`)
 
 - **Only a phone's fullscreen** (under 640 px; the installed app or the browser's, on any page; not the iPhone's app): the sticky search of Catálogo and Zonas sits at the height of the map's search (`max(safe area + 12 px, 76 px)`), below the menu button and with the whole width. It was 16 px from the top, under the camera and shortened.
