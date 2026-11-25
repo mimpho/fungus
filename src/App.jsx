@@ -9,6 +9,7 @@ import Family      from './pages/Family'
 import Articles    from './pages/Articles'
 import Profile     from './pages/Profile'
 import VerifyEmail from './pages/VerifyEmail'
+import ResetPassword from './pages/ResetPassword'
 import Layout          from './components/Layout'
 import { ModalRenderer } from './components/modals/ModalRenderer'
 
@@ -54,6 +55,7 @@ export default function App() {
           } />
           <Route path="perfil"          element={<Profile />} />
           <Route path="verificar-email" element={<VerifyEmail />} />
+          <Route path="restablecer-contrasena" element={<ResetPassword />} />
           {/* /admin/generator = hub galería-first (v5.4): galería → modal → generador */}
           <Route path="admin/generator" element={
             <AdminGuard>

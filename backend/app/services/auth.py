@@ -1,4 +1,5 @@
 """Auth service — password hashing, JWT creation and verification."""
+import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
 
@@ -13,6 +14,9 @@ from app.config import settings
 from app.models.user import User
 
 _VERIFICATION_TOKEN_EXPIRY_HOURS = 24
+PASSWORD_RESET_EXPIRY = timedelta(hours=1)
+# A new reset email is not sent (nor the previous link replaced) within this time of the last one
+PASSWORD_RESET_COOLDOWN = timedelta(seconds=60)
 
 # JWT token types
 _ACCESS_TYPE = "access"
@@ -156,6 +160,66 @@ async def verify_email_token(db: AsyncSession, token: str) -> User | None:
         return None
 
     # Valid — mark as verified and consume the token
+    user.email_verified = True
+    user.email_verification_token = None
+    user.email_verification_expires_at = None
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+# ── Password recovery ──────────────────────────────────────────────────────────
+
+def _hash_reset_token(token: str) -> str:
+    """SHA-256 of a reset token: what the database keeps (the token is as strong as a password)."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+async def create_password_reset_token(db: AsyncSession, user: User) -> str | None:
+    """
+    Generate a single-use reset token for `user`, store its hash and return the token.
+
+    A Google-only account (no password yet) gets one too: the link proves the person reads that
+    mailbox, and the password they choose is a second way in next to Google.
+
+    Returns None when a link was issued less than PASSWORD_RESET_COOLDOWN ago (keeps the
+    previous link working and stops the endpoint from being used to flood someone's inbox).
+    """
+    now = datetime.now(UTC)
+    if user.password_reset_expires_at is not None:
+        issued_at = user.password_reset_expires_at - PASSWORD_RESET_EXPIRY
+        if now - issued_at < PASSWORD_RESET_COOLDOWN:
+            return None
+    token = secrets.token_urlsafe(32)
+    user.password_reset_token_hash = _hash_reset_token(token)
+    user.password_reset_expires_at = now + PASSWORD_RESET_EXPIRY
+    await db.commit()
+    await db.refresh(user)
+    return token
+
+
+async def reset_password_with_token(db: AsyncSession, token: str, new_password: str) -> User | None:
+    """
+    Set `new_password` for the user the token was issued to and consume the token.
+
+    Returns the User, or None if the token is unknown, expired or already used. Opening the
+    emailed link proves the person reads that mailbox, so the email is marked as verified.
+    """
+    result = await db.execute(
+        select(User).where(User.password_reset_token_hash == _hash_reset_token(token))
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        return None
+    expires_at = user.password_reset_expires_at
+    if expires_at is None or expires_at < datetime.now(UTC):
+        user.password_reset_token_hash = None
+        user.password_reset_expires_at = None
+        await db.commit()
+        return None
+    user.password_hash = hash_password(new_password)
+    user.password_reset_token_hash = None
+    user.password_reset_expires_at = None
     user.email_verified = True
     user.email_verification_token = None
     user.email_verification_expires_at = None

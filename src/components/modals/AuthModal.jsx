@@ -7,14 +7,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { IC } from '../../lib/helpers'
 import { MODAL } from '../../lib/constants'
-import { translateApiError } from '../../services/authService'
+import { apiForgotPassword, translateApiError } from '../../services/authService'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
 
 export function AuthModal({ initialTab = 'login', onClose }) {
   const { t, login, register, loginWithGoogle } = useApp()
 
-  const [tab, setTab] = useState(initialTab)  // 'login' | 'register'
+  const [tab, setTab] = useState(initialTab)  // 'login' | 'register' | 'forgot'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -23,6 +23,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [resetSent, setResetSent] = useState(false)  // 'forgot' tab: the request went through
 
   const emailRef = useRef(null)
   const googleBtnRef = useRef(null)
@@ -33,6 +34,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
 
   // Reset error when switching tabs or typing
   useEffect(() => { setError(null) }, [tab, email, password, firstName, lastName])
+  useEffect(() => { setResetSent(false) }, [tab])
 
   // Close on ESC
   useEffect(() => {
@@ -106,6 +108,12 @@ export function AuthModal({ initialTab = 'login', onClose }) {
     setError(null)
     setLoading(true)
     try {
+      if (tab === 'forgot') {
+        // The answer is the same whether or not the email is registered
+        await apiForgotPassword(email)
+        setResetSent(true)
+        return
+      }
       if (tab === 'login') {
         await login(email, password)
       } else {
@@ -120,6 +128,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
   }
 
   const isLogin = tab === 'login'
+  const isForgot = tab === 'forgot'
 
   return (
     <div
@@ -139,8 +148,15 @@ export function AuthModal({ initialTab = 'login', onClose }) {
           <img src="/assets/images/placeholder.png" alt="" className="h-20 w-20 object-contain opacity-70" />
         </div>
 
+        {isForgot && (
+          <div className="mb-6">
+            <h2 className="font-display text-xl font-semibold text-cream mb-2">{t.resetForgotTitle}</h2>
+            <p className="text-cream/50 text-sm leading-relaxed">{t.resetForgotIntro}</p>
+          </div>
+        )}
+
         {/* Tabs */}
-        <div className="flex gap-6 mb-6 border-b border-white/[0.08]">
+        <div className={`flex gap-6 mb-6 border-b border-white/[0.08] ${isForgot ? 'hidden' : ''}`}>
           {[['login', t.iniciarSesion ?? 'Iniciar sesión'], ['register', t.registrarse ?? 'Registrarse']].map(([key, label]) => (
             <button
               key={key}
@@ -173,6 +189,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
             />
           </div>
 
+          {!isForgot && (
           <div>
             <label className="text-muted text-xs uppercase tracking-wide block mb-1.5">
               {t.contrasena ?? 'Contraseña'}
@@ -186,10 +203,20 @@ export function AuthModal({ initialTab = 'login', onClose }) {
               placeholder={isLogin ? '••••••••' : t.minPass ?? 'Mínimo 8 caracteres'}
               className="w-full surface-input rounded-xl px-4 py-2.5 text-cream text-sm outline-none focus:ring-1 focus:ring-bar/50 transition-all"
             />
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => setTab('forgot')}
+                className="mt-2 text-cream/50 hover:text-cream text-xs transition-colors"
+              >
+                {t.resetForgotLink}
+              </button>
+            )}
           </div>
+          )}
 
           {/* Extra fields — registro only */}
-          {!isLogin && (
+          {!isLogin && !isForgot && (
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -238,6 +265,12 @@ export function AuthModal({ initialTab = 'login', onClose }) {
             </>
           )}
 
+          {isForgot && resetSent && (
+            <p role="status" className="text-cream/80 text-sm bg-white/[0.06] rounded-xl px-4 py-2.5 leading-relaxed">
+              {t.resetForgotSent}
+            </p>
+          )}
+
           {/* Error */}
           {error && (
             <p className="text-red-400 text-sm bg-red-400/10 rounded-xl px-4 py-2.5">
@@ -253,11 +286,22 @@ export function AuthModal({ initialTab = 'login', onClose }) {
           >
             {loading
               ? '...'
-              : isLogin
-                ? (t.iniciarSesion ?? 'Iniciar sesión')
-                : (t.registrarse ?? 'Registrarse')
+              : isForgot
+                ? t.resetForgotSend
+                : isLogin
+                  ? (t.iniciarSesion ?? 'Iniciar sesión')
+                  : (t.registrarse ?? 'Registrarse')
             }
           </button>
+          {isForgot && (
+            <button
+              type="button"
+              onClick={() => setTab('login')}
+              className="w-full text-cream/50 hover:text-cream text-sm transition-colors"
+            >
+              {t.resetBackToLogin}
+            </button>
+          )}
         </form>
 
         {/* Google sign-in — shown whenever client ID is configured.
@@ -265,7 +309,7 @@ export function AuthModal({ initialTab = 'login', onClose }) {
             genuinely visible. Chrome's FedCM anti-clickjacking protection
             blocks clicks on opacity-0 iframes, so an invisible overlay does
             not work in production. theme="filled_black" matches our dark UI. */}
-        {GOOGLE_CLIENT_ID && (
+        {GOOGLE_CLIENT_ID && !isForgot && (
           <>
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-px surface-divider" />
@@ -317,12 +361,12 @@ export function AuthModal({ initialTab = 'login', onClose }) {
         )}
 
         {/* Auth gate context hint */}
-        <p className="text-center text-cream/40 text-xs mt-4">
+        {!isForgot && <p className="text-center text-cream/40 text-xs mt-4">
           {isLogin
             ? (t.authHintLogin ?? 'Necesitas cuenta para guardar tus zonas y especies favoritas')
             : (t.authHintRegister ?? 'Registro gratuito · Sin tarjeta de crédito')
           }
-        </p>
+        </p>}
 
         {/* Cookie notice */}
         <p className="text-center text-cream/25 text-xs mt-2">

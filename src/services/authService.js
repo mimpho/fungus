@@ -67,6 +67,7 @@ export function translateApiError(detail, t) {
     'No refresh token':                 t.errCredenciales,
     'Invalid or expired refresh token': t.errCredenciales,
     'User not found':                   t.errCredenciales,
+    'Invalid or expired reset token':   t.resetInvalid,
     'Failed to fetch':                  t.errRed,
     'NetworkError when attempting to fetch resource': t.errRed,
     'Load failed':                      t.errRed,  // Safari
@@ -157,6 +158,31 @@ export async function apiGoogleLogin(idToken) {
   if (!res.ok) throw new Error(data.detail ?? 'Google login failed')
   setAccessToken(data.access_token)
   return data
+}
+
+/**
+ * Ask for a password-reset link. The server answers the same whether or not the email is
+ * registered, so a resolved promise only means "the request was accepted".
+ * @throws Error on a network or validation failure
+ */
+export async function apiForgotPassword(email) {
+  const res = await post('/auth/forgot-password', { email })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(typeof data.detail === 'string' ? data.detail : 'Forgot password failed')
+  }
+}
+
+/**
+ * Set a new password with the token of the emailed link.
+ * @throws Error('Invalid or expired reset token') when the link is invalid, expired or used
+ */
+export async function apiResetPassword(token, password) {
+  const res = await post('/auth/reset-password', { token, password })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(typeof data.detail === 'string' ? data.detail : 'Reset password failed')
+  }
 }
 
 /**

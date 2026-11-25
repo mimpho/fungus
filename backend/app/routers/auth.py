@@ -1,7 +1,7 @@
-"""Auth router — register, login, refresh, logout."""
+"""Auth router — register, login, refresh, logout, email verification, password recovery."""
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,14 +11,17 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.auth import (
     AuthResponse,
+    ForgotPasswordRequest,
     GoogleLoginRequest,
     LoginRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     UserOut,
 )
 from app.services.auth import (
     authenticate_user,
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
     create_user,
     create_verification_token,
@@ -26,10 +29,11 @@ from app.services.auth import (
     get_or_create_google_user,
     get_user_by_email,
     get_user_by_id,
+    reset_password_with_token,
     verify_email_token,
     verify_google_id_token,
 )
-from app.services.email import send_verification_email
+from app.services.email import send_password_reset_email, send_verification_email
 
 log = logging.getLogger(__name__)
 
@@ -209,6 +213,54 @@ async def resend_verification(
     token = await create_verification_token(db, current_user)
     await send_verification_email(current_user.email, token, current_user.first_name)
     return {"message": "Verification email sent"}
+
+
+@router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    background: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Email a password-reset link to `body.email`.
+
+    Always answers 202 with the same message, whether or not the email is registered, whether
+    or not a message is sent (a link issued a minute ago): the answer must not reveal who has
+    an account. A Google-only account is no exception: the link lets it set a password. The
+    email goes out after the response so the time it takes does not either.
+    """
+    user = await get_user_by_email(db, body.email)
+    if user is not None:
+        token = await create_password_reset_token(db, user)
+        if token is not None:
+            background.add_task(send_password_reset_email, user.email, token, user.first_name)
+        else:
+            log.info("Password reset not sent for user_id=%d (link issued < 60 s ago)", user.id)
+    return {"message": "If the email is registered, a reset link has been sent"}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(
+    body: ResetPasswordRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Set a new password with the single-use token from the email.
+
+    400 if the token is invalid, expired or already used. The person is not signed in by this:
+    the frontend sends them to the login. The refresh cookie of this browser is cleared. The
+    account keeps its Google link: both ways in work afterwards.
+    """
+    user = await reset_password_with_token(db, body.token, body.password)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+    _clear_refresh_cookie(response)
+    log.info("Password reset: user_id=%d", user.id)
+    return {"message": "Password updated"}
 
 
 @router.post("/google", response_model=AuthResponse)

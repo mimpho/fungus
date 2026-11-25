@@ -4,6 +4,18 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## Password recovery: a hashed single-use token, and Google accounts can set a password (2026-11-25, `feat/password-reset`)
+
+**Decision:** `POST /auth/forgot-password` and `POST /auth/reset-password`. The token is random (`secrets.token_urlsafe(32)`), valid for 1 hour and single-use; the database keeps only its SHA-256 (`users.password_reset_token_hash` + `password_reset_expires_at`, Alembic 022). `forgot-password` always answers 202 with the same message and sends the email as a background task, so neither the answer nor its timing says who has an account. A second request within 60 s does not issue a new link (the cooldown is derived from the expiry, no extra column). **A Google-only account gets the link too:** the password it sets is a second way in next to Google (`auth_provider` and `provider_id` stay; the Google login never clears the hash, and the email login only looks at the hash). Opening the link marks the email as verified.
+
+**Why:** Marcos's only local user was a Google account with no password and had no way to sign in otherwise; the mailbox proves the same thing Google does, and `get_or_create_google_user` already links accounts by email.
+
+**Discarded:** storing the token in clear, like the email-verification one (it opens the account, so a database leak would be an account takeover); skipping Google-only accounts (the first version: the screen answered 202 and nothing came, which looked like a bug); a rate limiter (the project has none; the 60 s cooldown covers inbox flooding for one account).
+
+**Known limit:** refresh tokens already issued stay valid until they expire (30 days; stateless JWTs). Closing them needs a `password_changed_at` checked in `/auth/refresh` and `get_current_user` (`memory/pending.md`).
+
+---
+
 ## Product pivot — Observatory first, mobile app paused (2026-10-10)
 
 **Decision:** The web Observatory (scoring v2 + Observatory page) is the priority. The Android app (v8.0) is paused with scaffold, navigation, design system, theming and the zones screens done; species, map, auth, polish and EAS build pending.

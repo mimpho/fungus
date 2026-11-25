@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — password recovery by email (2026-11-25, branch `feat/password-reset`)
+
+- **Back end.** `POST /auth/forgot-password` (always 202 with the same message, whether or not the email is registered; the email goes out after the response; a Google-only account gets the link too and can set a password: it then signs in with Google or with email and password; a second request within 60 s keeps the first link) and `POST /auth/reset-password` (400 for an invalid, expired or used token; it also clears the browser's refresh cookie). The token is single-use and valid for 1 hour; the database keeps only its SHA-256 (`password_reset_token_hash`, `password_reset_expires_at`; Alembic `022`, applied on the back end's start-up). Opening the link marks the email as verified. New email template in `services/email.py`.
+- **Front end.** «¿Has olvidado tu contraseña?» in the login of `AuthModal` opens a view with only the email field; `/restablecer-contrasena?token=…` (`pages/ResetPassword.jsx`) asks for the new password twice and sends the person to the login. ES / CA / EN.
+- **Tests.** `tests/unit/test_password_reset.py` (16): hashed token, one hour, 60 s cooldown, single use, expiry, Google-only account, a Google-only account sets a password and keeps Google, same answer for an unknown email.
+- **Limits.** The email only reaches users once Resend has a verified domain (see `memory/pending.md`). The refresh tokens already issued stay valid until they expire (30 days): they are JWTs with no server-side list.
+
 ### Changed — the observed zone and the map's filters, cards and controls (2026-11-24/25, branch `ccr-11b63324-2lx2eg`)
 
 **Back end**

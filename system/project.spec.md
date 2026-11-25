@@ -433,6 +433,8 @@ POST /api/v1/auth/login
 GET  /api/v1/auth/me
 GET  /api/v1/auth/verify-email?token=   ← consumes single-use token, sets email_verified
 POST /api/v1/auth/resend-verification   ← authenticated; re-sends verification email
+POST /api/v1/auth/forgot-password       ← always 202; emails a 1-hour single-use link (Google-only accounts too)
+POST /api/v1/auth/reset-password        ← {token, password}; 400 if invalid, expired or used
 ```
 
 Observatory (login required; lat/lon limited to Catalonia):
