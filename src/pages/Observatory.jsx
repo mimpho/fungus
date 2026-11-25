@@ -17,6 +17,7 @@ import { useSpecies } from '../hooks/useSpecies'
 import { useActiveSpecies } from '../hooks/useActiveSpecies'
 import { useHeldWhile } from '../hooks/useHeldWhile'
 import { isInCatalonia } from '../lib/catalonia'
+import { lockScroll } from '../lib/scrollLock'
 import { samePoint } from '../lib/observatoryView'
 import { DEFAULT_METEO_LAYER, DEFAULT_RAIN_PRESET } from '../lib/meteoLayers'
 import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
@@ -281,14 +282,7 @@ export default function Observatory() {
   // is behind the full-screen map or the zone's layer must not scroll either. The login card (not signed in) scrolls as usual
   useEffect(() => {
     if (!isAuthenticated && !fullscreen && !zoneOpen) return undefined
-    const previous = document.body.style.overflow
-    const previousOverscroll = document.documentElement.style.overscrollBehavior
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overscrollBehavior = 'none'
-    return () => {
-      document.body.style.overflow = previous
-      document.documentElement.style.overscrollBehavior = previousOverscroll
-    }
+    return lockScroll()
   }, [isAuthenticated, fullscreen, zoneOpen])
   const [basemap, setBasemap] = useState(() => {
     try {

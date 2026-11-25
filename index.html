@@ -3,6 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Installed app: `viewport-fit=cover` before the first paint, so the page takes the whole screen from the start and
+         nothing jumps. In a browser tab, `Layout` adds it where it is needed -->
+    <script>
+      if (navigator.standalone === true || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches) {
+        var viewport = document.querySelector('meta[name="viewport"]')
+        viewport.setAttribute('content', viewport.getAttribute('content') + ', viewport-fit=cover')
+      }
+    </script>
     <title>Fungus</title>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/favicon/apple-touch-icon.png">

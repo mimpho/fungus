@@ -131,8 +131,12 @@ input[list]::-webkit-calendar-picker-indicator {
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Behind the status bar on the pages that scroll, so its white icons stay readable in both themes. 0 tall where there is no inset */
+/* Behind the status bar on the pages that scroll, so its white icons stay readable in both themes. Only in the iPhone's
+   installed app: Android's fullscreen has no icons there, and the strip would look like the system bar was still on */
 .status-strip {
-  height: var(--safe-top);
+  height: 0;
   background: #4c5240;
+}
+.ios-app .status-strip {
+  height: var(--safe-top);
 }
