@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — no header in the installed app and in fullscreen; new mobile menu (2026-11-25, branch `feat/floating-menu-immersive`)
+
+- **No header** in the installed app, in the browser's fullscreen and in the map's «Pantalla completa»: only a floating menu button at the top right, with the sections and the account's entries (`FloatingMenu.jsx`, `hooks/useImmersive.js`). In a normal tab the header stays.
+- **Where the button goes:** on the Observatory the phone's search stops before it and the desktop tabs start under it; the sticky search of Catálogo and Zonas leaves it room. In the phone's map fullscreen it is a 36 px button (44 px press area) at 8 px from the top, above a full-width search, whose minimum distance from the top goes from 40 to 52 px. It hides under the observed zone's layer opened in the map's fullscreen. Opening the Observatory with the browser already in fullscreen starts the map in fullscreen.
+- **Mobile menu:** the avatar is gone under 768 px; its entries go under the sections, after a 1 px line, in rows laid out like theirs (the floating menu too; the desktop avatar dropdown keeps its compact look). The entry of the current page is marked. The menu is now a fixed panel from under the header to the bottom: it no longer pushes the page, which does not scroll meanwhile, and it fades in.
+- **Safe areas (iPhone):** `--safe-top` / `--safe-bottom`; the map runs under the status bar with its controls below it, scrolling pages get a dark strip behind it, and the species, zone and article dialogs, the photo viewer, the observed zone's header and the footer keep clear of it. `viewport-fit=cover` is now set only by `Layout` (the Observatory, and wherever there is no header). In the iPhone's installed app the map's fullscreen keeps the button level with the search.
+- `npm run build` passes. Checked in the built-in browser with the fullscreen, the iPhone's flag and the safe areas **simulated**. **Not seen on a real device**, nor: the photo viewer, the observed zone, the zone and article dialogs, the Observatory's own dialogs (not adjusted), landscape, the light theme.
+
 ### Fixed — the password reset page and a session already open (2026-11-25, branch `fix/password-reset-session`)
 
 - After choosing a new password, a session left open in that browser (one restored from the refresh cookie, or Google's) is closed, as after any password change; the success screen then offers «Iniciar sesión» and it is a real login. Before, the person was still signed in, the login modal signed them in again and closed, and they stayed on «Contraseña actualizada» as if nothing had happened. Once signed in from that screen, the page takes them to the home page (`pages/ResetPassword.jsx`).

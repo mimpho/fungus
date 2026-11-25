@@ -465,8 +465,11 @@ React listens at the root, so stopping a synthetic event stops the native one be
 ### ⚠️ `search-light-input::placeholder` is 3.3:1
 The shared class draws the placeholder at 0.55 opacity (cream on `#4c5240`). Where a placeholder is the field's label (the map search) raise it: `placeholder:!opacity-80` gives 5.1:1 dark and 7.5:1 light.
 
+### ⚠️ Safe areas: use `--safe-top` / `--safe-bottom`, and only Layout touches the viewport meta
+`viewport-fit=cover` is set by `Layout` (the Observatory, and wherever there is no header); a page setting it by itself would undo it on unmount. With `black-translucent` the iPhone's installed app draws under the status bar (white icons): anything fixed to the top adds `var(--safe-top)`, and scrolling pages get `.status-strip`. To try it on a computer, set `--safe-top` on `<html>`. Not yet seen on a real iPhone.
+
 ### ⚠️ A fullscreen map reaches under the camera hole
-With `viewport-fit=cover` `env(safe-area-inset-top)` is real, but some browsers report 0 in fullscreen: the search bar and the hint start at `max(env + 12 px, 40 px)` while the phone is in fullscreen (`fullscreenTop` in `pages/Observatory.jsx`). To confirm on a real Android and iPhone.
+With `viewport-fit=cover` `env(safe-area-inset-top)` is real, but some browsers report 0 in fullscreen: the search bar and the hint start at `max(env + 12 px, 52 px)` while the phone is in fullscreen (the floating menu button, 36 px at 8 px from the top, sits in that strip) (`fullscreenTop` in `pages/Observatory.jsx`). To confirm on a real Android and iPhone.
 
 
 ### ⚠️ An unselected segment in `text-cream/80` on `bg-cream/[0.08]` is 4.33:1 (found 2026-11-15, T3 of `epic/observatory-species-filter`)
