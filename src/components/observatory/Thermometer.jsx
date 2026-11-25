@@ -1,4 +1,5 @@
 import { useId, useMemo, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { getScoreBand } from '../../lib/scoreBands'
 import { buildThermometer, fill } from '../../lib/thermometer'
@@ -32,8 +33,7 @@ export function ThermometerSkeleton() {
 
 /**
  * Thermometer of the observed point: the score with its band and a sentence that says why,
- * the facts behind it, the rains still on their way, what weighs for and against, and «Ver por
- * qué» with each factor and the formula. `snap` is the /point/snapshot answer.
+ * the facts behind it, the rains still on their way, what weighs for and against, and a foldable «Desglose de puntuación» with each factor and the formula. `snap` is the /point/snapshot answer.
  */
 export function Thermometer({ snap, note = null }) {
   const { t, lang } = useApp()
@@ -147,19 +147,25 @@ export function Thermometer({ snap, note = null }) {
         </section>
       )}
 
-      <div>
+      {/* The breakdown unfolds under the card's body, like the chart's «Detonantes y frenos» */}
+      <div className="border-t border-cream/10 pt-3">
         <button
           type="button"
           aria-expanded={open}
           aria-controls={detailId}
           onClick={() => setOpen(o => !o)}
-          className="px-4 py-2 rounded-xl bg-transparent border border-cream/40 text-cream text-sm font-medium hover:bg-cream/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-cream/40"
+          data-testid="thermo-why-toggle"
+          className="w-full flex items-center justify-between gap-3 min-h-[44px] -my-1 text-left rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
         >
-          {open ? t.obsThHideBtn : t.obsThWhyBtn}
+          <span className="min-w-0">
+            <span className="block font-display text-xl leading-tight text-cream">{t.obsThWhyBtn}</span>
+            <span className="block text-xs text-cream/70">{t.obsThWhySub}</span>
+          </span>
+          <ChevronDown size={20} aria-hidden="true" className={`shrink-0 text-cream/80 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
 
         {open && (
-          <div id={detailId} className="mt-4 border-t border-white/[0.08] pt-4 space-y-1">
+          <div id={detailId} className="mt-2 space-y-1">
             {vm.factors.map(f => {
               const band = getScoreBand(f.score)
               return (

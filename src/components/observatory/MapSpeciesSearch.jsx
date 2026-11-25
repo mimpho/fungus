@@ -147,7 +147,7 @@ export function MapSpeciesSearch({ speciesId, onChoose, focused, collapsed, fit 
   const dropdown = focused && (
     <div
       ref={dropRef}
-      className="absolute left-0 right-0 top-full mt-2 rounded-2xl map-surface shadow-float p-3 flex flex-col gap-3"
+      className="absolute left-0 right-0 top-full mt-2 rounded-2xl map-surface p-3 flex flex-col gap-3"
       style={{ maxHeight: maxH ? `${maxH}px` : undefined }}
     >
       <div className="flex items-center gap-2">
@@ -157,7 +157,7 @@ export function MapSpeciesSearch({ speciesId, onChoose, focused, collapsed, fit 
           value={selectValue}
           disabled={!exploring}
           onChange={e => { setGroup(e.target.value); setActive(-1) }}
-          className="flex-1 min-w-0 [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)] [[data-theme=light]_&_select]:!text-[var(--ui-filter-pill-text)] [[data-theme=light]_&_svg]:!text-[var(--ui-filter-pill-text)]"
+          className="flex-1 min-w-0 [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)]"
         >
           <option value={ALL}>{t.obsMapSpAll} ({rows.length})</option>
           {exploring && groups.map(g => <option key={g} value={g}>{t[g]} ({counts[g]})</option>)}

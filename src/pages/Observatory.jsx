@@ -13,6 +13,7 @@ import { useElevationRasterState } from '../hooks/useElevationRaster'
 import { useClassRasterState } from '../hooks/useClassRaster'
 import { useSpecies } from '../hooks/useSpecies'
 import { useActiveSpecies } from '../hooks/useActiveSpecies'
+import { useHeldWhile } from '../hooks/useHeldWhile'
 import { isInCatalonia } from '../lib/catalonia'
 import { samePoint } from '../lib/observatoryView'
 import { DEFAULT_METEO_LAYER, DEFAULT_RAIN_PRESET } from '../lib/meteoLayers'
@@ -21,6 +22,9 @@ import { MapSearchBar } from '../components/observatory/MapSearchBar'
 import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
 import { layerDays } from '../components/observatory/LayerDayControl'
+import { MapFilterStrip } from '../components/observatory/MapFilterStrip'
+import { todayIso } from '../lib/layerDays'
+import { formatDay } from '../lib/thermometer'
 import { MeteoPanel } from '../components/observatory/nav/MeteoPanel'
 import { ZonasPanel } from '../components/observatory/nav/ZonasPanel'
 import { HabitatPanel } from '../components/observatory/nav/HabitatPanel'
@@ -89,7 +93,7 @@ function store(key, value) {
  * the URL; the point just picked on the map, still without observing it, is local.
  */
 export default function Observatory() {
-  const { t, isAuthenticated, authLoading, setAuthModal } = useApp()
+  const { t, lang, isAuthenticated, authLoading, setAuthModal } = useApp()
   const { point: observed, until, days, initialMeteo, initialSpecies, observe, clear, setWindow, setMeteo, setSpecies: writeSpecies } = useObservatoryView()
   const saved = useSavedPoints(isAuthenticated)
   // A page opened on a point (URL) starts with that point's panel on the map
@@ -134,6 +138,12 @@ export default function Observatory() {
   const probabilityOn = meteoOn && meteoKind === 'conditions'
   // The species is the whole map's (the search bar's second half, `seta` in the URL), not Meteo's: it stays with Meteo off
   const { speciesId: layerSpecies, setSpecies: setLayerSpecies } = useActiveSpecies({ initial: initialSpecies, onChange: writeSpecies })
+  // The observed zone is a layer over the whole screen, open while the URL has the point. It shares the active species with the map
+  // (it reads and writes the same one), but the map under it does not follow it: it keeps the species it had when the zone opened
+  // and takes the final one when the zone closes, so it is not repainted for every change made up there. Nothing else of the map
+  // changes with the zone (Meteo stays on or off as it was): the species is only a lens there
+  const zoneOpen = Boolean(observed) && isAuthenticated
+  const mapSpecies = useHeldWhile(zoneOpen, layerSpecies)
   const [layerDate, setLayerDate] = useState(initialMeteo?.day ?? null) // null = last day with data
   // Zonas: the switch draws the checked rows; only «Mis rincones» exists for now
   const [cornersRow, setCornersRowState] = useState(storedCornersRow)
@@ -143,7 +153,7 @@ export default function Observatory() {
   const forestOn = nav.on.habitat
   const [forestShown, setForestShownState] = useState(storedForestClasses)
   const setForestShown = next => { setForestShownState(next); store(FOREST_CLASSES_KEY, JSON.stringify(ALL_FOREST.filter(k => next.has(k)))) }
-  const shownSpecies = layerSpecies
+  const shownSpecies = mapSpecies
   const { species: catalog } = useSpecies()
   // Hábitat · De la seta: stored «species» without an active species behaves as «forest». While it is shown, neither the
   // conditions picture nor the forest classes are drawn (they would read as one map on the same scale)
@@ -152,6 +162,8 @@ export default function Observatory() {
   // Picking «De la seta» turns Meteo off: its Condiciones would be hidden by the habitat (same scale)
   const setHabitatView = value => { setHabitatViewStored(value); store(HABITAT_VIEW_KEY, value); if (value === 'species') nav.setOn('data', false) }
   const habitatShown = forestOn && habitatView === 'species'
+  // The map's filter strip: the Meteo day while it is on and is not today (nothing to say when it is)
+  const dayFilter = meteoOn && layerDate && layerDate !== todayIso() ? formatDay(layerDate, lang) : null
   // The URL says what Meteo shows while it is on (history replaced: Back does not walk through the days)
   useEffect(() => {
     setMeteo(meteoOn ? { layer: meteoKind, day: layerDate } : null)
@@ -167,7 +179,7 @@ export default function Observatory() {
   const showConditions = () => { if (!nav.on.data) nav.setOn('data', true); if (meteoKind !== 'conditions') setMeteoKind('conditions') }
   // With «De la seta» shown the species is being looked at there: Meteo stays as it is
   const chooseSpecies = id => { setLayerSpecies(id); if (id && !habitatShown) showConditions() }
-  const layerId = probabilityOn || pending || habitatShown ? (layerSpecies ?? ALL_EXCELLENT) : null
+  const layerId = probabilityOn || pending || habitatShown ? (mapSpecies ?? ALL_EXCELLENT) : null
   const layer = useProbabilityLayer(isAuthenticated ? layerId : null, { date: layerDate ?? undefined })
   const elevationState = useElevationRasterState(Boolean(layerId) && isAuthenticated)
   const forestState = useClassRasterState('forest', (Boolean(layerId) || forestOn) && isAuthenticated)
@@ -209,9 +221,7 @@ export default function Observatory() {
   const wide = useIsWide() // from 1024px the point card and a map panel fit side by side
   const [mapInst, setMapInst] = useState(null) // the Leaflet map, for the desktop zoom buttons
   const [drawing, setDrawing] = useState(false) // the map is working out a layer's picture
-  const layerOpen = Boolean(observed) && isAuthenticated
   const [headerSlot, setHeaderSlot] = useState(null) // where the zone puts its title: the header of the layer
-  const [sheetSlot, setSheetSlot] = useState(null) // and the active species' bottom sheet: fixed at the foot of the layer
   const [filtersSlot, setFiltersSlot] = useState(null) // and its active filters: a bar under that header, so they stay in view while the zone scrolls
   // The bar of filters is fixed under the header once the zone scrolls up to it; only then do its pills get a shadow
   const [filtersStuck, setFiltersStuck] = useState(false)
@@ -221,14 +231,14 @@ export default function Observatory() {
     const head = layerHeaderRef.current
     const sentinel = sentinelRef.current
     const scroller = sentinel?.closest('.overflow-y-auto')
-    if (!layerOpen || !head || !sentinel || !scroller) return undefined
+    if (!zoneOpen || !head || !sentinel || !scroller) return undefined
     // Stuck = the sentinel (just above the bar) has gone up behind the header
     const check = () => setFiltersStuck(sentinel.getBoundingClientRect().top < head.getBoundingClientRect().bottom - 1)
     check()
     scroller.addEventListener('scroll', check, { passive: true })
     window.addEventListener('resize', check)
     return () => { scroller.removeEventListener('scroll', check); window.removeEventListener('resize', check) }
-  }, [layerOpen, observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zoneOpen, observed?.lat, observed?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
   // The map over the whole screen (the site's header too) and, where the browser allows it, the browser's own
   // fullscreen (iPhone Safari has none: there only the header goes). The state follows the browser leaving fullscreen by itself.
   const [fullscreenState, setFullscreenState] = useState(false)
@@ -239,6 +249,11 @@ export default function Observatory() {
   const [pointFolded, setPointFolded] = useState(false)
   const [sheetH, setSheetH] = useState(0) // height of the point's sheet on the phone, for the map to keep the point above it
   const [barH, setBarH] = useState(0) // height the phone's tab bar covers (with a tab's sheet open, the sheet too)
+  // The phone's «My location»: 32 px above the top of whatever the bottom holds. The point's sheet and the species' bar are a stack that rises
+  // from 24 px under the tab bar's top (they overlap it), so with either of them its top is 24 px lower than the bar's plus their heights
+  const onStack = speciesH > 24 || Boolean(pending)
+  const bothSheets = speciesH > 24 && Boolean(pending) // the species' bar then overlaps the foot of the point's sheet by 24 px
+  const locateBottom = (onStack ? Math.max(0, barH - 24) : barH) + (speciesH > 24 ? speciesH : 0) + (pending ? sheetH : 0) - (bothSheets ? 24 : 0) + 32
   const [barRestH, setBarRestH] = useState(0) // the bar alone: the map's own controls at the bottom (zoom, credits) sit above it
   const nativeFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement
   function enterFullscreen() {
@@ -265,7 +280,7 @@ export default function Observatory() {
   // The map page does not scroll: the map is the page (a drag from the header would otherwise move it up on a phone), and what
   // is behind the full-screen map or the zone's layer must not scroll either. The login card (not signed in) scrolls as usual
   useEffect(() => {
-    if (!isAuthenticated && !fullscreen && !layerOpen) return undefined
+    if (!isAuthenticated && !fullscreen && !zoneOpen) return undefined
     const previous = document.body.style.overflow
     const previousOverscroll = document.documentElement.style.overscrollBehavior
     document.body.style.overflow = 'hidden'
@@ -274,7 +289,7 @@ export default function Observatory() {
       document.body.style.overflow = previous
       document.documentElement.style.overscrollBehavior = previousOverscroll
     }
-  }, [isAuthenticated, fullscreen, layerOpen])
+  }, [isAuthenticated, fullscreen, zoneOpen])
   const [basemap, setBasemap] = useState(() => {
     try {
       const saved = localStorage.getItem('fungus-obs-basemap')
@@ -336,17 +351,17 @@ export default function Observatory() {
   const desktopPanel = !phone && nav.openTab
   const anyPanel = Boolean(nav.openTab)
   useEffect(() => {
-    if (!pending && !fullscreen && !layerOpen && !anyPanel) return
+    if (!pending && !fullscreen && !zoneOpen && !anyPanel) return
     const onKey = e => {
       if (e.key !== 'Escape' || isDialogAbove()) return // a dialog on top takes this Esc
       if (fullscreen) exitFullscreen()
-      else if (layerOpen) closeZone()
+      else if (zoneOpen) closeZone()
       else if (anyPanel) nav.close() // a map panel goes before the point's card
       else closePanelRef.current()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pending, fullscreen, layerOpen, anyPanel]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pending, fullscreen, zoneOpen, anyPanel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Closing the zone's layer: the point's card stays on the map (the layer was opened from it, or from a link to the point)
   function closeZone() {
@@ -414,10 +429,10 @@ export default function Observatory() {
       until={until}
       days={days}
       onWindow={setWindow}
-      initialSpecies={shownSpecies}
+      speciesId={layerSpecies}
+      onSpeciesChange={setLayerSpecies}
       headerSlot={headerSlot}
       filtersSlot={filtersSlot}
-      sheetSlot={sheetSlot}
     />
   )
   // Condiciones, the first segment of the Meteo panel. `layerOn`: the layer is on (its data is then on its way or here)
@@ -552,20 +567,20 @@ export default function Observatory() {
             />
             {/* The hint is a toast under the search (it used to sit on the tab bar): it goes after a few seconds, or as soon as the map is used */}
             {!hintGone && !pending && !observed && !(phone && nav.openTab) && (
-              <div style={{ transitionDuration: `${HINT_FADE_MS}ms`, ...(safeTop ? fullscreenTop(80) : {}) }} className={`absolute z-[1100] ${safeTop ? '' : 'top-[80px] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
+              <div style={{ transitionDuration: `${HINT_FADE_MS}ms`, ...(safeTop ? fullscreenTop(dayFilter ? 130 : 80) : {}) }} className={`absolute z-[1100] ${safeTop ? '' : dayFilter ? 'top-[130px] left-3' : 'top-[80px] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
                 <p role="status" className="w-fit max-w-[30rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white">
                   {t.obsMapHint}
                 </p>
               </div>
             )}
-            {/* Desktop: Vista and the zoom at the bottom right; Vista's panel opens to their left. On the phone Vista is the
+            {/* Desktop: My location, Vista and the zoom at the bottom right, one radius and one width; Vista's panel opens to their left. On the phone Vista is the
                 tab bar's fourth button and the map is zoomed with the fingers */}
             {!phone && (
               <>
                 <div className="absolute z-[1100] right-4 bottom-5 flex flex-col items-end gap-2.5">
+                  <LocateButton desktop onLocate={handleLocate} className="relative" />
                   <ViewButton open={nav.openTab === 'view'} onClick={() => toggleNav('view')} panelId={VIEW_PANEL_ID} />
                   <ZoomButtons map={mapInst} />
-                  <LocateButton onLocate={handleLocate} className="relative mr-[16px]" />
                 </div>
                 {nav.openTab === 'view' && (
                   <div className="absolute z-[1100] right-[104px] bottom-5 w-[360px]">
@@ -574,12 +589,12 @@ export default function Observatory() {
                 )}
               </>
             )}
-            {/* Phone: «My location» at the bottom right, above whatever the bottom holds (tab bar, species bar, point sheet) */}
+            {/* Phone: «My location» at the bottom right, above whatever the bottom holds (tab bar, species bar, point sheet); 32 px up and in from the corner so that the map's attribution stays clear */}
             {phone && (
               <LocateButton
                 onLocate={handleLocate}
-                className="absolute z-[1100] right-3"
-                style={{ bottom: barH + (speciesH > 24 ? speciesH - 24 : 0) + (pending ? sheetH : 0) + 12 }}
+                className="absolute z-[1100] right-8"
+                style={{ bottom: locateBottom }}
               />
             )}
             {/* Desktop: the tabs at the top right; a panel opens to the left of them */}
@@ -617,14 +632,20 @@ export default function Observatory() {
             <div className={`absolute z-[1115] ${safeTop ? '' : 'top-3 left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(12) : undefined}>
               <MapSearchBar onPlace={handleSearchSelect} speciesId={layerSpecies} onSpecies={chooseSpecies} className={`pointer-events-auto w-full ${phone ? '' : 'max-w-[30rem]'}`} />
             </div>
+            {/* The active filters, under the search with the same gap the search has under the header (14 px): the Meteo day when it is not today */}
+            {dayFilter && (
+              <div className={`absolute z-[1114] ${safeTop ? '' : 'top-[80px] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(80) : undefined}>
+                <MapFilterStrip dayLabel={dayFilter} onEdit={() => { if (nav.openTab !== 'data') toggleNav('data') }} onClearDay={() => setLayerDate(null)} />
+              </div>
+            )}
             {/* The point's sheet and the species' sheet are one stack in the page's flow (from the bottom: species, point), so folding or
                 unfolding one moves the ones above it with it and none ever leaves a gap. Phone: above the tab bar, as bottom sheets.
                 Desktop (and tablet): the same two blocks as cards, in a column at the bottom left. */}
             <div
               className={phone
                 ? 'absolute inset-x-0 z-[1100] flex flex-col justify-end pointer-events-none'
-                : 'absolute z-[1100] left-3 bottom-3 w-[396px] max-w-[calc(100%-6rem)] max-h-[calc(100%-6rem)] flex flex-col justify-end gap-2 pointer-events-none'}
-              style={phone ? { top: 72, bottom: Math.max(0, barH - 24) } : undefined}
+                : `absolute z-[1100] left-3 bottom-3 w-[396px] max-w-[calc(100%-6rem)] ${dayFilter ? 'max-h-[calc(100%-9rem)]' : 'max-h-[calc(100%-6rem)]'} flex flex-col justify-end gap-2 pointer-events-none`}
+              style={phone ? { top: dayFilter ? 130 : 72, bottom: Math.max(0, barH - 24) } : undefined}
             >
               {pending && (
                 <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} folded={phone && pointFolded} onExpand={expandPoint} onSheetHeight={setSheetH} />
@@ -635,7 +656,7 @@ export default function Observatory() {
           </div>
 
           {/* The observed zone: a layer over the whole screen (the header too), above the map, which stays mounted under it */}
-          {layerOpen && createPortal(
+          {zoneOpen && createPortal(
             <div
               key={`${observed.lat},${observed.lon}`}
               role="dialog"
@@ -665,8 +686,6 @@ export default function Observatory() {
                 {zoneEl}
                 <p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p>
               </div>
-              {/* The active species' bottom sheet, at every width: fixed at the foot of the layer (the page leaves it room) */}
-              <div ref={setSheetSlot} className="fixed inset-x-0 bottom-0 z-20 flex justify-center pointer-events-none" />
             </div>,
             document.body,
           )}
@@ -674,7 +693,7 @@ export default function Observatory() {
       )}
 
       {savedOpen && (
-        <ObsModal title={t.obsSavedListTitle} onClose={() => setSavedOpen(false)} wide sheet>
+        <ObsModal title={t.obsSavedListTitle} onClose={() => setSavedOpen(false)} wide>
           {savedList}
         </ObsModal>
       )}

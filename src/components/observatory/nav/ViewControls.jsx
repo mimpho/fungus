@@ -7,6 +7,8 @@ import {
 } from '../../../lib/basemap'
 
 const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-cream/50'
+// The corner radius of the three controls at the bottom right of the desktop map (Vista, My location and the zoom): one value, Vista's
+const CONTROL_RADIUS = 'rounded-[22px]'
 
 // One real tile of central Catalonia (zoom 9) per base map, as its thumbnail: the same servers the map
 // already uses, asked only while the panel is open.
@@ -32,7 +34,7 @@ export function ViewButton({ open, onClick, panelId }) {
       aria-expanded={open}
       aria-controls={open ? panelId : undefined}
       aria-label={t.obsViewTitle}
-      className={`w-[76px] h-[76px] rounded-[22px] shadow-float flex flex-col items-center justify-center gap-1 text-xs font-medium ${open ? 'bg-[var(--nav-active)] text-white' : 'map-surface text-cream hover:brightness-110'} ${FOCUS}`}
+      className={`w-[76px] h-[76px] ${CONTROL_RADIUS} shadow-float flex flex-col items-center justify-center gap-1 text-xs font-medium ${open ? 'bg-[var(--nav-active)] text-white' : 'map-surface text-cream hover:brightness-110'} ${FOCUS}`}
     >
       <Layers size={18} aria-hidden="true" />
       {t.obsLayersView}
@@ -93,12 +95,12 @@ export function ViewPanel({ id, basemap, onBasemap, onClose, flat = false, fulls
   )
 }
 
-/** Desktop: zoom in and out side by side, under the Vista button. */
+/** Desktop: zoom in and out side by side, under the Vista button (it is the last of the three). */
 export function ZoomButtons({ map }) {
   const { t } = useApp()
   const btn = `flex-1 h-[44px] flex items-center justify-center text-cream hover:[background-color:var(--ui-surface-hover)] disabled:opacity-40 ${FOCUS}`
   return (
-    <div role="group" aria-label={t.obsZoom} className="w-[76px] h-[44px] rounded-[22px] map-surface shadow-float flex items-center overflow-hidden">
+    <div role="group" aria-label={t.obsZoom} className={`w-[76px] h-[44px] ${CONTROL_RADIUS} map-surface shadow-float flex items-center overflow-hidden`}>
       <button type="button" aria-label={t.obsZoomIn} title={t.obsZoomIn} disabled={!map} onClick={() => map?.zoomIn()} className={btn}>
         <Plus size={18} aria-hidden="true" />
       </button>
@@ -112,36 +114,72 @@ export function ZoomButtons({ map }) {
 
 /**
  * «My location»: asks the browser for the position and hands it to `onLocate(lat, lon)`, which answers
- * `false` when the position is outside Catalonia. A short bubble to the left says why when it fails.
+ * `false` when the position is outside Catalonia. A short bubble to the left says why when it fails (the browser blocks the location, it waits for the user's answer, the position cannot be had, it takes too long). `desktop`: the size and the radius
+ * of the Vista button, with no text (as in the usual map apps); on the phone it is a round button of 52 px.
  */
-export function LocateButton({ onLocate, className = '', style }) {
+export function LocateButton({ onLocate, className = '', style, desktop = false }) {
   const { t } = useApp()
-  const [state, setState] = useState('idle') // 'idle' | 'locating' | 'error' | 'outside'
+  // 'idle' | 'locating' | a failure: 'denied' (the browser blocks the location) | 'ask' (it waits for the answer to its question) | 'unavailable' | 'timeout' | 'error' | 'outside'
+  const [state, setState] = useState('idle')
   const timer = useRef(null)
+  const watchdog = useRef(null)
+  const attempt = useRef(0) // each tap is one attempt; a late answer to an older one is ignored
   const alive = useRef(true)
-  useEffect(() => () => { alive.current = false; clearTimeout(timer.current) }, [])
+  // Set on mount too: React's dev double mount runs the cleanup once, and without this the button would think it is gone and never answer
+  useEffect(() => {
+    alive.current = true
+    return () => { alive.current = false; clearTimeout(timer.current); clearTimeout(watchdog.current) }
+  }, [])
 
-  const fail = kind => {
+  const fail = (kind, ms = 4000) => {
     if (!alive.current) return
+    clearTimeout(watchdog.current)
     setState(kind)
     clearTimeout(timer.current)
-    timer.current = setTimeout(() => alive.current && setState('idle'), 4000)
+    timer.current = setTimeout(() => alive.current && setState('idle'), ms)
   }
-  const locate = () => {
+  const permission = async () => {
+    try { return (await navigator.permissions?.query({ name: 'geolocation' }))?.state ?? null } catch { return null }
+  }
+  const locate = async () => {
     if (state === 'locating') return
-    if (!navigator.geolocation) { fail('error'); return }
+    if (!navigator.geolocation) { fail('unavailable'); return }
+    const id = ++attempt.current
     setState('locating')
+    // A location the browser already blocks does not ask again: say so at once instead of leaving the spinner
+    if (await permission() === 'denied') { if (id === attempt.current) fail('denied', 8000); return }
+    if (id !== attempt.current || !alive.current) return
+    // The spinner never stays for ever: if there is no answer, say whether the browser is still waiting for the user's
+    clearTimeout(watchdog.current)
+    watchdog.current = setTimeout(async () => {
+      if (id !== attempt.current) return
+      attempt.current += 1
+      fail(await permission() === 'prompt' ? 'ask' : 'timeout', 8000)
+    }, 15000)
+    // High accuracy (GPS) only where there is one: on a computer it only makes the browser take longer to answer
+    const gps = window.matchMedia?.('(pointer: coarse)').matches === true
     navigator.geolocation.getCurrentPosition(
       pos => {
-        if (!alive.current) return
+        if (id !== attempt.current || !alive.current) return
+        clearTimeout(watchdog.current)
         const ok = onLocate(pos.coords.latitude, pos.coords.longitude)
         if (ok === false) fail('outside'); else setState('idle')
       },
-      () => fail('error'),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
+      err => {
+        if (id !== attempt.current) return
+        if (err?.code === 1) fail('denied', 8000)
+        else if (err?.code === 2) fail('unavailable')
+        else if (err?.code === 3) fail('timeout')
+        else fail('error')
+      },
+      { enableHighAccuracy: gps, timeout: 10000, maximumAge: gps ? 30000 : 300000 },
     )
   }
-  const message = state === 'error' ? t.obsLocateError : state === 'outside' ? t.obsLocateOutside : null
+  const MESSAGES = {
+    denied: t.obsLocateDenied, ask: t.obsLocateAsk, unavailable: t.obsLocateUnavailable, timeout: t.obsLocateTimeout, error: t.obsLocateError, outside: t.obsLocateOutside,
+  }
+  const message = MESSAGES[state] ?? null
+  const failed = message !== null
   return (
     <div className={className} style={style}>
       <button
@@ -150,14 +188,14 @@ export function LocateButton({ onLocate, className = '', style }) {
         aria-label={t.obsLocate}
         title={t.obsLocate}
         aria-busy={state === 'locating'}
-        className={`w-[44px] h-[44px] rounded-full map-surface shadow-float flex items-center justify-center hover:brightness-110 ${state === 'error' || state === 'outside' ? 'text-amber-400' : 'text-cream'} ${FOCUS}`}
+        className={`${desktop ? `w-[76px] h-[76px] ${CONTROL_RADIUS}` : 'w-[52px] h-[52px] rounded-full'} map-surface shadow-float flex items-center justify-center hover:brightness-110 ${failed ? 'text-amber-400' : 'text-cream'} ${FOCUS}`}
       >
         {state === 'locating'
-          ? <Loader2 size={18} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
-          : <LocateFixed size={18} aria-hidden="true" />}
+          ? <Loader2 size={24} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
+          : <LocateFixed size={24} aria-hidden="true" />}
       </button>
       {message && (
-        <p role="status" className="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-max max-w-[14rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white pointer-events-none">
+        <p role="status" className="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-max max-w-[16rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white pointer-events-none">
           {message}
         </p>
       )}

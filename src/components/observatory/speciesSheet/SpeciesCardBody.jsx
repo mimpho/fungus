@@ -1,21 +1,18 @@
-import { ChevronDown, FileText } from 'lucide-react'
+import { ChevronDown, X } from 'lucide-react'
 import { useApp } from '../../../contexts/AppContext'
 import { IC, getEdibilityColor, resolveUrl } from '../../../lib/helpers'
 import { LEGEND_BANDS } from '../../../lib/layerColors'
 import { LayerLegend } from '../nav/LayerLegend'
 import { SeasonStrip } from './SeasonStrip'
 
-const ICON_BTN = 'w-9 h-9 flex items-center justify-center rounded-full bg-cream/[0.14] hover:bg-cream/[0.22] [[data-theme=light]_&]:bg-white/35 [[data-theme=light]_&]:hover:bg-white/50 text-cream outline-none focus-visible:ring-2 focus-visible:ring-cream/60 disabled:opacity-60'
 const SCALE = { colors: LEGEND_BANDS.map(b => b.hex), stepped: true }
 
 /**
  * What the species' card says: photo, names, edibility, the safety line the season, the legend of the layer being looked at and,
- * at the foot, «Ver ficha» and «Guardar seta» (as the point's card has «Observar zona» and «Guardar rincón»). The sheet's × (it takes the filter off) is not here: it is one button that stays put whether the sheet is folded or open;
- * this card only leaves its place free (`crossTop`: margin that puts the 40 px gap where the × sits). `onLower`: desktop's chevron
+ * at the foot, «Ver ficha» and «Guardar seta» (as the point's card has «Observar zona» and «Guardar rincón»). `onClear`: the cross that takes the filter off, in the title's line. `onLower`: desktop's chevron
  * that folds the card (the phone folds with the handle). `titleRef`: where the focus goes when the card opens.
- * `zone` (the observed zone's sheet): no season, no legend and no foot; «Ver ficha» and «Guardar seta» are icon buttons beside the edibility tag.
  */
-export function SpeciesCardBody({ row, species, lens, crossTop = 0, crossW = 40, zone = false, onLower = null, onView, titleRef }) {
+export function SpeciesCardBody({ row, species, lens, onLower = null, onClear, removeLabel, onView, titleRef }) {
   const { t, favoriteSpecies, toggleFavorite } = useApp()
   const saved = Boolean(species) && favoriteSpecies.some(f => f.id === species.id)
   const edib = getEdibilityColor(row.edibility)
@@ -25,6 +22,30 @@ export function SpeciesCardBody({ row, species, lens, crossTop = 0, crossW = 40,
     : lens === 'conditions' ? { low: t.obsLayLow, high: t.obsLayHigh, note: null } : null
   return (
     <div className="space-y-3">
+      {/* The title and, at the right, the cross that takes the filter off and, on desktop, the chevron that folds the card */}
+      <div>
+        <div className="flex items-center justify-between gap-2 min-h-[28px]">
+          <p className="text-[11px] uppercase tracking-[0.04em] text-cream">{t.obsSpSheetMapBy}</p>
+          <div className="flex items-center -my-2 -mr-2">
+            <button
+              type="button"
+              onClick={onClear}
+              aria-label={removeLabel}
+              title={removeLabel}
+              className="w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+            ><X size={20} aria-hidden="true" /></button>
+            {onLower && (
+              <button
+                type="button"
+                onClick={e => onLower(e.detail === 0)}
+                aria-label={t.obsSpSheetLower}
+                title={t.obsSpSheetLower}
+                className="-mr-0.5 w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+              ><ChevronDown size={20} aria-hidden="true" /></button>
+            )}
+          </div>
+        </div>
+      </div>
       <div className="flex items-start gap-3">
         <span aria-hidden="true" className="shrink-0 w-[72px] h-[72px] rounded-xl overflow-hidden bg-cream/[0.08]">
           {row.photo && <img src={resolveUrl(row.photo)} alt="" className="w-full h-full object-cover" onError={e => { e.currentTarget.style.visibility = 'hidden' }} />}
@@ -33,46 +54,24 @@ export function SpeciesCardBody({ row, species, lens, crossTop = 0, crossW = 40,
           <h2 ref={titleRef} tabIndex={-1} className="font-display text-[22px] leading-tight text-cream break-words outline-none">{row.name}</h2>
           <p className="text-[13px] italic text-cream truncate">{row.scientific}</p>
           <div className="mt-1.5 flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-[3px] rounded-full ${zone ? 'bg-cream/[0.10] [[data-theme=light]_&]:bg-white/35 text-cream' : 'bg-white/[0.08] text-white'}`}><span aria-hidden="true" className={`w-[8px] h-[8px] rounded-full ${edib.solidBg}`} />{t[edib.tKey]}</span>
-            {zone && (
-              <span className="flex items-center gap-1">
-                <button type="button" onClick={onView} disabled={!species} aria-label={t.obsSpSheetFull} title={t.obsSpSheetFull} className={ICON_BTN}><FileText size={18} aria-hidden="true" /></button>
-                <button type="button" onClick={() => toggleFavorite(species)} disabled={!species} aria-pressed={saved} aria-label={saved ? t.obsSpSheetSaved : t.obsSpSheetSave} title={saved ? t.obsSpSheetSaved : t.obsSpSheetSave} className={ICON_BTN}>
-                  <span aria-hidden="true" className="[&>svg]:w-[18px] [&>svg]:h-[18px]">{IC.heart(saved)}</span>
-                </button>
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-[3px] rounded-full bg-white/[0.08] [[data-theme=light]_&]:bg-black/[0.07] text-cream"><span aria-hidden="true" className={`w-[8px] h-[8px] rounded-full ${edib.solidBg}`} />{t[edib.tKey]}</span>
           </div>
-        </div>
-        <div className="shrink-0 flex" style={{ marginTop: crossTop }}>
-          {onLower && (
-            <button
-              type="button"
-              onClick={e => onLower(e.detail === 0)}
-              aria-label={t.obsSpSheetLower}
-              title={t.obsSpSheetLower}
-              className="w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
-            ><ChevronDown size={20} aria-hidden="true" /></button>
-          )}
-          {/* Where the sheet's × sits (it is drawn over this gap) */}
-          <span aria-hidden="true" className="h-[40px]" style={{ width: crossW }} />
         </div>
       </div>
       {warn && <p role="note" className="text-[12px] rounded-lg px-3 py-2 border border-red-500/50 bg-red-500/10 text-cream">{warn}</p>}
-      {!zone && <SeasonStrip months={species?.fruitingMonths} />}
+      <SeasonStrip months={species?.fruitingMonths} />
       {legend && (
         <div>
           <LayerLegend scale={SCALE} lowLabel={legend.low} highLabel={legend.high} className="[&_div]:!text-cream" />
           {legend.note && <p className="text-[11px] text-cream mt-1">{legend.note}</p>}
         </div>
       )}
-      {!zone && (
       <div className="flex gap-2">
         <button
           type="button"
           onClick={onView}
           disabled={!species}
-          className="flex-1 inline-flex items-center justify-center gap-2 px-3 min-h-[44px] rounded-xl bg-white text-[var(--nav-active)] text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-60"
+          className="flex-1 inline-flex items-center justify-center gap-2 px-3 min-h-[44px] rounded-xl bg-white text-[var(--nav-active)] [[data-theme=light]_&]:bg-[var(--nav-active)] [[data-theme=light]_&]:text-white text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-60"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
@@ -92,7 +91,6 @@ export function SpeciesCardBody({ row, species, lens, crossTop = 0, crossW = 40,
           {saved ? t.obsSpSheetSaved : t.obsSpSheetSave}
         </button>
       </div>
-      )}
     </div>
   )
 }

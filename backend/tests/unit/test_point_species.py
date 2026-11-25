@@ -82,8 +82,14 @@ class TestCompatibility:
     def test_a_species_without_altitude_data_is_never_filtered_by_altitude(self):
         assert _ids(_run([_sp(elevation_min_m=None, elevation_max_m=None)])) == ["esp-1"]
 
-    def test_a_species_outside_its_fruiting_months_is_not_listed(self):
-        assert _ids(_run([_sp(fruiting_months=(5, 6))])) == []
+    def test_a_species_outside_its_fruiting_months_is_listed_as_out_of_season(self):
+        data = _run([_sp(fruiting_months=(5, 6))])
+        assert _ids(data) == ["esp-1"]
+        assert data["species"][0]["conditions"]["season"]["status"] == "not_met"
+        assert data["excellent"] == []
+
+    def test_a_species_in_its_fruiting_months_has_the_season_met(self):
+        assert _run([_sp()])["species"][0]["conditions"]["season"]["status"] == "met"
 
     def test_a_species_without_months_is_not_filtered_by_month(self):
         assert _ids(_run([_sp(fruiting_months=())])) == ["esp-1"]

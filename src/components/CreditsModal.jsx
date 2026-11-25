@@ -12,7 +12,7 @@ export function CreditsModal() {
   const { t, creditsOpen, setCreditsOpen } = useApp()
   if (!creditsOpen) return null
   return (
-    <ObsModal title={t.creditsTitle} onClose={() => setCreditsOpen(false)} sheet sheetBackdrop={false} titleNowrap>
+    <ObsModal title={t.creditsTitle} onClose={() => setCreditsOpen(false)} sheetBackdrop={false} titleNowrap>
     <div className="text-sm text-cream/70 space-y-3">
       <p>
         {t.obsAttrWeather}{' '}

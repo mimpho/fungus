@@ -48,12 +48,13 @@ export const ObsModalHeaderSlot = createContext(null)
 const openStack = []
 
 /**
- * `sheet` makes it, on a phone (under 640px), a bottom sheet like the filters of the lists: it rises
+ * On a phone (under 640px) every ObsModal is a bottom sheet like the filters of the lists: it rises
  * from the bottom edge, takes the whole width, has a handle that can be dragged down to close it
- * and never gets taller than the screen less 50px (its content scrolls). From 640px up it is the
- * usual centred modal, of the size `size` says.
+ * and never gets taller than the screen less 50px (its content scrolls), so it takes only what it
+ * needs. From 640px up it is the usual centred modal, of the size `size` says. `sheet={false}`
+ * keeps the centred modal on a phone too.
  */
-export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = false, sheetBackdrop = true, titleNowrap = false, children }) {
+export function ObsModal({ title, onClose, wide = false, size = 'md', sheet = true, sheetBackdrop = true, titleNowrap = false, children }) {
   const { t } = useApp()
   const titleId = useId()
   const token = useRef({})

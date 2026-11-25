@@ -288,8 +288,8 @@
   --ui-score-low-bar:        #dc2626;   /* mid red          */
   --ui-score-low-text:       #b91c1c;   /* dark red         */
 
-  /* Observatory map navigation — light: white surface, the buttons' green (--color-bar) for active */
-  --map-surface:          #ffffff;   /* opaque: a translucent white lets the satellite show through the text */
+  /* Observatory map navigation — light: the header's cream as a surface, the buttons' green (--color-bar) for active */
+  --map-surface:          #f8f6f0;   /* the header's colour (white at 70 % over the page's cream), opaque: a translucent one lets the satellite show through the text */
   --nav-active:           #667739;   /* olive darker than --color-bar (#758847, 3.9:1): 4.9:1 with white text */
   --switch-on:            var(--color-bar);
   --switch-off:           rgba(var(--color-cream-rgb), 0.35);

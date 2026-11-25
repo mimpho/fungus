@@ -34,11 +34,11 @@
 }
 
 /* ── Observatory secondary buttons (cards) — light theme only ──────────────
-   On the white cards of light mode the translucent-white `glass` button disappears; it takes the
-   look of the inactive filter pills of Zones instead (olive tint, olive text). Dark is unchanged. */
+   On the cream cards of light mode the translucent-white `glass` button disappears; it takes the
+   tint of the inactive filter pills of Zones instead (olive tint) with the theme's own ink. Dark is unchanged. */
 [data-theme="light"] .obs-btn {
   background: var(--ui-filter-pill-bg) !important;
-  color: var(--ui-filter-pill-text) !important;
+  color: var(--color-cream) !important;
 }
 [data-theme="light"] .obs-btn:hover {
   background: rgb(136 133 87 / 25%) !important;

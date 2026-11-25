@@ -173,7 +173,7 @@ export function MapSearch({ onSelect, focused, collapsed, compact = false, onFoc
       aria-label={t.obsSearchLabel}
       aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
       onKeyDown={onNavKey}
-      className="absolute left-0 right-0 top-full mt-2 max-h-72 overflow-auto rounded-2xl map-surface py-1 shadow-float outline-none"
+      className="absolute left-0 right-0 top-full mt-2 max-h-72 overflow-auto rounded-2xl map-surface py-1 outline-none"
     >
       {!query && (
         <li role="presentation" className="px-5 pt-2 pb-1 text-[11px] uppercase tracking-[1px] text-cream/55">{t.obsSearchRecent}</li>

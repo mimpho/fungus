@@ -2,8 +2,11 @@
 Species for a point and a date: which ones fit, how likely they are and why.
 
 Pure functions. A species is listed only if it fits the point's altitude (with the 150 m margin
-of altitude_fit), is in its fruiting month and, when the forest around the point is known,
-shares one of its forest types. Its score is the v2 index with the species' own thermal range.
+of altitude_fit) and, when the forest around the point is known, shares one of its forest types.
+The ones out of their fruiting months are listed too: their `season` condition is "not_met" and
+the front puts them after the ones in season (the score already weighs the month down); the
+`excellent` list keeps only those in season. Its score is the v2 index with the species' own
+thermal range.
 The backend returns codes and values; the front writes the sentences.
 """
 import calendar
@@ -288,8 +291,7 @@ def species_for_point(
         if (not fit.compatible or forest["status"] == "not_met"
                 or forest_factor * soil_factor < MIN_FACTOR):
             continue
-        if sp.fruiting_months and ref.month not in sp.fruiting_months:
-            continue
+        in_season = not sp.fruiting_months or ref.month in sp.fruiting_months
         series = compute_v2_series(window, elevation, sp.params, output_from=ref)
         if not series or series[-1].date != ref:
             continue
@@ -315,7 +317,8 @@ def species_for_point(
                     "soil": _soil(soil_hit, habitat.soil if habitat else None),
                     "altitude": _cond("not_met" if fit.fit is Fit.LIMIT else "met",
                                       fit=fit.fit.value),
-                    "season": _cond("met", months=list(sp.fruiting_months)),
+                    "season": _cond(
+                        "met" if in_season else "not_met", months=list(sp.fruiting_months)),
                     "temperature": _temperature(sp, upto),
                     "rain": _rain(sp, upto, result.pending_rains),
                     "cycle": _cycle(sp, upto, ref),
@@ -326,7 +329,8 @@ def species_for_point(
         )
 
     items.sort(key=lambda i: (not i["followed"], -i["score"], i["scientific_name"]))
-    excellent = sorted((i for i in items if i["edibility"] in EXCELLENT),
+    excellent = sorted((i for i in items if i["edibility"] in EXCELLENT
+                        and i["conditions"]["season"]["status"] == "met"),
                        key=lambda i: (-i["score"], i["scientific_name"]))
     return {
         "date": ref.isoformat(),

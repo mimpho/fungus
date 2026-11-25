@@ -166,12 +166,22 @@ export function speciesName(id, scientific, catalog) {
   return entry?.commonNames?.[0] || scientific || id
 }
 
-/** Rows for the list, in the order the backend sent (followed first, then by score). */
+/** Month (1–12) of an ISO day, or null. */
+const monthOf = iso => (/^\d{4}-\d{2}/.test(iso ?? '') ? Number(iso.slice(5, 7)) : null)
+
+/**
+ * Rows for the list. Each row says whether the species is in its fruiting months on the answer's date (`inSeason`, with
+ * its `months`: none recorded means all year). Order them with `sortRows`.
+ */
 export function buildRows(data, catalog, t, lang) {
+  const month = monthOf(data?.date)
   return (data?.species ?? []).map(item => {
     const band = getScoreBand(item.score)
+    const months = item.conditions?.season?.values?.months ?? []
     return {
       id: item.id,
+      months,
+      inSeason: !months.length || month == null || months.includes(month),
       name: speciesName(item.id, item.scientific_name, catalog),
       scientific: item.scientific_name,
       photo: catalog?.get?.(item.id)?.photo?.url ?? null,
@@ -185,6 +195,34 @@ export function buildRows(data, catalog, t, lang) {
       conditions: buildConditionLines(item, t, lang),
     }
   })
+}
+
+/**
+ * The zone's list order: the species in season first (followed ones first, then by score), then the ones out of season,
+ * by name. The score of an out-of-season species is not shown, so it does not rank them.
+ */
+export function sortRows(rows, lang) {
+  const collator = new Intl.Collator(LOCALES[lang] ?? LOCALES.es)
+  const followed = (a, b) => Number(b.followed) - Number(a.followed)
+  const inSeason = rows.filter(r => r.inSeason).sort((a, b) => followed(a, b) || b.score - a.score || collator.compare(a.name, b.name))
+  const outOfSeason = rows.filter(r => !r.inSeason).sort((a, b) => followed(a, b) || collator.compare(a.name, b.name))
+  return [...inSeason, ...outOfSeason]
+}
+
+/**
+ * The line under the zone's sheet title: how many species in season have excellent conditions and how many good or very good
+ * ones («Ara: 2 excel·lents · 5 bones»). `until` is the day the user picked (null = the last day: «Ara»). Null with no rows.
+ */
+export function seasonSummary(rows, until, t, lang) {
+  if (!rows.length) return null
+  const live = rows.filter(r => r.inSeason)
+  const excellent = live.filter(r => r.band.key === 'high').length
+  const good = live.filter(r => r.band.key === 'good' || r.band.key === 'ok').length
+  const parts = []
+  if (excellent) parts.push(fill(excellent === 1 ? t.obsSpSumExcOne : t.obsSpSumExcMany, { n: excellent }, lang))
+  if (good) parts.push(fill(good === 1 ? t.obsSpSumGoodOne : t.obsSpSumGoodMany, { n: good }, lang))
+  const prefix = until ? fill(t.obsSpSumOn, { date: until }, lang) : t.obsSpSumNow
+  return `${prefix} ${parts.length ? parts.join(' · ') : t.obsSpSumNone}`
 }
 
 /** Day used in «Datos del …» texts, re-exported so the panel needs one import. */

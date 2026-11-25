@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Table2 } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { Tabs } from '../ui/Tabs'
 import { ObsSelect } from './ObsSelect'
@@ -11,6 +12,7 @@ import {
 } from '../../lib/chartData'
 import { formatDay } from '../../lib/thermometer'
 import { dragWindow } from '../../lib/timeline'
+import { EventsList } from './EventsList'
 
 // Literal colours: the chart is SVG drawn from numbers, the same in both themes.
 const RAIN = '#4a8fb8', AIR = '#d08a3c', SOIL = '#8a6a45', SOIL_DARK = '#5a3b1e', RANGE_RED = '#e5484d', ACC_BLUE = '#2f7fe8', GOOD = '#4a7c59', WARN = '#c98a40', WIND = '#7b8794', WIND_LINE = '#c9d0d8'
@@ -506,7 +508,7 @@ function DataTable({ days }) {
 /**
  * The weather chart of the observed point: Momento (the score), Lluvia, Temperatura, Humedad and
  * Viento over a window of days ending at the last day with data. Triggers and brakes are drawn as
- * numbered circles with the same numbers as the list beside it. `vm` is prepareSeries().
+ * numbered circles with the same numbers as the list at the foot of its card. `vm` is prepareSeries().
  */
 export function WeatherChart({ vm, timeline, speciesName, range, future = [], tail = [] }) {
   const { t } = useApp()
@@ -537,12 +539,27 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [], ta
     <article aria-labelledby={`${uid}-h`} className={`glass obs-card rounded-2xl space-y-4 min-w-0 ${phone ? 'p-4' : 'p-[22px]'}`}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h3 id={`${uid}-h`} className="font-display text-[27px] leading-tight text-cream">{t.obsChTitle}</h3>
+        {/* The same series as a table: another way of seeing the chart, so it sits with its title (the label is only the icon on a phone) */}
+        {vm.hasData && (
+          <button
+            type="button"
+            onClick={() => setShowTable(true)}
+            aria-haspopup="dialog"
+            aria-label={t.obsChShowTable}
+            title={t.obsChShowTable}
+            data-testid="chart-table-open"
+            className="inline-flex items-center gap-2 min-h-[36px] px-2.5 sm:px-3.5 rounded-xl glass obs-btn text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all outline-none focus-visible:ring-2 focus-visible:ring-cream/50"
+          >
+            <Table2 size={16} aria-hidden="true" />
+            <span className="hidden sm:inline">{t.obsChShowTable}</span>
+          </button>
+        )}
       </div>
 
       {phone ? (
         <div>
           <label htmlFor={`${uid}-tab`} className="sr-only">{t.obsChTabsLabel}</label>
-          <ObsSelect id={`${uid}-tab`} value={tab} onChange={e => setTab(e.target.value)} className="w-full [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)] [[data-theme=light]_&_select]:!text-[var(--ui-filter-pill-text)] [[data-theme=light]_&_svg]:!text-[var(--ui-filter-pill-text)]">
+          <ObsSelect id={`${uid}-tab`} value={tab} onChange={e => setTab(e.target.value)} className="w-full [[data-theme=light]_&_select]:!bg-[var(--ui-filter-pill-bg)]">
             {TABS.map(id => <option key={id} value={id}>{t[TAB_KEY[id]]}</option>)}
           </ObsSelect>
         </div>
@@ -600,24 +617,14 @@ export function WeatherChart({ vm, timeline, speciesName, range, future = [], ta
             </div>
           </div>
         )}
+        {/* The numbered events of the circles, behind a button so a window with few of them leaves no empty card */}
+        {vm.hasData && <EventsList vm={vm} />}
       </div>
 
-      {vm.hasData && (
-        <>
-          <button
-            type="button"
-            onClick={() => setShowTable(true)}
-            aria-haspopup="dialog"
-            className="px-4 py-2 rounded-xl glass obs-btn text-cream text-sm font-medium hover:[background-color:var(--ui-surface-hover)] transition-all"
-          >
-            {t.obsChShowTable}
-          </button>
-          {showTable && (
-            <ObsModal title={t.obsChTable} wide onClose={() => setShowTable(false)}>
-              <DataTable days={vm.days} />
-            </ObsModal>
-          )}
-        </>
+      {showTable && (
+        <ObsModal title={t.obsChTable} wide onClose={() => setShowTable(false)}>
+          <DataTable days={vm.days} />
+        </ObsModal>
       )}
     </article>
   )

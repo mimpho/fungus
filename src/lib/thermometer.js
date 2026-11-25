@@ -120,17 +120,29 @@ export function buildPending(snap, t, lang) {
   }
 }
 
+// Points the score has to move in the window to say it is rising or falling (less is «steady»)
+const TREND_STEP = 8
+const TREND = { up: ['trend-up', 'obsThTrendUp'], flat: ['trend-flat', 'obsThTrendFlat'], down: ['trend-down', 'obsThTrendDown'] }
+
+/** The score's trend over the snapshot's window (`trend` of /point/snapshot), or null when the server sent none. */
+function trendTile(snap, t, lang) {
+  const tr = snap.trend
+  if (tr?.delta == null) return null
+  const [icon, tKey] = TREND[tr.delta >= TREND_STEP ? 'up' : tr.delta <= -TREND_STEP ? 'down' : 'flat']
+  const signed = `${tr.delta > 0 ? '+' : tr.delta < 0 ? '−' : ''}${Math.abs(tr.delta)}`
+  return { key: 'trend', icon, label: t.obsThTileTrend, value: t[tKey], sub: fill(t.obsThTrendSub, { delta: signed, days: tr.days }, lang) }
+}
+
 export function buildTiles(snap, t, lang) {
   const k = snap.key_facts ?? {}
   const tiles = [
-    { key: 'state', icon: snap.warm ? 'trend-up' : 'trend-down', label: t.obsThTileState, value: snap.warm ? t.obsThStateWarm : t.obsThStateCold,
-      sub: snap.warm ? t.obsThStateWarmSub : t.obsThStateColdSub },
+    trendTile(snap, t, lang),
     { key: 'water', icon: 'humidity', label: t.obsThTileWater, value: `${formatNumber(k.soil_water_mm, lang)} mm`,
       sub: fill(t.obsThWaterSub, { capacity: SOIL_CAPACITY_MM }, lang) },
     { key: 'soil', icon: 'soil-moisture', label: t.obsThTileSoil, value: `${formatNumber(k.soil_temp_7d_c, lang)} °C`,
       sub: k.last_night_min_c != null ? fill(t.obsThSoilSub, { last_night_min_c: k.last_night_min_c }, lang) : null },
   ]
-  return tiles.filter(x => !x.value.startsWith('NaN') && !x.value.startsWith('undefined'))
+  return tiles.filter(Boolean).filter(x => !x.value.startsWith('NaN') && !x.value.startsWith('undefined'))
 }
 
 function seasonWhy(snap, t) {

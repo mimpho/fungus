@@ -102,6 +102,14 @@ class TestSnapshot:
         }
         assert s["v1"] is not None and isinstance(s["pending_rains"], list)
 
+    def test_it_reports_how_the_score_moved_in_the_last_week(self):
+        now = build_snapshot(_rows(), TODAY, 667, 667)
+        week_ago = date.fromisoformat(now["date"]) - timedelta(days=7)
+        before = build_snapshot(_rows(), TODAY, 667, 667, on=week_ago)
+        assert now["trend"] == {
+            "days": 7, "from_score": before["score"], "delta": now["score"] - before["score"],
+        }
+
     def test_it_follows_the_requested_date(self):
         on = TODAY - timedelta(days=20)
         assert build_snapshot(_rows(), TODAY, 667, 667, on=on)["date"] == on.isoformat()

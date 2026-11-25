@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Binoculars, ChevronDown, X } from 'lucide-react'
+import { Binoculars, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useApp } from '../../contexts/AppContext'
 import { fetchPointForest } from '../../services/observatoryService'
 import { formatCoords } from '../../lib/observatoryView'
@@ -259,35 +259,26 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
             ].filter(Boolean).join(' · ')}
           </p>
         </div>
-        {sheet ? (
+        {/* The cross takes the point off the map, folded or open; desktop adds the chevron that folds and unfolds the card (on the phone the handle does it) */}
+        <div className={`shrink-0 flex items-center ${sheet ? '' : userFolded ? 'mt-[5.5px]' : '-mt-1'}`}>
           <button
+            type="button"
             onClick={requestClose}
-            aria-label={t.obsPointClose}
-            className="shrink-0 p-1.5 rounded-lg text-cream/60 hover:text-cream hover:bg-white/10 transition-colors"
-          >
-            ✕
-          </button>
-        ) : (
-          // Desktop card: the same two buttons, in the same place and size, as the species' card (fold, close)
-          <div className={`shrink-0 flex ${userFolded ? 'mt-[5.5px]' : '-mt-1'}`}>
-            {!userFolded && (
-              <button
-                type="button"
-                onClick={() => setUserFolded(true)}
-                aria-label={t.obsSheetHandle}
-                title={t.obsSheetHandle}
-                className="w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
-              ><ChevronDown size={20} aria-hidden="true" /></button>
-            )}
+            aria-label={t.obsPointRemove}
+            title={t.obsPointRemove}
+            className={`w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60 ${sheet ? '-mt-[6px] -mr-2' : ''}`}
+          ><X size={20} aria-hidden="true" /></button>
+          {!sheet && (
             <button
               type="button"
-              onClick={requestClose}
-              aria-label={t.obsPointClose}
-              title={t.obsPointClose}
-              className="w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream/70 hover:text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
-            ><X size={20} aria-hidden="true" /></button>
-          </div>
-        )}
+              onClick={() => setUserFolded(f => !f)}
+              aria-label={t.obsSheetHandle}
+              aria-expanded={!userFolded}
+              title={t.obsSheetHandle}
+              className="-mr-2.5 w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
+            >{userFolded ? <ChevronUp size={20} aria-hidden="true" /> : <ChevronDown size={20} aria-hidden="true" />}</button>
+          )}
+        </div>
       </div>
 
       {corner && (

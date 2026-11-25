@@ -73,7 +73,7 @@ export function ProfileCorners({ saved }) {
       )}
 
       {open && (
-        <ObsModal title={t.obsSavedListTitle} onClose={() => setOpen(false)} wide sheet>
+        <ObsModal title={t.obsSavedListTitle} onClose={() => setOpen(false)} wide>
           <SavedPointsList saved={saved} observed={null} onSelect={go} />
         </ObsModal>
       )}
