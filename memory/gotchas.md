@@ -468,6 +468,9 @@ The shared class draws the placeholder at 0.55 opacity (cream on `#4c5240`). Whe
 ### ⚠️ Safe areas: use `--safe-top` / `--safe-bottom`, and only Layout touches the viewport meta
 `viewport-fit=cover` is set by `Layout` (the Observatory, and wherever there is no header); a page setting it by itself would undo it on unmount. With `black-translucent` the iPhone's installed app draws under the status bar (white icons): anything fixed to the top adds `var(--safe-top)`, and scrolling pages get `.status-strip`. To try it on a computer, set `--safe-top` on `<html>`. Not yet seen on a real iPhone.
 
+### ⚠️ A phone's fullscreen: what reaches the middle stays below the camera
+It gains the top of the screen, with the camera in the middle. Anything wide or centred (a search, a title) keeps clear: the sticky searches use `--float-menu-top` (the same as `fullscreenTop`, `max(safe + 12 px, 76 px)`) and the page starts at `max(safe + 8 px, 28 px)`. These rules are for a phone's fullscreen only (`underCamera` in `Layout`, `inStrip` in `FloatingMenu`), whether the app's or the browser's (`useFullscreen`); the menu button, in a corner, goes 16 px from the top.
+
 ### ⚠️ Lock the page's scroll only through `lockScroll()`
 From the Observatory, picking a section in the mobile menu left every page unable to scroll until a reload: the map and the menu each saved and restored `body.style.overflow`, the map (unmounting) let go first and the menu then put back the map's `hidden`. `src/lib/scrollLock.js` counts the holders; never write `body.style.overflow` directly.
 

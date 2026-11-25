@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — the sticky search under the camera, and pages starting too low in a phone's fullscreen (2026-11-26, branch `fix/headerless-sticky-search`)
+
+- **Only a phone's fullscreen** (under 640 px; the installed app or the browser's, on any page; not the iPhone's app): the sticky search of Catálogo and Zonas sits at the height of the map's search (`max(safe area + 12 px, 76 px)`), below the menu button and with the whole width. It was 16 px from the top, under the camera and shortened.
+- There the pages start `max(safe area + 8 px, 28 px)` from the top, instead of the safe area plus the margin meant to go under the header.
+- In the browser's fullscreen, the other pages now put the menu button 16 px from the top too (only the map and the installed app did).
+- The sticky search takes over when the page's own one reaches the height it sits at, with or without a header.
+- Everywhere else nothing changes.
+- `npm run build` passes. Measured in the built-in browser on Catálogo with the fullscreen **simulated** (phone and desktop, in and out); Inicio, Micología and Perfil were seen before the margin was limited to phones. **Not seen:** Zonas, the family pages, standalone without fullscreen, a real device.
+
 ### Fixed — the page stuck without scroll, and a dark strip in the Android app (2026-11-25, branch `fix/fullscreen-status-strip`)
 
 - **Scroll:** choosing a section in the mobile menu while on the Observatory left every page unable to scroll until a reload: the map and the menu each saved and restored `body.style.overflow`, and the menu put back the map's `hidden`. Both now go through `src/lib/scrollLock.js`, which frees the page when the last holder lets go.

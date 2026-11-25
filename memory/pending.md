@@ -36,11 +36,12 @@ The epic is closed in the retrospective of 2026-11-05 (changes in `system/workfl
 - **Open points.** (1) Which series get the overlay: rain (accumulated) and temperature are direct; the previous year's **score** needs the scoring model run for that year (heavier, a second phase). (2) The forecast part of the window has no previous year: the overlay covers only the past days. (3) 29 February. (4) Phone: the timeline is not shown there, so the checkboxes need a place (a menu or a row under the chart). (5) Which cells to backfill: all 423, or only those with saved points or opened by someone.
 - **Next step when it is taken up.** Marcos runs a `SELECT` on `cells` (count of loaded cells and their `loaded_from`) to size the backfill; then backend (depth + backfill script by batches), then front end (checkboxes and line-only curves for rain and temperature), then the score if it is worth it. A paid Open-Meteo plan (item 2 of the 429 section) would make the backfill much easier; related loose end: `compare_years` (inherited, see Loose ends).
 
-## 🟡 No header and fullscreen PWA — to check after the deploy (`feat/floating-menu-immersive`, `fix/fullscreen-menu-button`, `fix/fullscreen-status-strip`, 2026-11-25)
+## 🟡 No header and fullscreen PWA — to check after the deploy (`feat/floating-menu-immersive`, `fix/fullscreen-menu-button`, `fix/fullscreen-status-strip`, `fix/headerless-sticky-search`, 2026-11-25 and 26)
 
 Only seen simulated. The Android app installed after #200 already reports `display: fullscreen` (`chrome://webapks`). Marcos, after the deploy, on a real phone, closing the app for good and opening it again (the manifest has not changed since #200):
 
 0. **After `fix/fullscreen-status-strip`:** no strip at the top of the home page, the menu button does not move a moment after opening, and from the Observatory the other sections scroll with a finger.
+0b. **After `fix/headerless-sticky-search`:** in fullscreen, the sticky search of Catálogo and Zonas level with the map's search and clear of the camera; the page titles clear of it too, in Inicio, Catálogo, Micología, Perfil and a family page.
 1. **Android, installed app:** it opens without the system bars; a swipe from the edge shows them and the screen is right after they hide.
 2. **Edges (why #193 was reverted: too close to the top and bottom):** the map's bottom tab bar (with a bottom inset of 0 it keeps only 10 px), dialogs, footer; `viewport-fit=cover` is now on every page there.
 3. **Camera:** it covers neither the menu button (52 px at 16 px from the top, search at 76 px or more) nor the content of the other pages.

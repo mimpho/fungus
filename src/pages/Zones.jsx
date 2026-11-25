@@ -73,6 +73,7 @@ export default function Zones() {
   const [searchBarInView, setSearchBarInView] = useState(true)
   const searchBarRef    = useRef(null)
   const barRef          = useRef(null)   // ref sobre el propio SearchFilterBar para medir posición exacta
+  const stickyRef       = useRef(null)   // the fixed copy of the bar: how high it sits depends on whether there is a header
   const stickyUpdateRef = useRef(null)   // guarda la fn update para llamarla fuera del scroll effect
   const [barRect, setBarRect] = useState(null)
   // showStickyBar: searchBarInView es la única autoridad. Si el inline bar está a la vista → sticky oculto.
@@ -103,7 +104,9 @@ export default function Zones() {
       if (!barRef.current) return
       const top          = barRef.current.getBoundingClientRect().top
       const headerBottom = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0
-      setSearchBarInView(top >= 24 || headerBottom > 24)
+      // The fixed bar takes over when the page's one reaches the height it sits at (24px under a header; lower without one)
+      const stickTop     = (stickyRef.current && parseFloat(getComputedStyle(stickyRef.current).top)) || 24
+      setSearchBarInView(top >= stickTop || headerBottom > 24)
     }
     stickyUpdateRef.current = update
     update()
@@ -377,6 +380,7 @@ export default function Zones() {
     {/* ── Sticky bar: siempre renderizada cuando barRect existe; CSS transition para entrada/salida ── */}
     {barRect && (
       <div
+        ref={stickyRef}
         className={`fixed z-30 flex flex-col transition-[opacity,transform] duration-200 ease-out ${
           showStickyBar ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}

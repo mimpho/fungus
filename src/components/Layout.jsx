@@ -4,7 +4,8 @@ import { useApp } from '../contexts/AppContext'
 import { IC } from '../lib/helpers'
 import UserMenu, { AccountItems, MENU_ROW } from './UserMenu'
 import FloatingMenu from './FloatingMenu'
-import { isIosApp, useImmersive } from '../hooks/useImmersive'
+import { isIosApp, useFullscreen, useImmersive } from '../hooks/useImmersive'
+import { useIsPhone } from '../hooks/useIsPhone'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { lockScroll } from '../lib/scrollLock'
 import { CreditsModal } from './CreditsModal'
@@ -21,6 +22,11 @@ export default function Layout() {
   const immersive = useImmersive()
   const [mapState, setMapState] = useState({ fullscreen: false, covered: false })
   const noHeader = immersive || mapState.fullscreen
+  // A phone in fullscreen gains the top of the screen, with the camera in the middle of it: what reaches the middle
+  // (a search, a title) stays below the safe area, and the page starts higher than under a header's margin
+  const phone = useIsPhone()
+  const fullscreen = useFullscreen()
+  const underCamera = phone && fullscreen && !isIosApp()
   // `viewport-fit=cover` makes the safe-area insets real: on the Observatory (its tab bar runs down to the screen's
   // edge) and wherever there is no header, where every page handles them. One owner, so no page undoes another's.
   const coverViewport = noHeader || pathname === '/observatorio'
@@ -205,10 +211,11 @@ export default function Layout() {
           When the header is measured by ResizeObserver, the spacer adjusts automatically
           if the mobile menu expands it. */}
       {!noHeader && <div style={{ height: headerH }} aria-hidden="true" />}
-      {/* Without a header: the pages start below the status bar, and what scrolls goes behind a strip. The map runs under it */}
+      {/* Without a header, outside a phone's fullscreen: the page keeps its margin below the safe area, and what scrolls goes
+          behind a strip on the iPhone's app. The map runs under the status bar */}
       {noHeader && !fullBleed && (
         <>
-          <div style={{ height: 'var(--safe-top)' }} aria-hidden="true" />
+          {!underCamera && <div style={{ height: 'var(--safe-top)' }} aria-hidden="true" />}
           <div className="status-strip fixed top-0 inset-x-0 z-30" aria-hidden="true" />
         </>
       )}
@@ -245,7 +252,8 @@ export default function Layout() {
         </div>
       )}
 
-      <main className={fullBleed ? undefined : 'max-w-7xl mx-auto px-4 py-8'}>
+      {/* A phone's fullscreen: the page starts just below the safe area, never closer than 28px */}
+      <main className={fullBleed ? undefined : `max-w-7xl mx-auto px-4 ${underCamera ? 'pb-8 pt-[max(calc(var(--safe-top)+8px),28px)]' : 'py-8'}`}>
         <Outlet context={{ noHeader, setMapState }} />
       </main>
 
