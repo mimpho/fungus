@@ -874,10 +874,10 @@ export const mockSpecies = [
     sporePrint: "Crema-rosada",
     altitud_min: 200, altitud_max: 1800,
     distribucion: ["España", "Cataluña", "Toda la Península Ibérica"],
-    photo: { url: "assets/images/content/species/esp-002-main.jpg", largeUrl: "assets/images/content/species/esp-002-main-large.jpg" },
+    photo: { url: "assets/images/content/species/esp-035-main.jpg", largeUrl: "assets/images/content/species/esp-035-main-large.jpg" },
     photos: [
-      { url: "assets/images/content/species/esp-002-foto1.jpg", largeUrl: "assets/images/content/species/esp-002-foto1-large.jpg" },
-      { url: "assets/images/content/species/esp-002-foto2.jpg", largeUrl: "assets/images/content/species/esp-002-foto2-large.jpg" },
+      { url: "assets/images/content/species/esp-035-foto1.jpg", largeUrl: "assets/images/content/species/esp-035-foto1-large.jpg" },
+      { url: "assets/images/content/species/esp-035-foto2.jpg", largeUrl: "assets/images/content/species/esp-035-foto2-large.jpg" },
     ],
     temp_optima_min: 10.0, temp_optima_max: 18.0,
     humedad_min: 65.0, humedad_optima: 78.0,
