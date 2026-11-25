@@ -84,12 +84,13 @@ Compared with `public/assets/images/content/species/`. Not found elsewhere in th
 
 `esp-070-main` (*Pleurotus ostreatus*) is the same file as `esp-073-foto1` (*Pleurotus pulmonarius*), in both sizes. **Open:** which species it shows (check against a reliable source) and what replaces it in the other. Only exact copies were searched for; no photo was checked by eye against its species.
 
-## 🟡 No header and fullscreen PWA — to check after the deploy (`feat/floating-menu-immersive`, `fix/fullscreen-menu-button`, `fix/fullscreen-status-strip`, `fix/headerless-sticky-search`, 2026-11-25 and 26)
+## 🟡 No header and fullscreen PWA — to check after the deploy (`feat/floating-menu-immersive`, `fix/fullscreen-menu-button`, `fix/fullscreen-status-strip`, `fix/headerless-sticky-search`, `fix/floating-menu-scroll`, 2026-11-25 and 26)
 
 Only seen simulated. The Android app installed after #200 already reports `display: fullscreen` (`chrome://webapks`). Marcos, after the deploy, on a real phone, closing the app for good and opening it again (the manifest has not changed since #200):
 
 0. **After `fix/fullscreen-status-strip`:** no strip at the top of the home page, the menu button does not move a moment after opening, and from the Observatory the other sections scroll with a finger.
 0b. **After `fix/headerless-sticky-search`:** in fullscreen, the sticky search of Catálogo and Zonas level with the map's search and clear of the camera; the page titles clear of it too, in Inicio, Catálogo, Micología, Perfil and a family page.
+0c. **After `fix/floating-menu-scroll`:** scrolling with a finger, the menu button leaves and comes back as the header does (bare icon at the very top, round over content; check the sticky search of Catálogo meanwhile); the menu covers the whole screen and its cross closes it.
 1. **Android, installed app:** it opens without the system bars; a swipe from the edge shows them and the screen is right after they hide.
 2. **Edges (why #193 was reverted: too close to the top and bottom):** the map's bottom tab bar (with a bottom inset of 0 it keeps only 10 px), dialogs, footer; `viewport-fit=cover` is now on every page there.
 3. **Camera:** it covers neither the menu button (52 px at 16 px from the top, search at 76 px or more) nor the content of the other pages.
