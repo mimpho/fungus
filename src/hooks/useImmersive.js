@@ -31,6 +31,12 @@ export function useAppFullscreen() {
   return !useNativeFullscreen() && displayMode
 }
 
+/** True in any fullscreen, app or not: the installed app's, F11, or the one the map's switch asked the browser for. */
+export function useFullscreen() {
+  const displayMode = useMediaQuery('(display-mode: fullscreen)')
+  return useNativeFullscreen() || displayMode
+}
+
 /**
  * True when the site runs without the browser's chrome: opened as the installed app (standalone or
  * fullscreen display mode; `navigator.standalone` is iOS Safari's own flag) or in the browser's fullscreen.

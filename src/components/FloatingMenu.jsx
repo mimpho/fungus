@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useIsPhone } from '../hooks/useIsPhone'
-import { isIosApp, useAppFullscreen } from '../hooks/useImmersive'
+import { isIosApp, useFullscreen } from '../hooks/useImmersive'
 import { AccountItems, MENU_ROW } from './UserMenu'
 
 /**
@@ -20,17 +20,18 @@ export default function FloatingMenu({ navItems, raised = false }) {
   const buttonRef = useRef(null)
   const panelId = useId()
 
-  // Phone in fullscreen (the map's, or the whole app's): the button goes 16px from the top, whatever the safe area. On the
+  // Phone in fullscreen (the map's, or on any page: the app's or the browser's): the button goes 16px from the top, whatever the safe area. On the
   // map it then sits above the search, which keeps the whole width and starts 76px or more from the top (16 + 52 of the
   // button + 8, see fullscreenTop in pages/Observatory.jsx). Not in the iPhone's installed app: its status icons stay on top
-  const appFullscreen = useAppFullscreen()
-  const inStrip = (raised || appFullscreen) && phone && !isIosApp()
+  const fullscreen = useFullscreen()
+  const inStrip = (raised || fullscreen) && phone && !isIosApp()
 
-  // For the pages' own fixed bars (the sticky search): where to stop and how high to sit to be level with the button
+  // For the pages' own fixed bars (the sticky search). With the button in the strip they go below it, at the same height
+  // as the map's search in fullscreen (fullscreenTop), with the whole width; otherwise level with it, stopping before it
   useEffect(() => {
     const root = document.documentElement.style
-    root.setProperty('--float-menu-reserve', phone ? '76px' : '92px')
-    root.setProperty('--float-menu-top', inStrip ? '16px' : `calc(var(--safe-top) + ${phone ? 12 : 16}px)`)
+    root.setProperty('--float-menu-reserve', inStrip ? '0px' : phone ? '76px' : '92px')
+    root.setProperty('--float-menu-top', inStrip ? 'max(calc(var(--safe-top) + 12px), 76px)' : `calc(var(--safe-top) + ${phone ? 12 : 16}px)`)
     return () => {
       root.removeProperty('--float-menu-reserve')
       root.removeProperty('--float-menu-top')
