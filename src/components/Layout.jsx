@@ -78,6 +78,9 @@ export default function Layout() {
   const transitionRef      = useRef('none')    // 'none' during natural scroll, animated when snapping
   const [headerH,         setHeaderH]         = useState(0)
   const [headerTransform, setHeaderTransform] = useState(0)
+  // Away from its own place at the top of the page, so over content. Its own state: back at the very top the
+  // transform may not change
+  const [overContent, setOverContent]         = useState(false)
 
   // Measure header height with ResizeObserver.
   // Also publishes --header-h as a CSS variable (available to any child component).
@@ -99,7 +102,7 @@ export default function Layout() {
     return () => ro.disconnect()
   }, [noHeader])
 
-  // Scroll handler: two phases
+  // Scroll handler: two phases. It moves the header or, without one, the floating menu button (whose reach is in headerHRef)
   useEffect(() => {
     let lastY       = window.scrollY
     let inputActive = false
@@ -124,6 +127,7 @@ export default function Layout() {
         transitionRef.current      = 'none'
         headerTransformRef.current = newT
         setHeaderTransform(newT)
+        setOverContent(y + newT > 1)
         lastY = y
         return
       }
@@ -133,6 +137,7 @@ export default function Layout() {
       if (Math.abs(delta) < 4) return
       if (inputActive) { lastY = y; return }
       lastY = y
+      setOverContent(true)
 
       if (delta < 0) {
         // Scroll up → snap sticky with animation
@@ -222,7 +227,12 @@ export default function Layout() {
 
       {noHeader ? (
         // Not under the observed zone's layer: its close cross is in the same corner
-        !(mapState.fullscreen && mapState.covered) && <FloatingMenu navItems={navItems} raised={mapState.fullscreen} />
+        !(mapState.fullscreen && mapState.covered) && (
+          // Over the map it stays put; on the other pages it leaves and comes back with the scroll, as the header does
+          <FloatingMenu navItems={navItems} raised={mapState.fullscreen}
+            scroll={fullBleed || mapState.fullscreen ? null : { offset: headerTransform, over: overContent, transition: transitionRef.current }}
+            onReach={reach => { headerHRef.current = reach }} />
+        )
       ) : (
         /* Fixed header: transform is managed by the scroll handler.
            In Phase 1 it moves up with the content naturally. In Phase 2 it snaps up on scroll-up. */
