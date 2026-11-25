@@ -30,7 +30,7 @@ async function copyText(text) {
  * What the point is, as a row of cards like the zone's conditions (icon, label, value): the comarca, the
  * coordinates, the altitude, the forest (the CREAF's classes around the point, or the ICGC's broad type where the
  *  server has no CREAF raster: `macro`) and the soil (acidity with its typical pH). The coordinates card is a button: it copies them to the clipboard and a toast says so for a few seconds. The cards are the same surface as the zone's other cards (`glass`), without their shadow. The cards without data are left
- * out, and the sources go under them. Each card is at least 150 px wide and they share the row; where they do not fit, the row scrolls sideways. The coordinates are the zone's title when there is no toponym, so they are not repeated.
+ * out, and the sources go under them. Each card is at least 100 px wide on a phone (the comarca's card, the narrowest, was 83) and 170 px from sm up, and they share the row; where they do not fit, the row scrolls sideways. The coordinates are the zone's title when there is no toponym, so they are not repeated.
  */
 export function PointFacts({ point, toponym, elevation, habitat, macro = null, className = '' }) {
   const { t, lang } = useApp()
@@ -77,7 +77,7 @@ export function PointFacts({ point, toponym, elevation, habitat, macro = null, c
             key={c.key}
             data-testid={`fact-${c.key}`}
             {...(c.onClick ? { type: 'button', onClick: c.onClick, title: t.obsFactCoordsCopy, 'aria-label': `${t.obsFactCoords}: ${c.lines[0].text}. ${t.obsFactCoordsCopy}` } : {})}
-            className={`glass rounded-xl py-2.5 px-3 sm:py-3 sm:px-0 text-center flex-[0_0_auto] sm:flex-[1_0_auto] sm:min-w-[170px] flex flex-col justify-center ${c.onClick ? 'cursor-pointer outline-none transition-colors hover:bg-white/[0.08] [[data-theme=light]_&]:hover:bg-white/75 focus-visible:ring-2 focus-visible:ring-cream/40' : ''}`}
+            className={`glass rounded-xl py-2.5 px-3 sm:py-3 sm:px-0 text-center flex-[0_0_auto] min-w-[100px] sm:flex-[1_0_auto] sm:min-w-[170px] flex flex-col justify-center ${c.onClick ? 'cursor-pointer outline-none transition-colors hover:bg-white/[0.08] [[data-theme=light]_&]:hover:bg-white/75 focus-visible:ring-2 focus-visible:ring-cream/40' : ''}`}
           >
             <div className="h-[28px] sm:h-[36px] mb-1 flex items-center justify-center text-cream/70 [&_img]:h-full [&_img]:w-auto [&_svg]:h-full [&_svg]:w-auto" aria-hidden="true">
               {c.icon ? <img src={`/assets/images/icons/${c.icon}.png`} alt="" height="36" width="36" /> : c.node}

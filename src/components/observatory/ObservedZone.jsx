@@ -153,9 +153,9 @@ export function ObservedZone({ point, saved, until = null, days, onWindow, speci
               <Thermometer snap={snap.data} note={thermoNote} />
             </div>
           )}
-          {/* One column: the species list is a card of the flow, after the thermometer (from lg up it is the right column's) */}
+          {/* One column: the species list is a card of the flow, after the thermometer (from lg up it is the right column's); 46 rem (828 px) so that six cards show whole */}
           {single && (
-            <div className="h-[28rem]">
+            <div className="h-[46rem]">
               <SpeciesPanel state={speciesList} selected={speciesId} onSelect={setSpeciesId} summary={sheetSummary} />
             </div>
           )}
