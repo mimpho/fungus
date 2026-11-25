@@ -2,11 +2,12 @@
  * ResetPassword — landing page for the password-recovery link.
  *
  * Route: /restablecer-contrasena?token=<token>
- * The person picks a new password; on success they are sent to the login (the server does not
- * sign them in).
+ * The person picks a new password. The reset does not sign anyone in, and a session that was open
+ * in this browser is closed (as after any password change): the success screen offers the login,
+ * and once the person has signed in they are taken to the home page.
  */
-import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useApp } from '../contexts/AppContext'
 import { apiResetPassword, translateApiError } from '../services/authService'
 
@@ -41,7 +42,8 @@ const INPUT = 'w-full surface-input rounded-xl px-4 py-2.5 text-cream text-sm ou
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams()
-  const { t, setAuthModal } = useApp()
+  const { t, user, logout, setAuthModal } = useApp()
+  const navigate = useNavigate()
   const token = searchParams.get('token')
 
   const [state, setState] = useState(token ? STATE.FORM : STATE.INVALID)
@@ -50,6 +52,11 @@ export default function ResetPassword() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  // Signed in from the success screen (the login modal closes itself): there is nothing left to do here
+  useEffect(() => {
+    if (state === STATE.SUCCESS && user) navigate('/', { replace: true })
+  }, [state, user, navigate])
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (password !== confirm) { setError(t.resetMismatch); return }
@@ -57,6 +64,9 @@ export default function ResetPassword() {
     setLoading(true)
     try {
       await apiResetPassword(token, password)
+      // A session left open in this browser (a restored one, Google's) ends here, so the login that
+      // follows is a real one; the success screen is only shown once it is closed
+      if (user) await logout().catch(() => {})
       setState(STATE.SUCCESS)
     } catch (err) {
       if (err.message === 'Invalid or expired reset token') setState(STATE.INVALID)

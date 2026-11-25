@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — the password reset page and a session already open (2026-11-25, branch `fix/password-reset-session`)
+
+- After choosing a new password, a session left open in that browser (one restored from the refresh cookie, or Google's) is closed, as after any password change; the success screen then offers «Iniciar sesión» and it is a real login. Before, the person was still signed in, the login modal signed them in again and closed, and they stayed on «Contraseña actualizada» as if nothing had happened. Once signed in from that screen, the page takes them to the home page (`pages/ResetPassword.jsx`).
+
 ### Added — password recovery by email (2026-11-25, branch `feat/password-reset`)
 
 - **Back end.** `POST /auth/forgot-password` (always 202 with the same message, whether or not the email is registered; the email goes out after the response; a Google-only account gets the link too and can set a password: it then signs in with Google or with email and password; a second request within 60 s keeps the first link) and `POST /auth/reset-password` (400 for an invalid, expired or used token; it also clears the browser's refresh cookie). The token is single-use and valid for 1 hour; the database keeps only its SHA-256 (`password_reset_token_hash`, `password_reset_expires_at`; Alembic `022`, applied on the back end's start-up). Opening the link marks the email as verified. New email template in `services/email.py`.
