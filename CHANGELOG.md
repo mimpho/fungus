@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — the floating menu button follows the scroll, and the phone's menu takes the whole screen (2026-11-26, branch `fix/floating-menu-scroll`)
+
+- **Where there is no header, outside the map:** the menu button behaves like the header: it leaves with the page on the way down and comes back, fixed, on the way up. In its own place at the top it is a bare icon; the round button with its shadow is for when it lies over content. On the Observatory it stays put and round, as before.
+- **Phone (under 640 px):** the menu is no longer a floating card: it covers the whole screen, as under the header, with the sections and the account's entries below the button, which turns into a bare cross. The page behind does not scroll. Wider screens keep the card.
+- `npm run build` passes. Checked in the built-in browser with the fullscreen **simulated** (phone: scroll on Inicio and Catálogo, menu on Catálogo and the map; desktop: scroll and the card). **Not seen:** the gesture with a finger (the pane does not show the animations), Esc on the new menu, the iPhone's app, a real device.
+
 ### Fixed — Lactarius deliciosus showed the photos of Boletus aereus (2026-11-26, branch `fix/species-photos`)
 
 - esp-035 pointed at the main and gallery photos of esp-002, in `src/data/species.js` and in the database seeded from it; its own files were already in `public/assets/images/content/species/`. The six references in the catalogue are fixed, and `migrations/049_lactarius_deliciosus_photos.sql` fixes the row (it only touches it while it still points at esp-002).
