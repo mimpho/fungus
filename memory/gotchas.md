@@ -468,6 +468,12 @@ The shared class draws the placeholder at 0.55 opacity (cream on `#4c5240`). Whe
 ### ⚠️ Safe areas: use `--safe-top` / `--safe-bottom`, and only Layout touches the viewport meta
 `viewport-fit=cover` is set by `Layout` (the Observatory, and wherever there is no header); a page setting it by itself would undo it on unmount. With `black-translucent` the iPhone's installed app draws under the status bar (white icons): anything fixed to the top adds `var(--safe-top)`, and scrolling pages get `.status-strip`. To try it on a computer, set `--safe-top` on `<html>`. Not yet seen on a real iPhone.
 
+### ⚠️ Lock the page's scroll only through `lockScroll()`
+From the Observatory, picking a section in the mobile menu left every page unable to scroll until a reload: the map and the menu each saved and restored `body.style.overflow`, the map (unmounting) let go first and the menu then put back the map's `hidden`. `src/lib/scrollLock.js` counts the holders; never write `body.style.overflow` directly.
+
+### ⚠️ Fullscreen Android: a dark strip looks like the system bar, and a late `viewport-fit` jumps
+The installed app (#200) seemed to open in `standalone`: our own `.status-strip` painted a grey-olive band as tall as the camera's inset, and the menu button moved down a moment after opening because `viewport-fit=cover` was added after the first paint. The strip is for the iPhone's app only (`.ios-app`); in the installed app `index.html` sets `viewport-fit=cover` before the first paint.
+
 ### ⚠️ A fullscreen map reaches under the camera hole
 With `viewport-fit=cover` `env(safe-area-inset-top)` is real, but some browsers report 0 in fullscreen: the search bar and the hint start at `max(env + 12 px, 76 px)` while the phone is in fullscreen (the floating menu button, 52 px at 16 px from the top, sits above it) (`fullscreenTop` in `pages/Observatory.jsx`). To confirm on a real Android and iPhone.
 
