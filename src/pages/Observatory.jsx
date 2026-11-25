@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useOutletContext } from 'react-router-dom'
-import { isIosApp } from '../hooks/useImmersive'
+import { isIosApp, useAppFullscreen } from '../hooks/useImmersive'
 import { X } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
@@ -74,11 +74,11 @@ function storedForestClasses() {
 }
 
 // In fullscreen the map reaches the very top of the screen, under the phone's camera hole or notch: the search bar (and the hint
-// under it) start below the safe area (`viewport-fit=cover` makes env() real), and never closer than 52px to the top edge: for the
+// under it) start below the safe area (`viewport-fit=cover` makes env() real), and never closer than 76px to the top edge: for the
 // browsers that report no inset in fullscreen, and because the floating menu button sits above the search. `offset` is the usual distance from the map's top (12 for the bar, 80 for the hint).
 function fullscreenTop(offset) {
   return {
-    top: `max(calc(var(--safe-top) + ${offset}px), ${offset + 40}px)`,
+    top: `max(calc(var(--safe-top) + ${offset}px), ${offset + 64}px)`,
     left: 'max(12px, calc(env(safe-area-inset-left, 0px) + 12px))',
     right: 'max(12px, calc(env(safe-area-inset-right, 0px) + 12px))',
   }
@@ -235,7 +235,9 @@ export default function Observatory() {
   // fullscreen (iPhone Safari has none: there only the header goes). The state follows the browser leaving fullscreen by itself.
   // Starts on when the browser is already in fullscreen (the page was left through the menu and opened again)
   const [fullscreenState, setFullscreenState] = useState(() => Boolean(document.fullscreenElement || document.webkitFullscreenElement))
-  const fullscreen = fullscreenState
+  // The installed app opens in fullscreen: the map is laid out so from the start, with no switch to turn it off
+  const appFullscreen = useAppFullscreen()
+  const fullscreen = fullscreenState || appFullscreen
   // The phone's fullscreen reaches under the camera hole (see fullscreenTop). In the iPhone's installed app the status bar
   // stays, so there fullscreen is laid out as the app without it
   const safeTop = fullscreen && phone && !isIosApp()
@@ -355,7 +357,7 @@ export default function Observatory() {
     if (!pending && !fullscreen && !zoneOpen && !anyPanel) return
     const onKey = e => {
       if (e.key !== 'Escape' || isDialogAbove()) return // a dialog on top takes this Esc
-      if (fullscreen) exitFullscreen()
+      if (fullscreen && !appFullscreen) exitFullscreen()
       else if (zoneOpen) closeZone()
       else if (anyPanel) nav.close() // a map panel goes before the point's card
       else closePanelRef.current()
@@ -585,7 +587,7 @@ export default function Observatory() {
                 </div>
                 {nav.openTab === 'view' && (
                   <div className="absolute z-[1100] right-[104px] bottom-5 w-[360px]">
-                    <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemap} onClose={nav.close} fullscreen={fullscreen} onFullscreen={setFullscreenAfterFold} />
+                    <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemap} onClose={nav.close} fullscreen={fullscreen} onFullscreen={appFullscreen ? null : setFullscreenAfterFold} />
                   </div>
                 )}
               </>
@@ -622,7 +624,7 @@ export default function Observatory() {
                 panelId={NAV_PANEL_ID}
                 viewPanelId={VIEW_PANEL_ID}
                 renderPanel={tab => (tab === 'view'
-                  ? <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemapAfterFold} onClose={nav.close} flat fullscreen={fullscreen} onFullscreen={setFullscreenAfterFold} />
+                  ? <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemapAfterFold} onClose={nav.close} flat fullscreen={fullscreen} onFullscreen={appFullscreen ? null : setFullscreenAfterFold} />
                   : navPanel(tab, { flat: true }))}
                 reservePx={(speciesH > 24 ? speciesH - 24 : 0) + (pending ? Math.max(0, sheetH - 24) : 0)}
                 onHeight={setBarH}

@@ -55,8 +55,8 @@ export default function FloatingMenu({ navItems, raised = false }) {
   }, [open])
 
   const label = open ? t.menuClose : t.menuOpen
-  // Phone, map in fullscreen: the search starts 52px or more from the top (see fullscreenTop in pages/Observatory.jsx),
-  // so a 36px button fits above it, 8px from each, and the search keeps the whole width. Its press area is 44px.
+  // Phone, map in fullscreen: the button sits above the search, 16px from the top, and the search keeps the whole width:
+  // it starts 76px or more from the top (16 + 52 of the button + 8, see fullscreenTop in pages/Observatory.jsx).
   // Not in the iPhone's installed app: its status icons stay on top, so that strip is taken
   const inStrip = raised && phone && !isIosApp()
 
@@ -66,7 +66,7 @@ export default function FloatingMenu({ navItems, raised = false }) {
       className={`fixed ${raised ? 'z-[160]' : 'z-40'}`}
       // Phone: in the strip above the map's search, or level with the search where there is no strip. Desktop: centred over the map's tabs.
       style={phone
-        ? { top: inStrip ? 8 : 'calc(var(--safe-top) + 12px)', right: 'max(12px, calc(env(safe-area-inset-right, 0px) + 12px))' }
+        ? { top: inStrip ? 16 : 'calc(var(--safe-top) + 12px)', right: 'max(12px, calc(env(safe-area-inset-right, 0px) + 12px))' }
         : { top: 'calc(var(--safe-top) + 16px)', right: 28 }}>
       <button
         ref={buttonRef}
@@ -76,8 +76,8 @@ export default function FloatingMenu({ navItems, raised = false }) {
         title={label}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        className={`${inStrip ? 'relative w-[36px] h-[36px] before:absolute before:-inset-[4px]' : 'w-[52px] h-[52px]'} rounded-full map-surface shadow-float flex items-center justify-center text-cream hover:brightness-110 outline-none focus-visible:ring-2 focus-visible:ring-cream/50`}>
-        {open ? <X size={inStrip ? 18 : 24} aria-hidden="true" /> : <Menu size={inStrip ? 18 : 24} aria-hidden="true" />}
+        className="w-[52px] h-[52px] rounded-full map-surface shadow-float flex items-center justify-center text-cream hover:brightness-110 outline-none focus-visible:ring-2 focus-visible:ring-cream/50">
+        {open ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
       </button>
 
       {open && (
