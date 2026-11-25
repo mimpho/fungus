@@ -350,7 +350,7 @@ export default function Species() {
         className={`fixed z-30 flex flex-col transition-[opacity,transform] duration-200 ease-out ${
           showStickyBar ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
         }`}
-        style={{ top: 24, left: barRect.left, width: barRect.width, filter: 'drop-shadow(0 6px 24px rgba(0,0,0,0.5))' }}>
+        style={{ top: 'var(--float-menu-top, 24px)', left: barRect.left, width: barRect.width, maxWidth: `calc(100vw - var(--float-menu-reserve, 0px) - ${barRect.left}px)`, filter: 'drop-shadow(0 6px 24px rgba(0,0,0,0.5))' }}>
         <SearchFilterBar
           variant="split"
           value={searchQuery}
