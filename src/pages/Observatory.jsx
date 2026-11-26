@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useOutletContext } from 'react-router-dom'
-import { isIosApp, useAppFullscreen } from '../hooks/useImmersive'
+import { isIosApp, useAppFullscreen, useFullscreen } from '../hooks/useImmersive'
 import { X } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
 import { useObservatoryView } from '../hooks/useObservatoryView'
@@ -242,6 +242,10 @@ export default function Observatory() {
   // The phone's fullscreen reaches under the camera hole (see fullscreenTop). In the iPhone's installed app the status bar
   // stays, so there fullscreen is laid out as the app without it
   const safeTop = fullscreen && phone && !isIosApp()
+  // The zone's layer too, in any phone's fullscreen: its title reaches the middle, where the camera is, so its header comes
+  // down 8px, or what puts the title's line (about 48px down) 4px below a taller safe area. The bar of filters follows
+  const anyFullscreen = useFullscreen()
+  const zoneDrop = phone && anyFullscreen && !isIosApp() ? 'max(8px, calc(var(--safe-top) - 44px))' : '0px'
   const { noHeader, setMapState } = useOutletContext()
   useEffect(() => { setMapState({ fullscreen, covered: Boolean(zoneOpen) }) }, [fullscreen, zoneOpen, setMapState])
   useEffect(() => () => setMapState({ fullscreen: false, covered: false }), [setMapState])
@@ -660,9 +664,10 @@ export default function Observatory() {
               aria-modal="true"
               aria-label={t.obsTitle}
               className="page-gradient fixed inset-0 z-[150] overflow-y-auto overscroll-contain"
+              style={{ '--zone-drop': zoneDrop }}
             >
               {/* As tall as the site's header (--header-h, published by Layout), which the layer covers */}
-              <div ref={layerHeaderRef} className="sticky top-0 z-10 bg-modal/95 backdrop-blur-sm border-b border-white/[0.06]">
+              <div ref={layerHeaderRef} className="sticky top-0 z-10 pt-[var(--zone-drop)] glass-olive border-b border-white/[0.06] [[data-theme=light]_&]:border-[var(--border-default)]">
                 <div className="status-strip" aria-hidden="true" />
                 <div className="max-w-7xl mx-auto h-[var(--header-h,5.5rem)] flex items-center gap-3 px-4">
                   <div ref={setHeaderSlot} className="min-w-0 flex-1" />
@@ -679,7 +684,7 @@ export default function Observatory() {
               </div>
               {/* The zone's active filters (species, days): a bar under the header that keeps its place in the page and, when the zone scrolls up to it, stays fixed under the header. No background; its pills have a shadow only while it is fixed */}
               <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
-              <div ref={setFiltersSlot} data-stuck={filtersStuck} className="group sticky top-[calc(var(--header-h,5.5rem)+var(--safe-top)+1px)] z-10 pointer-events-none empty:hidden" />
+              <div ref={setFiltersSlot} data-stuck={filtersStuck} className="group sticky top-[calc(var(--header-h,5.5rem)+var(--strip-h)+var(--zone-drop)+1px)] z-10 pointer-events-none empty:hidden" />
               <div className="max-w-7xl mx-auto px-4 pt-6 pb-24 space-y-6">
                 {zoneEl}
                 <p className="text-xs text-cream/50 pt-4 border-t border-white/[0.06]">{t.obsDisclaimer}</p>
