@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed — the phone map's bottom bar takes the header's green (2026-11-26, branch `fix/map-bar-colour`)
+
+- In the dark theme the bar (and the Meteo, Zonas, Hábitat and Vista sheets that grow from it) goes from the map's surface (`#4c5240`) to `#394235`, the header's colour: its glass over the page's gradient, taken at its middle and made opaque so the satellite does not show through. New token `--map-bar-surface`.
+- The search, the floating buttons and the point's and species' sheets keep `--map-surface`. The light theme does not change (its map surface already is the header's colour).
+- `npm run build` passes. Seen in the built-in browser at phone size, in a normal tab; the light theme's value was read, not looked at. **Not seen:** the sheets open, fullscreen, a real device.
+
 ### Fixed — the observed zone's header in a phone's fullscreen (2026-11-26, branch `fix/zone-filter-offset`)
 
 - **Bar of filters:** on Android without a header it sat as far below the zone's header as the safe area is tall, over the cards: it added `--safe-top` while the strip it made room for is only the iPhone app's. Both now use `--strip-h`.

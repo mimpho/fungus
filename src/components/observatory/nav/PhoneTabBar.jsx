@@ -78,7 +78,7 @@ export function PhoneTabBar({ openTab, on, onToggle, panelId, viewPanelId, rende
       ref={ref}
       data-testid="phone-tab-bar"
       style={{ maxHeight: `calc(80% - ${reservePx}px)` }}
-      className="absolute z-[1110] inset-x-0 bottom-0 flex flex-col map-surface rounded-t-[24px] shadow-bottom"
+      className="absolute z-[1110] inset-x-0 bottom-0 flex flex-col map-bar-surface rounded-t-[24px] shadow-bottom"
     >
       <div
         ref={sheetRef}

@@ -147,6 +147,7 @@
   /* Observatory map navigation (epic/observatory-navigation). The floating controls of the map share
      one surface; the active tab, the open Vista button and the panel switch use the tokens below. */
   --map-surface:          var(--color-search-bg);
+  --map-bar-surface:      #394235;   /* the phone's bottom bar: the header's colour (--glass-olive over the page's gradient, at its middle), opaque */
   --nav-active:           #766a3e;   /* the design's gold-brown, darker than --color-bar for 4.5:1 with white */
   --switch-on:            var(--color-coffee-light);
   --switch-off:           rgba(var(--color-cream-rgb), 0.25);
@@ -290,6 +291,7 @@
 
   /* Observatory map navigation — light: the header's cream as a surface, the buttons' green (--color-bar) for active */
   --map-surface:          #f8f6f0;   /* the header's colour (white at 70 % over the page's cream), opaque: a translucent one lets the satellite show through the text */
+  --map-bar-surface:      var(--map-surface); /* here the map's surface is already the header's colour */
   --nav-active:           #667739;   /* olive darker than --color-bar (#758847, 3.9:1): 4.9:1 with white text */
   --switch-on:            var(--color-bar);
   --switch-off:           rgba(var(--color-cream-rgb), 0.35);
