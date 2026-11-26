@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed — the observed zone's header in a phone's fullscreen (2026-11-26, branch `fix/zone-filter-offset`)
+
+- **Bar of filters:** on Android without a header it sat as far below the zone's header as the safe area is tall, over the cards: it added `--safe-top` while the strip it made room for is only the iPhone app's. Both now use `--strip-h`.
+- **Title under the camera:** in a phone's fullscreen (not the iPhone app) the zone's header comes down 8 px, or more when the safe area is taller than 52 px; the bar of filters follows.
+- **Look:** the zone's header takes the site header's glass (`glass-olive`) instead of the near-opaque modal colour, at every width and in both themes.
+- `npm run build` passes. Checked in the built-in browser at phone size with the fullscreen and the safe area **simulated** (the glass in dark and light). **Not seen:** a real camera, the iPhone's app scrolled, desktop and a normal tab with the new glass.
+
 ### Changed — the floating menu button follows the scroll, and the phone's menu takes the whole screen (2026-11-26, branch `fix/floating-menu-scroll`)
 
 - **Where there is no header, outside the map:** the menu button behaves like the header: it leaves with the page on the way down and comes back, fixed, on the way up. In its own place at the top it is a bare icon; the round button with its shadow is for when it lies over content. On the Observatory it stays put and round, as before.
