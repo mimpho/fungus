@@ -468,6 +468,9 @@ The shared class draws the placeholder at 0.55 opacity (cream on `#4c5240`). Whe
 ### ⚠️ Safe areas: use `--safe-top` / `--safe-bottom`, and only Layout touches the viewport meta
 `viewport-fit=cover` is set by `Layout` (the Observatory, and wherever there is no header); a page setting it by itself would undo it on unmount. With `black-translucent` the iPhone's installed app draws under the status bar (white icons): anything fixed to the top adds `var(--safe-top)`, and scrolling pages get `.status-strip`. To try it on a computer, set `--safe-top` on `<html>`. Not yet seen on a real iPhone.
 
+### ⚠️ Under the iPhone's strip, add `--strip-h`, not `--safe-top`
+The status strip takes the safe area only in the iPhone's app (`--strip-h`, 0 elsewhere). The observed zone's bar of filters, sticky under that header, added `--safe-top` and on Android fell that far below it, over the cards.
+
 ### ⚠️ A transformed box keeps its `fixed` children inside
 The floating menu button moves with `translateY` as the page scrolls, so the phone's full-screen menu is its sibling, not its child: inside it, `fixed inset-0` would measure against the button's box. For the same reason the state «over content» is its own state in `Layout`: back at the very top the transform may keep its value and nothing would render again.
 
