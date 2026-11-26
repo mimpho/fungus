@@ -154,7 +154,7 @@ With no species, all of them are shown.
 - **Storage:** photos reuse the existing private bucket; how they are signed for other users is to be defined (Q6).
 - **Licences and attributions:** no new sources.
 - **Data:** (Marcos provides the places, Q9.) The zones are created **from the interface as administrator**, not with a data file in the repo, because **exact foraging coordinates never go into the repo or the Project**. The coordinates of a public zone are public by definition: it must be clear when the switch is turned on, and the administrator must not publish a place they want to keep secret.
-- **Open-Meteo quota:** every zone must fall inside the cells already loaded, so a user's first tap does not spend quota (6.4 of the base-map PRD). **Dependency to check before starting:** the load of the 423 cells in production (`ingest_cells.py load`, item 4 of the v7.2 deploy block in `memory/pending.md`) and the daily `cell_refresh` running.
+- **Open-Meteo quota:** every zone must fall inside the cells already loaded, so a user's first tap does not spend quota (6.4 of the base-map PRD). **Dependency to check before starting:** the load of the 423 cells in production (`ingest_cells.py load`; 423 loaded on 2026-11-20, see item 6 of the Open-Meteo 429 block in `memory/pending.md`) and the daily `cell_refresh` running.
 - **Rollback:** downgrade the migration and revert the merge; the public zones would become private rows of the administrator, nothing is lost.
 - **To check after deploy:** that a normal user does not see other users' private corners and cannot create, edit or delete public ones (tested with two accounts); that the zones appear on phone and desktop; ES / CA / EN, light and dark.
 
