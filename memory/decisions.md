@@ -4,6 +4,16 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## Meteo layers: one epic for rain, temperature and wind (2026-11-26)
+
+**Decision:** `epic/observatory-meteo` has one PRD (`memory/observatory-meteo-prd.md`) for the three layers. Rain goes first and is the only one specified; the other two are added to the same file when they are taken up. Each layer is merged into `main` when it is ready, an exception to the cadence rule of `system/workflows.spec.md` (a follow-up epic with its own PRD). With Lluvia on, the point card is the same and its headline figure is the accumulated mm of the active window, never next to the conditions percentage; a window with a missing day shows no partial total; «Observar» opens the zone on the slider's day.
+
+**Why:** Marcos wants to go on with the map and treats the missing Meteo tabs as one piece of work. One figure in the card keeps it compact and matching the map.
+
+**Discarded:** a PRD only for rain; both figures in the card.
+
+---
+
 ## Password recovery: a hashed single-use token, and Google accounts can set a password (2026-11-25, `feat/password-reset`)
 
 **Decision:** `POST /auth/forgot-password` and `POST /auth/reset-password`. The token is random (`secrets.token_urlsafe(32)`), valid for 1 hour and single-use; the database keeps only its SHA-256 (`users.password_reset_token_hash` + `password_reset_expires_at`, Alembic 022). `forgot-password` always answers 202 with the same message and sends the email as a background task, so neither the answer nor its timing says who has an account. A second request within 60 s does not issue a new link (the cooldown is derived from the expiry, no extra column). **A Google-only account gets the link too:** the password it sets is a second way in next to Google (`auth_provider` and `provider_id` stay; the Google login never clears the hash, and the email login only looks at the hash). Opening the link marks the email as verified.

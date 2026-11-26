@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Docs — backlog review and the PRD of the Meteo layers (2026-11-26, branch `docs/observatory-meteo-prd`)
+
+- **`memory/pending.md` reviewed:** the v7.2.0 deployment block is down to two checks not recorded anywhere (rasters' transfer size; login and photo upload). The fullscreen checks are done except the iPhone's (Marcos has none). The open items of the Observatory's phase 1 and of scoring v2 are summarised. Added: the long zone name in the home page's «Mejor zona hoy».
+- **Migrations `046` and `048`** marked as applied: their weights are in the production API (checked on *B. edulis*, the two *Russula* and *C. cibarius*).
+- **New `memory/observatory-meteo-prd.md`:** one epic for rain, temperature and wind, merged into `main` layer by layer. Only rain is specified; its look on the map and the 24 h and 7 d cuts are open.
+- **Production climate data** read with a `SELECT` run by Marcos: 423 cells on every date from 2026-11-05 to 2026-12-03.
+- No code.
+
 ### Changed — the phone map's bottom bar takes the header's green (2026-11-26, branch `fix/map-bar-colour`)
 
 - In the dark theme the bar (and the Meteo, Zonas, Hábitat and Vista sheets that grow from it) goes from the map's surface (`#4c5240`) to `#394235`, the header's colour: its glass over the page's gradient, taken at its middle and made opaque so the satellite does not show through. New token `--map-bar-surface`.
