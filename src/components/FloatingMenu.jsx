@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { useApp } from '../contexts/AppContext'
-import { useIsPhone } from '../hooks/useIsPhone'
+import { useIsLowLandscape, useIsLowest, useIsPhone } from '../hooks/useIsPhone'
 import { isIosApp, useFullscreen } from '../hooks/useImmersive'
 import { lockScroll } from '../lib/scrollLock'
 import { AccountItems, MENU_ROW } from './UserMenu'
@@ -23,6 +23,9 @@ export default function FloatingMenu({ navItems, raised = false, scroll = null, 
   const { t } = useApp()
   const { pathname } = useLocation()
   const phone = useIsPhone()
+  // The short landscape map has a narrower rail, nearer the edge (13.5px from it; 49px wide up to 380px high, else 53px)
+  const lowRail = useIsLowLandscape() && pathname === '/observatorio'
+  const lowest = useIsLowest()
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
   const buttonRef = useRef(null)
@@ -124,7 +127,7 @@ export default function FloatingMenu({ navItems, raised = false, scroll = null, 
       style={{
         ...(phone
           ? { top: inStrip ? 16 : 'calc(var(--safe-top) + 12px)', right: 'max(12px, calc(env(safe-area-inset-right, 0px) + 12px))' }
-          : { top: 'calc(var(--safe-top) + 16px)', right: 28 }),
+          : { top: 'calc(var(--safe-top) + 16px)', right: lowRail ? (lowest ? 12 : 14) : 28 }),
         transform: `translateY(${offset}px)`,
         transition: scroll?.transition,
       }}>

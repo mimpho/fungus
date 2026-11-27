@@ -2,7 +2,7 @@
 
 Intelligent mushroom foraging prediction system for Spain.
 
-**Version**: v7.2 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
+**Version**: v7.6 · **Frontend**: `fungus-ashen.vercel.app` · **API**: `fungus-api.onrender.com`
 
 ---
 
@@ -146,13 +146,14 @@ POST /api/v1/images/set-order                 ← admin only
 | v7.3 | ✅ | Observatory map as the page: zone layer, layer pills, forest and conditions layers |
 | v7.4 | ✅ | Observatory map navigation: tabs Meteo / Zonas / Bosque and Vista on desktop and phone, layers that accumulate |
 | v7.5 | ✅ | Observatory species filter: one species as a lens for the whole map, Hábitat tab with «De la seta», the species' sheet and the stack of bottom sheets |
+| v7.6 | ✅ | Meteo layers, rain: accumulated rain on the map and in the point card, one day selector over six months for rain and conditions |
 
 **Next epics** — ordered by priority, no version number: it is assigned when the epic is merged into `main` (see `system/workflows.spec.md`).
 
 | # | Epic | Status | Scope |
 |---|---|---|---|
 | 1 | `epic/observatory-zones-of-interest` | 🗂 | «Zonas de interés» on the map, with endpoint and data. Full stack |
-| 2 | `epic/observatory-meteo` | 🗂 | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
+| 2 | `epic/observatory-meteo` | 🚧 | Weather layers of the map's «Meteo» tab: rain (delivered in v7.6), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
 | — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ | Android app, paused 2026-10-10. Scaffold, nav, design system, zones done; species + map pending. Merged into `main` without tag, not distributed |
 | 3 | Shared package | 🗂 | Scoring, constants, types, i18n extracted as monorepo internal packages |
 | 4 | SEO | 🗂 | Static prerendering + Core Web Vitals |

@@ -15,7 +15,7 @@ const HATCH_SWATCH = {
 
 /**
  * Lluvia, the Meteo tab's accumulated rain: the window's length (24 h · 7 d · 14 d · 21 d), its dates with
- * the unit and the bars' help beside them, the shared day bar (which says «incluye previsión» for a past day
+ * the unit and the chart's help beside them, the shared day bar (which says «incluye previsión» for a past day
  * whose window still has forecast) and the window's legend (on a phone without the «good» band), and what the layer is doing
  * (loading, error, no data). `layer` is the useRainLayer state; `preset` / `onPreset` the window's
  * length; `date` the day asked for (null = the last day with data) and `onDateChange` how the bar
@@ -51,7 +51,7 @@ export function RainPanel({ layer, preset, onPreset, date = null, onDateChange, 
         </span>
         <span className="shrink-0 inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] text-cream/80">
           {t.obsMeteoRainUnit}
-          <InfoTip label={t.obsDayBarRainInfo} align="right" floating className="-my-1.5">{t.obsDayBarRainNote}</InfoTip>
+          <InfoTip label={t.obsDayChartRainInfo} align="right" floating className="-my-1.5">{t.obsDayChartRainNote}</InfoTip>
         </span>
       </div>
       <div className="flex flex-col gap-3" aria-live="polite">

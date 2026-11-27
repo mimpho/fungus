@@ -512,6 +512,19 @@ The point's sheet set `max-height` from what it measured, and the content could 
 A `ring-2` / `border` outside the button is clipped by the scroll area it ends in (the last button of the point's sheet lost its bottom edge). Leave a few px under the last element.
 
 
+## Frontend — little height (found 2026-11-28, `feat/observatory-meteo-rain-release`)
+
+### ⚠️ A minimum height on a page as tall as the screen pushes its bottom controls out of it
+The map kept `min-h-[420px]`; a phone held sideways leaves about 310 px under the header, so everything anchored to the bottom (tab bar, «My location», credits) was below the screen. Width breakpoints say nothing about this: try layout changes at 924 × 412 and 800 × 360 too.
+
+### ⚠️ A `shrink-0` card in a column with a maximum height overflows upwards
+The species' card in the bottom-left column (`justify-end`) could not shrink, so unfolded on a short screen it went under the search. To scroll it, the card itself scrolls, and `useSheetDrag` must count the sheet's own scroll or a drag down folds it instead of scrolling back.
+
+## Observatory — local QA
+
+### ⚠️ Picking a point may load a cell into the local database
+Every new spot asks Open-Meteo for its elevation; one with no stored cell also downloads the cell's history and forecast (about 25 weighted calls, an estimate) and the cell stays in the database. Reuse a point already asked.
+
 ## Frontend — Tailwind arbitrary values, the clipboard and testing themes (found 2026-11-19, zone's species sheet)
 
 ### ⚠️ `bg-[linear-gradient(…)]` is read as a colour; the layers must all be images

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { addDays, daysBetween, firstBarDay, todayIso } from '../../lib/layerDays'
-import { BARS_PX, barSegments, dayScale, monthStarts } from '../../lib/dayBar'
+import { BARS_PX, dayScale, monthStarts } from '../../lib/dayBar'
 import { formatDay } from '../../lib/thermometer'
 import { useMeteoWeeks } from '../../hooks/useMeteoWeeks'
-import { DayArea, dayAreaOn } from './dayArea/DayArea'
+import { DayArea } from './DayArea'
 
 const COMMIT_DELAY_MS = 300
 const MAGNIFIER_DAYS = 5 // days shown at each side of the one under the finger
@@ -31,14 +31,15 @@ export function layerDays(data) {
 /**
  * Reference day of the Meteo tab's layers, shared by every segment: one bar from the Monday 26 weeks
  * before the current week (`firstBarDay`, the same limit a link's `dia` has) to `maxDate`, the last day
- * the server can answer (up to a week after today, from the stored forecast). Behind the handle, a bar
- * per week (the forecast days drawn wider than the past ones, see `dayScale`) with the figure of all Catalonia (`weeks` = { layer: 'rain' | 'conditions', species } to ask
- * for them; null = none), the forecast ones outlined and a dashed line at today. Above it, a strip with
+ * the server can answer (up to a week after today, from the stored forecast). Behind the handle, a filled
+ * line through the weekly figures of all Catalonia (`weeks` = { layer: 'rain' | 'conditions', species } to
+ * ask for them; null = none; see DayArea), dashed over the forecast, and a dashed line at today. The
+ * forecast days are drawn wider than the past ones (see `dayScale`). Above it, a strip with
  * «Hoy» over today's place that turns into a magnifier of ±5 days while dragging.
  * A day is dragged to, or stepped to with ‹ › and the keyboard (Page keys: a week); the server is asked
  * once the finger rests or is lifted, the buttons at once. The height is the same in every state.
  * `windowDays` (Lluvia): how many days the figure on the map adds up, ending on the chosen day; that stretch
- * is marked over the bars and on the track, from the handle to the left. Without it (null) the chosen day's
+ * is marked over the line and on the track, from the handle to the left. Without it (null) the chosen day's
  * week is marked instead.
  * The day's label carries a «previsión» pill from `forecastFrom` on; on an earlier day it shows
  * `forecastNote` there instead, if given (the figure on the map still includes some forecast).
@@ -118,9 +119,7 @@ export function DayBar({ lastDate, maxDate, forecastFrom, date, onChange, weeks 
     choose(to) // a held key asks once it stops, like a drag
   }
 
-  const asArea = Boolean(weeks) && dayAreaOn() // experiment: see dayArea/
-  const segments = weeks && !asArea ? barSegments(figures, weeks.layer, first, total, today) : []
-  // What is marked behind the bars: the days the map adds up (cut at the start of the bar), or else the
+  // What is marked behind the line: the days the map adds up (cut at the start of the bar), or else the
   // week of the chosen day (the bar starts on a Monday), to tell it apart
   const markFrom = windowDays ? Math.max(0, index - windowDays + 1) : index - (index % 7)
   const markDays = windowDays ? index - markFrom + 1 : Math.min(7, total - markFrom)
@@ -188,23 +187,7 @@ export function DayBar({ lastDate, maxDate, forecastFrom, date, onChange, weeks 
           {(weeks || windowDays) && (
             <span data-testid={windowDays ? 'day-bar-window' : 'day-bar-week'} className={`absolute top-0 rounded-t-[3px] ${windowDays ? 'bg-cream/[0.18]' : 'bg-cream/10'}`} style={{ ...markStyle, height: BARS_PX }} />
           )}
-          {asArea && <DayArea weeks={figures} layer={weeks.layer} first={first} total={total} today={today} forecastStart={forecastStart} at={left} />}
-          {segments.map(s => (
-            <span
-              key={s.key}
-              data-testid={s.height === null ? 'day-bar-empty' : s.forecast ? 'day-bar-forecast' : 'day-bar-real'}
-              className="absolute box-border rounded-[2px]"
-              style={{
-                left: `${left(s.from)}%`,
-                width: `max(2px, calc(${width(s.from, s.days)}% - 1.5px))`,
-                top: BARS_PX - (s.height ?? 2),
-                height: s.height ?? 2,
-                ...(s.height === null
-                  ? { backgroundColor: 'rgba(var(--color-cream-rgb), 0.25)' }
-                  : s.forecast ? { border: `1.5px solid ${s.color}` } : { backgroundColor: s.color }),
-              }}
-            />
-          ))}
+          {weeks && <DayArea weeks={figures} layer={weeks.layer} first={first} total={total} today={today} forecastStart={forecastStart} at={left} />}
           <span className="absolute inset-x-0 h-px bg-cream/30" style={{ top: BARS_PX }} />
           <span className="absolute inset-x-0 h-[4px] -translate-y-1/2 rounded-full bg-cream/20" style={{ top: TRACK_TOP }} />
           {windowDays && (

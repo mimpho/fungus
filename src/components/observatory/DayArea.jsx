@@ -1,13 +1,11 @@
-// EXPERIMENT (2026-11-27): the day bar's weekly bars drawn as one filled line down to 0, like the charts
-// of the observed zone: rain in blue, conditions coloured by height with the five score bands. To remove
-// it: delete this folder and, in DayBar.jsx, its import and the two lines that use `asArea`
-// (memory/observatory-meteo-plan.md, «Experiment: filled lines»).
+// The day bar's weekly figures as one filled line down to 0, like the charts of the observed zone:
+// rain in blue, conditions coloured by height with the five score bands. The forecast has a fainter
+// fill and a dashed line.
 import { useId } from 'react'
-import { addDays, daysBetween } from '../../../lib/layerDays'
-import { smoothArea, smoothPath } from '../../../lib/chartData'
-import { BARS_PX, RAIN_FULL_MM } from '../../../lib/dayBar'
+import { addDays, daysBetween } from '../../lib/layerDays'
+import { smoothArea, smoothPath } from '../../lib/chartData'
+import { BARS_PX, RAIN_FULL_MM } from '../../lib/dayBar'
 
-const SWITCH_KEY = 'fungus-exp-day-area' // localStorage: 'off' brings the bars back
 const BLUE = '#2f7fe8' // ACC_BLUE of the observed zone's chart
 // Colour by score, from the bottom up: the stops of the zone chart's score line, at the middle of each
 // band so each band reads as its own colour
@@ -21,10 +19,6 @@ const LAYERS = {
   conditions: { full: 100, point: value => value },
 }
 const W = 1000 // width of the drawing's own coordinates; it is stretched to the bar's
-
-export function dayAreaOn() {
-  try { return localStorage.getItem(SWITCH_KEY) !== 'off' } catch (_e) { return true }
-}
 
 /**
  * The line's points, one per part of a week with a figure (the current week has two: real and forecast):
@@ -65,6 +59,10 @@ export function DayArea({ weeks, layer, first, total, today, forecastStart, at }
   const split = forecastStart < total ? (at(Math.max(0, forecastStart)) / 100) * W : W
   const line = smoothPath(values, x, y)
   const area = smoothArea(values, x, y, BARS_PX)
+  // A figure between two parts without one has no line to be part of: it is marked with a dot
+  const dots = values
+    .map((v, i) => (v != null && values[i - 1] == null && values[i + 1] == null ? `M${x(i).toFixed(1)},${y(v).toFixed(1)}h0.01` : ''))
+    .join('')
   const paint = `url(#${id}colour)`
   const stroke = { stroke: rain ? BLUE : paint, strokeWidth: 2, fill: 'none', strokeLinejoin: 'round', strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke' }
   // Rain fades out towards 0 mm; conditions keep their colour all the way down, only fainter than the line
@@ -93,11 +91,13 @@ export function DayArea({ weeks, layer, first, total, today, forecastStart, at }
       <g clipPath={`url(#${id}past)`}>
         <path d={area} fill={fill.fill} fillOpacity={fill.opacity} />
         <path d={line} style={stroke} />
+        {dots && <path data-testid="day-bar-dot" d={dots} style={{ ...stroke, strokeWidth: 4 }} />}
       </g>
       {/* the forecast: a fainter fill and a dashed line */}
       <g clipPath={`url(#${id}ahead)`}>
         <path d={area} fill={fill.fill} fillOpacity={fill.opacity * 0.4} />
         <path d={line} style={{ ...stroke, strokeDasharray: '4 3' }} />
+        {dots && <path d={dots} style={{ ...stroke, strokeWidth: 4 }} />}
       </g>
     </svg>
   )

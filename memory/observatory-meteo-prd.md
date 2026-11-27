@@ -22,7 +22,7 @@ The Meteo tab only has Condiciones. Lluvia, Temp. and Viento show «Pronto». Co
 | **2** | Temperature | To be specified |
 | **3** | Wind | To be specified |
 
-**Decided (Marcos, 2026-11-26):** each layer is merged into `main` when it is ready, keeping one epic and one PRD. It departs from the cadence rule of `system/workflows.spec.md`, which closes an epic at a coherent delivery and moves the rest to a follow-up epic with its own PRD. To settle before the first merge into `main`: the version tag and the retrospective of each of these merges.
+**Decided (Marcos, 2026-11-26):** each layer is merged into `main` when it is ready, keeping one epic and one PRD. It departs from the cadence rule of `system/workflows.spec.md`, which closes an epic at a coherent delivery and moves the rest to a follow-up epic with its own PRD. **Settled for the rain merge (Marcos, 2026-11-27):** tag v7.6.0; no retrospective until the epic closes.
 
 ---
 
@@ -74,7 +74,7 @@ The Meteo tab only has Condiciones. Lluvia, Temp. and Viento show «Pronto». Co
 
 ## Day selector (shared by Condiciones and Lluvia) — specified
 
-**Decided (Marcos, 2026-11-27):** the next piece of work, before the point card. One bar replaces the slider and the static strip under it (past, today and forecast in the same bar), reaching back about six months instead of 30 days, with the months marked and a bar per week: in Lluvia the rain of all Catalonia; in Condiciones a rating of all Catalonia, in the five score-band colours from green to red. It is common to the two layers. Dragging makes no Open-Meteo calls. Measurements and discarded options: `memory/decisions.md`.
+**Decided (Marcos, 2026-11-27):** the next piece of work, before the point card. One bar replaces the slider and the static strip under it (past, today and forecast in the same bar), reaching back about six months instead of 30 days, with the months marked and the weekly figures behind the handle (a bar per week as specified; **a filled line since 2026-11-27**, see below): in Lluvia the rain of all Catalonia; in Condiciones a rating of all Catalonia, in the five score-band colours from green to red. It is common to the two layers. Dragging makes no Open-Meteo calls. Measurements and discarded options: `memory/decisions.md`.
 
 ### Scope — In
 
@@ -125,7 +125,9 @@ The options are in `memory/decisions.md`.
 
 **Known cost of S6 A:** on the local data of 29 May – 26 November the mean of the excellent ones never passed 62, so no week was gold or green (one species alone, *L. deliciosus*, reached 70). The five band colours stay; the upper two will be rare.
 
-**Help text for the bars of Condiciones** (ES; CA and EN written with the front end): «Cada barra es la media de las condiciones de toda Cataluña en esa semana, calculada a la altitud media de cada celda de unos 8 × 11 km, sin tener en cuenta el bosque ni el suelo. No es la puntuación de ningún punto del mapa.» A first line says whose conditions they are: the chosen species, or the excellent ones. Cells the species does not reach by altitude do not count.
+**Filled line instead of bars (Marcos, 2026-11-27, for the rain delivery):** it replaces S2 A and S3 B. Where this section says «bar» about a week, read the line: rain in one blue, conditions coloured by height with the five score bands, the forecast with a fainter fill and a dashed line. A week without figure breaks the line (no baseline mark); a lone one is a dot. A rain week of fewer than seven days is drawn at its weekly pace.
+
+**Help of Condiciones** (one ⓘ, two paragraphs; ES, with no species chosen): «Mapa: media de las setas excelentes que pueden crecer en cada punto, según clima, altitud, bosque y suelo. Indica si las condiciones son favorables, no la probabilidad de encontrar setas.» «Gráfico: media semanal de las setas excelentes en toda Cataluña, sin tener en cuenta bosque ni suelo. No equivale a la puntuación de un punto. La línea discontinua es previsión.» With a species both paragraphs name it, and the map one adds that no colour means outside its altitude or habitat. Forest and soil are named only when the map uses them. Cells the species does not reach by altitude do not count.
 
 ---
 
@@ -176,7 +178,7 @@ Sixth mark: 60 mm in one day was reached by 0.1 % of the windows (0.2 % in Sep�
 - **Sources and attribution:** no new source; Open-Meteo is already credited in the credits modal. Its free plan is for non-commercial use.
 - **Migrations, environment variables, buckets, services:** none for the rain layer (the day selector may add one, below).
 - **Quota:** no new calls and no bulk load.
-- **Day selector:** migration 023 (one small table, RLS enabled). Alembic runs at start-up on Render, so how Marcos applies it is settled before the merge (plan, «Day selector»). The series is empty after the first deploy until it is filled: 79 s on the Mac for all days (peak 191 MB), not measured on Render (512 MB, a slow CPU); a full read of the history took the local process to 294 MB. A species that is not excellent is computed on request (about 1.5 s on the Mac, not measured on Render). How migration 023 is applied (by Marcos beforehand, or by Render at start-up) is still to settle before the merge into `main`. History depth in production, checked on 2026-11-27 (query run by Marcos, result in the plan): all 423 cells cover the bar and its warm-up with no gap.
+- **Day selector:** migration 023 (one small table, RLS enabled). Alembic runs at start-up on Render, so how Marcos applies it is settled before the merge (plan, «Day selector»). The series is empty after the first deploy until it is filled: 79 s on the Mac for all days (peak 191 MB), not measured on Render (512 MB, a slow CPU); a full read of the history took the local process to 294 MB. A species that is not excellent is computed on request (about 1.5 s on the Mac, not measured on Render). **Migration 023 is applied by Render at start-up** (Marcos, 2026-11-27); merge by day, after that night's cell refresh has finished, so the series is computed as soon as the API starts. `/layer/weeks` is not reused by the browser without asking again. History depth in production, checked on 2026-11-27 (query run by Marcos, result in the plan): all 423 cells cover the bar and its warm-up with no gap.
 - **Order:** back end (Render) before or with the front end (Vercel); the layer is only visible once the front end sets `ready`.
 - **Data:** checked on 2026-11-26 (query run by Marcos): 423 cells on every date from 2026-11-05 to 2026-12-03 (item 8 of the 429 block of `memory/pending.md`). It depends on the daily `cell_refresh`: with the Open-Meteo quota spent it may stop, leaving missing or stale days. The query does not show that every cell was downloaded that night.
 - **Rollback:** revert the merge commit.
@@ -201,4 +203,4 @@ A cut 2 or 3 that needs anything else updates this section before its first bran
 
 **Cuts 2 and 3:** to be written with their sections.
 
-**Epic:** the three cuts delivered, or the ones left consciously moved elsewhere; deployment readiness checked; retrospective held.
+**Epic:** the three cuts delivered, or the ones left consciously moved elsewhere; deployment readiness checked; retrospective held (one, at the close, covering the rain delivery too).

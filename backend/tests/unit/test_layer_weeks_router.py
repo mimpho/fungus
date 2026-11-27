@@ -132,6 +132,19 @@ class TestWeeksEndpoint:
         await _get(env, layer="conditions", species="esp-2")
         assert env.climate.species_reads == 2
 
+    @pytest.mark.parametrize("params", [
+        {"layer": "rain"},
+        {"layer": "conditions"},
+        {"layer": "conditions", "species": "esp-2"},
+    ])
+    async def test_the_browser_must_ask_again_before_reusing_an_answer(self, env, params):
+        # the series fills up after a deploy: an hour of cache would keep an empty bar on screen.
+        # The second call is answered from the server's own cache, with the same header
+        env.app.middleware("http")(main.add_cache_control)
+        for _ in range(2):
+            r = await _get(env, **params)
+            assert r.headers["cache-control"] == "private, no-cache"
+
     async def test_an_unknown_species_is_404(self, env):
         assert (await _get(env, layer="conditions", species="nope")).status_code == 404
 

@@ -41,6 +41,10 @@ export function SpeciesLayerPicker({ speciesId, speciesName = null, onClearSpeci
   const hasScores = data?.cells?.some(c => c.status === 'scored')
   // The bar's days: the layer's own once it has answered, the last ones seen before that
   const days = layerDays(layer.data)
+  // What the map's colours take into account here: the forest and the soil only with their rasters
+  const factors = forestApplied && soilApplied ? t.obsLayTipFactorsForestSoil
+    : forestApplied ? t.obsLayTipFactorsForest
+      : soilApplied ? t.obsLayTipFactorsSoil : t.obsLayTipFactors
   const season = data?.date && status !== 'error' ? seasonNote(data, speciesId, t, lang) : null
 
   return (
@@ -91,18 +95,16 @@ export function SpeciesLayerPicker({ speciesId, speciesName = null, onClearSpeci
                 center={data?.date ? t.obsLayDate.replace('{fecha}', formatDay(data.date, lang)) : null}
                 className={`transition-opacity ${status === 'loading' || (layerOn && !data) ? 'opacity-60' : ''}`}
                 extra={data ? (
-                  // Also with nothing scored on the day: the bars of other weeks are still there to explain
+                  // Also with nothing scored on the day: the chart still has other weeks to explain
                   <InfoTip label={t.obsLayInfoLabel} align="right" floating className="-my-1.5">
                     <span className="block space-y-2">
                       {hasScores && (
-                        <>
-                          {!speciesId && <span className="block">{t.obsLayAllNote}</span>}
-                          <span className="block">{forestApplied && soilApplied ? t.obsLayNoteForestSoil : forestApplied ? t.obsLayNoteForest : soilApplied ? t.obsLayNoteSoil : t.obsLayNote}</span>
-                          <span className="block">{t.obsLayMeaning}</span>
-                        </>
+                        <span className="block">
+                          {fill(speciesId && speciesName ? t.obsLayTipSpecies : t.obsLayTipAll, { name: speciesName, factores: factors }, lang)} {t.obsLayTipMeaning}
+                        </span>
                       )}
                       <span className="block">
-                        {speciesId && speciesName ? t.obsDayBarSpecies.replace('{name}', speciesName) : t.obsDayBarExcellent} {t.obsDayBarNote}
+                        {speciesId && speciesName ? t.obsDayChartSpecies.replace('{name}', speciesName) : t.obsDayChartExcellent}
                       </span>
                     </span>
                   </InfoTip>

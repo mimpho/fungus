@@ -18,6 +18,8 @@ const SIZES = {
   desktop: { row: 79, photo: 83 },
   phone: { row: 52, photo: 72, handle: 'h-[23px] pt-[13px]' },
   mini: { row: 26, photo: 56, handle: 'h-[14px] pt-[6px]' },
+  // Short landscape, folded with the point's folded card: one line, so that both fit under the search
+  slim: { row: 40, photo: 44 },
 }
 const EASE = 'cubic-bezier(0.32,0.72,0,1)'
 
@@ -30,9 +32,10 @@ function OpenScope() { useDialogAboveObsModal(); return null }
  * One piece of ochre whose two parts trade height: the bar's row shrinks as the card's body grows. A drag follows the finger
  * (up from the bar opens, down from the card folds). `closeSignal`: the page asks it to fold (another sheet was opened).
  * Desktop has no handle, no overlap under the sheet below and a chevron to fold.
+ * `column` (short landscape): open, the card has the left column to itself and scrolls if it does not fit; `slim`: folded, one line.
  * It exists only with a species: the bar says «Mapa filtrado por» and the pill with its name and the × that takes the filter off; open it is the species' card.
  */
-export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStackHeight, closeSignal = 0, desktop = false, mini = false, openRequested = false, onOpenRequestDone }) {
+export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStackHeight, closeSignal = 0, desktop = false, mini = false, openRequested = false, onOpenRequestDone, column = false, slim = false }) {
   const { t } = useApp()
   const [open, setOpen] = useState(false)
   const [drag, setDrag] = useState(null) // 0 (folded) … 1 (open) while a finger is on it
@@ -107,8 +110,9 @@ export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStack
   })
 
   const p = drag ?? (open ? 1 : 0)
-  const small = mini && !desktop && !open
-  const size = desktop ? SIZES.desktop : small ? SIZES.mini : SIZES.phone
+  const thin = slim && desktop && !open
+  const small = (mini && !desktop && !open) || thin
+  const size = thin ? SIZES.slim : desktop ? SIZES.desktop : small ? SIZES.mini : SIZES.phone
   const rowH = size.row
   const transition = drag !== null ? 'none' : `height 250ms ${EASE}, width 250ms ${EASE}, opacity 250ms ${EASE}`
   const removeLabel = row ? t.obsSpSheetRemove.replace('{name}', row.name) : ''
@@ -120,7 +124,7 @@ export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStack
       data-open={open}
       data-mini={small || undefined}
       aria-label={t.obsSpSheetBarLabel.replace('{name}', row.name)}
-      className={`relative overflow-hidden pointer-events-auto ${TINT} ${desktop ? 'shrink-0 rounded-2xl shadow-float' : 'z-[2] -mt-6 pb-6 rounded-t-[24px] shadow-bottom'}`}
+      className={`relative pointer-events-auto ${column && open ? 'min-h-0 overflow-y-auto overscroll-contain' : 'overflow-hidden'} ${TINT} ${desktop ? `${column && open ? '' : 'shrink-0 '}rounded-2xl shadow-float` : 'z-[2] -mt-6 pb-6 rounded-t-[24px] shadow-bottom'}`}
     >
       <OpenScope key={open ? 'open' : 'closed'} />
       {/* Folded: the photo runs to the sheet's edge (top, left and bottom of what shows), square; the sheet's rounded corner crops it */}
@@ -131,10 +135,10 @@ export function SpeciesSlot({ row, species, lens, onClear, onOpenChange, onStack
       >
         {row?.photo && <img src={resolveUrl(row.photo)} alt="" loading="lazy" decoding="async" onError={e => { e.currentTarget.style.visibility = 'hidden' }} className="w-full h-full object-cover" />}
       </span>
-      {desktop ? <div className="h-[4px]" /> : <SheetHandle onToggle={open ? () => closeIt(false) : openIt} className={size.handle} />}
+      {desktop ? (thin ? null : <div className="h-[4px]" />) : <SheetHandle onToggle={open ? () => closeIt(false) : openIt} className={size.handle} />}
       {/* Folded: the bar. The whole of it is one button that opens the sheet (laid under the text, which lets the taps through); the only thing above it is the pill's × */}
-      <div style={{ height: (1 - p) * rowH, opacity: 1 - p, transition }} className="overflow-hidden" {...(open ? { inert: '', 'aria-hidden': true } : {})}>
-        <div className="relative" style={{ height: rowH }}>
+      <div style={{ height: (1 - p) * (thin ? SIZES.slim.photo : rowH), opacity: 1 - p, transition }} className="overflow-hidden" {...(open ? { inert: '', 'aria-hidden': true } : {})}>
+        <div className="relative" style={{ height: thin ? SIZES.slim.photo : rowH }}>
           <button
             ref={toggleRef}
             data-drag-ok=""

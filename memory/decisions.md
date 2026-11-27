@@ -4,6 +4,27 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## A short landscape screen keeps the side panels (2026-11-27, `feat/observatory-meteo-rain-release`)
+
+**Decision (Marcos, in QA; option A):** with `(orientation: landscape) and (max-height: 500px) and (min-width: 640px)` the map does not take the bottom bar of «under 1024 px». The right side holds a rail of **icons only** (Meteo, Zonas, Hábitat, Vista; 44 px, 40 up to 380 px high) with «My location» under it, and the open panel beside it, **360 px** for all of them; the left side holds the search, the day pill and the cards, which narrow to the free room. The zoom buttons go only with `pointer: coarse`; with a mouse they sit beside «My location» and the panel ends above them.
+
+**Why:** under the site's header a phone held sideways has about 260–330 px of height: the bottom bar's sheets showed 173 of Meteo's 451 px at 924 × 412 and covered the map. The 640 px keep out a phone held upright, whose keyboard can make it look sideways (not tried on a device).
+
+**Discarded:** the four buttons with their names and «My location» beside the column; keeping the bottom bar and removing the site's header in landscape.
+
+**The cards at the left (option 1, same day):** they did not fit under the search (the point's card showed its title only at 740 × 360 with a species; the unfolded species card went under the search). Now the unfolded card, only one at a time, takes the whole left column: the search, the day pill, the hint and the other card's bar are hidden until it folds or closes. The species card scrolls if it does not fit. With both folded each is one line. **Discarded:** keeping the search in view with one card scrolling under it; the cards at the right, in turns with the panel.
+
+## Rain release: filled line, one short help, `/weeks` not reused, migration and version (2026-11-27, `feat/observatory-meteo-rain-release`)
+
+**Decisions (Marcos), before the rain delivery goes to `main`:**
+- **Weekly figures as a filled line** (it was an experiment, `dayArea/`): it stays, for coherence with the observed zone's charts. It replaces S2 A (rain in one blue instead of the 7 d scale) and S3 B (forecast with a fainter fill and a dashed line, not outlined bars). The bars' code and the `localStorage` switch are gone. In Lluvia a week of fewer than seven days is still drawn at its weekly pace (sum × 7 / days), and the help says so. A week with a figure between two without one is a dot.
+- **Condiciones' help:** one ⓘ, where it was, with two short paragraphs (map and chart), about 365 characters in ES instead of about 900. The CREAF and ICGC citations leave it: the sources dialog credits both.
+- **`/observatory/layer/weeks` answers `Cache-Control: private, no-cache`:** the stored series fills up after a deploy, and the hour the other GETs get could keep an empty or half chart on screen.
+- **Migration 023:** Render applies it at start-up. The deploy is merged by day, after that night's cell refresh has finished.
+- **Version:** v7.6.0. **No retrospective for this delivery:** it is held when the epic closes.
+
+**Discarded:** weekly bars; each day of the rain line as the sum of its last seven days (back-end change); bars in Lluvia and a line in Condiciones; a second ⓘ for the chart; a dialog for the help; migrating by hand before the merge (from the Mac or with SQL in Supabase); a retrospective at this merge.
+
 ## With all of Catalonia in view, the map keeps it clear of the interface (2026-11-27, `feat/observatory-meteo-day-selector`)
 
 **Decision (Marcos):** when the window changes size or a panel, card or sheet opens, closes, folds or grows, and the whole of Catalonia is in view, the map moves it to the part left free. Zoomed in on a place it is left alone.

@@ -7,7 +7,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -164,8 +164,14 @@ async def rain(
     )
 
 
+# The stored series fills up after a deploy and changes with every cell refresh: the browser must
+# ask again instead of reusing an answer for the hour the other GETs get
+_WEEKS_CACHE = "private, no-cache"
+
+
 @router.get("/weeks")
 async def weeks(
+    response: Response,
     layer: Literal["rain", "conditions"] = Query(..., description="Which bars"),
     species: str | None = Query(
         None, description="Conditions only; default: the excellent edibles together"
@@ -181,6 +187,7 @@ async def weeks(
     Conditions: the mean over the days of the mean over the cells (see `day_series`), stored for
     the excellent edibles, together (`series` "excellent") and one by one; any other species is
     computed when asked, which takes a few seconds the first time."""
+    response.headers["Cache-Control"] = _WEEKS_CACHE
     today = _today()
     if layer == "rain":
         key = ("rain-weeks", today, await store.data_signature())
