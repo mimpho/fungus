@@ -38,15 +38,15 @@ def _usable(
 ) -> list[ClimateDay]:
     """Complete days before `today`. Today's own row and the forecast are not observed yet, so
     they are left out unless the caller asks for the forecast (`forecast_until`, see
-    `_forecast_chain`)."""
+    `forecast_chain`)."""
     out = [d for r in rows if r.date < today if (d := ClimateDay.from_row(r))]
     out.sort(key=lambda d: d.date)
     if forecast_until is not None and out and out[-1].date == today - timedelta(days=1):
-        out.extend(_forecast_chain(rows, today, forecast_until, fresh_since))
+        out.extend(forecast_chain(rows, today, forecast_until, fresh_since))
     return out
 
 
-def _forecast_chain(
+def forecast_chain(
     rows: Sequence[Any], today: date, until: date, fresh_since: datetime | None
 ) -> list[ClimateDay]:
     """The forecast days from `today` to `until`, up to the first one that is missing, incomplete

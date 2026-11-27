@@ -106,7 +106,9 @@ def build_rows(
     today: date,
 ) -> list[dict]:
     """Rows for climate_cell_history. Days up to the archive cutoff are final ('archive');
-    the most recent days and the forecast are provisional ('forecast')."""
+    the most recent days and the forecast are provisional ('forecast'). A day without a rain
+    value is not written (the column takes no null, and a 0 would read as a dry day): the
+    stored row, if there is one, stays."""
     cutoff = today - timedelta(days=ARCHIVE_CUTOFF_DAYS)
 
     def row(r: DailyWeatherData, final: bool) -> dict:
@@ -123,8 +125,8 @@ def build_rows(
             "source": "archive" if final else "forecast",
         }
 
-    rows = [row(r, r.date <= cutoff) for r in history]
-    rows += [row(r, False) for r in forecast]
+    rows = [row(r, r.date <= cutoff) for r in history if not r.precipitation_missing]
+    rows += [row(r, False) for r in forecast if not r.precipitation_missing]
     return rows
 
 

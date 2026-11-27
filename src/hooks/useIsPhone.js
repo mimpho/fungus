@@ -31,3 +31,30 @@ export function useIsWide() {
   }, [])
   return wide
 }
+
+// A phone held sideways, or a window just as short: too little height for the bottom bar and its sheets, and width
+// enough for the side panels. The 640px keep out a phone held upright, whose keyboard can make it look sideways
+const LOW = '(orientation: landscape) and (max-height: 500px) and (min-width: 640px)'
+const TOUCH = '(pointer: coarse)'
+
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia?.(query).matches === true)
+  useEffect(() => {
+    if (!window.matchMedia) return undefined
+    const mq = window.matchMedia(query)
+    const on = () => setMatches(mq.matches)
+    on()
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [query])
+  return matches
+}
+
+/** True on a short landscape screen: the map then keeps the side panels, with a narrower rail. */
+export const useIsLowLandscape = () => useMediaQuery(LOW)
+
+/** True where the short rail is narrower too (see TabRail). */
+export const useIsLowest = () => useMediaQuery('(max-height: 380px)')
+
+/** True where the main pointer is a finger. */
+export const useIsTouch = () => useMediaQuery(TOUCH)

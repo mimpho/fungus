@@ -1,7 +1,8 @@
 """SQL implementation of the CellStore protocol used by app.services.cell_provider."""
+from collections.abc import Sequence
 from datetime import date, datetime
 
-from sqlalchemy import func, select, update
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,6 +33,37 @@ def forecast_signature_statement():
     return select(func.max(ClimateCellHistory.fetched_at)).where(
         ClimateCellHistory.source == "forecast"
     )
+
+
+def climate_statement(
+    since: date,
+    until: date | None = None,
+    recent_from: date | None = None,
+    cell_ids: Sequence[str] | None = None,
+):
+    """Climate rows from `since` on, ordered by cell and day. With `until` they stop there,
+    except those from `recent_from` on (what tells the last day with data and the forecast)."""
+    stmt = select(
+        ClimateCellHistory.cell_id, ClimateCellHistory.date,
+        *(getattr(ClimateCellHistory, m) for m in _METRICS if m != "source"),
+        ClimateCellHistory.source, ClimateCellHistory.fetched_at,
+    ).where(ClimateCellHistory.date >= since)
+    if until is not None:
+        bound = ClimateCellHistory.date <= until
+        if recent_from is not None:
+            bound = or_(bound, ClimateCellHistory.date >= recent_from)
+        stmt = stmt.where(bound)
+    if cell_ids is not None:
+        stmt = stmt.where(ClimateCellHistory.cell_id.in_(cell_ids))
+    return stmt.order_by(ClimateCellHistory.cell_id, ClimateCellHistory.date)
+
+
+def rain_statement(since: date, before: date):
+    """The days in [since, before) with only what the rain needs of a past day."""
+    return select(
+        ClimateCellHistory.cell_id, ClimateCellHistory.date, ClimateCellHistory.precipitation_mm,
+        ClimateCellHistory.source, ClimateCellHistory.fetched_at,
+    ).where(and_(ClimateCellHistory.date >= since, ClimateCellHistory.date < before))
 
 
 def _info(cell: Cell) -> CellInfo:
@@ -133,22 +165,43 @@ class SqlCellStore:
         forecast_fetched = await self.db.scalar(forecast_signature_statement())
         return (*cells, fetched, forecast_fetched)
 
-    async def loaded_cells_climate(self, since: date) -> list[tuple[CellInfo, list]]:
-        """Every loaded cell with its days from `since` on (oldest first, the stored forecast
-        included, with its `source` and `fetched_at`): one query for the cells and one for all
-        the rows, for the layers that read the whole map at once."""
+    async def loaded_cells_climate(
+        self,
+        since: date,
+        *,
+        until: date | None = None,
+        recent_from: date | None = None,
+        cell_ids: Sequence[str] | None = None,
+    ) -> list[tuple[CellInfo, list]]:
+        """Every loaded cell (or those of `cell_ids`) with its days from `since` on (oldest
+        first, the stored forecast included, with its `source` and `fetched_at`; see
+        `climate_statement` for the bounds): one query for the cells and one for all the rows,
+        for the layers that read the whole map at once."""
+        cells = [
+            c for c in await self.list_cells()
+            if c.loaded_to is not None and (cell_ids is None or c.id in cell_ids)
+        ]
+        if not cells:
+            return []
+        rows = await self.db.execute(climate_statement(since, until, recent_from, cell_ids))
+        return self._by_cell(cells, rows)
+
+    async def loaded_cells_rain(self, since: date, today: date) -> list[tuple[CellInfo, list]]:
+        """Like `loaded_cells_climate`, for the weekly rain: the past days carry only the rain
+        and where it came from; from `today` on they are whole, since a forecast day counts only
+        when it is complete."""
         cells = [c for c in await self.list_cells() if c.loaded_to is not None]
         if not cells:
             return []
-        rows = await self.db.execute(
-            select(
-                ClimateCellHistory.cell_id, ClimateCellHistory.date,
-                *(getattr(ClimateCellHistory, m) for m in _METRICS if m != "source"),
-                ClimateCellHistory.source, ClimateCellHistory.fetched_at,
-            )
-            .where(ClimateCellHistory.date >= since)
+        past = await self.db.execute(
+            rain_statement(since, today)
             .order_by(ClimateCellHistory.cell_id, ClimateCellHistory.date)
         )
+        ahead = await self.db.execute(climate_statement(today))
+        return self._by_cell(cells, [*past, *ahead])
+
+    @staticmethod
+    def _by_cell(cells: list[CellInfo], rows) -> list[tuple[CellInfo, list]]:
         by_cell: dict[str, list] = {}
         for row in rows:
             by_cell.setdefault(row.cell_id, []).append(row)

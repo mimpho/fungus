@@ -36,6 +36,8 @@ class DailyWeatherData:
     station_dist_km: float | None = None
     interpolated: bool = False
     precip_prob_pct: int | None = None  # forecast days only (max probability of the day)
+    # The provider sent no rain value: `precipitation_mm` is then a 0 that nobody measured
+    precipitation_missing: bool = False
 
 
 class WeatherConnector(ABC):

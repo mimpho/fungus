@@ -159,11 +159,18 @@
   --shadow-float:         0 4px 16px rgba(0, 0, 0, 0.45);   /* floating controls: search, buttons, rail, zoom, panels */
   --shadow-bottom:        0 -4px 16px rgba(0, 0, 0, 0.15);  /* bars and sheets attached to the bottom edge */
 
-  /* Legend scales of the Meteo tab's weather layers (low → high), from the design's artboards. Placeholder
-     until epic/observatory-meteo draws them on the map; the same in both themes. */
-  --meteo-rain-1:   #e6f0fa;
-  --meteo-rain-2:   #6fa8dc;
-  --meteo-rain-3:   #1d3f8c;
+  /* Legend scales of the Meteo tab's weather layers (low → high), the same in both themes.
+     Rain: the six marks' colours and the hatching of a cell without data; the map paints the same
+     values as literal hex (src/lib/rainLayer.js), so change both together. Temperature and wind are
+     placeholders from the design's artboards until epic/observatory-meteo draws them on the map. */
+  --meteo-rain-1:   rgba(140, 195, 234, 0);
+  --meteo-rain-2:   rgba(140, 195, 234, 0.6);
+  --meteo-rain-3:   #2f6fc0;
+  --meteo-rain-4:   #6a3f98;
+  --meteo-rain-5:   #8c1c38;
+  --meteo-rain-6:   #4a0818;
+  --meteo-rain-hatch-dark:  rgba(30, 36, 25, 0.59);
+  --meteo-rain-hatch-light: rgba(244, 235, 225, 0.59);
   --meteo-temp-1:   #3b6fd0;
   --meteo-temp-2:   #7fb8d8;
   --meteo-temp-3:   #e8d77a;
@@ -173,6 +180,14 @@
   --meteo-wind-2:   #6cc4b0;
   --meteo-wind-3:   #2f8f9d;
   --meteo-wind-4:   #3a4fa0;
+
+  /* The day selector's weekly bars of Condiciones: the five score bands, from green to red. `good` takes
+     the lighter gold here: the bar's dark one disappears on the map's surface. */
+  --meteo-bar-high: var(--ui-score-high-bar);
+  --meteo-bar-good: var(--ui-score-good-text);
+  --meteo-bar-ok:   var(--ui-score-ok-bar);
+  --meteo-bar-mid:  var(--ui-score-mid-bar);
+  --meteo-bar-low:  var(--ui-score-low-bar);
 }
 
 /* ── Light theme overrides ────────────────────────────────────────────────── */
@@ -288,6 +303,7 @@
   --ui-score-mid-text:       #c2410c;   /* dark orange      */
   --ui-score-low-bar:        #dc2626;   /* mid red          */
   --ui-score-low-text:       #b91c1c;   /* dark red         */
+  --meteo-bar-good:          var(--ui-score-good-bar);
 
   /* Observatory map navigation — light: the header's cream as a surface, the buttons' green (--color-bar) for active */
   --map-surface:          #f8f6f0;   /* the header's colour (white at 70 % over the page's cream), opaque: a translucent one lets the satellite show through the text */

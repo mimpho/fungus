@@ -1,7 +1,7 @@
 import { useApp } from '../../contexts/AppContext'
 import { LEGEND_BANDS } from '../../lib/layerColors'
 import { fill, formatDay } from '../../lib/thermometer'
-import { LayerDayControl, layerDays } from './LayerDayControl'
+import { DayBar, layerDays } from './DayBar'
 import { LayerLegend } from './nav/LayerLegend'
 import { InfoTip } from './InfoTip'
 import { ObservatoryNotice } from './ObservatoryNotice'
@@ -26,11 +26,11 @@ export function seasonNote(data, speciesId, t, lang) {
 /**
  * Condiciones, the first segment of the Meteo tab. The species is the map's (the second half of the search
  * bar), not this panel's: a line says which one the colours are for (none = the mean of the excellent ones).
- * Under it, the shared day slider and the legend, always shown (with Meteo off the panel dims them),
+ * Under it, the shared day bar and the legend, always shown (with Meteo off the panel dims them),
  * and what the layer is doing (calculating, error, season, nothing to show).
  * `speciesId` / `speciesName`: the map's active species (or null); `onClearSpecies` takes it off (the «Quitar» chip). `layer` is the useProbabilityLayer state
  * of that species; `date` the reference day asked for (null = the last day with data) and `onDateChange`
- * how the slider changes it. `layerOn`: the layer is switched on, so a missing answer means it is on its way.
+ * how the bar changes it. `layerOn`: the layer is switched on, so a missing answer means it is on its way.
  */
 export function SpeciesLayerPicker({ speciesId, speciesName = null, onClearSpecies = null, layer, date = null, onDateChange, forestApplied = false, soilApplied = false, layerOn = false, className = '' }) {
   const { t, lang } = useApp()
@@ -39,8 +39,12 @@ export function SpeciesLayerPicker({ speciesId, speciesName = null, onClearSpeci
   const data = layerOn ? layer.data : null
   const status = layerOn ? layer.status : 'idle'
   const hasScores = data?.cells?.some(c => c.status === 'scored')
-  // The slider's days: the layer's own once it has answered, the last ones seen before that
+  // The bar's days: the layer's own once it has answered, the last ones seen before that
   const days = layerDays(layer.data)
+  // What the map's colours take into account here: the forest and the soil only with their rasters
+  const factors = forestApplied && soilApplied ? t.obsLayTipFactorsForestSoil
+    : forestApplied ? t.obsLayTipFactorsForest
+      : soilApplied ? t.obsLayTipFactorsSoil : t.obsLayTipFactors
   const season = data?.date && status !== 'error' ? seasonNote(data, speciesId, t, lang) : null
 
   return (
@@ -75,7 +79,8 @@ export function SpeciesLayerPicker({ speciesId, speciesName = null, onClearSpeci
             <>
               {/* The day and the legend are there before the data (and with Meteo off, dimmed by the panel) */}
               {onDateChange && (
-                <LayerDayControl
+                <DayBar
+                  weeks={layerOn ? { layer: 'conditions', species: speciesId } : null}
                   lastDate={days.lastDate}
                   maxDate={days.maxDate}
                   forecastFrom={days.forecastFrom}
@@ -89,12 +94,18 @@ export function SpeciesLayerPicker({ speciesId, speciesName = null, onClearSpeci
                 highLabel={t.obsLayHigh}
                 center={data?.date ? t.obsLayDate.replace('{fecha}', formatDay(data.date, lang)) : null}
                 className={`transition-opacity ${status === 'loading' || (layerOn && !data) ? 'opacity-60' : ''}`}
-                extra={data && hasScores ? (
+                extra={data ? (
+                  // Also with nothing scored on the day: the chart still has other weeks to explain
                   <InfoTip label={t.obsLayInfoLabel} align="right" floating className="-my-1.5">
                     <span className="block space-y-2">
-                      {!speciesId && <span className="block">{t.obsLayAllNote}</span>}
-                      <span className="block">{forestApplied && soilApplied ? t.obsLayNoteForestSoil : forestApplied ? t.obsLayNoteForest : soilApplied ? t.obsLayNoteSoil : t.obsLayNote}</span>
-                      <span className="block">{t.obsLayMeaning}</span>
+                      {hasScores && (
+                        <span className="block">
+                          {fill(speciesId && speciesName ? t.obsLayTipSpecies : t.obsLayTipAll, { name: speciesName, factores: factors }, lang)} {t.obsLayTipMeaning}
+                        </span>
+                      )}
+                      <span className="block">
+                        {speciesId && speciesName ? t.obsDayChartSpecies.replace('{name}', speciesName) : t.obsDayChartExcellent}
+                      </span>
                     </span>
                   </InfoTip>
                 ) : null}

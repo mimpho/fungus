@@ -1,12 +1,8 @@
 import { useApp } from '../../../contexts/AppContext'
-import { addDays } from '../../../lib/layerDays'
 import { fill } from '../../../lib/thermometer'
-import {
-  METEO_LAYERS, RAIN_PRESETS, RAIN_SCALES, TEMPERATURE_SCALE, WIND_SCALE, canOpenLayer, meteoLayer,
-} from '../../../lib/meteoLayers'
-import { LayerDayControl, layerDays } from '../LayerDayControl'
+import { METEO_LAYERS, TEMPERATURE_SCALE, WIND_SCALE, canOpenLayer, meteoLayer } from '../../../lib/meteoLayers'
+import { DayBar, layerDays } from '../DayBar'
 import { LayerLegend } from './LayerLegend'
-import { RainPresets } from './RainPresets'
 
 const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-cream/50'
 
@@ -14,11 +10,11 @@ const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-cream/50'
  * The Meteo tab's content: the segmented control Condiciones · Lluvia · Temp. · Viento and the chosen
  * segment's controls. Layers not built yet carry «Pronto» and `aria-disabled`; in a development build
  * they still open their placeholder panels (src/lib/meteoLayers.js). `conditions` is the Condiciones
- * content (species field, day slider, legend); the others share the same day (`date`, `onDateChange`).
- * `rainPreset` / `onRainPreset`: the rain window's length. `hiddenNote`: a line over Condiciones saying why the map does not
- * draw it (Hábitat · De la seta is shown).
+ * content (species field, day bar, legend) and `rain` Lluvia's (RainPanel); the placeholders share the
+ * same day (`date`, `onDateChange`). `hiddenNote`: a line over Condiciones or Lluvia saying why the map does
+ * not draw it (Hábitat · De la seta is shown).
  */
-export function MeteoPanel({ kind, onKind, conditions, date, onDateChange, rainPreset, onRainPreset, hiddenNote = null }) {
+export function MeteoPanel({ kind, onKind, conditions, rain, date, onDateChange, hiddenNote = null }) {
   const { t } = useApp()
   return (
     <div className="flex flex-col gap-3">
@@ -42,57 +38,28 @@ export function MeteoPanel({ kind, onKind, conditions, date, onDateChange, rainP
           )
         })}
       </div>
-      {kind === 'conditions' && hiddenNote && (
+      {(kind === 'conditions' || kind === 'rain') && hiddenNote && (
         <p role="status" data-testid="meteo-hidden-note" className="px-3 py-2 rounded-lg bg-cream/[0.08] text-[13px] leading-snug text-cream">{hiddenNote}</p>
       )}
-      {kind === 'conditions' ? conditions : (
-        <PreviewPanel kind={kind} date={date} onDateChange={onDateChange} rainPreset={rainPreset} onRainPreset={onRainPreset} />
+      {kind === 'conditions' ? conditions : kind === 'rain' ? rain : (
+        <PreviewPanel kind={kind} date={date} onDateChange={onDateChange} />
       )}
     </div>
   )
 }
 
 /**
- * Placeholder panel of a layer not built yet (development builds only): its own controls and legend,
- * with the shared day, and no data. epic/observatory-meteo wires the data and the map.
+ * Placeholder panel of a layer not built yet (development builds only): its own legend, with the shared
+ * day, and no data. epic/observatory-meteo wires the data and the map.
  */
-function PreviewPanel({ kind, date, onDateChange, rainPreset, onRainPreset }) {
+function PreviewPanel({ kind, date, onDateChange }) {
   const { t, lang } = useApp()
   const days = layerDays()
-  const day = date ?? days.lastDate
-  const slider = <LayerDayControl lastDate={days.lastDate} maxDate={days.maxDate} forecastFrom={days.forecastFrom} date={date} onChange={onDateChange} />
-  const note = <p className="text-[11px] text-cream/80">{fill(t.obsMeteoPreview, { capa: t[meteoLayer(kind)?.label] }, lang)}</p>
-
-  if (kind === 'rain') {
-    const preset = RAIN_PRESETS.find(p => p.id === rainPreset) ?? RAIN_PRESETS[1]
-    const from = addDays(day, -(preset.days - 1))
-    const forecast = day >= days.forecastFrom
-    const scale = RAIN_SCALES[preset.id]
-    return (
-      <div className="px-1 flex flex-col gap-3">
-        <RainPresets value={preset.id} onChange={onRainPreset} />
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[15px] font-semibold text-cream" data-testid="rain-window">
-            {preset.days === 1
-              ? fill(t.obsMeteoRainOneDay, { hasta: day }, lang)
-              : fill(t.obsMeteoRainWindowLabel, { desde: from, hasta: day, n: preset.days }, lang)}
-          </span>
-          {forecast && <span className="rounded-full bg-[color-mix(in_srgb,var(--color-coffee-light)_20%,transparent)] px-2 py-0.5 text-xs font-semibold text-coffee-light">{t.obsMeteoRainIncludesForecast}</span>}
-        </div>
-        {slider}
-        <LayerLegend
-          scale={scale}
-          bandLabel={scale.band ? fill(t.obsMeteoRainGoodBand, { desde: scale.band.from, hasta: scale.band.to }, lang) : null}
-        />
-        {note}
-      </div>
-    )
-  }
   return (
     <div className="px-1 flex flex-col gap-3">
-      {slider}
+      <DayBar lastDate={days.lastDate} maxDate={days.maxDate} forecastFrom={days.forecastFrom} date={date} onChange={onDateChange} />
       <LayerLegend scale={kind === 'temperature' ? TEMPERATURE_SCALE : WIND_SCALE} />
-      {note}
+      <p className="text-[11px] text-cream/80">{fill(t.obsMeteoPreview, { capa: t[meteoLayer(kind)?.label] }, lang)}</p>
     </div>
   )
 }

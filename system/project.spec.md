@@ -9,7 +9,7 @@
 
 Fungus is a mycological prediction web app for Catalonia/Spain. It combines real meteorological data, soil conditions and a scoring algorithm with a seasonal factor to predict the best zones and timing for mushroom foraging.
 
-**Current version**: v7.5 frontend · v7.5 backend (on release of `epic/observatory-species-filter`; the backend only changes its version number)
+**Current version**: v7.6 frontend · v7.6 backend (on release of the rain delivery of `epic/observatory-meteo`)
 **Frontend deploy**: Vercel → `fungus-ashen.vercel.app` (branch `main`)
 **Backend deploy**: Render → `https://fungus-api.onrender.com`
 **Database**: Supabase — PostgreSQL + PostGIS (Ireland region)
@@ -447,8 +447,13 @@ GET    /api/v1/observatory/point/species       ← compatible species with score
 GET    /api/v1/observatory/point/calendar      ← 7 real days and 35 ahead
 GET    /api/v1/observatory/layer/probability            ← conditions per cell/band for one species (login)
 GET    /api/v1/observatory/layer/probability-excellent  ← mean of excellent species (login)
-       (both: `date` up to today+7, forecast from today on; answer has `date`, `last_data_date`,
+GET  /api/v1/observatory/layer/rain                    ← accumulated mm per cell, window=24h|7d|14d|21d ending on `date` (login);
+                                                         cells measured|estimated|no_data
+       (the three: `date` up to today+7, forecast from today on; answer has `date`, `last_data_date`,
         `max_date`, `forecast_from`, `basis` real|forecast, `clamped`)
+GET    /api/v1/observatory/layer/weeks                  ← weekly figures of all Catalonia, layer=rain|conditions[&species=] (login):
+                                                         weeks [{from,to,real{days,value},forecast{days,value}}]; excellent
+                                                         edibles stored in meteo_day_series, other species computed when asked
 GET    /api/v1/observatory/layer/forest-raster[/meta]   ← private forest class raster (in production from the `RASTERS_BUCKET` bucket)
 GET    /api/v1/observatory/layer/substrate-raster[/meta] ← private substrate class raster
        (point/snapshot, series and calendar accept species=excellent → ensemble mean)
@@ -521,13 +526,14 @@ See `docs/content-guide.md` for the full image generation pipeline.
 | v7.3 | ✅ Done | Observatory map as the page: zone layer, layer pills, forest and conditions layers (`epic/observatory-map`, front end only) |
 | v7.4 | ✅ Done | Observatory map navigation: tabs Meteo / Zonas / Bosque and Vista on desktop and phone, layers that accumulate, URL state, old shell retired (`epic/observatory-navigation`, front end only) |
 | v7.5 | ✅ Done | Observatory species filter: the species as a lens for the whole map (search bar in two halves, `seta` in the URL), the Hábitat tab with «De la seta», the species' sheet and the stack of bottom sheets (`epic/observatory-species-filter`, front end only) |
+| v7.6 | ✅ Done | Meteo layers, rain: accumulated rain on the map and in the point card, one day selector over six months, phone layout under 1024 px (`epic/observatory-meteo`, first delivery; full stack, migration 023) |
 
 **Next epics** — ordered by priority, no version number (assigned when the epic is merged into `main`; see `system/workflows.spec.md`):
 
 | # | Epic | Status | Scope |
 |---|---|---|---|
-| 1 | `epic/observatory-zones-of-interest` | 🗂 Next | «Zonas de interés» markers, endpoint and data; entry point is the «Zonas» tab. Full stack |
-| 2 | `epic/observatory-meteo` | 🗂 Next | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
+| 1 | `epic/observatory-meteo` | 🚧 Rain in v7.6 | Weather layers of the map's «Meteo» tab: rain (delivered), temperature and wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
+| 2 | `epic/observatory-zones-of-interest` | 🗂 Next | «Zonas de interés» markers, endpoint and data; entry point is the «Zonas» tab. Full stack |
 | — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ Paused | Android app (React Native + Expo SDK 54 · MapLibre · EAS Build). Paused 2026-10-10; merged into `main` without tag |
 | 3 | Shared package | 🗂 Backlog | Scoring, constants, types, i18n as monorepo internal packages |
 | 4 | SEO | 🗂 Backlog | Static prerendering + Core Web Vitals |

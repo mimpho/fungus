@@ -4,6 +4,7 @@ import { useApp } from '../../../contexts/AppContext'
 import { TABS } from '../../../hooks/useMapNavigation'
 import { TabButton } from './TabRail'
 import { SheetHandle } from '../SheetHandle'
+import { MAP_COLUMN } from '../../../lib/mapColumn'
 import { useSheetDrag } from '../../../hooks/useSheetDrag'
 
 export const SHEET_MS = 300 // how long the sheet takes to grow or fold
@@ -14,10 +15,12 @@ export const SHEET_MS = 300 // how long the sheet takes to grow or fold
  * line. Opening a tab or Vista grows a sheet upward out of the bar: bar and sheet are one surface, the
  * bar stays where it is, so its three icons never move. The sheet scrolls inside and, with the bar,
  * never covers more than 80 % of the map. `reservePx`: room kept above it for the folded sheets of the stack. `onHeight` reports the height it covers
- * (sheet included), `onBarHeight` the bar's own height (for the map's controls at the bottom).
+ * (sheet included).
  * The sheet has a handle: dragging it down folds the sheet (it follows the finger and closes past a third of its height).
+ * The handle takes no room of its own (the whole sheet drags): it lies over the top of the panel, as far from the sheet's
+ * edge as on the other sheets, so the title starts as far from the top as from the sides.
  */
-export function PhoneTabBar({ openTab, on, onToggle, panelId, viewPanelId, renderPanel, reservePx = 0, onHeight, onBarHeight }) {
+export function PhoneTabBar({ openTab, on, onToggle, panelId, viewPanelId, renderPanel, reservePx = 0, onHeight }) {
   const { t } = useApp()
   const open = TABS.includes(openTab) || openTab === 'view'
   // The last tab stays drawn while its sheet folds away, so the content does not vanish before it
@@ -57,28 +60,23 @@ export function PhoneTabBar({ openTab, on, onToggle, panelId, viewPanelId, rende
     onMove: dy => setDragH(Math.max(0, fullH.current - Math.max(0, dy))),
     onEnd: dy => settle(dy > Math.min(fullH.current / 3, 120)),
   })
-  const barRef = useRef(null)
-  const report = useRef({ onHeight, onBarHeight })
-  useEffect(() => { report.current = { onHeight, onBarHeight } }, [onHeight, onBarHeight])
+  const report = useRef(onHeight)
+  useEffect(() => { report.current = onHeight }, [onHeight])
   useEffect(() => {
     const el = ref.current
-    const bar = barRef.current
-    if (!el || !bar || typeof ResizeObserver === 'undefined') return undefined
-    const ro = new ResizeObserver(() => {
-      report.current.onHeight?.(el.offsetHeight)
-      report.current.onBarHeight?.(bar.offsetHeight)
-    })
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    const ro = new ResizeObserver(() => report.current?.(el.offsetHeight))
     ro.observe(el)
-    ro.observe(bar)
-    return () => { ro.disconnect(); report.current.onHeight?.(0); report.current.onBarHeight?.(0) }
+    return () => { ro.disconnect(); report.current?.(0) }
   }, [])
 
   return (
     <div
       ref={ref}
       data-testid="phone-tab-bar"
+      data-map-cover=""
       style={{ maxHeight: `calc(80% - ${reservePx}px)` }}
-      className="absolute z-[1110] inset-x-0 bottom-0 flex flex-col map-bar-surface rounded-t-[24px] shadow-bottom"
+      className={`absolute z-[1110] inset-x-0 bottom-0 flex flex-col map-bar-surface rounded-t-[24px] shadow-bottom ${MAP_COLUMN}`}
     >
       <div
         ref={sheetRef}
@@ -94,14 +92,19 @@ export function PhoneTabBar({ openTab, on, onToggle, panelId, viewPanelId, rende
           {...(open ? {} : { inert: '', 'aria-hidden': true })}
           className="min-h-0 flex flex-col overflow-hidden"
         >
-          <SheetHandle onToggle={() => onToggle(openTab)} />
           <div className={`min-h-0 flex-1 overscroll-contain ${still && open && dragH === null ? 'overflow-y-auto' : 'overflow-hidden'}`}>
-            {shownTab && renderPanel(shownTab)}
+            {/* The handle goes inside what scrolls, over the panel's header. Its line is 13 px under the sheet's edge, as on
+                the species' sheet; narrow enough to leave the title and the switch free */}
+            <div className="relative">
+              <div className="absolute z-10 top-0 left-1/2 -translate-x-1/2 w-[96px]">
+                <SheetHandle onToggle={() => onToggle(openTab)} className="h-[28px] pt-[13px] rounded-full" />
+              </div>
+              {shownTab && renderPanel(shownTab)}
+            </div>
           </div>
         </div>
       </div>
       <nav
-        ref={barRef}
         aria-label={t.obsLayersTitle}
         className={`shrink-0 flex px-3 pt-1.5 pb-[max(10px,env(safe-area-inset-bottom))] ${open ? 'border-t border-cream/10' : ''}`}
       >

@@ -11,14 +11,15 @@
 // last day with data) and `dias` (its length, 7–180; missing = 20).
 // The Meteo tab adds what the map is showing, only while Meteo is on: `capa` (the data layer, e.g.
 // `condiciones`) and `dia` (the
-// reference day, YYYY-MM-DD; missing = the last day with data). `dia` is clamped to −30…+7 days from
-// today and means nothing without `capa`. `seta` (species id) belongs to the whole map, not to Meteo:
+// reference day, YYYY-MM-DD; missing = the last day with data) and, with Lluvia, `acum` (the accumulated
+// window: 24h, 14d or 21d; missing = 7d). `dia` is clamped to the day selector's range
+// (from `firstBarDay` to today + 7) and means nothing without `capa`. `seta` (species id) belongs to the whole map, not to Meteo:
 // it stays with Meteo off, and a link with only `seta` does not turn Meteo on. Whether it exists in the
 // catalogue is checked by the page once the catalogue has loaded.
 // =====================================================
 import { isInCatalonia } from './catalonia'
-import { addDays, todayIso } from './layerDays'
-import { layerFromParam, paramOfLayer } from './meteoLayers'
+import { addDays, firstBarDay, todayIso } from './layerDays'
+import { DEFAULT_RAIN_PRESET, RAIN_PRESETS, layerFromParam, paramOfLayer } from './meteoLayers'
 
 export const MIN_WINDOW = 7
 export const MAX_WINDOW = 180
@@ -46,27 +47,29 @@ function toDays(raw) {
   return n >= MIN_WINDOW && n <= MAX_WINDOW ? n : null
 }
 
-export const MAX_DAYS_BACK = 30
 export const MAX_DAYS_AHEAD = 7
 const SPECIES_ID = /^[a-z0-9][a-z0-9-]{0,39}$/i
 
-/** A `dia` inside −30…+7 days from `today` (outside, the nearest end); null when it is not a day. */
+/** A `dia` inside the day selector's range (outside, the nearest end); null when it is not a day. */
 export function clampDay(raw, today = todayIso()) {
   const day = toUntil(raw)
   if (!day) return null
-  const first = addDays(today, -MAX_DAYS_BACK)
+  const first = firstBarDay(today)
   const last = addDays(today, MAX_DAYS_AHEAD)
   return day < first ? first : day > last ? last : day
 }
 
+const rainPreset = raw => (RAIN_PRESETS.some(p => p.id === raw) ? raw : DEFAULT_RAIN_PRESET)
+
 /**
- * The Meteo state in the URL: { layer, day } or null when there is no valid `capa` (Meteo is then
+ * The Meteo state in the URL: { layer, day } (with Lluvia, also `preset`) or null when there is no valid `capa` (Meteo is then
  * whatever this browser stored). `layer` is a meteoLayers id. The species is not Meteo's: see parseSpecies.
  */
 export function parseMeteo(params, today = todayIso()) {
   const layer = layerFromParam(params.get('capa'))
   if (!layer) return null
-  return { layer, day: clampDay(params.get('dia'), today) }
+  const meteo = { layer, day: clampDay(params.get('dia'), today) }
+  return layer === 'rain' ? { ...meteo, preset: rainPreset(params.get('acum')) } : meteo
 }
 
 /** The map's active species in the URL (`seta`, a species id), or null. It does not depend on Meteo. */
@@ -94,9 +97,12 @@ export function withMeteo(params, meteo) {
     next.set('capa', capa)
     if (meteo.day) next.set('dia', meteo.day)
     else next.delete('dia')
+    if (meteo.layer === 'rain' && rainPreset(meteo.preset) !== DEFAULT_RAIN_PRESET) next.set('acum', meteo.preset)
+    else next.delete('acum')
   } else {
     next.delete('capa')
     next.delete('dia')
+    next.delete('acum')
   }
   return next
 }
@@ -155,11 +161,11 @@ export function formatCoords(point) {
  * The URL's canonical form, or null when it already is. A link with a broken point loses it (and
  * the window with it), duplicated lat/lon collapse to the valid one, coordinates are rounded and
  * a broken or default window is dropped, and so are a `capa` that names no built layer (with its `dia`),
- * a broken `seta` or `dia`; a `dia` out of range is clamped: the address bar always says
+ * a broken `seta`, `dia` or `acum` (and the default one, or one without Lluvia); a `dia` out of range is clamped: the address bar always says
  * what the page shows.
  */
 export function canonicalParams(params, today = todayIso()) {
-  const keys = ['lat', 'lon', 'hasta', 'dias', 'capa', 'seta', 'dia']
+  const keys = ['lat', 'lon', 'hasta', 'dias', 'capa', 'seta', 'dia', 'acum']
   if (!keys.some(k => params.has(k))) return null
   const view = parseView(params)
   const withView = view.point

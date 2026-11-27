@@ -9,6 +9,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Epic summary — Meteo layers, rain (2026-11-27, `epic/observatory-meteo`, to be released as v7.6.0 when merged into `main`)
+
+- **Lluvia in the map's Meteo tab:** accumulated rain over 24 h, 7 d, 14 d and 21 d ending on any day from about six months back to a week ahead, smoothed between cells and cut along Catalonia's boundary; the point card shows the mm, and «Observar» opens the zone on that day.
+- **One day selector** for Lluvia and Condiciones, with the season drawn behind it (weekly figures of all Catalonia).
+- **Phone layout under 1024 px**, and the map keeps all of Catalonia clear of the interface.
+- Back end: `/observatory/layer/rain` and `/observatory/layer/weeks`, table `meteo_day_series` (**migration 023**). No new variables or services; the layers read stored data only.
+- Temperature and wind stay in the epic, for later deliveries.
+
+### Changed — rain release preparation (2026-11-27, branch `feat/observatory-meteo-rain-release`)
+
+- **The day selector's weekly figures are a filled line** (rain in blue, conditions in the five score-band colours, dashed over the forecast; a lone week is a dot). It was an experiment; the weekly bars and its `localStorage` switch are removed.
+- **Help texts (ES / CA / EN):** Condiciones' ⓘ is two short paragraphs, map and chart, without the CREAF and ICGC citations (they stay in the sources dialog); Lluvia's speaks of the chart's line.
+- **Short landscape layout (Marcos's QA):** with the site's header, a phone held sideways did not show the map's bottom bar, «My location» or the credits (the map's minimum height of 420 px left over the room under the header). In landscape, up to 500 px high and from 640 px wide, the map now keeps the side panels, all 360 px wide, instead of the bottom bar: a rail of icons with Vista as its fourth button, a round «My location» under it, the search and the cards at the left, and zoom buttons only where the pointer is not a finger. There the unfolded card (point or species), one at a time, takes the whole left column, and with both folded each is one line. In fullscreen or the installed app, the floating menu button is centred over that rail.
+- **Fixed:** `GET /observatory/layer/weeks` answers `Cache-Control: private, no-cache`, so the browser does not keep for an hour a chart received while the series was still being computed.
+
+### Added — day selector, rain in the point card and the phone map layout (2026-11-27, branch `feat/observatory-meteo-day-selector-rain-card`)
+
+- **One day bar for Lluvia and Condiciones** over about six months (from the Monday 26 weeks before the current week up to a week ahead), with the months marked and weekly figures for all of Catalonia; dragging shows a ±5 day magnifier and asks for the layer when it rests. The forecast is drawn four times wider. A link's `dia` is limited to the same range (it was 30 days back).
+- **`GET /observatory/layer/weeks`** and table `meteo_day_series` (**migration 023**), filled by the API after the cell refresh and at start-up from stored data only: no Open-Meteo calls. For dates older than 30 days the layer endpoints read the history only up to them.
+- **Lluvia is on** (no «Pronto»), with a new **14 d** window (`window=14d`), the accumulation window highlighted on the bar, outlined preset pills and a more compact panel.
+- **Point card with Lluvia:** «≈ N mm» at the point, the window's dates, «estimado con celdas vecinas» and «incluye previsión» when they apply, in place of the conditions figure. «Observar» opens the zone on the Meteo day with Lluvia too, and the link keeps the window in `acum`.
+- **Experiment, not decided:** a filled line instead of the weekly bars (`components/observatory/dayArea/`, on by default; `localStorage['fungus-exp-day-area']='off'` shows the bars). The bar's help texts still speak of bars.
+
+### Changed — Observatory map layout (same branch)
+
+- **Under 1024 px** the map has the phone's layout, with the bar, the sheets and the search in a 450 px column at the left; on desktop Meteo's panel is 450 px wide.
+- **The whole of Catalonia is kept clear** of panels, cards and sheets while it is in view; zoomed in on a place the map is not moved. The zoom now goes by quarter levels with the wheel and pinch.
+- **«My location» and the credits** are placed by the room beside the column; up to 767 px the credits are at the left, on top of the sheets.
+- **Sheets:** the tab sheets' handle is at the same height as the others'; folded sheets halve (one line) while another is unfolded; choosing a species in the search unfolds its sheet.
+
+### Added — rain layer on the map (2026-11-27, branch `feat/observatory-meteo-rain-map`)
+
+- **Lluvia in Meteo** (development builds only: `ready` stays `false`): accumulated rain smoothed between cells, 24 h · 7 d (default) · 21 d, the window's dates, the «incluye previsión» tag, the shared day slider, loading bar and error notice with retry. Own painter, `src/lib/rainLayer.js`, with plain alpha on the three base maps; cells without data are hatched. Texts in ES / CA / EN.
+- **Colour scale without white** (changes R2, chosen in QA): transparent at the first mark, light blue at 60 % at the second, then blue → violet → garnet → dark garnet. The marks did not move.
+- **21 d legend:** the 60–120 mm band is a green line under the numbers, «favorable para setas», instead of a framed stretch of the bar.
+- **Clipped to Catalonia's boundary**, coast included, from ICGC «Divisions administratives» 1:50,000 (CC BY 4.0, simplified to ~120 m, `src/lib/cataloniaOutline.js`), credited in the sources dialog. The rain layer does not use the elevation raster. Strips along the border held by no cell take the blend of the cells in reach.
+- Docs: the PRD, plan, decisions and gotchas record these changes and the day selector chosen as the next piece of work.
+
+### Added — rain layer endpoint (2026-11-27, branch `feat/observatory-meteo-rain-api`)
+
+- **`GET /observatory/layer/rain`:** the accumulated rain of every stored cell over 24 h, 7 d or 21 d ending on the asked day, up to a week ahead from the stored forecast. Reads only what is stored: no Open-Meteo calls, no migration.
+- **Missing days:** a cell never shows a partial sum. It is estimated from at least 3 neighbouring cells with the whole window (weight 1 / distance²; estimates never feed others), or comes as `no_data`.
+- **Past days** stored from the forecast count when downloaded up to 2 days before the day or later; if downloaded before it ended (UTC), the answer says the window includes forecast (`includes_forecast`). Older ones are missing.
+- **Fixed:** a rain value Open-Meteo does not send is no longer stored as 0 mm for cells (the day is not written, and a stored row stays). The zones' ingest is unchanged.
+
+### Docs — the rain layer's open questions and its plan (2026-11-27)
+
+- **R1 and R2 answered** in the Meteo PRD and `memory/decisions.md`: smoothed gradient, «≈ N mm» in the card, six-colour scales, and cells with missing days estimated from their neighbours.
+- **New `memory/observatory-meteo-plan.md`** (rain only), approved the same day.
+- **Roadmap order** in `system/project.spec.md` aligned with `memory/pending.md`: Meteo before the zones of interest.
+- No code.
+
 ### Docs — backlog review and the PRD of the Meteo layers (2026-11-26, branch `docs/observatory-meteo-prd`)
 
 - **`memory/pending.md` reviewed:** the v7.2.0 deployment block is down to two checks not recorded anywhere (rasters' transfer size; login and photo upload). The fullscreen checks are done except the iPhone's (Marcos has none). The open items of the Observatory's phase 1 and of scoring v2 are summarised. Added: the long zone name in the home page's «Mejor zona hoy».

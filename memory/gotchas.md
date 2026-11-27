@@ -65,6 +65,9 @@ current: 'temperature_2m,soil_temperature_0cm'
 
 `date.today()` in a script run in Madrid between 00:00 and 02:00 is already the next UTC day, and the forecast range it builds goes past Open-Meteo's limit (the request is rejected). Use `datetime.now(UTC).date()` for any range sent to Open-Meteo (`export_zone_climate.py` was fixed on 2026-10-17).
 
+### ⚠️ The connector turns a missing rain value into 0 mm
+`precipitation_mm` is never null (`_safe_float(...) or 0.0`; `wind_kmh` does the same). Since 2026-11-27 the day is flagged with `precipitation_missing` and the **cells** do not write it; the zones' ingest still stores the 0. Cell rows written before that cannot be told apart from a dry day.
+
 ### ⚠️ One free daily limit for everything (10,000 calls/day per IP)
 
 The ingest, backfills, the `weather_cache` refresh job (~200/day since 2026-11-11, once a day; it was ~1,600 every 3 h) and the card's live fallback all share it. A request over 2 weeks counts as days/14 calls. Do not run a large backfill (~9,000 calls) on the same day as normal traffic; the weather job stops itself at `WEATHER_DAILY_CALL_BUDGET` or on the first 429. Since 2026-11-11 the connector does the same for every caller: a quota 429 is never retried and pauses all Open-Meteo calls of the process until the limit resets (`rate_limit_pause()`); a point that failed is not asked again for its `retry_after` (60 s for other failures). `elevation=nan` in a one-day archive URL is `resolve_grid` (the cell's mean elevation), not a bug.
@@ -509,6 +512,19 @@ The point's sheet set `max-height` from what it measured, and the content could 
 A `ring-2` / `border` outside the button is clipped by the scroll area it ends in (the last button of the point's sheet lost its bottom edge). Leave a few px under the last element.
 
 
+## Frontend — little height (found 2026-11-28, `feat/observatory-meteo-rain-release`)
+
+### ⚠️ A minimum height on a page as tall as the screen pushes its bottom controls out of it
+The map kept `min-h-[420px]`; a phone held sideways leaves about 310 px under the header, so everything anchored to the bottom (tab bar, «My location», credits) was below the screen. Width breakpoints say nothing about this: try layout changes at 924 × 412 and 800 × 360 too.
+
+### ⚠️ A `shrink-0` card in a column with a maximum height overflows upwards
+The species' card in the bottom-left column (`justify-end`) could not shrink, so unfolded on a short screen it went under the search. To scroll it, the card itself scrolls, and `useSheetDrag` must count the sheet's own scroll or a drag down folds it instead of scrolling back.
+
+## Observatory — local QA
+
+### ⚠️ Picking a point may load a cell into the local database
+Every new spot asks Open-Meteo for its elevation; one with no stored cell also downloads the cell's history and forecast (about 25 weighted calls, an estimate) and the cell stays in the database. Reuse a point already asked.
+
 ## Frontend — Tailwind arbitrary values, the clipboard and testing themes (found 2026-11-19, zone's species sheet)
 
 ### ⚠️ `bg-[linear-gradient(…)]` is read as a colour; the layers must all be images
@@ -547,4 +563,28 @@ It follows what is painted (the gap between two halves, a dropdown), which is wh
 
 ### ⚠️ Geolocation in Brave
 `getCurrentPosition` can hit its timeout with the permission granted for the site (the macOS settings too): Brave turns off Google's location service by default (`brave://settings/privacy`). It worked in production in the same browser, so a local failure there is not necessarily the code; read `error.code` (1 refused, 2 unavailable, 3 timeout).
+
+## Geometry — Catalonia's outline and the elevation raster are not coastlines or borders (found 2026-11-27, `feat/observatory-meteo-rain-map`)
+
+### ⚠️ `catalonia_outline.py` is a drawing
+It was made to choose which cells to ingest. Over the satellite tile it sits kilometres inside the real border in the north and near La Sénia. To clip a picture use `src/lib/cataloniaOutline.js` (ICGC boundary, CC BY 4.0).
+
+### ⚠️ Byte 0 of the elevation raster is not only sea
+One byte per 16 m: land under about 8 m reads 0. A painter that skips `elev === 0` leaves holes on the low coast (all around Deltebre, most of El Prat). The conditions and habitat painters still do it (`memory/pending.md`).
+
+### ⚠️ The ICGC lithology map is not Catalonia's shape
+`local-data/geology` reaches the sheet's frame, into France, Aragón and Valencia: dissolving its polygons does not give the boundary.
+
+## Leaflet — fitting the view by code, and size changes (found 2026-11-27, `feat/observatory-meteo-day-selector-rain-card`)
+
+- `invalidateSize` returns early, with no `resize` event, when the change leaves the centre on the same pixel (seen from a 767 to a 768 px wide map): watch the container with a `ResizeObserver` when the exact width matters.
+- With whole zoom levels (`zoomSnap: 1`), a fractional zoom set by code is rounded on the next move: the step must be the map's own. `setMaxBounds` during an animated `setView` cuts the animation short: remove the limits first and set them again on `moveend`.
+- Looking for free space between `getBoundingClientRect` boxes: half-pixel edges can leave no rectangle at all. Round the covers outwards.
+- A view fitted into too little room may not hold what was fitted, so «is it still in view?» is not enough to fit it again later: remember the fitted view and compare.
+- The browser's console keeps the errors of half-edited versions loaded by Vite's HMR: check their `?t=` or open a fresh tab before chasing them.
+
+## Scoring v2 — the «warm» state depends on where the calculation starts (found 2026-11-27)
+
+### ⚠️ Two warm-up lengths can give the same day different scores
+`warm[k]` depends on the activation of the 21 days before, which depends on earlier `warm` values, so the chain has no fixed length. The map starts 100 days before the date (`V2_WINDOW_DAYS`); `build_series` and any one-pass series start earlier for later days. On the local data (26 weeks, 425 cells, mean of the excellent species): mean difference 0.05 points, 0.57 % of cell-days above 2, maximum 16.3 (one species 6 vs 36). To match the map, compute each day with its own 100-day window. The comment on `V2_WINDOW_DAYS` («same scores as a 1 April warm-up») was measured on zones on 2026-10-10 and does not hold for every cell.
 
