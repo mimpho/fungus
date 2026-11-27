@@ -371,7 +371,7 @@ GET  /api/v1/health
 ### Observatory: rain layer (login required)
 
 ```
-GET  /api/v1/observatory/layer/rain?window=24h|7d|21d&date=YYYY-MM-DD
+GET  /api/v1/observatory/layer/rain?window=24h|7d|14d|21d&date=YYYY-MM-DD
      → Accumulated rain of every stored cell over the window ending on `date`
        (default: last 7 days with data; `date` up to today+7, from the stored forecast)
      → cells[].status: measured | estimated (a day missing, taken from at least 3

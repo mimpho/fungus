@@ -126,7 +126,7 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 | 1 `feat/observatory-meteo-rain-api` | ✅ 2026-11-27 (scenarios 1.1–1.13) |
 | 2 `feat/observatory-meteo-rain-map` | ✅ 2026-11-27 (scenarios 2.1–2.6; see «As built — branch 2») |
 | `feat/observatory-meteo-day-selector` | ⬜ planned (see «Day selector»): back end and front end in one branch. Goes before branch 3 (2026-11-27) |
-| 3 `feat/observatory-meteo-rain-card` | ⬜ |
+| 3 `feat/observatory-meteo-rain-card` | ⬜ point card, «Observar», `acum` (`ready: true` moved to the day selector branch, 2026-11-27). **Needed before the merge into `main`**, or Lluvia is published without them |
 
 ### As built — branch 1 (2026-11-27)
 
@@ -345,6 +345,65 @@ Files: new `components/observatory/DayBar.jsx` (replaces `LayerDayControl.jsx`),
 To check in the browser at real width: the two halves of the current week and a one-day last week (about 12 px per week), light blue outlines (S2 A with S3 B), and the dark garnet over the panel in both themes.
 
 **Order:** stage 1, stage 2, then the point card branch. At deploy, back end first; the bars appear once the job has filled the table.
+
+#### As built — stage 2 (2026-11-27, in review: Marcos's QA pending)
+
+`DayBar.jsx` replaces `LayerDayControl.jsx`; geometry and colours in `lib/dayBar.js`, figures from `hooks/useMeteoWeeks.js`; `firstBarDay` (in `lib/layerDays.js`) replaces `MAX_DAYS_BACK`. The bars are positioned HTML, not canvas. «Hoy» sits in the strip above the bars that turns into the magnifier. The control is 177 px high in every state seen (about 75 px more than before, estimated from the code). `npm run build` passes.
+
+**Seen in the built-in browser, local data:** both layers' bars; a mouse drag and a simulated pointer drag with the magnifier (one request, to the layer, on release or rest); arrows, Page keys, End and «Hoy»; `dia=2026-01-01` opening on 25 May; a species that is not excellent (empty while loading, 2.3 s) and its help text; 375 × 812 in dark and light (forced with `data-theme`). Contrast: months 6.4:1 dark and 7.2:1 light (phone surface); «Hoy» 5.0:1 dark and 6.3:1 light. No console errors.
+
+**Fixed after the review:** the forecast was about 13 px wide and could not be read. Forecast days are now four times wider (`dayScale`, `FORECAST_STRETCH`), with bars at least 7 px high, opaque outlines, the «hoy» line over the handle and «+n d» (decision in `memory/decisions.md`). Seen at 1024 × 768 in dark: the current week's forecast part 15.8 px, the next 27.4 px; pointer positions over the forecast give the expected days; height unchanged. Not seen again: phone, light theme and Lluvia.
+
+**Found, open:**
+- Light rain bars are faint on the light theme (1.2:1 against the surface; 2.0:1 dark).
+- Phone, Lluvia: the sheet now scrolls by 12 px at 375 × 812.
+- The conditions help text is long: its tooltip covers most of the panel.
+- At start-up the series waits for the cell refresh: on a first deploy Condiciones has no bars until it ends.
+
+**Not checked:** a finger on a real phone; CA and EN on screen; «Observar» from an old day; Temperatura and Viento; desktop in light; the failure and Meteo-off states of the bar.
+
+### 14-day rain window (asked by Marcos, 2026-11-27)
+
+A fourth preset between 7 d and 21 d, scale B: 1 · 15 · 30 · 60 · 100 · 150+, no band. Back end (`window=14d`, with tests) and front end done. Seen: desktop dark, and 375 × 812 light (the four presets fit in one row; the forecast bars measure 16 and 28 px, and the sheet still scrolls 12 px in Lluvia). Condiciones with the wider forecast seen at 375 × 812 dark. A freshly loaded tab logged no console errors (the open tab had logged `useApp must be used inside AppProvider` during a hot reload).
+
+### The accumulation window on the bar (Marcos's QA, 2026-11-27)
+
+In Lluvia the bar marked the chosen day's calendar week, not what the map adds up. Now it marks the window itself: the 1, 7, 14 or 21 days ending on the chosen day, from the handle to the left, over the bars and on the track (`windowDays`; at least 3 px, cut at the start of the bar). It is wider where it covers forecast days. Condiciones, a single day, keeps the week mark. Seen: 1024 × 768 dark (3, 10, 20 and 30 px for the four presets), and a 14 d window ending on 4 December at 375 × 812 light (56 px).
+
+### Lluvia turned on (Marcos's QA, 2026-11-27)
+
+`ready: true` for rain, ahead of branch 3. Seen at 1024 × 768: no «Pronto» on Lluvia (Temp. and Viento keep it) and `?capa=lluvia&dia=2026-10-07` opening that layer and day. From the code, not tried: the point card and «Observar» still behave as for Condiciones. Not checked: a production build in a browser, the loading bar, the note under Hábitat · De la seta.
+
+### Experiment: filled lines instead of bars (Marcos, 2026-11-27; not decided)
+
+Both layers' weekly bars drawn as one filled line down to 0, with the curve of the observed zone's charts (it never goes beyond its points). Same weekly figures, no back-end change. One point per part of a week (the current one has two). 
+- **Lluvia:** the blue of the zone's accumulated rain; a part of fewer than seven days is drawn at its weekly pace (sum × 7 / days), so a short part is an extrapolation; 60 mm still fills the height. Tried first, on its own.
+- **Condiciones:** coloured by height with the five score bands (the stops of the zone chart's score line); its figures are means, so nothing is extrapolated.
+- The forecast has a fainter fill and a dashed line. If adopted it replaces S2 A and the outline of S3 B, and both help texts, which still speak of bars and outlines, must change.
+- **Switch:** on by default; `localStorage['fungus-exp-day-area'] = 'off'` and a reload bring the bars back (both layers).
+- **To remove:** delete `src/components/observatory/dayArea/`; in `DayBar.jsx` remove its import, the `asArea` line (restoring `const segments = weeks ? … : []`) and the `<DayArea>` line.
+- **Seen:** Lluvia at 1024 × 768 dark and 375 × 812 light; Condiciones at 1024 × 768 dark and 375 × 812 light. The bars with the switch off were not looked at again.
+- **Possible follow-up for Lluvia (Claude's suggestion, not decided):** each day's point = the rain of the 7 days ending on it, from a daily series in the endpoint: no extrapolation.
+
+### Rain panel compacted (Marcos's QA on the phone, 2026-11-27)
+
+The «incluye previsión» line is gone: from today on the day's pill already says «previsión», and on a past day whose window still has forecast the same pill says «incluye previsión» (no extra line). «mm (= l/m²)» and the bars' help sit to the right of the window's title (14 px). On a phone the 21 d legend drops the «good» band and its text (desktop keeps it). The preset pills are outlined, each with the colour its fill had (2 px). Seen at 375 × 812 with a short title: one line and no sheet scroll, dark and light. **Open:** with the longest dates («Acumulado 17 sept–7 oct · 21 días») the title wraps to two lines at 1024 × 768 and at 360 × 740, where the sheet scrolls 64 px. Not seen: CA, EN, the past-day «incluye previsión» pill.
+
+### Phone tab sheets: handle in the header row (Marcos, 2026-11-27)
+
+See `decisions.md`. Seen at 375 × 812: in the four sheets the header starts 18 px from the top and the side, the handle is 1 px off the row's centre (moved up in later QA: its line is now 13 px under the sheet's edge, as on the other sheets; measured on Meteo at 450), a tap on it folds the sheet; Meteo, Zonas and Vista seen in dark or measured, Hábitat seen in light. Not seen: a drag with a finger, a narrower phone, CA and EN titles, the desktop Vista panel after the change to its ×.
+
+### Phone layout under 1024 px, Meteo's panel at 450 px (Marcos, 2026-11-27)
+
+See `decisions.md`; it replaces the fluid width tried the same day, and closes the two-line rain title on desktop. `compact = !useIsWide()` drives the map's layout in `pages/Observatory.jsx`. Seen: 642 (Lluvia), 900 and 1023 with the bottom bar and full-width sheets, 1024 with the 450 px panel and the search 24 px short of it; at 900 a tap with a sheet open only closing it and the next one picking a point, whose card comes as a sheet; no console errors in a freshly loaded tab; ESLint `no-undef` clean on `Observatory.jsx`. Not seen: the species' sheet and the observed zone between 640 and 1023, drags with a finger on a tablet, a mouse drag of the sheets (the drag is touch only; the handle's tap folds), fullscreen, landscape phones.
+
+### One column at the left under 1024 px (Marcos, 2026-11-27)
+
+See `decisions.md` (centred widths of 767 and 450 px were tried first). Seen at 804: bar, Meteo's sheet and the species sheet from 0 to 450, search 14 to 440, the date pill starting with the search, the map's attribution whole beside the sheets. At 375 everything spans the screen. Not seen: the point's sheet at its final place; widths between 451 and about 700, where the attribution may fall partly behind an open sheet.
+
+### Catalonia kept clear of the interface (Marcos, 2026-11-27)
+
+See `decisions.md`. Seen: 1440 × 900 with nothing open, Meteo, Hábitat and Meteo plus the species card, and back to the same place after repeated open/close; zoomed in, opening panels does not move the map; 1023 with Meteo (Catalonia beside the column); 375 × 812 with Zonas (whole between search and sheet) and Meteo (centred but cut: minimum zoom). The free-area search was checked in Node on random layouts. Not seen: a window resized by hand, the point's card, fullscreen, wheel and pinch with quarter steps, a real phone, how long it takes on a slow one.
 
 ### Risks of the selector
 

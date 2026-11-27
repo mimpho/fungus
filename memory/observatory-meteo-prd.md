@@ -43,7 +43,7 @@ The Meteo tab only has Condiciones. Lluvia, Temp. and Viento show «Pronto». Co
 
 | Feature | Notes |
 |---|---|
-| Rain endpoint | Accumulated rain per stored cell over a window that **ends on the day of the slider**: 24 h (1 day), 7 d or 21 d. No migration. |
+| Rain endpoint | Accumulated rain per stored cell over a window that **ends on the day of the slider**: 24 h (1 day), 7 d, 14 d (added 2026-11-27, marks 1 · 15 · 30 · 60 · 100 · 150+) or 21 d. No migration. |
 | Map layer | The accumulated rain of every cell, in the draw order of Meteo, smoothed between cells with a continuous gradient (R1), clipped to Catalonia's boundary, coast included. Transparent up to 1 mm. |
 | Panel and legend | The panel already built for development: presets 24 h · 7 d (default) · 21 d, the window's dates, the shared slider. One fixed scale per preset, in mm (= l/m²), with the six marks and colours of R2, evenly spaced. 21 d keeps the 60–120 mm «good» band of the observed zone's rain chart, marked on the legend with a green line under the numbers, «favorable para setas» (2026-11-27). |
 | Forecast flag | When the slider's day is today or later, the window includes forecast days: hatched stretch of the slider and the tag «incluye previsión», in the panel and in the point card. A past window is tagged too when one of its days is still as it was forecast: downloaded on that day or up to 2 days before (2026-11-27). Past days whose stored value comes from the forecast API but was downloaded after the day ended are not flagged. |
@@ -101,6 +101,8 @@ The bar keeps the same height in every state.
 | Figures ready | The bars, the chosen week told apart from the others |
 | Figures failed | As loading, with no blocking notice: the day can still be chosen. The map's own error notice is unchanged |
 | A species whose figures are computed when asked (S1) | As loading until they arrive; the previous species' bars are not left under the new name |
+| Lluvia: the forecast note and the legend (2026-11-27) | No line of its own: «previsión» beside the day from today on, «incluye previsión» there on a past day that includes some. The unit and help sit beside the window's title. The 21 d «good» band is shown on desktop only |
+| Lluvia: what the map adds up | The window (1, 7, 14 or 21 days ending on the chosen day) marked from the handle to the left, over the bars and on the track, instead of the week mark of Condiciones |
 | A week without figure (no data, or out of season) | No bar, a baseline mark |
 | Condiciones series not filled yet (first run) or forecast part stale | Only the weeks that have it |
 | Meteo off | Dimmed and out of reach, as the rest of the panel |

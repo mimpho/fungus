@@ -447,7 +447,7 @@ GET    /api/v1/observatory/point/species       ← compatible species with score
 GET    /api/v1/observatory/point/calendar      ← 7 real days and 35 ahead
 GET    /api/v1/observatory/layer/probability            ← conditions per cell/band for one species (login)
 GET    /api/v1/observatory/layer/probability-excellent  ← mean of excellent species (login)
-GET  /api/v1/observatory/layer/rain                    ← accumulated mm per cell, window=24h|7d|21d ending on `date` (login);
+GET  /api/v1/observatory/layer/rain                    ← accumulated mm per cell, window=24h|7d|14d|21d ending on `date` (login);
                                                          cells measured|estimated|no_data
 GET    /api/v1/observatory/layer/weeks                  ← weekly bars of all Catalonia, layer=rain|conditions[&species=] (login):
                                                          weeks [{from,to,real{days,value},forecast{days,value}}]; excellent
