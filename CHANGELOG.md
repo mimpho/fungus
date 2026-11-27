@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — rain layer endpoint (2026-11-27, branch `feat/observatory-meteo-rain-api`)
+
+- **`GET /observatory/layer/rain`:** the accumulated rain of every stored cell over 24 h, 7 d or 21 d ending on the asked day, up to a week ahead from the stored forecast. Reads only what is stored: no Open-Meteo calls, no migration.
+- **Missing days:** a cell never shows a partial sum. It is estimated from at least 3 neighbouring cells with the whole window (weight 1 / distance²; estimates never feed others), or comes as `no_data`.
+- **Past days** stored from the forecast count when downloaded up to 2 days before the day or later; if downloaded before it ended (UTC), the answer says the window includes forecast (`includes_forecast`). Older ones are missing.
+- **Fixed:** a rain value Open-Meteo does not send is no longer stored as 0 mm for cells (the day is not written, and a stored row stays). The zones' ingest is unchanged.
+
 ### Docs — the rain layer's open questions and its plan (2026-11-27)
 
 - **R1 and R2 answered** in the Meteo PRD and `memory/decisions.md`: smoothed gradient, «≈ N mm» in the card, six-colour scales, and cells with missing days estimated from their neighbours.

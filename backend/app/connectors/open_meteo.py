@@ -202,6 +202,7 @@ class OpenMeteoConnector(WeatherConnector):
                     if soil_values
                     else None,
                     precipitation_mm=_safe_float(precip, i) or 0.0,
+                    precipitation_missing=_safe_float(precip, i) is None,
                     humidity_pct=round(sum(hum_values) / len(hum_values))
                     if hum_values
                     else None,

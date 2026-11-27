@@ -12,7 +12,7 @@
 |---|---|---|
 | P1 | A gap is estimated when **at least 3 neighbouring cells** have the whole window | 1 (fills almost everything, sometimes from one side only) or 5 (safer, leaves border cells empty) |
 | P2 | The map paints an estimated cell like any other; **only the card says it is estimated** | Also mark it on the map (dotted outline) |
-| P3 | A **past day counts only if its row was downloaded after that day ended** (UTC) | Accept any stored row, as Condiciones does: a forecast never refreshed would count as rain that fell |
+| P3 | A **past day downloaded after it ended** (UTC) counts as observed. One downloaded **on the day or up to 2 days before** also counts, and the window is tagged «incluye previsión». An older one is missing (changed on 2026-11-27, during branch 1) | The first version, only rows downloaded after the day: the whole map would lose today and the coming days every night until the refresh, or all day if it failed. Accepting any stored row, as Condiciones does: an old forecast would pass as rain that fell, with no tag |
 | P4 | A day for which Open-Meteo sends **no rain value** is no longer stored as 0 mm for cells (small connector change, no migration) | Leave it and record it in `memory/gotchas.md` |
 
 ---
@@ -22,7 +22,7 @@
 ### What a day and a window are
 
 - The window is the `n` days (1, 7, 21) ending on the reference day, both included. `24h` is one calendar day, not the last 24 hours.
-- **Past day** (before today, UTC): usable if the row exists and, for `source = forecast`, its `fetched_at` date is later than the day (P3). Not flagged as forecast.
+- **Past day** (before today, UTC): usable if the row exists and, for `source = forecast`, its `fetched_at` date is at most `FORECAST_MAX_AGE_DAYS` (2) days before the day (P3). With a `fetched_at` date later than the day it is not flagged; otherwise it is provisional and flags the window.
 - **Today and later:** the rule of the conditions layer: a continuous chain of forecast days from today, each fetched at most `FORECAST_MAX_AGE_DAYS` (2) days ago, up to today + 7.
 - The sum uses the stored rain only: no altitude, forest or soil correction, and none of the gap filling of the scoring model (`scoring_v2` fills a missing day with 0 mm, so the rain layer does not go through it).
 
@@ -51,13 +51,13 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 {
   "window": "7d", "window_days": 7, "window_from": "…", "date": "…",
   "last_data_date": "…", "max_date": "…", "forecast_from": "…",
-  "basis": "real | forecast", "clamped": false,
+  "basis": "real | forecast", "includes_forecast": false, "clamped": false,
   "cells": [{"id": "…", "lat": 0, "lon": 0, "half_lat": 0, "half_lon": 0,
              "elevation_m": 0, "status": "measured", "mm": 48.2}]
 }
 ```
 
-- `basis = "forecast"` (the date is today or later) is what raises «incluye previsión».
+- `includes_forecast` is what raises «incluye previsión»: the date is today or later, or the sum of some measured cell has a provisional past day. It is one flag for the whole answer. `basis` keeps its meaning of the conditions layer (which side of today the date is).
 - `last_data_date`, `max_date`, `forecast_from` and `clamped` mean the same as in the conditions layer, so the shared slider reads either answer.
 - Cached in `layer_cache` with a key `("rain", today, date, window, data_signature)`.
 
@@ -84,7 +84,7 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 | Point outside every cell | «Sin datos de lluvia» | — |
 | Request failed | The map's error notice with retry | — |
 
-- With `basis = forecast`, the «incluye previsión» tag is added to any state with a window.
+- With `includes_forecast`, the «incluye previsión» tag is added to any state with a window, in the card and in the panel.
 - Whole mm. The figure is read from the same blend as the colour. The state is that of the cell containing the point, even if its pixel is blended with others.
 - The card keeps its size between states, and only the headline block changes. Its place on desktop and phone does not change, nor do the panel's controls (already built).
 - With Meteo off, or hidden by Hábitat · De la seta, the card shows the conditions percentage as today, and the Meteo panel's hidden note also covers Lluvia.
@@ -123,9 +123,16 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 
 | Branch | State |
 |---|---|
-| 1 `feat/observatory-meteo-rain-api` | ⬜ |
+| 1 `feat/observatory-meteo-rain-api` | ✅ 2026-11-27 (scenarios 1.1–1.13) |
 | 2 `feat/observatory-meteo-rain-map` | ⬜ |
 | 3 `feat/observatory-meteo-rain-card` | ⬜ |
+
+### As built — branch 1 (2026-11-27)
+
+- `layer_rain.py` as planned; `forecast_chain`, `cell_dict` and `window_fields` became public (renames only).
+- P3 changed while building (see its row): `includes_forecast` was added to the answer.
+- **For branches 2 and 3:** `includes_forecast` is one flag for the whole map, so with a partial refresh the card of a fully observed cell is tagged too. `last_data_date` can be a day that is still provisional: the default view is then tagged, and «Observar» can open the zone on it.
+- **Not checked:** the endpoint over HTTP against a real database (the service was run with the real SQL store on the local one, read only, and one cell's sum matched SQL); a real Open-Meteo answer without a rain value (tested with a fake payload).
 
 All cut from `epic/observatory-meteo`, which Marcos creates from `main`. One after another; each is squashed into the epic. These doc changes must be in the epic (or in `main`) before branch 1.
 
@@ -135,11 +142,11 @@ All cut from `epic/observatory-meteo`, which Marcos creates from `main`. One aft
 |---|---|---|---|
 | 1.1 | A cell with 30 archive days | `7d` on day D is asked | `mm` is the sum of D−6…D; D−7 and D+1 do not count |
 | 1.2 | The same cell | `24h` and `21d` | One day and 21 days |
-| 1.3 | A date today or later with a fresh, continuous forecast | The layer is asked | It sums observed and forecast days; `basis = forecast` |
+| 1.3 | A date today or later with a fresh, continuous forecast | The layer is asked | It sums observed and forecast days; `basis = forecast`, `includes_forecast` |
 | 1.4 | A stale forecast, or a hole before the date | The layer is asked | The cell is not `measured` |
 | 1.5 | A date beyond today + 7, or beyond every forecast | The layer is asked | The date is limited and `clamped = true` |
-| 1.6 | A past row `forecast` fetched after its day | The window includes it | It counts and `basis` stays `real` |
-| 1.7 | A past row `forecast` fetched on or before its day | The window includes it | That day is missing (P3) |
+| 1.6 | A past row `forecast` fetched after its day | The window includes it | It counts; `includes_forecast = false` |
+| 1.7 | A past row `forecast` fetched on its day or up to 2 days before / 3 or more before | The window includes it | It counts, `includes_forecast = true`, `basis = real` / that day is missing (P3) |
 | 1.8 | A cell with one day missing and 3 or more measured neighbours | The layer is asked | `estimated`, with the weighted mean; its partial sum does not appear |
 | 1.9 | The same with 2 neighbours, or with neighbours that are only estimated | The layer is asked | `no_data`, `mm = null` |
 | 1.10 | No cell has the whole window | The layer is asked | Every cell is `no_data`, answer 200 |
@@ -187,12 +194,12 @@ Checks for every front-end branch: `npm run build` and Marcos's QA in the browse
 
 | Risk | Effect | Mitigation |
 |---|---|---|
-| `cell_refresh` does not run or covers part of the map (Open-Meteo quota, 429 block of `pending.md`) | Hatched stretches or the whole layer; stricter than Condiciones for recent days because of P3 | Estimate for isolated gaps; read `Cell refresh finished` after the deploy; the clean fix is the paid plan (out of scope) |
+| `cell_refresh` does not run or covers part of the map (Open-Meteo quota, 429 block of `pending.md`) | After more than 2 nights without it: hatched stretches or no data for the windows with the missing days (P3) | Estimate for isolated gaps; read `Cell refresh finished` after the deploy; the clean fix is the paid plan (out of scope) |
 | Estimates and smoothing look more precise than the data | A local storm can be missed or spread | «≈» in the card, estimate declared, one value per ~8 × 11 km recorded in the PRD |
 | Garnet, dark garnet and dark blue get lost over the satellite, or for colour-blind users | Heavy rain is hard to read | Tune tones in branch 2 without moving the marks |
 | White covers the base map or its labels | Light rain hides the map | Alpha factor per base map; labels pane above on streets and relief (the satellite's names are part of the tile) |
 | Painting holds the main thread on a phone | The slider stutters | Same `afterPaint` and slider debounce as Condiciones; do not repaint for the card |
 | Rain answers push conditions answers out of the 64-entry cache | Condiciones recomputes (~3 s for the excellent edibles) | Watch it; a separate cache for rain if needed |
 | Rows already stored as 0 mm because the value was missing | A wrong 0 cannot be told apart | Not repaired. The production query found no window with a day lacking temperatures, which does not rule out a lone missing rain value |
-| The local database has no forecast days | Forecast cases cannot be seen locally | Unit tests with fixtures; a local refresh spends Open-Meteo quota, only on purpose |
+| The local database is a snapshot (on 2026-11-27: downloaded on the 25th, forecast to 12-04) | It ages: under P3 the days from its download on count as provisional, those more than 2 days after it are missing, and the forecast goes stale after 2 days | Unit tests with fixtures; a local refresh spends Open-Meteo quota, only on purpose |
 | The «≈» figure matches no stored row | Harder to check in production | Check the endpoint's sum against the rows, then the card at the cell's centre |

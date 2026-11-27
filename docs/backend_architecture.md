@@ -368,6 +368,18 @@ GET  /api/v1/health
      → System status: last ingestion, active sources, national average score
 ```
 
+### Observatory: rain layer (login required)
+
+```
+GET  /api/v1/observatory/layer/rain?window=24h|7d|21d&date=YYYY-MM-DD
+     → Accumulated rain of every stored cell over the window ending on `date`
+       (default: last 7 days with data; `date` up to today+7, from the stored forecast)
+     → cells[].status: measured | estimated (a day missing, taken from at least 3
+       neighbours) | no_data (mm null). No Open-Meteo calls
+     → includes_forecast: the date is today or later, or a past day of the sum was downloaded
+       before it ended (up to 2 days before; older ones are missing)
+```
+
 ---
 
 ## 9. Transition Strategy (Three Phases)

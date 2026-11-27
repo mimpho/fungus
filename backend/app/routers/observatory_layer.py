@@ -5,6 +5,7 @@ Login required. Reads only what is already stored (no Open-Meteo calls, no new-c
 import asyncio
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
@@ -24,6 +25,7 @@ from app.services.layer_probability import (
     history_start,
     species_layer,
 )
+from app.services.layer_rain import DEFAULT_RAIN_WINDOW, history_since, rain_layer
 from app.services.point_ensemble import counts_in_ensemble
 from app.services.point_species import EXCELLENT, SpeciesRecord
 
@@ -108,6 +110,35 @@ async def probability_excellent_layer(
         key,
         await asyncio.to_thread(
             excellent_layer, cells, today, species, on, forecast_fresh_since(today)
+        ),
+    )
+
+
+@router.get("/rain")
+async def rain(
+    window: Literal["24h", "7d", "21d"] = Query(
+        DEFAULT_RAIN_WINDOW, description="1, 7 or 21 days, ending on `date`"
+    ),
+    on: date | None = Query(None, alias="date", description="Default: last day with data"),
+    store: SqlCellStore = Depends(get_layer_store),
+) -> dict:
+    """Accumulated rain (mm) of every stored cell over the window that ends on a date, up to a
+    week after today: from today on the days come from the stored forecast (`basis` says
+    "forecast"; `clamped` that the date asked was beyond `max_date`). `includes_forecast` says
+    some day of the window is forecast, which for the last past days can also happen before the
+    daily refresh.
+    A cell with a day missing comes as "estimated" from the cells around it, or as "no_data"
+    (`mm` null); see `rain_layer`."""
+    today = _today()
+    key = ("rain", today, on, window, await store.data_signature())
+    if (cached := layer_cache.answers.get(key)) is not None:
+        return cached
+    stored = await store.loaded_cells_climate(history_since(today, on))
+    cells = [CellClimate(c.id, c.lat, c.lon, c.elevation_m, rows) for c, rows in stored]
+    return layer_cache.answers.put(
+        key,
+        await asyncio.to_thread(
+            rain_layer, cells, today, window, on, forecast_fresh_since(today)
         ),
     )
 

@@ -7,7 +7,7 @@ is no per-cell DEM or forest cover, so the layer says nothing about forest type 
 the cell can be higher or lower than the cell's mean. A species without thermal range in the
 catalogue uses the generic model, as in /point/species.
 The reference day can go up to FORECAST_LAYER_DAYS after today: the days from today on come from
-the cell's stored forecast (see point_series._forecast_chain), only while it is continuous from
+the cell's stored forecast (see point_series.forecast_chain), only while it is continuous from
 today and recent (FORECAST_MAX_AGE_DAYS). Where it is not, the cell has no score for that day.
 The backend returns numbers and codes; the front paints and writes the sentences.
 """
@@ -97,7 +97,7 @@ def _reference(
     return (min(on, reach) if on else last), last, reach
 
 
-def _window_fields(
+def window_fields(
     ref: date | None, last: date | None, reach: date | None, today: date, on: date | None
 ) -> dict:
     """What the answer says about the days it can show: `date` (the one scored), the last
@@ -160,7 +160,7 @@ def _score_at(
     return min(100, round_half_up(series[-1].score * fit.score_factor)), True
 
 
-def _cell_dict(cell: CellClimate, grid: Grid | None, **fields) -> dict:
+def cell_dict(cell: CellClimate, grid: Grid | None, **fields) -> dict:
     return {
         "id": cell.id,
         "lat": cell.lat,
@@ -199,7 +199,7 @@ def species_layer(
     out = []
     for c in cells:
         if prepared[c.id] is None or not in_season:
-            out.append(_cell_dict(c, grid, status="no_data", score=None, bands=[]))
+            out.append(cell_dict(c, grid, status="no_data", score=None, bands=[]))
             continue
         score, reaches = _score_at(c, today, sp, ref, c.elevation_m, fresh_since)
         status = "scored" if score is not None else ("altitude" if not reaches else "no_data")
@@ -208,7 +208,7 @@ def species_layer(
             band_score, _ = _score_at(c, today, sp, ref, e, fresh_since)
             if band_score is not None:
                 bands.append([e, band_score])
-        out.append(_cell_dict(c, grid, status=status, score=score, bands=bands))
+        out.append(cell_dict(c, grid, status=status, score=score, bands=bands))
 
     return {
         "species": {
@@ -226,7 +226,7 @@ def species_layer(
             "substrate_classes": list(SUBSTRATE_CLASSES),
             "substrate_factors": ph_fit(sp.ph_min, sp.ph_max),
         },
-        **_window_fields(ref, last_data, reach, today, on),
+        **window_fields(ref, last_data, reach, today, on),
         "in_season": bool(in_season),
         "band_step_m": BAND_STEP_M,
         "cells": out,
@@ -293,7 +293,7 @@ def excellent_layer(
     out = []
     for c in cells:
         if prepared[c.id] is None or not any(in_season):
-            out.append(_cell_dict(c, grid, status="no_data", score=none, bands=[]))
+            out.append(cell_dict(c, grid, status="no_data", score=none, bands=[]))
             continue
         mean = _scores_at_many(c, today, species, ref, c.elevation_m, in_season, fresh_since)
         bands = []
@@ -303,7 +303,7 @@ def excellent_layer(
                 bands.append([e, scores])
         status = "scored" if any(v is not None for v in mean) else (
             "altitude" if not bands else "no_data")
-        out.append(_cell_dict(c, grid, status=status, score=mean, bands=bands))
+        out.append(cell_dict(c, grid, status=status, score=mean, bands=bands))
     return {
         "species": [
             {
@@ -319,7 +319,7 @@ def excellent_layer(
             for i, sp in enumerate(species)
         ],
         "substrate_classes": list(SUBSTRATE_CLASSES),
-        **_window_fields(ref, last_data, reach, today, on),
+        **window_fields(ref, last_data, reach, today, on),
         "in_season": bool(any(in_season)),
         "band_step_m": BAND_STEP_M,
         "cells": out,
