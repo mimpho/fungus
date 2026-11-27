@@ -394,7 +394,7 @@ GET  /api/v1/observatory/layer/weeks?layer=rain|conditions&species=
        cached). No Open-Meteo calls
 ```
 
-**Day series job** (`services/day_series.py`, table `meteo_day_series`, migration 023): runs after the 00:40 cell refresh and after the start-up recovery, whether or not the refresh ran. It computes only the pending days (missing, other species or model, still as forecast, or rewritten by a refresh), each as the map computes it, newest first, saving day by day; the first run computes them all. The log line is `Day series finished: N days computed in S s`. The table is a cache and can be emptied.
+**Day series job** (`services/day_series.py`, table `meteo_day_series`, migration 023): runs after the 00:40 cell refresh and after the start-up recovery, whether or not the refresh ran. It computes only the pending days (missing, other species or model, still as forecast, or rewritten by a refresh), each as the map computes it, newest first, saving day by day; the first run computes them all. The log line is `Day series finished: N days computed in S s`. The table is a cache and can be emptied. `/layer/weeks` answers `Cache-Control: private, no-cache` (the other GETs keep the default), so a chart received while the job runs is not reused for an hour.
 
 For a date older than 30 days the three layer endpoints read the history only up to it, plus the last 30 days.
 

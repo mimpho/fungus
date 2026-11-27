@@ -126,6 +126,7 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 | 1 `feat/observatory-meteo-rain-api` | ✅ 2026-11-27 (scenarios 1.1–1.13) |
 | 2 `feat/observatory-meteo-rain-map` | ✅ 2026-11-27 (scenarios 2.1–2.6; see «As built — branch 2») |
 | `feat/observatory-meteo-day-selector-rain-card` (first named `…-day-selector`) | ✅ 2026-11-27: day selector (back end and front end), 14 d, Lluvia on, the map layout changes of its QA and the work of branch 3. Checks still pending: `pending.md` |
+| `feat/observatory-meteo-rain-release` | ✅ 2026-11-28: filled line, short help texts, `/weeks` cache, short landscape layout, v7.6.0 (QA passed; see «Release» and «Release checks») |
 | 3 `feat/observatory-meteo-rain-card` | ✅ 2026-11-27, no branch of its own: built inside the one above (Marcos). See «As built — branch 3» |
 
 ### As built — branch 1 (2026-11-27)
@@ -384,7 +385,9 @@ In Lluvia the bar marked the chosen day's calendar week, not what the map adds u
 
 `ready: true` for rain, ahead of branch 3. Seen at 1024 × 768: no «Pronto» on Lluvia (Temp. and Viento keep it) and `?capa=lluvia&dia=2026-10-07` opening that layer and day. From the code, not tried: the point card and «Observar» still behave as for Condiciones. Not checked: a production build in a browser, the loading bar, the note under Hábitat · De la seta.
 
-### Experiment: filled lines instead of bars (Marcos, 2026-11-27; not decided)
+### Experiment: filled lines instead of bars (Marcos, 2026-11-27; adopted)
+
+**Adopted the same day** (`feat/observatory-meteo-rain-release`): the drawing is `components/observatory/DayArea.jsx`; the switch, the bars' code in `lib/dayBar.js` and the folder `dayArea/` are gone, and a lone week is drawn as a dot. The «To remove», «Switch» and «Possible follow-up» notes below are history (the follow-up was declined).
 
 Both layers' weekly bars drawn as one filled line down to 0, with the curve of the observed zone's charts (it never goes beyond its points). Same weekly figures, no back-end change. One point per part of a week (the current one has two). 
 - **Lluvia:** the blue of the zone's accumulated rain; a part of fewer than seven days is drawn at its weekly pace (sum × 7 / days), so a short part is an extrapolation; 60 mm still fills the height. Tried first, on its own.
@@ -431,7 +434,21 @@ See `decisions.md`. Seen: 1440 × 900 with nothing open, Meteo, Hábitat and Met
 ## Release
 
 - Back end (Render) before or with the front end (Vercel); one epic → `main` PR for the cut. No migration for the rain layer; the day selector adds migration 023 (how it is applied is to be settled, see «Day selector»). No new variables or services. Rollback: revert the merge commit; the new table can stay.
-- **Pending before that merge (Marcos):** the version tag and the retrospective of each layer's delivery. The cadence rule asks to deploy every two to three weeks.
+- **Settled (Marcos, 2026-11-27):** tag v7.6.0; the retrospective waits for the epic's close; Render applies migration 023 at start-up. The cadence rule asks to deploy every two to three weeks.
+- **Order:** (1) check that production is at revision 022; (2) merge by day, after that night's cell refresh (00:40 UTC) has finished, so the start-up does not have to refresh first; (3) Render migrates and starts, then computes the series from stored data; (4) read `/health` and the log (`DB migrations complete`, `Day series finished: …`); (5) check the web and the final `SELECT`. Render and Vercel deploy at once: until the API is up, the new front end gets errors from the two new endpoints.
+
+### Release checks (2026-11-27, `feat/observatory-meteo-rain-release`, local data of the same day)
+
+Built-in browser, emulated sizes, the dev server and a local API with the cell refresh budget at 0.
+
+- **Figures against the stored rows:** the endpoint's service equals a SQL sum in the 425 measured cells for the four windows on four dates (largest difference 0.05 mm, the rounding to one decimal). The card at one cell's centre, 12 readings (three days × four windows), matches that cell's rows in whole mm; one boundary case, 1.5 mm stored, read «≈ 1» (the card reads the pixel that holds the point, so neighbours weigh a little).
+- **Border strip:** 0.53 % of 139,203 sample points inside the boundary are held by no footprint and come as `estimated` (0.56 % before); one on the Empordà coast showed «≈ 143 mm · estimado con celdas vecinas» in the card. Picking it loaded a new local cell, which is what picking any spot outside the stored cells does.
+- **Seen:** the line and the help texts in ES and CA (desktop; the rain help in CA also on a 375 px phone), the conditions help in EN with a species and in ES on the phone; desktop dark and light; 375 px light and dark; rain on the satellite and street base maps, and on the relief with the light theme forced by hand; `/weeks` arriving with `private, no-cache`; «Observar» from 15 August with Condiciones; the chart with its request failing (empty, same 177 px, day still choosable) and with Meteo off (dimmed, no figures, the card back to the percentage); the card's «estimado» and «sin datos» states and the hatching, **with the answer altered in the browser** (no such cells locally); a width change from 1440 to 1023 and back; the wheel stopping at quarter levels; the layout without header of fullscreen (the pane does not confirm a real fullscreen).
+- **Not checked:** a real phone (drags on the line and the sheets), pinch, a window resized by hand, real fullscreen, a lone-week dot on screen, the relief with the light theme after a normal load, contrast measurements of the new drawing, the first-deploy run on Render.
+- **Fixed in Marcos's QA:** at 924 × 412 with the site's header the bottom bar was below the screen (the map's `min-h-[420px]` over 313 px of room). It became the short landscape layout (`decisions.md`). Seen after it, emulated: 924 × 412 (mouse) and 740 × 360 (touch): rail and «My location» without overlapping, Meteo's panel (225 px of 478 at 360) and Vista, no zoom with touch, no page scroll; 1440 × 900, 375 × 812 and 1023 × 800 as before. No real phone.
+- **Fixed, the cards of the short landscape layout** (option 1, `decisions.md`). Seen, emulated: at 740 × 360 (touch) the unfolded point's card shows 236 of its 304 px and the species card 236 of 269, scrolling to its buttons; both folded fit under the day pill; with Meteo open the card and the panel do not overlap. At 924 × 412 (mouse) the species card is whole; picking another point with it unfolded gives the column to the new point's card, and closing the point brings the search back. 1440 × 900 (both cards side by side) and 375 × 812 (accordion) as before. **Not checked:** a real phone (dragging the species card down while scrolled), the saved point's card with photos, the keyboard.
+- **Fixed in the last QA:** in fullscreen the floating menu button sat 14 px off the narrow rail; centred now (same centre at 924 × 412 and 800 × 360, in the pane's layout without header; not seen in the installed app).
+- **Found, open:** at 360 × 740 with the longest dates (EN) the window's title wraps to two lines, the rain sheet scrolls 37 px (64 px before) and the day's pill covers part of the credits; on the dark street map the garnet and dark blue stand out little; close up, the hatching is coarse.
 
 ---
 

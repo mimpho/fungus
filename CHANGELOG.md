@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Epic summary — Meteo layers, rain (2026-11-27, `epic/observatory-meteo`, to be released as v7.6.0 when merged into `main`)
+
+- **Lluvia in the map's Meteo tab:** accumulated rain over 24 h, 7 d, 14 d and 21 d ending on any day from about six months back to a week ahead, smoothed between cells and cut along Catalonia's boundary; the point card shows the mm, and «Observar» opens the zone on that day.
+- **One day selector** for Lluvia and Condiciones, with the season drawn behind it (weekly figures of all Catalonia).
+- **Phone layout under 1024 px**, and the map keeps all of Catalonia clear of the interface.
+- Back end: `/observatory/layer/rain` and `/observatory/layer/weeks`, table `meteo_day_series` (**migration 023**). No new variables or services; the layers read stored data only.
+- Temperature and wind stay in the epic, for later deliveries.
+
+### Changed — rain release preparation (2026-11-27, branch `feat/observatory-meteo-rain-release`)
+
+- **The day selector's weekly figures are a filled line** (rain in blue, conditions in the five score-band colours, dashed over the forecast; a lone week is a dot). It was an experiment; the weekly bars and its `localStorage` switch are removed.
+- **Help texts (ES / CA / EN):** Condiciones' ⓘ is two short paragraphs, map and chart, without the CREAF and ICGC citations (they stay in the sources dialog); Lluvia's speaks of the chart's line.
+- **Short landscape layout (Marcos's QA):** with the site's header, a phone held sideways did not show the map's bottom bar, «My location» or the credits (the map's minimum height of 420 px left over the room under the header). In landscape, up to 500 px high and from 640 px wide, the map now keeps the side panels, all 360 px wide, instead of the bottom bar: a rail of icons with Vista as its fourth button, a round «My location» under it, the search and the cards at the left, and zoom buttons only where the pointer is not a finger. There the unfolded card (point or species), one at a time, takes the whole left column, and with both folded each is one line. In fullscreen or the installed app, the floating menu button is centred over that rail.
+- **Fixed:** `GET /observatory/layer/weeks` answers `Cache-Control: private, no-cache`, so the browser does not keep for an hour a chart received while the series was still being computed.
+
 ### Added — day selector, rain in the point card and the phone map layout (2026-11-27, branch `feat/observatory-meteo-day-selector-rain-card`)
 
 - **One day bar for Lluvia and Condiciones** over about six months (from the Monday 26 weeks before the current week up to a week ahead), with the months marked and weekly figures for all of Catalonia; dragging shows a ±5 day magnifier and asks for the layer when it rests. The forecast is drawn four times wider. A link's `dia` is limited to the same range (it was 30 days back).
