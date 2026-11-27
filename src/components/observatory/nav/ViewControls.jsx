@@ -53,7 +53,7 @@ export function ViewPanel({ id, basemap, onBasemap, onClose, flat = false, fulls
     <div id={id} role="dialog" aria-label={t.obsViewTitle} className={`${flat ? 'p-4' : 'rounded-[22px] map-surface shadow-float p-3.5 pb-4'} flex flex-col gap-3 ${className}`}>
       <div className="flex items-center justify-between">
         <h2 className="text-[17px] font-semibold text-cream">{t.obsViewTitle}</h2>
-        <button type="button" onClick={onClose} aria-label={t.obsViewClose} title={t.obsViewClose} className={`w-9 h-9 -m-1 rounded-full flex items-center justify-center text-cream/60 hover:text-cream ${FOCUS}`}>
+        <button type="button" onClick={onClose} aria-label={t.obsViewClose} title={t.obsViewClose} className={`w-[40px] h-[40px] -my-[7px] -mr-[8px] rounded-full flex items-center justify-center text-cream/60 hover:text-cream ${FOCUS}`}>
           <X size={18} aria-hidden="true" />
         </button>
       </div>

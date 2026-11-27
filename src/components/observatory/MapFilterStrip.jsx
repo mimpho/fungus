@@ -12,7 +12,7 @@ export function MapFilterStrip({ dayLabel, onEdit, onClearDay, className = '', s
   const label = t.obsMapDayPill.replace('{date}', dayLabel)
   return (
     <ul aria-label={t.obsFilterApplied} data-testid="map-filter-strip" className={`flex flex-wrap items-center gap-2 pointer-events-none ${className}`} style={style}>
-      <li className="pointer-events-auto inline-flex items-center rounded-full bg-bar text-white shadow-float text-sm">
+      <li data-map-cover="" className="pointer-events-auto inline-flex items-center rounded-full bg-bar text-white shadow-float text-sm">
         <button type="button" onClick={onEdit} title={t.obsMapDayEdit} className="pl-3.5 pr-1.5 py-1.5 rounded-l-full hover:bg-white/10 outline-none focus-visible:ring-2 focus-visible:ring-white/70">{label}</button>
         <button
           type="button"

@@ -6,6 +6,7 @@ import {
   ICGC_RELIEF_TILES_URL, ICGC_RELIEF_BOUNDS, ICGC_ATTRIBUTION,
 } from '../../lib/basemap'
 import { CATALONIA_BOUNDS } from '../../lib/catalonia'
+import { ZOOM_STEP } from '../../lib/mapZoom'
 import { cellFill, ALPHA_SCALE_BY_BASEMAP } from '../../lib/layerColors'
 import { reliefOverlay } from '../../lib/reliefLayer'
 import { rainOverlay, RAIN_ALPHA_BY_BASEMAP } from '../../lib/rainLayer'
@@ -113,8 +114,12 @@ function fitDragBounds(map, area) {
   // (zoomed far out) the map cannot be dragged anyway and Leaflet keeps the limits centred on the screen: growing them would
   // slide the map to the left every time a panel opens, and back when it closes
   const right = se.x - nw.x >= map.getSize().x ? (area?.rightPx ?? 0) : 0
-  if (!top && !bottom && !right) { map.setMaxBounds(DRAG_BOUNDS); return }
-  map.setMaxBounds(L.latLngBounds(map.unproject(nw.subtract([0, top]), zoom), map.unproject(se.add([right, bottom]), zoom)))
+  const limits = !top && !bottom && !right
+    ? L.latLngBounds(DRAG_BOUNDS.getSouthWest(), DRAG_BOUNDS.getNorthEast())
+    : L.latLngBounds(map.unproject(nw.subtract([0, top]), zoom), map.unproject(se.add([right, bottom]), zoom))
+  // The view that keeps all of Catalonia clear of the interface (useKeepOverview) is allowed too
+  if (map.obsOverview) limits.extend(map.obsOverview)
+  map.setMaxBounds(limits)
 }
 
 // The first base tiles get this long to arrive before the layers are drawn anyway
@@ -175,6 +180,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     const map = L.map(elRef.current, {
       zoomControl: false,
       minZoom: 7,
+      zoomSnap: ZOOM_STEP, // see lib/mapZoom.js; the zoom buttons still go a whole level at a time
       maxBounds: DRAG_BOUNDS,
       maxBoundsViscosity: 0.8,
     })
@@ -186,6 +192,7 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     else map.fitBounds(BOUNDS)
     map.on('click', e => onPickRef.current?.(e.latlng.lat, e.latlng.lng))
     map.on('zoomend', () => fitDragBounds(map, centerRef.current))
+    map.obsFitDragBounds = () => fitDragBounds(map, centerRef.current)
     map.on('moveend', () => { const c = map.getCenter(); onViewRef.current?.({ lat: c.lat, lon: c.lng, zoom: map.getZoom() }) })
     mapRef.current = map
     onMap?.(map)

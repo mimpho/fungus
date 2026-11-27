@@ -447,10 +447,13 @@ GET    /api/v1/observatory/point/species       ← compatible species with score
 GET    /api/v1/observatory/point/calendar      ← 7 real days and 35 ahead
 GET    /api/v1/observatory/layer/probability            ← conditions per cell/band for one species (login)
 GET    /api/v1/observatory/layer/probability-excellent  ← mean of excellent species (login)
-GET  /api/v1/observatory/layer/rain                    ← accumulated mm per cell, window=24h|7d|21d ending on `date` (login);
+GET  /api/v1/observatory/layer/rain                    ← accumulated mm per cell, window=24h|7d|14d|21d ending on `date` (login);
                                                          cells measured|estimated|no_data
        (the three: `date` up to today+7, forecast from today on; answer has `date`, `last_data_date`,
         `max_date`, `forecast_from`, `basis` real|forecast, `clamped`)
+GET    /api/v1/observatory/layer/weeks                  ← weekly bars of all Catalonia, layer=rain|conditions[&species=] (login):
+                                                         weeks [{from,to,real{days,value},forecast{days,value}}]; excellent
+                                                         edibles stored in meteo_day_series, other species computed when asked
 GET    /api/v1/observatory/layer/forest-raster[/meta]   ← private forest class raster (in production from the `RASTERS_BUCKET` bucket)
 GET    /api/v1/observatory/layer/substrate-raster[/meta] ← private substrate class raster
        (point/snapshot, series and calendar accept species=excellent → ensemble mean)

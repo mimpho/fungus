@@ -4,6 +4,95 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## With all of Catalonia in view, the map keeps it clear of the interface (2026-11-27, `feat/observatory-meteo-day-selector`)
+
+**Decision (Marcos):** when the window changes size or a panel, card or sheet opens, closes, folds or grows, and the whole of Catalonia is in view, the map moves it to the part left free. Zoomed in on a place it is left alone.
+
+**How (`hooks/useKeepOverview.js`, `lib/freeArea.js`):** what covers the map is marked `data-map-cover`; among the rectangles bounded by those edges, the one that shows Catalonia's box largest wins (the widest among those of the same zoom step). It runs once, 450 ms after the last change, with no layer recomputed. «In view» = a core a little inside Catalonia's box is visible and the zoom is no more than one level over the one that fits it. With less than 160 px free either way the map stays.
+
+**Consequences:** the map's zoom now goes by quarter levels (`lib/mapZoom.js`): the wheel and pinch stop at quarters, the buttons still move a whole level. It must be the map's own step: restoring whole levels made Leaflet round the fitted zoom back on its next move. The drag limits also admit the fitted view. A fitted view the user has not panned or zoomed keeps being re-fitted even if it does not hold all of Catalonia (fix in QA: with the species' sheet and Meteo at 640 px it ran off the right edge and closing Meteo did not bring it back).
+
+**Minimum zoom stays at 7** (Marcos, 2026-11-27): over a phone's Meteo sheet Catalonia is centred but cut at the top and bottom, and that is accepted; lowering it to 6.5 so that it fits was offered and declined.
+
+## Choosing a species unfolds its sheet (2026-11-27, `feat/observatory-meteo-day-selector`)
+
+**Decision (Marcos):** filtering by a species in the search unfolds its sheet (phone) or card (desktop), with nothing else open or with a tab's sheet or a point's sheet open; on the phone those fold or close, as the accordion already did when the species' bar was tapped. A species that arrives with the link stays folded, and so does one chosen inside the observed zone. On desktop the other cards and panels are left as they are.
+
+## Folded sheets halve while another is unfolded (2026-11-27, `feat/observatory-meteo-day-selector`)
+
+**Decision (Marcos):** in the phone layout, while one sheet is unfolded (a tab's or Vista's, the species' card, the point's sheet) the folded ones show half their height; with all of them folded they have their full folded height again.
+
+**As built:** about 40 px instead of about 80, which only holds one line: handle, name and ×. The species' bar drops «Mapa filtrado por» and narrows its photo to 56 px; the point's sheet cuts its title to one line and hides the comarca, altitude and coordinates. The point's sheet folded by its own handle counts as folded (`onFoldedChange`). Desktop's cards do not change.
+
+## «My location» stays in the corner while it fits beside the column (2026-11-27, `feat/observatory-meteo-day-selector`)
+
+**Decision (Marcos):** in the phone layout, the round button stays at the bottom right while the map is wide enough for it beside the 450 px column (from 534 px: the button plus 16 px at each side); narrower, it rides above the sheets. Its right margin goes from 32 to 16 px, and so does its gap to a sheet.
+
+**Credits:** they drop to the corner too when their one line fits beside the column, with the button just above them. When it does not fit they go on top of whatever the column holds (bar, tab sheet, species' and point's sheets), so no sheet hides them (QA: they stayed at the bar's height, clipped by the species' sheet or hidden under it on a phone); between 534 px and that width the button stays in the corner, below them. Where the button is above the credits it sits just clear of them (`hooks/useMapCorner.js` measures both).
+
+**Up to a 767 px wide map the credits are at the left** (Marcos, later in QA), on top of whatever the column holds, even where they would fit beside it: right-aligned they left a gap. Narrower than 534 px, «My location» comes down to 16 px over the column's top and shares their row at the right; they wrap before reaching it. At 320 px today's one line fits (1 px between the two boxes). This replaces, up to 767 px, what the paragraph above says about the corner. `useMapCorner` also watches the map's box: Leaflet fires no `resize` on some 1 px changes (seen from 767 to 768).
+
+## The Observatory map has the phone's layout under 1024 px; Meteo's panel is 450 px (2026-11-27, `feat/observatory-meteo-day-selector`)
+
+**Decision (Marcos):** from 1023 px down the map uses the phone's layout: the tabs as a bottom bar, and the tabs, the point and the species as sheets in one accordion; no side panels, rail or zoom buttons. From 1024 px the side panels stay, Meteo's (all its segments) at 450 px and the others at 360. What belongs to the device stays at the phone's width (under 640 px): the fullscreen under the camera, dialogs as bottom sheets, the site header, and the rain legend without its «good» band.
+
+**Why:** between 640 and 1023 the side panel left the place and species search unusable and piled up with the point's card.
+
+**One column at the left (same day, final):** under 1024 px the bottom bar and the sheets (tabs, point, species) are at most 450 px wide, the desktop Meteo card's width, flush with the left edge; the place and species search, the filter strip and the map hint start at the same edge with the phone's 12 px at each side, so 426 px (`src/lib/mapColumn.js`). On a screen of 450 px or less they take its whole width, as before.
+
+**Tried on the way:** only the content limited to a centred 767 px with full-width surfaces (Marcos meant the wrappers); the wrappers centred at 767 px; centred at 450 px.
+
+**Discarded:** a card growing from 360 to 450 px between 640 and 1024 (built and seen the same day, then removed); moving the rain unit beside the colour legend.
+
+**Changes earlier decisions:** «below 1024 px the point card and a panel take turns» no longer applies: they are sheets of one accordion.
+
+## Phone tab sheets: the handle takes no room of its own (2026-11-27, `feat/observatory-meteo-day-selector`)
+
+**Decision (Marcos):** in the sheets that open from the bottom bar (Meteo, Zonas, Hábitat, Vista) the drag handle lies over the top of the panel instead of in a strip of its own, its line 13 px under the sheet's edge as on the other sheets (first placed in the middle of the header row, which was lower than on the rest: corrected in QA), so the title starts as far from the top as from the sides. It stays a button (96 × 28 px) for a tap and the keyboard. The Vista header's × was given the row height of the others. The point card's and the species' sheets keep their handle as it was.
+
+**Why:** the whole sheet already drags, so the strip only cost height (about 24 px).
+
+## Lluvia turned on in the day selector branch (2026-11-27, `feat/observatory-meteo-day-selector`)
+
+**Decision (Marcos, in QA):** `ready: true` for rain comes in this branch, not in the point card's: no «Pronto», and `capa=lluvia` can be linked.
+
+**Known gap until the card branch:** with Lluvia on, the point card still shows the conditions percentage, «Observar» does not open the zone on the bar's day, and the preset is not in the URL (`acum`): a link opens on 7 d. A merge into `main` before that branch would publish Lluvia like this. **Closed the same day:** Marcos took the card, «Observar» and `acum` into this branch (little work, front end only, same files; without them it could not go to `main`).
+
+## Rain layer: a 14-day window, with its own scale (2026-11-27, `feat/observatory-meteo-day-selector`)
+
+**Decision (Marcos):** a fourth preset, 14 d, between 7 d and 21 d, with the marks 1 · 15 · 30 · 60 · 100 · 150+ mm and the same six colours. No «good» band: that one belongs to the 21-day chart.
+
+**Why:** Marcos missed it in the panel. The marks keep the strong colours about as rare as in the other windows: on the local data (111,542 complete archive windows, not production, less than a year) 100 mm was reached by 5.6 % and 140 / 160 mm by 1.5 / 0.8 % (150 not measured); in 7 d and 21 d the fifth mark is reached by 5.5–5.8 % and the sixth by 0.9–1.5 %.
+
+**Discarded:** 1 · 15 · 30 · 50 · 90 · 140+ (half way between 7 d and 21 d), the 21 d marks, the 7 d marks.
+
+## Day selector: forecast days four times wider (2026-11-27, `feat/observatory-meteo-day-selector`)
+
+**Decision (Marcos, among five drawings after seeing the bar):** the days from today on take four times the width of a past day (about 46 px of 315 for the week ahead). With it, as drawn: forecast bars at least 7 px high with an opaque outline, the dashed «hoy» line over and below the handle, and «+n d» at the end of the axis.
+
+**Why:** at one scale the forecast was about 13 px: the rest of the current week 3.5 px, its outline looking filled.
+
+**Discarded:** daily forecast bars in a stretch of their own (changes the back end); a scale opening gradually near today (three scales); a separate forecast block with two equal bars; the same scale with a tinted zone.
+
+**Known cost:** the past is 11 % narrower and a drag changes pace at today.
+
+## Day selector of Meteo: bars, forecast, storage and finger (S1–S6, 2026-11-27, `epic/observatory-meteo`)
+
+**Decision (Marcos), after four drawings with six months of local data:**
+- **S1:** Condiciones' bars follow the chosen species, whichever it is; excellent ones stored, the rest computed when asked.
+- **S2:** rain bars use the map's 7 d scale, one colour per bar, with the drawing's minimum opacity for light weeks; 60 mm fills the bar.
+- **S3:** forecast outlined only; calendar weeks Monday–Sunday, the current one split at today.
+- **S4:** series in a table (migration 023) filled after the cell refresh, each day computed as the map does.
+- **S5:** drag by day with a ±5-day magnifier, arrows of one day.
+- **S6:** the rating is the mean of all Catalonia.
+- **Delivery:** back end and front end in one branch, `feat/observatory-meteo-day-selector`.
+
+**Discarded:** S1: always the excellent ones; the species only if excellent (else the excellent ones, or no bars). S2: one blue; blue by intensity; the scale stacked by height; neutral. S3: hatched, faded, tinted background (calendar weeks); seven-day weeks from today. S4: the table rebuilt whole in one pass; memory only. S5: arrows and day drag alone; week drag with a row of seven days; week drag keeping the weekday. S6: p90 (Claude's proposal), mean of the best 10 %, share of cells at 55 or more. Two branches (Claude's proposal).
+
+**Why:** the choices are Marcos's, made from the drawings; no further reasons were given.
+
+**Known costs:** with the mean (S6) the excellent series never passed 62 locally between 29 May and 26 November, so gold and green weeks will be rare. A species computed on request uses one pass, whose national daily mean differed from the map's computation by at most 0.26 points on six species. The 7 d scale's dark tones may be hard to see on the panel, and light outlines faint.
+
 ## Day selector of Meteo: one bar over six months, with Catalonia's weekly figures (2026-11-27, `epic/observatory-meteo`)
 
 **Decision:** the slider, its static forecast strip and the 30-day limit are to be replaced by one bar over about six months, with a bar per week behind the handle (option E of five drawings): in Lluvia the rain, in Condiciones a rating for all Catalonia coloured with the five score bands from green to red. It is the **next branch**, before the point card. Not built yet; the open points are in the Meteo PRD.

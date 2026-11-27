@@ -11,6 +11,7 @@ import { useMapNavigation, TABS } from '../hooks/useMapNavigation'
 import { useMapBusy } from '../hooks/useMapBusy'
 import { ALL_EXCELLENT, useProbabilityLayer } from '../hooks/useProbabilityLayer'
 import { useRainLayer } from '../hooks/useRainLayer'
+import { rainAtPoint, rainGrid } from '../lib/rainLayer'
 import { pixelElevation, pixelScore, reliefGrid } from '../lib/reliefLayer'
 import { useElevationRasterState } from '../hooks/useElevationRaster'
 import { useClassRasterState } from '../hooks/useClassRaster'
@@ -25,8 +26,11 @@ import { ObservatoryMap } from '../components/observatory/ObservatoryMap'
 import { MapSearchBar } from '../components/observatory/MapSearchBar'
 import { FOREST_TYPES } from '../lib/forestLayer'
 import { SpeciesLayerPicker } from '../components/observatory/SpeciesLayerPicker'
-import { layerDays } from '../components/observatory/LayerDayControl'
+import { layerDays } from '../components/observatory/DayBar'
 import { MapFilterStrip } from '../components/observatory/MapFilterStrip'
+import { useMapCorner } from '../hooks/useMapCorner'
+import { MAP_COLUMN, MAP_FIELD, METEO_PANEL_PX, BESIDE_COLUMN_PX, LEFT_CREDITS_MAX_PX, LOCATE_GAP_PX, LOCATE_PX } from '../lib/mapColumn'
+import { useKeepOverview } from '../hooks/useKeepOverview'
 import { todayIso } from '../lib/layerDays'
 import { formatDay } from '../lib/thermometer'
 import { MeteoPanel } from '../components/observatory/nav/MeteoPanel'
@@ -48,8 +52,14 @@ const BASEMAPS = ['satellite', 'streets', 'relief']
 const NAV_PANEL_ID = 'obs-nav-panel'
 const VIEW_PANEL_ID = 'obs-view-panel'
 const TAB_TITLE = { data: 'obsTabMeteo', zones: 'obsTabZones', habitat: 'obsTabHabitat' }
-// Desktop: what a panel covers at the right of the map (rail 16 + 76, gap 12, panel 360, margin 16)
-const PANEL_CLEAR_PX = 480
+// The panel beside the tab rail (from 1024px). Meteo's is wider, for the day bar's half year
+// What the credits take over their own height: their 5px lift (map.css) and 2px to what is above
+const CREDITS_GAP_PX = 7
+const PANEL_PX = 360
+// Desktop, to the right of the map: what a panel covers besides its own width (rail 16 + 76, gap 12, margin 16),
+// and how far from the edge what sits at the top stops (rail 16 + 76, panel gap 12, gap 24)
+const PANEL_CLEAR_EXTRA_PX = 120
+const PANEL_TOP_EXTRA_PX = 128
 const HINT_MS = 6000 // how long «Haz clic en el mapa…» stays
 const HINT_FADE_MS = 1500 // and how long it takes to fade out
 // Zonas · «Mis rincones» checkbox and Bosque's checked classes, remembered in this browser (the Zonas switch keeps
@@ -128,7 +138,7 @@ export default function Observatory() {
   // the layer, the species and the day. Opened from a link, they come from the URL.
   const meteoOn = nav.on.data
   const [meteoKind, setMeteoKind] = useState(initialMeteo?.layer ?? DEFAULT_METEO_LAYER)
-  const [rainPreset, setRainPreset] = useState(DEFAULT_RAIN_PRESET)
+  const [rainPreset, setRainPreset] = useState(initialMeteo?.preset ?? DEFAULT_RAIN_PRESET)
   const rainOn = meteoOn && meteoKind === 'rain'
   // Probability layer (Meteo · Condiciones): one species at a time (null = the mean of the excellent ones)
   const probabilityOn = meteoOn && meteoKind === 'conditions'
@@ -162,8 +172,8 @@ export default function Observatory() {
   const dayFilter = meteoOn && layerDate && layerDate !== todayIso() ? formatDay(layerDate, lang) : null
   // The URL says what Meteo shows while it is on (history replaced: Back does not walk through the days)
   useEffect(() => {
-    setMeteo(meteoOn ? { layer: meteoKind, day: layerDate } : null)
-  }, [meteoOn, meteoKind, layerDate, setMeteo])
+    setMeteo(meteoOn ? { layer: meteoKind, day: layerDate, preset: rainPreset } : null)
+  }, [meteoOn, meteoKind, layerDate, rainPreset, setMeteo])
   const speciesLabel = id => {
     const s = (catalog ?? []).find(x => x.id === id)
     return s?.commonNames?.[0] || s?.scientificName || ''
@@ -174,7 +184,9 @@ export default function Observatory() {
   // Applying a species switches Condiciones on (the species is shown through it): Meteo on and its Condiciones segment
   const showConditions = () => { if (!nav.on.data) nav.setOn('data', true); if (meteoKind !== 'conditions') setMeteoKind('conditions') }
   // With «De la seta» shown the species is being looked at there: Meteo stays as it is
-  const chooseSpecies = id => { setLayerSpecies(id); if (id && !habitatShown) showConditions() }
+  // A species chosen in the search unfolds its sheet; one that comes with the link leaves it folded
+  const [speciesToOpen, setSpeciesToOpen] = useState(null)
+  const chooseSpecies = id => { setLayerSpecies(id); setSpeciesToOpen(id); if (id && !habitatShown) showConditions() }
   const layerId = probabilityOn || pending || habitatShown ? (mapSpecies ?? ALL_EXCELLENT) : null
   const layer = useProbabilityLayer(isAuthenticated ? layerId : null, { date: layerDate ?? undefined })
   const elevationState = useElevationRasterState(Boolean(layerId) && isAuthenticated)
@@ -209,6 +221,16 @@ export default function Observatory() {
       return pixelScore(reliefGrid(elevation, data.cells), data, habitat, pending.lat, pending.lon)
     } catch (_e) { return undefined }
   }, [pending, layer.data, layer.status, elevation, habitat])
+  // With Lluvia drawn, the card's figure instead. `ready` only for the answer to the window and day asked now,
+  // so the figure of the previous ones never shows under new dates
+  const rainCells = rain.data?.cells
+  const rainSurface = useMemo(() => (pending && rainCells?.length ? rainGrid(rainCells) : null), [Boolean(pending), rainCells]) // eslint-disable-line react-hooks/exhaustive-deps
+  const rainValue = useMemo(() => {
+    if (!pending || !rainShown) return null
+    if (rain.status === 'error') return { status: 'error' }
+    if (rain.status !== 'ready') return { status: 'loading' }
+    return { status: 'ready', ...rainAtPoint(rain.data, rainSurface, pending.lat, pending.lon) }
+  }, [pending, rainShown, rain.status, rain.data, rainSurface])
   // The point's height from the map's own relief, for when the elevation service gives none
   const pendingElevation = useMemo(() => {
     if (!pending || !elevation || !layer.data?.cells?.length) return null
@@ -217,8 +239,10 @@ export default function Observatory() {
   // The map is the page. An observed zone is a layer over the whole screen (the header too), like a full-screen dialog:
   // it is open while the URL has the point. Its cross closes it (the point leaves the URL) and the point's card stays on the
   // map, with «Observar», which opens the zone again from scratch. The map stays mounted and untouched under the layer.
-  const phone = useIsPhone()
-  const wide = useIsWide() // from 1024px the point card and a map panel fit side by side
+  // Under 1024px a map panel, the point's card and the search do not fit side by side: the map then has the phone's
+  // layout (the tabs as a bottom bar, everything that opens as a sheet)
+  const compact = !useIsWide()
+  const handset = useIsPhone() // a phone's own width: only for what is about the device (fullscreen under its camera)
   const [mapInst, setMapInst] = useState(null) // the Leaflet map, for the desktop zoom buttons
   const [drawing, setDrawing] = useState(false) // the map is working out a layer's picture
   const [headerSlot, setHeaderSlot] = useState(null) // where the zone puts its title: the header of the layer
@@ -248,11 +272,11 @@ export default function Observatory() {
   const fullscreen = fullscreenState || appFullscreen
   // The phone's fullscreen reaches under the camera hole (see fullscreenTop). In the iPhone's installed app the status bar
   // stays, so there fullscreen is laid out as the app without it
-  const safeTop = fullscreen && phone && !isIosApp()
+  const safeTop = fullscreen && handset && !isIosApp()
   // The zone's layer too, in any phone's fullscreen: its title reaches the middle, where the camera is, so its header comes
   // down 8px, or what puts the title's line (about 48px down) 4px below a taller safe area. The bar of filters follows
   const anyFullscreen = useFullscreen()
-  const zoneDrop = phone && anyFullscreen && !isIosApp() ? 'max(8px, calc(var(--safe-top) - 44px))' : '0px'
+  const zoneDrop = handset && anyFullscreen && !isIosApp() ? 'max(8px, calc(var(--safe-top) - 44px))' : '0px'
   const { noHeader, setMapState } = useOutletContext()
   useEffect(() => { setMapState({ fullscreen, covered: Boolean(zoneOpen) }) }, [fullscreen, zoneOpen, setMapState])
   useEffect(() => () => setMapState({ fullscreen: false, covered: false }), [setMapState])
@@ -261,12 +285,23 @@ export default function Observatory() {
   const [pointFolded, setPointFolded] = useState(false)
   const [sheetH, setSheetH] = useState(0) // height of the point's sheet on the phone, for the map to keep the point above it
   const [barH, setBarH] = useState(0) // height the phone's tab bar covers (with a tab's sheet open, the sheet too)
-  // The phone's «My location»: 32 px above the top of whatever the bottom holds. The point's sheet and the species' bar are a stack that rises
-  // from 24 px under the tab bar's top (they overlap it), so with either of them its top is 24 px lower than the bar's plus their heights
+  // The phone layout's bottom right corner (see `useMapCorner`): whether «My location» fits beside the column of the bar and
+  // the sheets, and whether the map's credits do too
+  const corner = useMapCorner(mapInst)
+  const besideColumn = corner.mapW >= BESIDE_COLUMN_PX
+  const creditsLeft = compact && corner.mapW > 0 && corner.mapW <= LEFT_CREDITS_MAX_PX
+  const creditsBeside = !creditsLeft && besideColumn && corner.mapW - METEO_PANEL_PX >= corner.creditsW
+  // The top of whatever the column holds: the tab bar (with a tab's sheet open, the sheet too), the species' bar and the point's
+  // sheet. These two are a stack that rises from 24 px under the tab bar's top (they overlap it), so with either of them its
+  // top is 24 px lower than the bar's plus their heights
   const onStack = speciesH > 24 || Boolean(pending)
   const bothSheets = speciesH > 24 && Boolean(pending) // the species' bar then overlaps the foot of the point's sheet by 24 px
-  const locateBottom = (onStack ? Math.max(0, barH - 24) : barH) + (speciesH > 24 ? speciesH : 0) + (pending ? sheetH : 0) - (bothSheets ? 24 : 0) + 32
-  const [barRestH, setBarRestH] = useState(0) // the bar alone: the map's own controls at the bottom (zoom, credits) sit above it
+  const stackTop = (onStack ? Math.max(0, barH - 24) : barH) + (speciesH > 24 ? speciesH : 0) + (pending ? sheetH : 0) - (bothSheets ? 24 : 0)
+  // Credits go on top of the column: at the left up to LEFT_CREDITS_MAX_PX, and wider whenever they do not fit beside it
+  const creditsLift = compact && !creditsBeside ? stackTop : 0
+  // «My location»: LOCATE_GAP_PX over the corner when it fits beside the column, else over the column's top, in the credits' row
+  // (they are at the left, and wrap before reaching it). Only credits in the corner are under it, and it clears them
+  const locateAt = creditsBeside ? CREDITS_GAP_PX + corner.creditsH : (besideColumn ? 0 : stackTop) + LOCATE_GAP_PX
   const nativeFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement
   function enterFullscreen() {
     setFullscreenState(true)
@@ -333,32 +368,38 @@ export default function Observatory() {
     { id: 'drawing', label: '', on: true, loading: drawing, error: false },
   ], [drawing, t, probabilityOn, habitatShown, rainShown, rain.status, rain.retry, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
 
-  // A tab or Vista opens its panel. Below 1024px the point card and a panel take turns; on the phone
+  // A tab or Vista opens its panel. With the compact layout
   // (one sheet at a time) opening a tab's sheet or Vista also drops the picked point.
-  // On the phone the sheets work as an accordion: only one is unfolded. A tab's sheet folds the point's sheet and the species' card
-  // (they stay in view, folded); unfolding one of them closes the tab's sheet. Wider screens take turns instead.
+  // With the compact layout the sheets work as an accordion: only one is unfolded. A tab's sheet folds the point's sheet and the
+  // species' card (they stay in view, folded); unfolding one of them closes the tab's sheet. Wider, they sit side by side.
   const [speciesCloseSignal, setSpeciesCloseSignal] = useState(0)
   function toggleNav(tab) {
     if (nav.openTab !== tab) {
-      if (!wide && !phone) setPending(null)
-      if (phone) setPointFolded(true)
+      if (compact) setPointFolded(true)
       setSpeciesCloseSignal(n => n + 1)
     }
     nav.toggleTab(tab)
   }
   // The species' card went up (or down): unfolding it closes a tab's sheet
-  const onSpeciesOpenChange = value => { if (value && phone) { nav.close(); setPointFolded(true) } }
+  const [speciesOpen, setSpeciesOpen] = useState(false)
+  const onSpeciesOpenChange = value => { setSpeciesOpen(value); if (value && compact) { nav.close(); setPointFolded(true) } }
+  // While one sheet is unfolded, the folded ones halve, to leave more of the map
+  const [pointShownFolded, setPointShownFolded] = useState(false) // also true when its own handle folded it
+  const miniSheets = compact && (Boolean(nav.openTab) || speciesOpen || Boolean(pending && !pointShownFolded))
   // Tapping the point's folded sheet unfolds it: the others fold or close
   const expandPoint = () => { setPointFolded(false); setSpeciesCloseSignal(n => n + 1); nav.close() }
 
   // Esc, one layer at a time: the phone's fullscreen, then the zone's layer, then an open panel, then the point's card
   // (through a ref: the listener must see the current zone)
   const closePanelRef = useRef(() => {})
-  const desktopPanel = !phone && nav.openTab
+  const desktopPanel = !compact && nav.openTab
+  const sidePanelPx = nav.openTab === 'data' ? METEO_PANEL_PX : PANEL_PX
+  // What sits at the top of the map stops before the open panel
+  const besidePanel = desktopPanel ? { right: sidePanelPx + PANEL_TOP_EXTRA_PX } : undefined
   const anyPanel = Boolean(nav.openTab)
   // Without the header the floating menu button takes the top right corner: on the phone the search stops before it (in the
   // map's fullscreen the button sits above the search instead), and on desktop the tabs start under it
-  const searchRight = phone ? (noHeader && !safeTop ? 'right-[76px]' : 'right-3') : desktopPanel ? 'right-[488px]' : 'right-[104px]'
+  const searchRight = compact ? (noHeader && !safeTop ? 'right-[76px]' : 'right-3') : desktopPanel ? '' : 'right-[104px]'
   useEffect(() => {
     if (!pending && !fullscreen && !zoneOpen && !anyPanel) return
     const onKey = e => {
@@ -384,7 +425,6 @@ export default function Observatory() {
   closePanelRef.current = closePanel
 
   function handlePick(lat, lon) {
-    if (!phone && !wide) nav.close() // below 1024px the point card takes the place of a map panel
     if (!isInCatalonia(lat, lon)) {
       // Outside Catalonia there is nothing to look up (the API would answer 422): the pick is dropped without a notice
       setPending(null)
@@ -396,13 +436,13 @@ export default function Observatory() {
 
   // A tap on the phone's map while a tab's sheet or Vista is open only closes it (a second tap picks the point)
   function handleMapTap(lat, lon) {
-    if (phone && nav.openTab) { nav.close(); return }
+    if (compact && nav.openTab) { nav.close(); return }
     handlePick(lat, lon)
   }
 
   // A search result is a pick that also moves the map to it (on the phone it takes the place of an open sheet)
   function handleSearchSelect(point) {
-    if (phone) nav.close()
+    if (compact) nav.close()
     handlePick(point.lat, point.lon)
     setFlyTo({ ...point, n: Date.now() })
   }
@@ -410,7 +450,7 @@ export default function Observatory() {
   // «My location»: a pick at the device's position that also moves the map to it; false when it is outside Catalonia
   function handleLocate(lat, lon) {
     if (!isInCatalonia(lat, lon)) return false
-    if (phone) nav.close()
+    if (compact) nav.close()
     handlePick(lat, lon)
     setFlyTo({ lat, lon, n: Date.now() })
     return true
@@ -419,8 +459,8 @@ export default function Observatory() {
   function handleObserve(point) {
     // The zone opens on the Meteo day: its window ends there, or on the last day with real data when the
     // day is a forecast one
-    const lastReal = layerDays(layer.data).lastDate
-    const zoneUntil = probabilityOn && layerDate ? (layerDate > lastReal ? lastReal : layerDate) : undefined
+    const lastReal = layerDays(rainShown ? rain.data : layer.data).lastDate
+    const zoneUntil = (probabilityOn || rainOn) && layerDate ? (layerDate > lastReal ? lastReal : layerDate) : undefined
     if (!samePoint(observed, point)) observe(point.lat, point.lon, { until: zoneUntil })
     // The point's card stays on the map under the layer, for when the layer is closed
     setPending({ lat: point.lat, lon: point.lon })
@@ -518,6 +558,10 @@ export default function Observatory() {
   )
   const savedList = <SavedPointsList saved={saved} observed={observed} onSelect={handleObserve} />
 
+  // With all of Catalonia in view, the map moves it clear of whatever panels, cards and sheets are up (and back)
+  const mapRootRef = useRef(null)
+  useKeepOverview(mapInst, mapRootRef, [nav.openTab, Boolean(pending), layerSpecies, compact, fullscreen, Boolean(dayFilter), barH, speciesH, sheetH].join('|'))
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -559,7 +603,7 @@ export default function Observatory() {
         <>
           {/* The map fills the viewport under the header (--header-h is published by Layout) */}
           <div className={`${noHeader ? 'h-[100dvh]' : 'h-[calc(100dvh-var(--header-h,5.5rem))]'} min-h-[420px]`}>
-          <div className={`${fullscreen ? 'fixed inset-0 z-[150]' : 'relative h-full'} isolate overflow-hidden`} style={{ '--obs-bottom-clear': `${phone ? barRestH : 0}px` }}>
+          <div ref={mapRootRef} className={`${fullscreen ? 'fixed inset-0 z-[150]' : 'relative h-full'} ${creditsLeft ? 'obs-credits-left' : ''} isolate overflow-hidden`} style={{ '--obs-bottom-clear': `${creditsLift}px`, '--obs-credits-max': `${corner.mapW - LOCATE_PX - LOCATE_GAP_PX}px` }}>
             <ObservatoryMap
               observed={observed}
               pending={pending}
@@ -572,7 +616,7 @@ export default function Observatory() {
               elevation={elevation}
               habitat={habitat}
               forestTypes={forestTypes}
-              onPick={phone ? handleMapTap : handlePick}
+              onPick={compact ? handleMapTap : handlePick}
               leafletZoom={false}
               onMap={setMapInst}
               onDrawing={setDrawing}
@@ -580,49 +624,51 @@ export default function Observatory() {
               basemap={basemap}
               flyTo={flyTo}
               dataSources={[(probabilityOn || rainShown || pending) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
-              centerAbove={phone ? { top: 72, bottomPx: barH + (speciesH > 24 ? speciesH - 24 : 0) + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
+              centerAbove={compact ? { top: 72, bottomPx: barH + (speciesH > 24 ? speciesH - 24 : 0) + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: sidePanelPx + PANEL_CLEAR_EXTRA_PX } : null}
               className="h-full"
             />
             {/* The hint is a toast under the search (it used to sit on the tab bar): it goes after a few seconds, or as soon as the map is used */}
-            {!hintGone && !pending && !observed && !(phone && nav.openTab) && (
-              <div style={{ transitionDuration: `${HINT_FADE_MS}ms`, ...(safeTop ? fullscreenTop(dayFilter ? 130 : 80) : {}) }} className={`absolute z-[1100] ${safeTop ? '' : dayFilter ? 'top-[calc(var(--safe-top)+130px)] left-3' : 'top-[calc(var(--safe-top)+80px)] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
-                <p role="status" className="w-fit max-w-[30rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white">
-                  {t.obsMapHint}
-                </p>
+            {!hintGone && !pending && !observed && !(compact && nav.openTab) && (
+              <div style={{ transitionDuration: `${HINT_FADE_MS}ms`, ...(safeTop ? fullscreenTop(dayFilter ? 130 : 80) : besidePanel) }} className={`absolute z-[1100] ${safeTop ? '' : dayFilter ? 'top-[calc(var(--safe-top)+130px)] left-3' : 'top-[calc(var(--safe-top)+80px)] left-3'} ${compact ? 'right-3' : desktopPanel ? '' : 'right-[104px]'} pointer-events-none transition-opacity ease-out motion-reduce:transition-none ${hintOn ? 'opacity-100' : 'opacity-0'}`}>
+                <div className={compact ? MAP_FIELD : ''}>
+                  <p role="status" className="w-fit max-w-[30rem] bg-coffee shadow-float rounded-xl px-3 py-2 text-xs text-white">
+                    {t.obsMapHint}
+                  </p>
+                </div>
               </div>
             )}
-            {/* Desktop: My location, Vista and the zoom at the bottom right, one radius and one width; Vista's panel opens to their left. On the phone Vista is the
+            {/* From 1024px: My location, Vista and the zoom at the bottom right, one radius and one width; Vista's panel opens to their left. Narrower, Vista is the
                 tab bar's fourth button and the map is zoomed with the fingers */}
-            {!phone && (
+            {!compact && (
               <>
-                <div className="absolute z-[1100] right-4 bottom-5 flex flex-col items-end gap-2.5">
+                <div data-map-cover="" className="absolute z-[1100] right-4 bottom-5 flex flex-col items-end gap-2.5">
                   <LocateButton desktop onLocate={handleLocate} className="relative" />
                   <ViewButton open={nav.openTab === 'view'} onClick={() => toggleNav('view')} panelId={VIEW_PANEL_ID} />
                   <ZoomButtons map={mapInst} />
                 </div>
                 {nav.openTab === 'view' && (
-                  <div className="absolute z-[1100] right-[104px] bottom-5 w-[360px]">
+                  <div data-map-cover="" className="absolute z-[1100] right-[104px] bottom-5 w-[360px]">
                     <ViewPanel id={VIEW_PANEL_ID} basemap={basemap} onBasemap={chooseBasemap} onClose={nav.close} fullscreen={fullscreen} onFullscreen={appFullscreen ? null : setFullscreenAfterFold} />
                   </div>
                 )}
               </>
             )}
-            {/* Phone: «My location» at the bottom right, above whatever the bottom holds (tab bar, species bar, point sheet); 32 px up and in from the corner so that the map's attribution stays clear */}
-            {phone && (
+            {/* Phone layout: «My location» at the bottom right. With room beside the column it stays in the corner; narrower, it rides above whatever the column holds, beside the map's credits */}
+            {compact && (
               <LocateButton
                 onLocate={handleLocate}
-                className="absolute z-[1100] right-8"
-                style={{ bottom: locateBottom }}
+                className="absolute z-[1100]"
+                style={{ right: LOCATE_GAP_PX, bottom: locateAt }}
               />
             )}
             {/* Desktop: the tabs at the top right; a panel opens to the left of them */}
-            {!phone && (
+            {!compact && (
               <>
-                <div className={`absolute z-[1100] ${noHeader ? 'top-[calc(var(--safe-top)+80px)]' : 'top-[calc(var(--safe-top)+1rem)]'} right-4`}>
+                <div data-map-cover="" className={`absolute z-[1100] ${noHeader ? 'top-[calc(var(--safe-top)+80px)]' : 'top-[calc(var(--safe-top)+1rem)]'} right-4`}>
                   <TabRail openTab={nav.openTab} on={nav.on} onToggle={toggleNav} panelId={NAV_PANEL_ID} />
                 </div>
                 {TABS.includes(nav.openTab) && (
-                  <div className="absolute z-[1100] top-[calc(var(--safe-top)+1rem)] right-[104px] w-[360px] max-h-[calc(100%-2rem-var(--safe-top))] flex">
+                  <div data-map-cover="" className="absolute z-[1100] top-[calc(var(--safe-top)+1rem)] right-[104px] max-h-[calc(100%-2rem-var(--safe-top))] flex" style={{ width: sidePanelPx }}>
                     {navPanel(nav.openTab, { className: 'w-full max-h-full overflow-y-auto overscroll-contain' })}
                   </div>
                 )}
@@ -631,7 +677,7 @@ export default function Observatory() {
             {/* The conditions and rain panels show their own error: the map's notice is for when they are closed */}
             <MapLoadingBar busy={busy} failed={(failed?.id === 'conditions' || failed?.id === 'rain') && nav.openTab === 'data' ? null : failed} />
             {/* Phone: the tabs as a bar at the bottom; a tab's panel grows out of it as a sheet */}
-            {phone && (
+            {compact && (
               <PhoneTabBar
                 openTab={nav.openTab}
                 on={nav.on}
@@ -643,32 +689,33 @@ export default function Observatory() {
                   : navPanel(tab, { flat: true }))}
                 reservePx={(speciesH > 24 ? speciesH - 24 : 0) + (pending ? Math.max(0, sheetH - 24) : 0)}
                 onHeight={setBarH}
-                onBarHeight={setBarRestH}
               />
             )}
-            {/* Desktop: the search never reaches the rail, nor an open panel (rail 16 + 76, panel 12 + 360, gap 12) */}
-            <div className={`absolute z-[1115] ${safeTop ? '' : 'top-[calc(var(--safe-top)+0.75rem)] left-3'} ${searchRight} pointer-events-none`} style={safeTop ? fullscreenTop(12) : undefined}>
-              <MapSearchBar onPlace={handleSearchSelect} speciesId={layerSpecies} onSpecies={chooseSpecies} className={`pointer-events-auto w-full ${phone ? '' : 'max-w-[30rem]'}`} />
+            {/* Desktop: the search never reaches the rail, nor an open panel (see `besidePanel`) */}
+            <div className={`absolute z-[1115] ${safeTop ? '' : 'top-[calc(var(--safe-top)+0.75rem)] left-3'} ${searchRight} pointer-events-none`} style={safeTop ? fullscreenTop(12) : besidePanel}>
+              <div data-map-cover="" className={compact ? MAP_FIELD : 'w-full max-w-[30rem]'}>
+                <MapSearchBar onPlace={handleSearchSelect} speciesId={layerSpecies} onSpecies={chooseSpecies} className="pointer-events-auto w-full" />
+              </div>
             </div>
             {/* The active filters, under the search with the same gap the search has under the header (14 px): the Meteo day when it is not today */}
             {dayFilter && (
-              <div className={`absolute z-[1114] ${safeTop ? '' : 'top-[calc(var(--safe-top)+80px)] left-3'} ${phone ? 'right-3' : desktopPanel ? 'right-[488px]' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(80) : undefined}>
-                <MapFilterStrip dayLabel={dayFilter} onEdit={() => { if (nav.openTab !== 'data') toggleNav('data') }} onClearDay={() => setLayerDate(null)} />
+              <div className={`absolute z-[1114] ${safeTop ? '' : 'top-[calc(var(--safe-top)+80px)] left-3'} ${compact ? 'right-3' : desktopPanel ? '' : 'right-[104px]'} pointer-events-none`} style={safeTop ? fullscreenTop(80) : besidePanel}>
+                <MapFilterStrip className={compact ? MAP_FIELD : ''} dayLabel={dayFilter} onEdit={() => { if (nav.openTab !== 'data') toggleNav('data') }} onClearDay={() => setLayerDate(null)} />
               </div>
             )}
             {/* The point's sheet and the species' sheet are one stack in the page's flow (from the bottom: species, point), so folding or
                 unfolding one moves the ones above it with it and none ever leaves a gap. Phone: above the tab bar, as bottom sheets.
                 Desktop (and tablet): the same two blocks as cards, in a column at the bottom left. */}
             <div
-              className={phone
-                ? 'absolute inset-x-0 z-[1100] flex flex-col justify-end pointer-events-none'
+              className={compact
+                ? `absolute inset-x-0 z-[1100] flex flex-col justify-end pointer-events-none ${MAP_COLUMN}`
                 : `absolute z-[1100] left-3 bottom-3 w-[396px] max-w-[calc(100%-6rem)] ${dayFilter ? 'max-h-[calc(100%-9rem)]' : 'max-h-[calc(100%-6rem)]'} flex flex-col justify-end gap-2 pointer-events-none`}
-              style={phone ? { top: safeTop ? fullscreenTop(dayFilter ? 130 : 72).top : `calc(var(--safe-top) + ${dayFilter ? 130 : 72}px)`, bottom: Math.max(0, barH - 24) } : undefined}
+              style={compact ? { top: safeTop ? fullscreenTop(dayFilter ? 130 : 72).top : `calc(var(--safe-top) + ${dayFilter ? 130 : 72}px)`, bottom: Math.max(0, barH - 24) } : undefined}
             >
               {pending && (
-                <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={phone} folded={phone && pointFolded} onExpand={expandPoint} onSheetHeight={setSheetH} />
+                <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} rainValue={rainValue} onObserve={handleObserve} onClose={closePanel} sheet={compact} folded={compact && pointFolded} mini={miniSheets} onExpand={expandPoint} onSheetHeight={setSheetH} onFoldedChange={setPointShownFolded} />
               )}
-              <SpeciesSheet speciesId={layerSpecies} lens={habitatShown ? 'habitat' : probabilityOn ? 'conditions' : null} onClear={() => setLayerSpecies(null)} phone={phone} onOpenChange={onSpeciesOpenChange} onStackHeight={setSpeciesH} closeSignal={speciesCloseSignal} />
+              <SpeciesSheet speciesId={layerSpecies} lens={habitatShown ? 'habitat' : probabilityOn ? 'conditions' : null} onClear={() => setLayerSpecies(null)} phone={compact} mini={miniSheets} onOpenChange={onSpeciesOpenChange} onStackHeight={setSpeciesH} closeSignal={speciesCloseSignal} openRequest={speciesToOpen} onOpenRequestDone={() => setSpeciesToOpen(null)} />
             </div>
           </div>
           </div>

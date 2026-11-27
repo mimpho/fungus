@@ -91,7 +91,7 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 
 ### URL, «Observar», species
 
-- `capa=lluvia`, `dia` (shared), `acum=24h|7d|21d`; `7d` is left out, an unknown value means `7d`, and `acum` goes when the layer is not rain.
+- `capa=lluvia`, `dia` (shared), `acum=24h|7d|14d|21d`; `7d` is left out, an unknown value means `7d`, and `acum` goes when the layer is not rain.
 - `handleObserve` sends the Meteo day with Condiciones **or** Lluvia; a forecast day opens on `last_data_date`.
 - The species is still the whole map's: choosing one in the search bar switches to Condiciones, as today.
 
@@ -125,8 +125,8 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 |---|---|
 | 1 `feat/observatory-meteo-rain-api` | ✅ 2026-11-27 (scenarios 1.1–1.13) |
 | 2 `feat/observatory-meteo-rain-map` | ✅ 2026-11-27 (scenarios 2.1–2.6; see «As built — branch 2») |
-| Next: `feat/observatory-meteo-day-selector` | ⬜ not planned yet: PRD section and plan first. Goes before branch 3 (2026-11-27) |
-| 3 `feat/observatory-meteo-rain-card` | ⬜ |
+| `feat/observatory-meteo-day-selector-rain-card` (first named `…-day-selector`) | ✅ 2026-11-27: day selector (back end and front end), 14 d, Lluvia on, the map layout changes of its QA and the work of branch 3. Checks still pending: `pending.md` |
+| 3 `feat/observatory-meteo-rain-card` | ✅ 2026-11-27, no branch of its own: built inside the one above (Marcos). See «As built — branch 3» |
 
 ### As built — branch 1 (2026-11-27)
 
@@ -144,6 +144,14 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 - **Not checked:** loading bar seen on screen; the hidden note under Hábitat · De la seta; text contrast measured; slider with a finger; the sources dialog's new credit; the 21 d band's CA and EN texts and its desktop legend; real `no_data` or `estimated` cells.
 
 All cut from `epic/observatory-meteo`, which Marcos creates from `main`. One after another; each is squashed into the epic. These doc changes must be in the epic (or in `main`) before branch 1.
+
+### As built — branch 3 (2026-11-27, inside the day selector branch)
+
+`components/observatory/PointRain.jsx` is the card's headline while Lluvia is drawn; `rainAtPoint` (`lib/rainLayer.js`) says what it shows, from `rainValueAt`; `handleObserve` sends the Meteo day with Condiciones or Lluvia; `acum` (`24h|14d|21d`, `7d` left out) in `lib/observatoryView.js`. No back-end change.
+
+**Seen in the built-in browser, local data:** `?capa=lluvia&acum=21d&dia=2026-10-07` opening that layer, window and day; the card's figure following window and day with only the loading dots in between (3.2); past, today and forecast days, the last two tagged; «Observar» from 7 October opening the zone on it, and from a forecast day on 26 November, the last real one; a bad `acum` and an `acum` with Condiciones dropped from the link; a failed request (patched `fetch`) with an empty block of the same height, retry in the panel and recovery; Meteo off showing the conditions percentage. 400 px dark, 1280 px dark and light. The tag was 3.3:1 in dark and is 6.9:1 dark and 13.4:1 light after the fix. The states «sin datos», «estimado» and outside every cell were checked on `rainAtPoint` with made-up cells, **not seen on screen**.
+
+**Not checked:** CA and EN on screen; Hábitat · De la seta with a point (same condition as Meteo off in the code); the three base maps; a real phone; a real border strip.
 
 ### 1. `feat/observatory-meteo-rain-api` (back end, TDD)
 
@@ -192,9 +200,237 @@ Checks for every front-end branch: `npm run build` and Marcos's QA in the browse
 
 ---
 
+## Day selector (`feat/observatory-meteo-day-selector`)
+
+**Branch name (2026-11-27):** it also holds the rain card, so before its first push Marcos renames it to `feat/observatory-meteo-day-selector-rain-card`. The earlier name in these docs is the same branch.
+
+Written 2026-11-27. **Status: ✅ updated with Marcos's answers of 2026-11-27 (S1 A, S2 A, S3 B, S4 A, S5 D, S6 A; PRD) and with his choice of a single branch.**
+
+### Feasibility (2026-11-27, local database on the Mac, 425 cells, read only; no server started)
+
+| Date asked | Rain 21 d: read + compute | Conditions, 36 excellent: read + compute | One species (*L. deliciosus*) |
+|---|---|---|---|
+| default | 0.12 + 0.06 s | 0.21 + 2.60 s | 0.25 + 1.61 s |
+| −30 d | 0.21 + 0.06 s | 0.27 + 3.22 s | 0.28 + 1.91 s |
+| −90 d | 0.31 + 0.09 s | 0.36 + 3.47 s | out of season |
+| −150 d | 0.38 + 0.11 s | 0.48 + 4.02 s | out of season |
+| −180 d | 0.42 + 0.13 s | 0.50 + 4.55 s | out of season |
+
+Answers are 64 kB (rain) and ~550 kB (excellent) before compression, whatever the date. Conditions grows with age because `loaded_cells_climate(since)` has no upper bound and every later row is prepared for nothing. **Render: not measured.**
+
+| Series | Cost on the Mac |
+|---|---|
+| Rain, 26 weeks | read as above + 0.09 s |
+| Conditions, one pass per cell, 182 days, 36 species | 24 s |
+| Conditions, each day as the map computes it, mean elevation | 0.64 s a day (all days ≈ 2 min) |
+| The same for the days a refresh changes (19 days) | 7.2 s |
+| One species, one pass, 26 weeks | 1.3–1.6 s |
+
+Peak memory of the process: 145 MB reading what 19 days need, 294 MB reading 295 days of every column.
+
+Local history: first stored day 11–31 January, no gap in the last 188 days or their 107-day warm-up in any of the 425 cells. Production: see the result under the query below.
+
+### Why the series differed from the map by up to 7 points
+
+The model's **«warm» state** chains from day to day: whether a day is warm depends on the activation of the 21 days before, which depends on whether the days of each rain were warm. So it depends on where the calculation starts. The map starts 100 days before the date; the one-pass series starts before its oldest week, so recent days have up to ~290.
+
+Full comparison (10,958 cell-days, mean of the excellent species at mean elevation): mean difference 0.05 points, 99 % within 1.0, 0.57 % above 2, **maximum 16.3** (the earlier 7 came from a sample of 42). Worst case, one cell at 1,942 m on 15 October: with 100 or 130 days of warm-up it is cold (*Craterellus tubaeformis*: activation 11, score 6); with 160 or more it is warm (68, score 36). Soil water and every other factor are equal. The daily mean of all Catalonia differs by at most 0.14 points, so a bar would not show it. The effect on a p90 was not measured.
+
+It is not specific to the series: `point_series.build_series` gives the observed zone's chart a longer warm-up for its later days than the map has, so the two can disagree there too (not looked for on screen). Out of scope here; see `memory/gotchas.md`.
+
+### History depth in production (Marcos runs it; read only)
+
+```sql
+-- Read only. 188 = 26 calendar weeks back (up to 6 extra days); +107 = days read before the first scored day
+WITH p AS (
+  SELECT (now() AT TIME ZONE 'utc')::date        AS today,
+         (now() AT TIME ZONE 'utc')::date - 188  AS bar_from,
+         (now() AT TIME ZONE 'utc')::date - 295  AS warm_from
+), per AS (
+  SELECT c.id,
+         min(h.date) AS first_day,
+         count(*) FILTER (WHERE h.date >= p.bar_from  AND h.date < p.today) AS bar_days,
+         count(*) FILTER (WHERE h.date >= p.warm_from AND h.date < p.today) AS warm_days,
+         count(*) FILTER (WHERE h.date >= p.warm_from AND h.date < p.today
+           AND num_nulls(h.temp_max_c, h.temp_min_c, h.temp_avg_c, h.soil_temp_c, h.humidity_pct, h.wind_kmh) > 0) AS incomplete,
+         count(*) FILTER (WHERE h.date >= p.bar_from - 20 AND h.date < p.today AND h.source = 'forecast'
+           AND h.date - (h.fetched_at AT TIME ZONE 'utc')::date > 2) AS stale_forecast
+  FROM cells c
+  JOIN climate_cell_history h ON h.cell_id = c.id
+  CROSS JOIN p
+  WHERE c.loaded_to IS NOT NULL
+  GROUP BY c.id
+)
+SELECT p.today,
+       count(*)                                                             AS cells,
+       min(first_day)                                                       AS earliest_first_day,
+       percentile_disc(0.5) WITHIN GROUP (ORDER BY first_day)               AS median_first_day,
+       max(first_day)                                                       AS latest_first_day,
+       count(*) FILTER (WHERE first_day <= p.bar_from - 20)                 AS cells_rain_21d_ok,
+       count(*) FILTER (WHERE first_day <= p.bar_from - 107)                AS cells_full_warmup,
+       count(*) FILTER (WHERE bar_days  = p.today - p.bar_from)             AS cells_no_gap_in_bar,
+       count(*) FILTER (WHERE warm_days = p.today - p.warm_from)            AS cells_no_gap_with_warmup,
+       min(bar_days)                                                        AS min_bar_days,
+       p.today - p.bar_from                                                 AS expected_bar_days,
+       sum(incomplete)                                                      AS incomplete_rows,
+       sum(stale_forecast)                                                  AS stale_forecast_rows
+FROM per CROSS JOIN p
+GROUP BY p.today, p.bar_from, p.warm_from;
+```
+
+What to read: `cells_rain_21d_ok`, `cells_full_warmup` and `cells_no_gap_with_warmup` should equal `cells` (423 expected); if not, `latest_first_day` and `min_bar_days` say how far short. `incomplete_rows` are days the model fills in. `stale_forecast_rows` are days the rain layer treats as missing (forecast never replaced). On the local database: 425 / 425 / 425 / 425, 188 of 188 days, 0 and 9. It does not tell whether the stored values are right.
+
+**Production, run by Marcos on 2026-11-27:** 423 cells; first stored day 29–31 January (median 30); 423 of 423 cells have the 21-day rain window, the full warm-up and no gap in the bar or the warm-up (188 of 188 days); 0 incomplete rows and 0 stale forecast rows. Six months are available in every cell. The newest cell starts on 31 January and the warm-up of the query's oldest day on 5 February, so there were few spare days that day; the bar moves forward in time, so the margin grows while no history is deleted.
+
+### Decisions this plan adds
+
+- **A week** is Monday–Sunday (UTC days). The bar starts on the Monday 26 weeks before the current week and ends on the last day that can be asked. When today is a Monday the last week holds one day.
+- **Rain of a week** = sum over its days of the mean over the cells that have the day (the rules of `_usable_days`, so a never-refreshed forecast does not count). A week cut short adds only the days it has.
+- **Conditions of a day** = per cell, the mean of the in-season excellent species that reach its mean elevation, computed like `_scores_at_many` (100-day window); then over the cells, the mean and the p90. Both are stored, so S6 can change without computing again. A week = the mean of its days (S6 A: the bar shows `mean`; `p90` is kept in case S6 is changed). The current week comes in two parts, real and forecast.
+- **Species that are not stored (S1 A):** 166 of the 202 are not excellent. Each is computed when asked, **in one pass** per cell, and cached like the layers; rows are read in bounded batches and one such computation runs at a time. One pass took 1.0–1.5 s on the Mac against 0.13–0.41 s *per day* the map's way. Measured on six species (four excellent, two not), 26 sampled days: the daily mean of all Catalonia differs from the map's way by at most 0.26 points (single cells by up to 26).
+- **Storage (S4 A):** `meteo_day_series(day, series, mean, p90, cells, inputs, computed_at)`, primary key `(day, series)`, `series` = `excellent` or a species id (the 36 come from the same pass at no extra model cost). `inputs` = hash of the model version and the species records: when it changes, every day is computed again.
+- **Job:** after the cell refresh (00:40 and the start-up recovery) and also at start-up when days are missing, even if the refresh is not due. It computes the days the refresh rewrites (today − 11 to today + 7) plus any missing or outdated day, newest first, commits day by day (a restart resumes) and reads the rows in bounded batches. It never calls Open-Meteo. A forecast day computed more than 2 days ago is not served.
+- **Endpoint:** `GET /api/v1/observatory/layer/weeks?layer=rain|conditions&species=` (login). Answer: `first_date`, `forecast_from`, `max_date`, `series` (`excellent` or the species id), `weeks: [{from, to, real: {days, value}, forecast: {days, value}}]` (S3 B splits the current week at today; today is forecast). No `species` means the excellent ones. Rain is computed when asked, from a query of only the columns it needs, and cached like the layers.
+- **Old dates:** for a past date the conditions layer reads `[since, date]` plus the last 10 days (which keep `last_data_date` and `max_date`), not everything in between. Same answer, tested; the time gain is expected, not measured.
+- **Front end:** `MAX_DAYS_BACK` becomes `firstBarDay(today)`, used by `clampDay` and by the bar, so link and bar cannot differ. The server's `first_date` follows the same rule.
+- **Migration:** `023_meteo_day_series.py`, RLS enabled like 012 and 021. **To settle:** Render runs Alembic at start-up, so a deploy applies it by itself unless Marcos applies it first (from the machine, with `alembic upgrade head`, which records the revision). SQL pasted in Supabase without the revision would make the start-up migration fail.
+
+### One branch, two stages
+
+Back end first (TDD), then front end, each with its own commits while the branch is open; it is squashed into the epic as one, after QA of the whole.
+
+#### Stage 1: back end (TDD)
+
+| # | Given | When | Then |
+|---|---|---|---|
+| D1.1 | A date inside a week | The weeks are asked | They run Monday–Sunday from the Monday 26 weeks before the current week to `max_date`; the first and today's are checked on a Monday and on a Sunday |
+| D1.2 | Cells with a week of rain | Rain weeks | Each part's `value` (`real`, `forecast`) is the sum of its daily means; the preset plays no part |
+| D1.3 | A day missing in some cells / in all | Rain weeks | The mean uses the cells that have it / the week counts one day fewer; with no day, `value` null |
+| D1.4 | A fresh forecast / a stale one | Rain weeks | Forecast days counted in `forecast.days` / left out |
+| D1.5 | Cells and species | A conditions day is computed | Per cell the same figure as `_scores_at_many` at its elevation; mean and p90 over the cells with a figure |
+| D1.6 | No species in season or none reaches any cell | The day is computed | Stored with no value, not 0 |
+| D1.7 | An empty table | The job runs and is cut half way | Days done are kept; the next run computes only the rest, plus the refresh window |
+| D1.8 | Species or model changed | The job runs | Every day is computed again |
+| D1.9 | A forecast day computed 3 days ago | Conditions weeks | It does not count |
+| D1.10 | The cell refresh finishes, or the app starts with days missing | — | The job runs, one at a time; a failure is logged and the refresh's result stands |
+| D1.11 | An excellent species / another one / none / unknown | `species=` | Its stored series / its series computed then, and cached until the data changes / the excellent one / 404 |
+| D1.12 | No session / another `layer` | The endpoint | 401 / 422 |
+| D1.13 | A date 150 days back | Conditions and rain layers | Same answer as reading everything, `last_data_date` and `max_date` included |
+| D1.14 | The job and the endpoint | Run with a provider that fails on any call | No Open-Meteo call |
+
+Files: new `services/meteo_weeks.py` (pure), `services/day_series.py` (job and store), `models`, migration 023; `routers/observatory_layer.py`, `services/cell_store.py` (bounded and light reads), `main.py` (job hook); tests; `system/project.spec.md`, `docs/backend_architecture.md`.
+
+#### As built — stage 1 (2026-11-27)
+
+Scenarios D1.1–D1.14 have tests (1,247 unit tests pass; `ruff check app/` is clean). Where this differs from «Decisions this plan adds», this wins:
+
+- **Old dates** also read the last **30** days (`RECENT_DAYS`), not 10, the margin the rain layer already used.
+- **Memory** of the job is bounded by days (14 computed per read), not by cells; the species computed when asked read 50 cells at a time.
+- A day is pending when missing, computed from other species or another model, past but computed before it ended, or in the refresh window with climate downloaded after its computation. So a restart with no new data computes nothing.
+- The job also follows the refresh when the refresh is switched off or fails.
+- `excellent_species` (in `day_series_store.py`) is now shared by the excellent layer and the job.
+
+**Checked on a throwaway copy of the local database** (then dropped; the local database itself is still at revision 022): migration 023 up, down and up; first run 194 days in 79 s, peak memory 191 MB, 7,178 rows (888 kB); second run 0 days; the stored figure of three days (1, 40 and 150 days back) equal to the excellent layer's cells at mean elevation; rain weeks from the real SQL in 0.36 s; a species computed when asked in 2.2 s. Weekly excellent series 25 May – 4 December: maximum 63.5.
+
+**Not checked:** the endpoint over HTTP against a real database; the job inside a running API; anything on Render; response times of old dates with the bounded read.
+
+**To run the API locally on this branch** the local database needs migration 023 (`alembic upgrade head`); without it the job logs a failure and `layer=conditions` fails.
+
+#### Stage 2: front end
+
+| # | Given | When | Then |
+|---|---|---|---|
+| D2.1 | Lluvia or Condiciones | The panel is open | One bar with months and weekly bars; changing layer keeps the day and changes only the bars |
+| D2.2 | A finger or the mouse on the bar | It drags | The magnifier shows ±5 days and the label follows; the map is asked once it rests; the phone sheet does not move; the height does not change |
+| D2.3 | ‹ ›, keyboard, «Hoy» | — | One day, one week with Page keys, today |
+| D2.4 | The forecast | — | Outlined bars, the current week split at today with a dashed line, and said in the day's label |
+| D2.5 | The states of the PRD table | — | Same height in all |
+| D2.6 | `dia` five months back / older than the bar | The link is opened | That day / the bar's first day |
+| D2.7 | A species chosen, excellent or not | — | Its bars; none of the previous species while they load |
+| D2.8 | An old day | «Observar» with Condiciones | The zone opens on it |
+| D2.9 | — | QA | ES / CA / EN, light and dark, month labels ≥ 4.5:1, desktop and phone, with a finger on a real phone |
+
+Files: new `components/observatory/DayBar.jsx` (replaces `LayerDayControl.jsx`), `hooks/useMeteoWeeks.js`, `services/observatoryService.js`, `lib/layerDays.js` (weeks, `firstBarDay`), `lib/observatoryView.js`, `SpeciesLayerPicker.jsx`, `nav/RainPanel.jsx`, `nav/MeteoPanel.jsx`, `styles/tokens.css` (bar colours; canvas not needed, the bar is SVG), `data/i18n.js`. Production shows the bar with Condiciones, which is already live, so **it is visible to users at the next merge to `main` even with Lluvia still off**.
+
+To check in the browser at real width: the two halves of the current week and a one-day last week (about 12 px per week), light blue outlines (S2 A with S3 B), and the dark garnet over the panel in both themes.
+
+**Order:** stage 1, stage 2, then the point card branch. At deploy, back end first; the bars appear once the job has filled the table.
+
+#### As built — stage 2 (2026-11-27, in review: Marcos's QA pending)
+
+`DayBar.jsx` replaces `LayerDayControl.jsx`; geometry and colours in `lib/dayBar.js`, figures from `hooks/useMeteoWeeks.js`; `firstBarDay` (in `lib/layerDays.js`) replaces `MAX_DAYS_BACK`. The bars are positioned HTML, not canvas. «Hoy» sits in the strip above the bars that turns into the magnifier. The control is 177 px high in every state seen (about 75 px more than before, estimated from the code). `npm run build` passes.
+
+**Seen in the built-in browser, local data:** both layers' bars; a mouse drag and a simulated pointer drag with the magnifier (one request, to the layer, on release or rest); arrows, Page keys, End and «Hoy»; `dia=2026-01-01` opening on 25 May; a species that is not excellent (empty while loading, 2.3 s) and its help text; 375 × 812 in dark and light (forced with `data-theme`). Contrast: months 6.4:1 dark and 7.2:1 light (phone surface); «Hoy» 5.0:1 dark and 6.3:1 light. No console errors.
+
+**Fixed after the review:** the forecast was about 13 px wide and could not be read. Forecast days are now four times wider (`dayScale`, `FORECAST_STRETCH`), with bars at least 7 px high, opaque outlines, the «hoy» line over the handle and «+n d» (decision in `memory/decisions.md`). Seen at 1024 × 768 in dark: the current week's forecast part 15.8 px, the next 27.4 px; pointer positions over the forecast give the expected days; height unchanged. Not seen again: phone, light theme and Lluvia.
+
+**Found, open:**
+- Light rain bars are faint on the light theme (1.2:1 against the surface; 2.0:1 dark).
+- Phone, Lluvia: the sheet now scrolls by 12 px at 375 × 812.
+- The conditions help text is long: its tooltip covers most of the panel.
+- At start-up the series waits for the cell refresh: on a first deploy Condiciones has no bars until it ends.
+
+**Not checked:** a finger on a real phone; CA and EN on screen; «Observar» from an old day; Temperatura and Viento; desktop in light; the failure and Meteo-off states of the bar.
+
+### 14-day rain window (asked by Marcos, 2026-11-27)
+
+A fourth preset between 7 d and 21 d, scale B: 1 · 15 · 30 · 60 · 100 · 150+, no band. Back end (`window=14d`, with tests) and front end done. Seen: desktop dark, and 375 × 812 light (the four presets fit in one row; the forecast bars measure 16 and 28 px, and the sheet still scrolls 12 px in Lluvia). Condiciones with the wider forecast seen at 375 × 812 dark. A freshly loaded tab logged no console errors (the open tab had logged `useApp must be used inside AppProvider` during a hot reload).
+
+### The accumulation window on the bar (Marcos's QA, 2026-11-27)
+
+In Lluvia the bar marked the chosen day's calendar week, not what the map adds up. Now it marks the window itself: the 1, 7, 14 or 21 days ending on the chosen day, from the handle to the left, over the bars and on the track (`windowDays`; at least 3 px, cut at the start of the bar). It is wider where it covers forecast days. Condiciones, a single day, keeps the week mark. Seen: 1024 × 768 dark (3, 10, 20 and 30 px for the four presets), and a 14 d window ending on 4 December at 375 × 812 light (56 px).
+
+### Lluvia turned on (Marcos's QA, 2026-11-27)
+
+`ready: true` for rain, ahead of branch 3. Seen at 1024 × 768: no «Pronto» on Lluvia (Temp. and Viento keep it) and `?capa=lluvia&dia=2026-10-07` opening that layer and day. From the code, not tried: the point card and «Observar» still behave as for Condiciones. Not checked: a production build in a browser, the loading bar, the note under Hábitat · De la seta.
+
+### Experiment: filled lines instead of bars (Marcos, 2026-11-27; not decided)
+
+Both layers' weekly bars drawn as one filled line down to 0, with the curve of the observed zone's charts (it never goes beyond its points). Same weekly figures, no back-end change. One point per part of a week (the current one has two). 
+- **Lluvia:** the blue of the zone's accumulated rain; a part of fewer than seven days is drawn at its weekly pace (sum × 7 / days), so a short part is an extrapolation; 60 mm still fills the height. Tried first, on its own.
+- **Condiciones:** coloured by height with the five score bands (the stops of the zone chart's score line); its figures are means, so nothing is extrapolated.
+- The forecast has a fainter fill and a dashed line. If adopted it replaces S2 A and the outline of S3 B, and both help texts, which still speak of bars and outlines, must change.
+- **Switch:** on by default; `localStorage['fungus-exp-day-area'] = 'off'` and a reload bring the bars back (both layers).
+- **To remove:** delete `src/components/observatory/dayArea/`; in `DayBar.jsx` remove its import, the `asArea` line (restoring `const segments = weeks ? … : []`) and the `<DayArea>` line.
+- **Seen:** Lluvia at 1024 × 768 dark and 375 × 812 light; Condiciones at 1024 × 768 dark and 375 × 812 light. The bars with the switch off were not looked at again.
+- **Possible follow-up for Lluvia (Claude's suggestion, not decided):** each day's point = the rain of the 7 days ending on it, from a daily series in the endpoint: no extrapolation.
+
+### Rain panel compacted (Marcos's QA on the phone, 2026-11-27)
+
+The «incluye previsión» line is gone: from today on the day's pill already says «previsión», and on a past day whose window still has forecast the same pill says «incluye previsión» (no extra line). «mm (= l/m²)» and the bars' help sit to the right of the window's title (14 px). On a phone the 21 d legend drops the «good» band and its text (desktop keeps it). The preset pills are outlined, each with the colour its fill had (2 px). Seen at 375 × 812 with a short title: one line and no sheet scroll, dark and light. **Open:** with the longest dates («Acumulado 17 sept–7 oct · 21 días») the title wraps to two lines at 1024 × 768 and at 360 × 740, where the sheet scrolls 64 px. Not seen: CA, EN, the past-day «incluye previsión» pill.
+
+### Phone tab sheets: handle in the header row (Marcos, 2026-11-27)
+
+See `decisions.md`. Seen at 375 × 812: in the four sheets the header starts 18 px from the top and the side, the handle is 1 px off the row's centre (moved up in later QA: its line is now 13 px under the sheet's edge, as on the other sheets; measured on Meteo at 450), a tap on it folds the sheet; Meteo, Zonas and Vista seen in dark or measured, Hábitat seen in light. Not seen: a drag with a finger, a narrower phone, CA and EN titles, the desktop Vista panel after the change to its ×.
+
+### Phone layout under 1024 px, Meteo's panel at 450 px (Marcos, 2026-11-27)
+
+See `decisions.md`; it replaces the fluid width tried the same day, and closes the two-line rain title on desktop. `compact = !useIsWide()` drives the map's layout in `pages/Observatory.jsx`. Seen: 642 (Lluvia), 900 and 1023 with the bottom bar and full-width sheets, 1024 with the 450 px panel and the search 24 px short of it; at 900 a tap with a sheet open only closing it and the next one picking a point, whose card comes as a sheet; no console errors in a freshly loaded tab; ESLint `no-undef` clean on `Observatory.jsx`. Not seen: the species' sheet and the observed zone between 640 and 1023, drags with a finger on a tablet, a mouse drag of the sheets (the drag is touch only; the handle's tap folds), fullscreen, landscape phones.
+
+### One column at the left under 1024 px (Marcos, 2026-11-27)
+
+See `decisions.md` (centred widths of 767 and 450 px were tried first). Seen at 804: bar, Meteo's sheet and the species sheet from 0 to 450, search 14 to 440, the date pill starting with the search, the map's attribution whole beside the sheets. At 375 everything spans the screen. Not seen: the point's sheet at its final place; widths between 451 and about 700, where the attribution may fall partly behind an open sheet.
+
+### Catalonia kept clear of the interface (Marcos, 2026-11-27)
+
+See `decisions.md`. Seen: 1440 × 900 with nothing open, Meteo, Hábitat and Meteo plus the species card, and back to the same place after repeated open/close; zoomed in, opening panels does not move the map; 1023 with Meteo (Catalonia beside the column); 375 × 812 with Zonas (whole between search and sheet) and Meteo (centred but cut: minimum zoom). The free-area search was checked in Node on random layouts. Not seen: a window resized by hand, the point's card, fullscreen, wheel and pinch with quarter steps, a real phone, how long it takes on a slow one.
+
+### Risks of the selector
+
+| Risk | Mitigation |
+|---|---|
+| The first fill or the nightly job is slow or runs out of memory on Render (not measured) | Day by day, bounded batches, resumable; read its duration in the log after the deploy |
+| A restart or the Open-Meteo quota stops the refresh | The job also runs at start-up; stale forecast days are left out |
+| A cell loaded later has a shorter history | A new cell reads 280 days back (`HISTORY_DAYS`), short of the 295 the oldest day plus warm-up can need: its oldest days get a shorter warm-up. Production had all 423 complete on 2026-11-27 |
+| Old dates are slow on Render | Bounded read (D1.13); read production response times before and after |
+| About 1.7 px a day on the bar | The magnifier (S5 D) and ‹ ›; checked with a finger |
+| A species computed when asked is slow on Render or competes for memory (not measured) | One at a time, bounded batches, cached; the bar waits without blocking the map |
+
+---
+
 ## Release
 
-- Back end (Render) before or with the front end (Vercel); one epic → `main` PR for the cut. No migration, variables or new services. Rollback: revert the merge commit.
+- Back end (Render) before or with the front end (Vercel); one epic → `main` PR for the cut. No migration for the rain layer; the day selector adds migration 023 (how it is applied is to be settled, see «Day selector»). No new variables or services. Rollback: revert the merge commit; the new table can stay.
 - **Pending before that merge (Marcos):** the version tag and the retrospective of each layer's delivery. The cadence rule asks to deploy every two to three weeks.
 
 ---

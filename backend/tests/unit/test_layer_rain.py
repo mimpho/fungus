@@ -70,6 +70,16 @@ def _one(rows, **kw):
 
 
 class TestWindow:
+    def test_fourteen_days_count_both_ends(self):
+        rows = _past(n=30, mm=1.0)
+        by_date = {r.date: r for r in rows}
+        by_date[REF - timedelta(days=13)].precipitation_mm = 10.0
+        by_date[REF - timedelta(days=14)].precipitation_mm = 500.0
+        result = _layer([_cell("a", 0, 0, rows)], window="14d")
+        assert result["cells"][0]["mm"] == 23.0
+        assert (result["window_days"], result["window_from"]) == (
+            14, (REF - timedelta(days=13)).isoformat())
+
     def test_seven_days_end_on_the_asked_day_and_count_both_ends(self):
         on = REF - timedelta(days=3)
         rows = _past()

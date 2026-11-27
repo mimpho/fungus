@@ -150,7 +150,11 @@ export const fetchProbabilityLayer = (species, { date, signal } = {}) =>
 export const fetchExcellentLayer = ({ date, signal } = {}) =>
   request('/layer/probability-excellent', { signal, params: { date } })
 
-/** Accumulated rain (mm) of every stored cell over '24h' | '7d' | '21d' ending on `date`. */
+/** The day selector's weekly figures for all of Catalonia: `layer` 'rain' | 'conditions' (`species` only for conditions). */
+export const fetchMeteoWeeks = (layer, { species, signal } = {}) =>
+  request('/layer/weeks', { signal, params: { layer, species } })
+
+/** Accumulated rain (mm) of every stored cell over '24h' | '7d' | '14d' | '21d' ending on `date`. */
 export const fetchRainLayer = (window, { date, signal } = {}) =>
   request('/layer/rain', { signal, params: { window, date } })
 

@@ -371,7 +371,7 @@ GET  /api/v1/health
 ### Observatory: rain layer (login required)
 
 ```
-GET  /api/v1/observatory/layer/rain?window=24h|7d|21d&date=YYYY-MM-DD
+GET  /api/v1/observatory/layer/rain?window=24h|7d|14d|21d&date=YYYY-MM-DD
      → Accumulated rain of every stored cell over the window ending on `date`
        (default: last 7 days with data; `date` up to today+7, from the stored forecast)
      → cells[].status: measured | estimated (a day missing, taken from at least 3
@@ -379,6 +379,24 @@ GET  /api/v1/observatory/layer/rain?window=24h|7d|21d&date=YYYY-MM-DD
      → includes_forecast: the date is today or later, or a past day of the sum was downloaded
        before it ended (up to 2 days before; older ones are missing)
 ```
+
+### Observatory: weekly bars of the day selector (login required)
+
+```
+GET  /api/v1/observatory/layer/weeks?layer=rain|conditions&species=
+     → { layer, series, first_date, forecast_from, max_date,
+         weeks: [{from, to, real: {days, value}, forecast: {days, value}}] }
+       Monday–Sunday weeks from the Monday 26 weeks before the current one; today is forecast
+     → rain: mm of all Catalonia (daily mean over the cells, added up), computed when asked
+     → conditions: mean of the days of the mean over the cells, at each cell's mean elevation,
+       no forest or soil. series = "excellent" (no species) or the species id. Excellent edibles
+       are read from meteo_day_series; any other species is computed when asked (one at a time,
+       cached). No Open-Meteo calls
+```
+
+**Day series job** (`services/day_series.py`, table `meteo_day_series`, migration 023): runs after the 00:40 cell refresh and after the start-up recovery, whether or not the refresh ran. It computes only the pending days (missing, other species or model, still as forecast, or rewritten by a refresh), each as the map computes it, newest first, saving day by day; the first run computes them all. The log line is `Day series finished: N days computed in S s`. The table is a cache and can be emptied.
+
+For a date older than 30 days the three layer endpoints read the history only up to it, plus the last 30 days.
 
 ---
 
