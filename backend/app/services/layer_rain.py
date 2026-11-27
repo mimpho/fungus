@@ -1,7 +1,7 @@
 """
 Rain layer of the interactive map: the accumulated rain of every stored cell.
 
-Pure functions. The window is the 1, 7 or 21 calendar days ending on the reference day, both
+Pure functions. The window is the 1, 7, 14 or 21 calendar days ending on the reference day, both
 included, and the sum uses the stored rain only: no correction for altitude, forest or soil, and
 none of the gap filling of the scoring model (which takes a missing day as 0 mm).
 A past day is what happened when its row was downloaded after it ended. One downloaded on the
@@ -30,7 +30,7 @@ from app.services.layer_probability import (
 )
 from app.services.point_series import forecast_chain
 
-RAIN_WINDOWS = {"24h": 1, "7d": 7, "21d": 21}
+RAIN_WINDOWS = {"24h": 1, "7d": 7, "14d": 14, "21d": 21}
 DEFAULT_RAIN_WINDOW = "7d"
 
 # How many cells with the whole window are needed around a gap to estimate it
@@ -120,8 +120,9 @@ def rain_layer(
     on: date | None = None,
     fresh_since: datetime | None = None,
 ) -> dict:
-    """Accumulated rain of every cell over `window` ("24h", "7d", "21d") ending on `on` (default:
-    the last past day with data; up to FORECAST_LAYER_DAYS after `today`, from the forecast).
+    """Accumulated rain of every cell over `window` (a key of RAIN_WINDOWS) ending on `on`
+    (default: the last past day with data; up to FORECAST_LAYER_DAYS after `today`, from the
+    forecast).
 
     Each cell has `status`: "measured" (`mm` is the sum of its own days), "estimated" (a day is
     missing and `mm` comes from the cells around it) or "no_data" (`mm` null).

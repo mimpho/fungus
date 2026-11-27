@@ -137,8 +137,8 @@ async def probability_excellent_layer(
 
 @router.get("/rain")
 async def rain(
-    window: Literal["24h", "7d", "21d"] = Query(
-        DEFAULT_RAIN_WINDOW, description="1, 7 or 21 days, ending on `date`"
+    window: Literal["24h", "7d", "14d", "21d"] = Query(
+        DEFAULT_RAIN_WINDOW, description="1, 7, 14 or 21 days, ending on `date`"
     ),
     on: date | None = Query(None, alias="date", description="Default: last day with data"),
     store: SqlCellStore = Depends(get_layer_store),

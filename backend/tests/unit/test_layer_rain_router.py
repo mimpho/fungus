@@ -81,6 +81,11 @@ class TestRainEndpoint:
         assert all(c["status"] == "measured" and c["mm"] == 7.0 for c in body["cells"])
         assert env.store.since == history_since(TODAY, None)
 
+    async def test_it_knows_the_fourteen_day_window(self, env):
+        _logged_in(env)
+        body = (await _get(env, window="14d")).json()
+        assert (body["window"], body["window_days"]) == ("14d", 14)
+
     async def test_the_window_and_the_date_are_taken(self, env):
         _logged_in(env)
         on = REF - timedelta(days=4)
