@@ -235,7 +235,7 @@ def species_layer(
 
 # ── All the excellent edibles at once ─────────────────────────────────────────
 
-def _scores_at_many(
+def scores_at_many(
     c: CellClimate,
     today: date,
     species: Sequence[SpeciesRecord],
@@ -295,10 +295,10 @@ def excellent_layer(
         if prepared[c.id] is None or not any(in_season):
             out.append(cell_dict(c, grid, status="no_data", score=none, bands=[]))
             continue
-        mean = _scores_at_many(c, today, species, ref, c.elevation_m, in_season, fresh_since)
+        mean = scores_at_many(c, today, species, ref, c.elevation_m, in_season, fresh_since)
         bands = []
         for e in band_elevations(c.elevation_m):
-            scores = _scores_at_many(c, today, species, ref, e, in_season, fresh_since)
+            scores = scores_at_many(c, today, species, ref, e, in_season, fresh_since)
             if any(v is not None for v in scores):
                 bands.append([e, scores])
         status = "scored" if any(v is not None for v in mean) else (

@@ -50,6 +50,8 @@ from app.routers import (
 )
 from app.services.cell_ingest import refresh_all, startup_refresh
 from app.services.cell_store import SqlCellStore
+from app.services.day_series import update_day_series
+from app.services.day_series_store import SqlDaySeriesStore, excellent_species
 from app.services.ingest import run_backfill, run_daily_ingest
 from app.services.raster_loader import retry_missing, startup_load
 from app.services.weather_refresh import get_outdated_weather_zones, refresh_weather_cache
@@ -140,18 +142,43 @@ async def _scheduled_ingest() -> None:
 _cell_refresh_lock = asyncio.Lock()
 
 
+# One run of the day series at a time, like the cell refresh
+_day_series_lock = asyncio.Lock()
+
+
+async def _update_day_series() -> None:
+    """Brings the day selector's stored Condiciones figures up to date with the cells (only the
+    days that changed; the first run computes them all). It reads stored data only."""
+    async with _day_series_lock, AsyncSessionLocal() as db:
+        try:
+            started = datetime.now(UTC)
+            stats = await update_day_series(
+                SqlCellStore(db), SqlDaySeriesStore(db), await excellent_species(db),
+                started.date(),
+            )
+            log.info(
+                "Day series finished: %d days computed in %.0f s",
+                stats.computed, (datetime.now(UTC) - started).total_seconds(),
+            )
+        except Exception as exc:
+            log.exception("Day series failed: %s", exc)
+
+
 async def _scheduled_cell_refresh() -> None:
     """Refresh the last days and the forecast of every stored Observatory cell, within the
-    daily call budget (the cells load at first click or with scripts/ingest_cells.py)."""
+    daily call budget (the cells load at first click or with scripts/ingest_cells.py). The day
+    series follows it, whether it ran, failed or is switched off."""
     budget = settings.observatory_cell_refresh_budget
-    if budget <= 0:
-        return
-    async with _cell_refresh_lock, AsyncSessionLocal() as db:
-        try:
-            stats = await refresh_all(SqlCellStore(db), observatory.get_cell_provider(), budget)
-            log.info("Cell refresh finished: %s", stats.summary())
-        except Exception as exc:
-            log.exception("Cell refresh failed: %s", exc)
+    if budget > 0:
+        async with _cell_refresh_lock, AsyncSessionLocal() as db:
+            try:
+                stats = await refresh_all(
+                    SqlCellStore(db), observatory.get_cell_provider(), budget
+                )
+                log.info("Cell refresh finished: %s", stats.summary())
+            except Exception as exc:
+                log.exception("Cell refresh failed: %s", exc)
+    await _update_day_series()
 
 
 async def _startup_cell_refresh() -> None:
@@ -175,6 +202,9 @@ async def _startup_cell_refresh() -> None:
                 log.info("Start-up cell refresh finished: %s", stats.summary())
         except Exception as exc:
             log.exception("Start-up cell refresh failed: %s", exc)
+    # days missing from the series (a first deploy, a restart half way) are computed even when
+    # the refresh is not due
+    await _update_day_series()
 
 
 async def _startup_ingest_if_empty() -> None:

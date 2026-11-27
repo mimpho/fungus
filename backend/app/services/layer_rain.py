@@ -69,7 +69,7 @@ class _CellDays:
     provisional: frozenset[date]  # past days still as they were forecast
 
 
-def _usable_days(rows: Sequence[Any], today: date, fresh_since: datetime | None) -> _CellDays:
+def usable_days(rows: Sequence[Any], today: date, fresh_since: datetime | None) -> _CellDays:
     past: dict[date, float] = {}
     provisional = set()
     for r in rows:
@@ -128,7 +128,7 @@ def rain_layer(
     `includes_forecast`: the date is today or later, or some cell's sum has a past day still as
     it was forecast. `basis` only says which side of today the date is."""
     length = RAIN_WINDOWS[window]
-    usable = {c.id: _usable_days(c.rows, today, fresh_since) for c in cells}
+    usable = {c.id: usable_days(c.rows, today, fresh_since) for c in cells}
     last = max((d for u in usable.values() for d in u.past), default=None)
     reach = max((d for u in usable.values() for d in (*u.past, *u.ahead)), default=None)
     ref = (min(on, reach) if reach else None) if on else last
