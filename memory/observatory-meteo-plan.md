@@ -91,7 +91,7 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 
 ### URL, «Observar», species
 
-- `capa=lluvia`, `dia` (shared), `acum=24h|7d|21d`; `7d` is left out, an unknown value means `7d`, and `acum` goes when the layer is not rain.
+- `capa=lluvia`, `dia` (shared), `acum=24h|7d|14d|21d`; `7d` is left out, an unknown value means `7d`, and `acum` goes when the layer is not rain.
 - `handleObserve` sends the Meteo day with Condiciones **or** Lluvia; a forecast day opens on `last_data_date`.
 - The species is still the whole map's: choosing one in the search bar switches to Condiciones, as today.
 
@@ -126,7 +126,7 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 | 1 `feat/observatory-meteo-rain-api` | ✅ 2026-11-27 (scenarios 1.1–1.13) |
 | 2 `feat/observatory-meteo-rain-map` | ✅ 2026-11-27 (scenarios 2.1–2.6; see «As built — branch 2») |
 | `feat/observatory-meteo-day-selector` | ⬜ planned (see «Day selector»): back end and front end in one branch. Goes before branch 3 (2026-11-27) |
-| 3 `feat/observatory-meteo-rain-card` | ⬜ point card, «Observar», `acum` (`ready: true` moved to the day selector branch, 2026-11-27). **Needed before the merge into `main`**, or Lluvia is published without them |
+| 3 `feat/observatory-meteo-rain-card` | 🟡 point card, «Observar», `acum`: **built inside `feat/observatory-meteo-day-selector`** (Marcos, 2026-11-27; no branch of its own), QA pending. See «As built — branch 3» |
 
 ### As built — branch 1 (2026-11-27)
 
@@ -144,6 +144,14 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 - **Not checked:** loading bar seen on screen; the hidden note under Hábitat · De la seta; text contrast measured; slider with a finger; the sources dialog's new credit; the 21 d band's CA and EN texts and its desktop legend; real `no_data` or `estimated` cells.
 
 All cut from `epic/observatory-meteo`, which Marcos creates from `main`. One after another; each is squashed into the epic. These doc changes must be in the epic (or in `main`) before branch 1.
+
+### As built — branch 3 (2026-11-27, inside the day selector branch)
+
+`components/observatory/PointRain.jsx` is the card's headline while Lluvia is drawn; `rainAtPoint` (`lib/rainLayer.js`) says what it shows, from `rainValueAt`; `handleObserve` sends the Meteo day with Condiciones or Lluvia; `acum` (`24h|14d|21d`, `7d` left out) in `lib/observatoryView.js`. No back-end change.
+
+**Seen in the built-in browser, local data:** `?capa=lluvia&acum=21d&dia=2026-10-07` opening that layer, window and day; the card's figure following window and day with only the loading dots in between (3.2); past, today and forecast days, the last two tagged; «Observar» from 7 October opening the zone on it, and from a forecast day on 26 November, the last real one; a bad `acum` and an `acum` with Condiciones dropped from the link; a failed request (patched `fetch`) with an empty block of the same height, retry in the panel and recovery; Meteo off showing the conditions percentage. 400 px dark, 1280 px dark and light. The tag was 3.3:1 in dark and is 6.9:1 dark and 13.4:1 light after the fix. The states «sin datos», «estimado» and outside every cell were checked on `rainAtPoint` with made-up cells, **not seen on screen**.
+
+**Not checked:** CA and EN on screen; Hábitat · De la seta with a point (same condition as Meteo off in the code); the three base maps; a real phone; a real border strip.
 
 ### 1. `feat/observatory-meteo-rain-api` (back end, TDD)
 
@@ -193,6 +201,8 @@ Checks for every front-end branch: `npm run build` and Marcos's QA in the browse
 ---
 
 ## Day selector (`feat/observatory-meteo-day-selector`)
+
+**Branch name (2026-11-27):** it also holds the rain card, so before its first push Marcos renames it to `feat/observatory-meteo-day-selector-rain-card`. The earlier name in these docs is the same branch.
 
 Written 2026-11-27. **Status: ✅ updated with Marcos's answers of 2026-11-27 (S1 A, S2 A, S3 B, S4 A, S5 D, S6 A; PRD) and with his choice of a single branch.**
 

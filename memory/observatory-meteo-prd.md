@@ -89,7 +89,7 @@ The Meteo tab only has Condiciones. Lluvia, Temp. and Viento show «Pronto». Co
 
 ### Scope — Out
 
-Point card with rain, «Observar» with Lluvia, `acum` in the URL and `ready: true` (branch `feat/observatory-meteo-rain-card`); previous years; any change to the scoring model.
+Point card with rain, «Observar» with Lluvia, `acum` in the URL and `ready: true` (planned as branch `feat/observatory-meteo-rain-card`; taken into the day selector's branch on 2026-11-27); previous years; any change to the scoring model.
 
 ### States of the component
 

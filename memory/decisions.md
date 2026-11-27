@@ -56,7 +56,7 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 **Decision (Marcos, in QA):** `ready: true` for rain comes in this branch, not in the point card's: no «Pronto», and `capa=lluvia` can be linked.
 
-**Known gap until the card branch:** with Lluvia on, the point card still shows the conditions percentage, «Observar» does not open the zone on the bar's day, and the preset is not in the URL (`acum`): a link opens on 7 d. A merge into `main` before that branch would publish Lluvia like this.
+**Known gap until the card branch:** with Lluvia on, the point card still shows the conditions percentage, «Observar» does not open the zone on the bar's day, and the preset is not in the URL (`acum`): a link opens on 7 d. A merge into `main` before that branch would publish Lluvia like this. **Closed the same day:** Marcos took the card, «Observar» and `acum` into this branch (little work, front end only, same files; without them it could not go to `main`).
 
 ## Rain layer: a 14-day window, with its own scale (2026-11-27, `feat/observatory-meteo-day-selector`)
 

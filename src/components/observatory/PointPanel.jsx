@@ -4,6 +4,7 @@ import { useApp } from '../../contexts/AppContext'
 import { fetchPointForest } from '../../services/observatoryService'
 import { formatCoords } from '../../lib/observatoryView'
 import { SheetHandle } from './SheetHandle'
+import { PointRain } from './PointRain'
 import { useSheetDrag } from '../../hooks/useSheetDrag'
 import { ObservatoryNotice } from './ObservatoryNotice'
 import { PointHabitat } from './PointHabitat'
@@ -191,10 +192,11 @@ function PointCard({ label, folded, onUnfold, children }) {
  * «Observar esta zona» button. Asking this costs no climate data (no new cell), so every click
  * can ask; the answer is context, and the button works even while it loads or if it fails.
  * `layerValue` = what the probability layer paints at the point: { score, count } (count > 1: the
- * mean of that many species), null = nothing there, undefined = no layer to speak of.
+ * mean of that many species), null = nothing there, undefined = no layer to speak of. `rainValue`
+ * (see PointRain) takes its place while Lluvia is drawn.
  * `saved` is the user's corners: if this point is one, its pin, name, species and notes show under the title, with «Editar».
  */
-export function PointPanel({ point, saved, onObserve, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, sheet = false, folded = false, mini = false, onExpand, onSheetHeight, onFoldedChange }) {
+export function PointPanel({ point, saved, onObserve, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, rainValue = null, sheet = false, folded = false, mini = false, onExpand, onSheetHeight, onFoldedChange }) {
   const { t } = useApp()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [attempt, setAttempt] = useState(0)
@@ -326,7 +328,8 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
         </div>
       )}
 
-      {(layerValue !== undefined || layerLoading) && (
+      {/* With Lluvia on the headline is the rain, never next to the conditions figure */}
+      {rainValue ? <PointRain value={rainValue} /> : (layerValue !== undefined || layerLoading) && (
         <div data-testid="point-layer-value" className="relative">
           {layerValue === undefined ? (
             <p role="status" aria-label={t.obsPointCalculating} className="h-10 flex items-center gap-1.5 text-cream/50">

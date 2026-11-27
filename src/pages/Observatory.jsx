@@ -11,6 +11,7 @@ import { useMapNavigation, TABS } from '../hooks/useMapNavigation'
 import { useMapBusy } from '../hooks/useMapBusy'
 import { ALL_EXCELLENT, useProbabilityLayer } from '../hooks/useProbabilityLayer'
 import { useRainLayer } from '../hooks/useRainLayer'
+import { rainAtPoint, rainGrid } from '../lib/rainLayer'
 import { pixelElevation, pixelScore, reliefGrid } from '../lib/reliefLayer'
 import { useElevationRasterState } from '../hooks/useElevationRaster'
 import { useClassRasterState } from '../hooks/useClassRaster'
@@ -137,7 +138,7 @@ export default function Observatory() {
   // the layer, the species and the day. Opened from a link, they come from the URL.
   const meteoOn = nav.on.data
   const [meteoKind, setMeteoKind] = useState(initialMeteo?.layer ?? DEFAULT_METEO_LAYER)
-  const [rainPreset, setRainPreset] = useState(DEFAULT_RAIN_PRESET)
+  const [rainPreset, setRainPreset] = useState(initialMeteo?.preset ?? DEFAULT_RAIN_PRESET)
   const rainOn = meteoOn && meteoKind === 'rain'
   // Probability layer (Meteo · Condiciones): one species at a time (null = the mean of the excellent ones)
   const probabilityOn = meteoOn && meteoKind === 'conditions'
@@ -171,8 +172,8 @@ export default function Observatory() {
   const dayFilter = meteoOn && layerDate && layerDate !== todayIso() ? formatDay(layerDate, lang) : null
   // The URL says what Meteo shows while it is on (history replaced: Back does not walk through the days)
   useEffect(() => {
-    setMeteo(meteoOn ? { layer: meteoKind, day: layerDate } : null)
-  }, [meteoOn, meteoKind, layerDate, setMeteo])
+    setMeteo(meteoOn ? { layer: meteoKind, day: layerDate, preset: rainPreset } : null)
+  }, [meteoOn, meteoKind, layerDate, rainPreset, setMeteo])
   const speciesLabel = id => {
     const s = (catalog ?? []).find(x => x.id === id)
     return s?.commonNames?.[0] || s?.scientificName || ''
@@ -220,6 +221,16 @@ export default function Observatory() {
       return pixelScore(reliefGrid(elevation, data.cells), data, habitat, pending.lat, pending.lon)
     } catch (_e) { return undefined }
   }, [pending, layer.data, layer.status, elevation, habitat])
+  // With Lluvia drawn, the card's figure instead. `ready` only for the answer to the window and day asked now,
+  // so the figure of the previous ones never shows under new dates
+  const rainCells = rain.data?.cells
+  const rainSurface = useMemo(() => (pending && rainCells?.length ? rainGrid(rainCells) : null), [Boolean(pending), rainCells]) // eslint-disable-line react-hooks/exhaustive-deps
+  const rainValue = useMemo(() => {
+    if (!pending || !rainShown) return null
+    if (rain.status === 'error') return { status: 'error' }
+    if (rain.status !== 'ready') return { status: 'loading' }
+    return { status: 'ready', ...rainAtPoint(rain.data, rainSurface, pending.lat, pending.lon) }
+  }, [pending, rainShown, rain.status, rain.data, rainSurface])
   // The point's height from the map's own relief, for when the elevation service gives none
   const pendingElevation = useMemo(() => {
     if (!pending || !elevation || !layer.data?.cells?.length) return null
@@ -448,8 +459,8 @@ export default function Observatory() {
   function handleObserve(point) {
     // The zone opens on the Meteo day: its window ends there, or on the last day with real data when the
     // day is a forecast one
-    const lastReal = layerDays(layer.data).lastDate
-    const zoneUntil = probabilityOn && layerDate ? (layerDate > lastReal ? lastReal : layerDate) : undefined
+    const lastReal = layerDays(rainShown ? rain.data : layer.data).lastDate
+    const zoneUntil = (probabilityOn || rainOn) && layerDate ? (layerDate > lastReal ? lastReal : layerDate) : undefined
     if (!samePoint(observed, point)) observe(point.lat, point.lon, { until: zoneUntil })
     // The point's card stays on the map under the layer, for when the layer is closed
     setPending({ lat: point.lat, lon: point.lon })
@@ -702,7 +713,7 @@ export default function Observatory() {
               style={compact ? { top: safeTop ? fullscreenTop(dayFilter ? 130 : 72).top : `calc(var(--safe-top) + ${dayFilter ? 130 : 72}px)`, bottom: Math.max(0, barH - 24) } : undefined}
             >
               {pending && (
-                <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} onObserve={handleObserve} onClose={closePanel} sheet={compact} folded={compact && pointFolded} mini={miniSheets} onExpand={expandPoint} onSheetHeight={setSheetH} onFoldedChange={setPointShownFolded} />
+                <PointPanel point={pending} saved={saved} layerValue={layerValue} elevationM={pendingElevation} layerSpeciesName={shownSpecies ? speciesLabel(shownSpecies) : null} layerLoading={layerValue === undefined && layer.status !== 'error'} rainValue={rainValue} onObserve={handleObserve} onClose={closePanel} sheet={compact} folded={compact && pointFolded} mini={miniSheets} onExpand={expandPoint} onSheetHeight={setSheetH} onFoldedChange={setPointShownFolded} />
               )}
               <SpeciesSheet speciesId={layerSpecies} lens={habitatShown ? 'habitat' : probabilityOn ? 'conditions' : null} onClear={() => setLayerSpecies(null)} phone={compact} mini={miniSheets} onOpenChange={onSpeciesOpenChange} onStackHeight={setSpeciesH} closeSignal={speciesCloseSignal} openRequest={speciesToOpen} onOpenRequestDone={() => setSpeciesToOpen(null)} />
             </div>

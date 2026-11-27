@@ -170,6 +170,22 @@ export function rainValueAt(grid, cells, lat, lon) {
   return { status: own ? own.status : 'estimated', mm: num / den }
 }
 
+/**
+ * What the point card says of the answer `data` of /layer/rain at one spot: { mm (null = no data),
+ * estimated, window: { from, to, days } | null, forecast }. A spot outside every cell has no data and
+ * no window. `grid` is rainGrid(data.cells).
+ */
+export function rainAtPoint(data, grid, lat, lon) {
+  const at = data.date ? rainValueAt(grid, data.cells, lat, lon) : null
+  if (!at) return { mm: null, estimated: false, window: null, forecast: false }
+  return {
+    mm: at.mm,
+    estimated: at.status === 'estimated',
+    window: { from: data.window_from, to: data.date, days: data.window_days },
+    forecast: Boolean(data.includes_forecast),
+  }
+}
+
 /** Erases what of the picture falls outside Catalonia (the cells along the border reach past it). */
 function clipToCatalonia(ctx, { width: W, height: H, bounds: b }) {
   const top = mercY(b.north), span = top - mercY(b.south)
