@@ -4,6 +4,23 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## Day selector of Meteo: bars, forecast, storage and finger (S1–S6, 2026-11-27, `epic/observatory-meteo`)
+
+**Decision (Marcos), after four drawings with six months of local data:**
+- **S1:** Condiciones' bars follow the chosen species, whichever it is; excellent ones stored, the rest computed when asked.
+- **S2:** rain bars use the map's 7 d scale, one colour per bar, with the drawing's minimum opacity for light weeks; 60 mm fills the bar.
+- **S3:** forecast outlined only; calendar weeks Monday–Sunday, the current one split at today.
+- **S4:** series in a table (migration 023) filled after the cell refresh, each day computed as the map does.
+- **S5:** drag by day with a ±5-day magnifier, arrows of one day.
+- **S6:** the rating is the mean of all Catalonia.
+- **Delivery:** back end and front end in one branch, `feat/observatory-meteo-day-selector`.
+
+**Discarded:** S1: always the excellent ones; the species only if excellent (else the excellent ones, or no bars). S2: one blue; blue by intensity; the scale stacked by height; neutral. S3: hatched, faded, tinted background (calendar weeks); seven-day weeks from today. S4: the table rebuilt whole in one pass; memory only. S5: arrows and day drag alone; week drag with a row of seven days; week drag keeping the weekday. S6: p90 (Claude's proposal), mean of the best 10 %, share of cells at 55 or more. Two branches (Claude's proposal).
+
+**Why:** the choices are Marcos's, made from the drawings; no further reasons were given.
+
+**Known costs:** with the mean (S6) the excellent series never passed 62 locally between 29 May and 26 November, so gold and green weeks will be rare. A species computed on request uses one pass, whose national daily mean differed from the map's computation by at most 0.26 points on six species. The 7 d scale's dark tones may be hard to see on the panel, and light outlines faint.
+
 ## Day selector of Meteo: one bar over six months, with Catalonia's weekly figures (2026-11-27, `epic/observatory-meteo`)
 
 **Decision:** the slider, its static forecast strip and the 30-day limit are to be replaced by one bar over about six months, with a bar per week behind the handle (option E of five drawings): in Lluvia the rain, in Condiciones a rating for all Catalonia coloured with the five score bands from green to red. It is the **next branch**, before the point card. Not built yet; the open points are in the Meteo PRD.

@@ -561,3 +561,9 @@ One byte per 16 m: land under about 8 m reads 0. A painter that skips `elev === 
 
 ### ⚠️ The ICGC lithology map is not Catalonia's shape
 `local-data/geology` reaches the sheet's frame, into France, Aragón and Valencia: dissolving its polygons does not give the boundary.
+
+## Scoring v2 — the «warm» state depends on where the calculation starts (found 2026-11-27)
+
+### ⚠️ Two warm-up lengths can give the same day different scores
+`warm[k]` depends on the activation of the 21 days before, which depends on earlier `warm` values, so the chain has no fixed length. The map starts 100 days before the date (`V2_WINDOW_DAYS`); `build_series` and any one-pass series start earlier for later days. On the local data (26 weeks, 425 cells, mean of the excellent species): mean difference 0.05 points, 0.57 % of cell-days above 2, maximum 16.3 (one species 6 vs 36). To match the map, compute each day with its own 100-day window. The comment on `V2_WINDOW_DAYS` («same scores as a 1 April warm-up») was measured on zones on 2026-10-10 and does not hold for every cell.
+

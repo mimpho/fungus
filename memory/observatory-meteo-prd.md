@@ -1,7 +1,7 @@
 # PRD — Meteo layers: rain, temperature and wind (`epic/observatory-meteo`)
 
 > Product Requirements Document. Written before the first feature branch.
-> Last updated: 2026-11-27 (look of the rain layer after QA; day selector chosen)
+> Last updated: 2026-11-27 (day selector specified; S1–S6 answered)
 >
 > Status: **one epic for the three layers (Marcos, 2026-11-26). Rain is specified here; temperature and wind are placeholders, to be extended in this same file when each one is taken up.** All the rain questions are answered (2026-11-27); the plan is in [`observatory-meteo-plan.md`](observatory-meteo-plan.md).
 > Builds on [`observatory-navigation-prd.md`](observatory-navigation-prd.md) (the Meteo tab; its Q2, Q3, Q6 and Q8 apply here).
@@ -28,7 +28,7 @@ The Meteo tab only has Condiciones. Lluvia, Temp. and Viento show «Pronto». Co
 
 ## Common to the three layers
 
-- One data layer at a time in Meteo; all of them share the day slider (−30 d … +7 d, forecast stretch marked) and the loading bar and error notice of the map.
+- One data layer at a time in Meteo; all of them share the day selector (from the Monday 26 weeks before the current week to today + 7, forecast marked; see «Day selector») and the loading bar and error notice of the map. Until the selector is built, the app still has the slider from −30 d.
 - No species field outside Condiciones. Each layer has its own legend with a fixed scale, never fitted to the data on screen.
 - A layer is turned on by setting `ready: true` in `src/lib/meteoLayers.js`; only then can the URL name it (`capa`).
 - Data comes from what is already stored per cell (`climate_cell_history`): reading a layer makes no Open-Meteo calls. Login required, as for the other layers.
@@ -72,22 +72,58 @@ The Meteo tab only has Condiciones. Lluvia, Temp. and Viento show «Pronto». Co
 
 ---
 
-## Day selector (shared by Condiciones and Lluvia) — chosen, to be specified
+## Day selector (shared by Condiciones and Lluvia) — specified
 
-**Decided (Marcos, 2026-11-27):** the next piece of work, before the point card. One bar replaces the slider and the static strip under it (past, today and forecast in the same bar), reaching back about six months instead of 30 days, with the months marked and a bar per week: in Lluvia the rain of all Catalonia; in Condiciones a rating of all Catalonia, in the five score-band colours from green to red. Measurements and discarded options: `memory/decisions.md`. This replaces the «−30 d … +7 d» of «Common to the three layers».
+**Decided (Marcos, 2026-11-27):** the next piece of work, before the point card. One bar replaces the slider and the static strip under it (past, today and forecast in the same bar), reaching back about six months instead of 30 days, with the months marked and a bar per week: in Lluvia the rain of all Catalonia; in Condiciones a rating of all Catalonia, in the five score-band colours from green to red. It is common to the two layers. Dragging makes no Open-Meteo calls. Measurements and discarded options: `memory/decisions.md`.
 
-**To settle before its first line of code:**
+### Scope — In
 
-| # | Question |
+| Feature | Notes |
 |---|---|
-| S1 | With a species chosen, do Condiciones' bars follow it or stay on the mean of the excellent ones? (One species alone was not measured.) |
-| S2 | Colour of the rain bars: the rain scale or a single blue |
-| S3 | How the forecast weeks look, and what a week is (calendar week or seven days back from today) |
-| S4 | Where Condiciones' series is computed and kept: after the daily refresh in a table (migration), or in memory |
-| S5 | How a day is picked with a finger over ~6 months (about 1.6 px per day), and what Temperatura and Viento show |
-| S6 | What the weekly rating means, and how the help says it: in the measurement, each cell's mean altitude, no forest or soil filter, so it is no point of the map |
+| One bar | Day label with ‹ ›, the weekly bars, a month axis, the handle over the whole range and «Hoy». The slider, its forecast strip and the «−30 d» / «+n d» labels go. |
+| Range | From the first day of the oldest week to the last day the layer can be asked (`max_date`, at most today + 7). With S3's calendar weeks it starts on the Monday 26 weeks before the current week: 182–188 days back. |
+| Link | `dia` is limited to the same range: the fixed `MAX_DAYS_BACK = 30` becomes the bar's first day. An older link opens on that day. |
+| Weekly figures | From the back end, from stored data only. Lluvia: the rain of all Catalonia in the week (mean over the cells of each day, added up). It does not change with the 24 h · 7 d · 21 d preset. Condiciones: the mean of all Catalonia (S6), of the chosen species or of the excellent ones (S1). |
+| Observed zone and card | A day up to six months back works like any other: card, «Observar» (the zone's window ends on it). |
+| Place | Where the slider is today, inside the Meteo panel, on desktop and on phone. |
 
-**Before building:** a production `SELECT` (run by Marcos) on how far back each cell's history goes; response times of both layers on old dates; the link's `dia` limit (`MAX_DAYS_BACK`) moves with the bar. Deployment readiness below must be updated if S4 brings a migration.
+### Scope — Out
+
+Point card with rain, «Observar» with Lluvia, `acum` in the URL and `ready: true` (branch `feat/observatory-meteo-rain-card`); previous years; any change to the scoring model.
+
+### States of the component
+
+The bar keeps the same height in every state.
+
+| State | What is drawn |
+|---|---|
+| Weekly figures loading | Months, handle and «Hoy», usable; the bar area empty |
+| Figures ready | The bars, the chosen week told apart from the others |
+| Figures failed | As loading, with no blocking notice: the day can still be chosen. The map's own error notice is unchanged |
+| A species whose figures are computed when asked (S1) | As loading until they arrive; the previous species' bars are not left under the new name |
+| A week without figure (no data, or out of season) | No bar, a baseline mark |
+| Condiciones series not filled yet (first run) or forecast part stale | Only the weeks that have it |
+| Meteo off | Dimmed and out of reach, as the rest of the panel |
+| Temperatura, Viento (development only) | The same bar with no weekly bars |
+
+Dragging asks the map only once the finger rests (as today). The bar is a `slider` for the keyboard and screen readers (← → one day, Page Up / Down one week, Home / End the ends), which also keeps the phone sheet's drag off it; the drawing is `aria-hidden` and the day's text is its value.
+
+### Decisions (Marcos, 2026-11-27)
+
+The options are in `memory/decisions.md`.
+
+| # | Question | Answer |
+|---|---|---|
+| S1 | With a species chosen, which figures do Condiciones' bars show? | **A.** Those of the chosen species, whichever it is. The excellent ones are stored; any other is computed when asked. With no species, the excellent ones together. |
+| S2 | Colour of the rain bars | **A.** The map's 7 d scale, one colour per bar, whatever the preset. As in the drawing he chose, a light week keeps a minimum opacity (0.35 at 0 mm, rising to the scale's 0.6 at 10 mm) so its bar can be seen; the map and legend stay transparent up to 1 mm. A fixed height: 60 mm fills the bar, more is cut. |
+| S3 | Forecast look, and what a week is | **B.** Outline only. Calendar weeks, Monday–Sunday; the current one is split at today (real part filled, forecast part, today included, outlined), with a dashed «hoy» line. |
+| S4 | Where Condiciones' series is computed and kept | **A.** A table filled after the daily refresh, each day computed as the map computes it, only the changed days each night (migration 023). |
+| S5 | Picking a day with a finger | **D.** Drag by day with a magnifier of ±5 days, shown while dragging, in a strip whose room is always reserved; ‹ › move one day. Temperatura and Viento: the same bar with no weekly bars (proposed with S5, no objection). |
+| S6 | What the weekly rating means | **A.** The mean of all Catalonia. |
+
+**Known cost of S6 A:** on the local data of 29 May – 26 November the mean of the excellent ones never passed 62, so no week was gold or green (one species alone, *L. deliciosus*, reached 70). The five band colours stay; the upper two will be rare.
+
+**Help text for the bars of Condiciones** (ES; CA and EN written with the front end): «Cada barra es la media de las condiciones de toda Cataluña en esa semana, calculada a la altitud media de cada celda de unos 8 × 11 km, sin tener en cuenta el bosque ni el suelo. No es la puntuación de ningún punto del mapa.» A first line says whose conditions they are: the chosen species, or the excellent ones. Cells the species does not reach by altitude do not count.
 
 ---
 
@@ -136,8 +172,9 @@ Sixth mark: 60 mm in one day was reached by 0.1 % of the windows (0.2 % in Sep�
 ## Deployment readiness (cut 1)
 
 - **Sources and attribution:** no new source; Open-Meteo is already credited in the credits modal. Its free plan is for non-commercial use.
-- **Migrations, environment variables, buckets, services:** none expected.
+- **Migrations, environment variables, buckets, services:** none for the rain layer (the day selector may add one, below).
 - **Quota:** no new calls and no bulk load.
+- **Day selector:** migration 023 (one small table, RLS enabled). Alembic runs at start-up on Render, so how Marcos applies it is settled before the merge (plan, «Day selector»). The series is empty after the first deploy until it is filled: 79 s on the Mac for all days (peak 191 MB), not measured on Render (512 MB, a slow CPU); a full read of the history took the local process to 294 MB. A species that is not excellent is computed on request (about 1.5 s on the Mac, not measured on Render). How migration 023 is applied (by Marcos beforehand, or by Render at start-up) is still to settle before the merge into `main`. History depth in production, checked on 2026-11-27 (query run by Marcos, result in the plan): all 423 cells cover the bar and its warm-up with no gap.
 - **Order:** back end (Render) before or with the front end (Vercel); the layer is only visible once the front end sets `ready`.
 - **Data:** checked on 2026-11-26 (query run by Marcos): 423 cells on every date from 2026-11-05 to 2026-12-03 (item 8 of the 429 block of `memory/pending.md`). It depends on the daily `cell_refresh`: with the Open-Meteo quota spent it may stop, leaving missing or stale days. The query does not show that every cell was downloaded that night.
 - **Rollback:** revert the merge commit.
@@ -156,6 +193,8 @@ A cut 2 or 3 that needs anything else updates this section before its first bran
 - [ ] The point card shows the mm, follows slider and preset, and flags forecast, estimated and missing data.
 - [ ] «Observar» opens the zone on the right day.
 - [x] R1 and R2 answered and written in `memory/decisions.md`.
+- [x] S1–S6 answered and written in `memory/decisions.md`.
+- [ ] Day selector: one bar for Lluvia and Condiciones over about six months, with the weekly figures from stored data; `dia` limited to the same range.
 - [ ] ES / CA / EN, light and dark; text contrast ≥ 4.5:1 in both themes; the slider checked with a finger on a phone.
 
 **Cuts 2 and 3:** to be written with their sections.
