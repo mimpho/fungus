@@ -1,7 +1,7 @@
 # PRD — Meteo layers: rain, temperature and wind (`epic/observatory-meteo`)
 
 > Product Requirements Document. Written before the first feature branch.
-> Last updated: 2026-11-27
+> Last updated: 2026-11-27 (look of the rain layer after QA; day selector chosen)
 >
 > Status: **one epic for the three layers (Marcos, 2026-11-26). Rain is specified here; temperature and wind are placeholders, to be extended in this same file when each one is taken up.** All the rain questions are answered (2026-11-27); the plan is in [`observatory-meteo-plan.md`](observatory-meteo-plan.md).
 > Builds on [`observatory-navigation-prd.md`](observatory-navigation-prd.md) (the Meteo tab; its Q2, Q3, Q6 and Q8 apply here).
@@ -44,8 +44,8 @@ The Meteo tab only has Condiciones. Lluvia, Temp. and Viento show «Pronto». Co
 | Feature | Notes |
 |---|---|
 | Rain endpoint | Accumulated rain per stored cell over a window that **ends on the day of the slider**: 24 h (1 day), 7 d or 21 d. No migration. |
-| Map layer | The accumulated rain of every cell, in the draw order of Meteo, smoothed between cells with a continuous gradient (R1). Under 1 mm the colour fades to transparent. |
-| Panel and legend | The panel already built for development: presets 24 h · 7 d (default) · 21 d, the window's dates, the shared slider. One fixed scale per preset, in mm (= l/m²), with the six marks and colours of R2, evenly spaced. 21 d keeps the 60–120 mm «good» band of the observed zone's rain chart, marked on the legend. |
+| Map layer | The accumulated rain of every cell, in the draw order of Meteo, smoothed between cells with a continuous gradient (R1), clipped to Catalonia's boundary, coast included. Transparent up to 1 mm. |
+| Panel and legend | The panel already built for development: presets 24 h · 7 d (default) · 21 d, the window's dates, the shared slider. One fixed scale per preset, in mm (= l/m²), with the six marks and colours of R2, evenly spaced. 21 d keeps the 60–120 mm «good» band of the observed zone's rain chart, marked on the legend with a green line under the numbers, «favorable para setas» (2026-11-27). |
 | Forecast flag | When the slider's day is today or later, the window includes forecast days: hatched stretch of the slider and the tag «incluye previsión», in the panel and in the point card. A past window is tagged too when one of its days is still as it was forecast: downloaded on that day or up to 2 days before (2026-11-27). Past days whose stored value comes from the forecast API but was downloaded after the day ended are not flagged. |
 | Point card | Headline: the accumulated mm of the active window, with its dates and length (e.g. «48 mm · 20–26 nov · 7 días», invented figures). It follows the slider and the preset while the card is open. The figure is «≈ N mm», the value interpolated between cells that matches the colour at the point, so two points of one cell can differ. The source is one value per cell, with no correction for altitude, forest or soil. |
 | Missing data | A cell with a day of the window missing never shows its partial sum as the total. If enough neighbouring cells have the whole window, its value is estimated by weighting theirs, and the card says it is estimated; otherwise the cell shows as without data, on the map and in the card. The threshold and the weighting are in the plan. |
@@ -72,6 +72,25 @@ The Meteo tab only has Condiciones. Lluvia, Temp. and Viento show «Pronto». Co
 
 ---
 
+## Day selector (shared by Condiciones and Lluvia) — chosen, to be specified
+
+**Decided (Marcos, 2026-11-27):** the next piece of work, before the point card. One bar replaces the slider and the static strip under it (past, today and forecast in the same bar), reaching back about six months instead of 30 days, with the months marked and a bar per week: in Lluvia the rain of all Catalonia; in Condiciones a rating of all Catalonia, in the five score-band colours from green to red. Measurements and discarded options: `memory/decisions.md`. This replaces the «−30 d … +7 d» of «Common to the three layers».
+
+**To settle before its first line of code:**
+
+| # | Question |
+|---|---|
+| S1 | With a species chosen, do Condiciones' bars follow it or stay on the mean of the excellent ones? (One species alone was not measured.) |
+| S2 | Colour of the rain bars: the rain scale or a single blue |
+| S3 | How the forecast weeks look, and what a week is (calendar week or seven days back from today) |
+| S4 | Where Condiciones' series is computed and kept: after the daily refresh in a table (migration), or in memory |
+| S5 | How a day is picked with a finger over ~6 months (about 1.6 px per day), and what Temperatura and Viento show |
+| S6 | What the weekly rating means, and how the help says it: in the measurement, each cell's mean altitude, no forest or soil filter, so it is no point of the map |
+
+**Before building:** a production `SELECT` (run by Marcos) on how far back each cell's history goes; response times of both layers on old dates; the link's `dia` limit (`MAX_DAYS_BACK`) moves with the bar. Deployment readiness below must be updated if S4 brings a migration.
+
+---
+
 ## Cut 2 — Temperature (to be specified)
 
 Already there: daily max, min and average per cell, and a development panel with a placeholder scale (−5 to 35 °C). Open when taken up: which value is shown (max, average or min), whether it is corrected by altitude with the relief, the scale, the window if any, and the point card's figure.
@@ -95,7 +114,7 @@ All the rain ones must be answered before the first feature branch. Those of cut
 | 5 | «Observar» with Lluvia on? | Marcos | ✅ Opens on the slider's day, as with Condiciones (2026-11-26). |
 | 6 | When does each layer reach `main`? | Marcos | ✅ Layer by layer, in the same epic (2026-11-26). |
 | R1 | **Look on the map:** squares per cell, smoothed or other variants. It also settles whether the card shows the cell's value or the interpolated one that matches the colour. | Marcos | ✅ Smoothed with a continuous gradient, and the interpolated figure («≈ N mm») in the card: rain has no steps at cell borders, and it matches the conditions map (2026-11-27). |
-| R2 | **Colour scales of the three presets.** | Marcos | ✅ White → light blue → blue → violet → garnet → dark garnet, marks evenly spaced on the legend. 24 h: 1 · 5 · 10 · 20 · 40 · 60+; 7 d: 1 · 10 · 20 · 40 · 60 · 100+; 21 d: 1 · 20 · 40 · 60 · 120 · 180+ (2026-11-27). |
+| R2 | **Colour scales of the three presets.** | Marcos | ✅ Marks evenly spaced on the legend. 24 h: 1 · 5 · 10 · 20 · 40 · 60+; 7 d: 1 · 10 · 20 · 40 · 60 · 100+; 21 d: 1 · 20 · 40 · 60 · 120 · 180+. Colours, changed in QA the same day: transparent → light blue (60 %) → blue → violet → garnet → dark garnet (the first version started in white) (2026-11-27). |
 
 ### Data behind R2
 

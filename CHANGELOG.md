@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — rain layer on the map (2026-11-27, branch `feat/observatory-meteo-rain-map`)
+
+- **Lluvia in Meteo** (development builds only: `ready` stays `false`): accumulated rain smoothed between cells, 24 h · 7 d (default) · 21 d, the window's dates, the «incluye previsión» tag, the shared day slider, loading bar and error notice with retry. Own painter, `src/lib/rainLayer.js`, with plain alpha on the three base maps; cells without data are hatched. Texts in ES / CA / EN.
+- **Colour scale without white** (changes R2, chosen in QA): transparent at the first mark, light blue at 60 % at the second, then blue → violet → garnet → dark garnet. The marks did not move.
+- **21 d legend:** the 60–120 mm band is a green line under the numbers, «favorable para setas», instead of a framed stretch of the bar.
+- **Clipped to Catalonia's boundary**, coast included, from ICGC «Divisions administratives» 1:50,000 (CC BY 4.0, simplified to ~120 m, `src/lib/cataloniaOutline.js`), credited in the sources dialog. The rain layer does not use the elevation raster. Strips along the border held by no cell take the blend of the cells in reach.
+- Docs: the PRD, plan, decisions and gotchas record these changes and the day selector chosen as the next piece of work.
+
 ### Added — rain layer endpoint (2026-11-27, branch `feat/observatory-meteo-rain-api`)
 
 - **`GET /observatory/layer/rain`:** the accumulated rain of every stored cell over 24 h, 7 d or 21 d ending on the asked day, up to a week ahead from the stored forecast. Reads only what is stored: no Open-Meteo calls, no migration.
