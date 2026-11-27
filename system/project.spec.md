@@ -526,8 +526,8 @@ See `docs/content-guide.md` for the full image generation pipeline.
 
 | # | Epic | Status | Scope |
 |---|---|---|---|
-| 1 | `epic/observatory-zones-of-interest` | 🗂 Next | «Zonas de interés» markers, endpoint and data; entry point is the «Zonas» tab. Full stack |
-| 2 | `epic/observatory-meteo` | 🗂 Next | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
+| 1 | `epic/observatory-meteo` | 🗂 Next | Weather layers of the map's «Meteo» tab: rain (first), temperature, wind. Full stack. Top 10 goes in the «Zonas» tab, epic to decide |
+| 2 | `epic/observatory-zones-of-interest` | 🗂 Next | «Zonas de interés» markers, endpoint and data; entry point is the «Zonas» tab. Full stack |
 | — | `epic/v8-android` (legacy name, v8.x reserved) | ⏸ Paused | Android app (React Native + Expo SDK 54 · MapLibre · EAS Build). Paused 2026-10-10; merged into `main` without tag |
 | 3 | Shared package | 🗂 Backlog | Scoring, constants, types, i18n as monorepo internal packages |
 | 4 | SEO | 🗂 Backlog | Static prerendering + Core Web Vitals |

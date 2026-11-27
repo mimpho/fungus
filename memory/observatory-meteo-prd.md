@@ -1,9 +1,9 @@
 # PRD — Meteo layers: rain, temperature and wind (`epic/observatory-meteo`)
 
 > Product Requirements Document. Written before the first feature branch.
-> Last updated: 2026-11-26
+> Last updated: 2026-11-27
 >
-> Status: **one epic for the three layers (Marcos, 2026-11-26). Rain is specified here; temperature and wind are placeholders, to be extended in this same file when each one is taken up.** Two rain questions are still open (R1, R2).
+> Status: **one epic for the three layers (Marcos, 2026-11-26). Rain is specified here; temperature and wind are placeholders, to be extended in this same file when each one is taken up.** All the rain questions are answered (2026-11-27); the plan is in [`observatory-meteo-plan.md`](observatory-meteo-plan.md).
 > Builds on [`observatory-navigation-prd.md`](observatory-navigation-prd.md) (the Meteo tab; its Q2, Q3, Q6 and Q8 apply here).
 
 ---
@@ -44,11 +44,11 @@ The Meteo tab only has Condiciones. Lluvia, Temp. and Viento show «Pronto». Co
 | Feature | Notes |
 |---|---|
 | Rain endpoint | Accumulated rain per stored cell over a window that **ends on the day of the slider**: 24 h (1 day), 7 d or 21 d. No migration. |
-| Map layer | The accumulated rain of every cell, in the draw order of Meteo. Its look is open (R1). |
-| Panel and legend | The panel already built for development: presets 24 h · 7 d (default) · 21 d, the window's dates, the shared slider. One fixed scale per preset, in mm. 21 d keeps the 60–120 mm «good» band of the observed zone's rain chart. Cuts for 24 h and 7 d: R2. |
+| Map layer | The accumulated rain of every cell, in the draw order of Meteo, smoothed between cells with a continuous gradient (R1). Under 1 mm the colour fades to transparent. |
+| Panel and legend | The panel already built for development: presets 24 h · 7 d (default) · 21 d, the window's dates, the shared slider. One fixed scale per preset, in mm (= l/m²), with the six marks and colours of R2, evenly spaced. 21 d keeps the 60–120 mm «good» band of the observed zone's rain chart, marked on the legend. |
 | Forecast flag | When the slider's day is today or later, the window includes forecast days: hatched stretch of the slider and the tag «incluye previsión», in the panel and in the point card. Recent past days whose stored value still comes from the forecast, because the archive has not replaced it yet, are not flagged. |
-| Point card | Headline: the accumulated mm of the active window, with its dates and length (e.g. «48 mm · 20–26 nov · 7 días», invented figures). It follows the slider and the preset while the card is open. The value belongs to the cell: two nearby points of one cell share the same source figure, with no correction for altitude, forest or soil. |
-| Missing data | If a day of the window is missing in a cell, the cell says so and no partial sum is shown as the total, on the map and in the card. |
+| Point card | Headline: the accumulated mm of the active window, with its dates and length (e.g. «48 mm · 20–26 nov · 7 días», invented figures). It follows the slider and the preset while the card is open. The figure is «≈ N mm», the value interpolated between cells that matches the colour at the point, so two points of one cell can differ. The source is one value per cell, with no correction for altitude, forest or soil. |
+| Missing data | A cell with a day of the window missing never shows its partial sum as the total. If enough neighbouring cells have the whole window, its value is estimated by weighting theirs, and the card says it is estimated; otherwise the cell shows as without data, on the map and in the card. The threshold and the weighting are in the plan. |
 | «Observar» with Lluvia on | The zone opens on the slider's day, or on the last day with real data when the day is in the forecast, as with Condiciones. |
 | URL | `capa=lluvia`, the shared `dia`, and `acum` for the preset. |
 | i18n and themes | ES / CA / EN; light and dark. |
@@ -91,11 +91,26 @@ All the rain ones must be answered before the first feature branch. Those of cut
 | 1 | One PRD and one epic, or one per layer? | Marcos | ✅ One PRD and one epic for rain, temperature and wind; rain first (2026-11-26). |
 | 2 | What does the point card show with Lluvia on? | Marcos | ✅ The same card, with the accumulated mm of the active window as headline (2026-11-26). |
 | 3 | Rain and conditions at once in the card? | Marcos | ✅ No, only the active layer's figure (2026-11-26). |
-| 4 | Days missing in the window? | Marcos | ✅ Say so; no partial sum as total (2026-11-26). |
+| 4 | Days missing in the window? | Marcos | ✅ No partial sum as total (2026-11-26). A cell with missing days and neighbours with data is estimated from them (2026-11-27, replaces «say so» for that case). |
 | 5 | «Observar» with Lluvia on? | Marcos | ✅ Opens on the slider's day, as with Condiciones (2026-11-26). |
 | 6 | When does each layer reach `main`? | Marcos | ✅ Layer by layer, in the same epic (2026-11-26). |
-| R1 | **Look on the map:** squares per cell, smoothed or other variants. It also settles whether the card shows the cell's value or the interpolated one that matches the colour. | Marcos | ⬜ Pending: decided seeing 4–5 proposals together. |
-| R2 | **Cuts of the 24 h and 7 d scales.** | Marcos | ⬜ Pending: to be set with real data (decided 2026-11-26), from a read-only query. |
+| R1 | **Look on the map:** squares per cell, smoothed or other variants. It also settles whether the card shows the cell's value or the interpolated one that matches the colour. | Marcos | ✅ Smoothed with a continuous gradient, and the interpolated figure («≈ N mm») in the card: rain has no steps at cell borders, and it matches the conditions map (2026-11-27). |
+| R2 | **Colour scales of the three presets.** | Marcos | ✅ White → light blue → blue → violet → garnet → dark garnet, marks evenly spaced on the legend. 24 h: 1 · 5 · 10 · 20 · 40 · 60+; 7 d: 1 · 10 · 20 · 40 · 60 · 100+; 21 d: 1 · 20 · 40 · 60 · 120 · 180+ (2026-11-27). |
+
+### Data behind R2
+
+Read-only query on production, run by Marcos on 2026-11-27: accumulated rain per cell and end day, complete windows, `archive` days only, windows ending up to 2026-11-18. The history starts between late January and mid-February 2026 (by window length), so December and most of January are missing and there is one unfinished autumn: these are initial scales, not a normal year. No window had a day without temperatures.
+
+| Window | Scope | Windows | Under 1 mm | p50 / p90 / p97 (windows ≥ 1 mm) | Max | Reaching the 5th mark |
+|---|---|---|---|---|---|---|
+| 1 d | all | 123,663 | 73.1 % | 4.2 / 17.7 / 29.8 mm | 140.7 | ≥ 40 mm: 0.4 % |
+| 1 d | Sep–Nov | 33,331 | 70.4 % | 6.2 / 24.5 / 36.8 mm | 140.7 | ≥ 40 mm: 0.7 % |
+| 7 d | all | 120,609 | 27.3 % | 12.3 / 48.2 / 79.2 mm | 202.8 | ≥ 60 mm: 4.5 % |
+| 7 d | Sep–Nov | 32,815 | 25.0 % | 21.4 / 64.5 / 92.4 mm | 202.8 | ≥ 60 mm: 8.7 % |
+| 21 d | all | 114,138 | 3.9 % | 32.1 / 99.4 / 141.9 mm | 281.8 | ≥ 120 mm: 5.4 % |
+| 21 d | Sep–Nov | 32,266 | 0.6 % | 52.6 / 120.0 / 161.1 mm | 281.8 | ≥ 120 mm: 9.9 % |
+
+Sixth mark: 60 mm in one day was reached by 0.1 % of the windows (0.2 % in Sep–Nov). The shares for 100 mm in 7 days and 180 mm in 21 days were not measured.
 
 ---
 
@@ -107,7 +122,7 @@ All the rain ones must be answered before the first feature branch. Those of cut
 - **Order:** back end (Render) before or with the front end (Vercel); the layer is only visible once the front end sets `ready`.
 - **Data:** checked on 2026-11-26 (query run by Marcos): 423 cells on every date from 2026-11-05 to 2026-12-03 (item 8 of the 429 block of `memory/pending.md`). It depends on the daily `cell_refresh`: with the Open-Meteo quota spent it may stop, leaving missing or stale days. The query does not show that every cell was downloaded that night.
 - **Rollback:** revert the merge commit.
-- **To check after deploy:** the layer on the three base maps, light and dark, ES / CA / EN, phone and desktop; the card's figure against the stored rows of one cell; a window that includes forecast days.
+- **To check after deploy:** the layer on the three base maps, light and dark, ES / CA / EN, phone and desktop; the endpoint's sum of one cell against its stored rows, and the card's figure at that cell's centre against that sum; the dark garnet and the dark blue over the three base maps; a window that includes forecast days.
 
 A cut 2 or 3 that needs anything else updates this section before its first branch.
 
@@ -117,11 +132,11 @@ A cut 2 or 3 that needs anything else updates this section before its first bran
 
 **Cut 1 — Rain**
 
-- [ ] The endpoint returns the accumulated rain per cell for the three presets, with tests for the window's limits, the forecast days and missing days.
+- [ ] The endpoint returns the accumulated rain per cell for the three presets, with tests for the window's limits, the forecast days, missing days and estimated cells.
 - [ ] Lluvia is `ready`: map, panel and legend with the final cuts, and `capa` / `dia` / `acum` in the URL.
-- [ ] The point card shows the mm, follows slider and preset, and flags forecast and missing data.
+- [ ] The point card shows the mm, follows slider and preset, and flags forecast, estimated and missing data.
 - [ ] «Observar» opens the zone on the right day.
-- [ ] R1 and R2 answered and written in `memory/decisions.md`.
+- [x] R1 and R2 answered and written in `memory/decisions.md`.
 - [ ] ES / CA / EN, light and dark; text contrast ≥ 4.5:1 in both themes; the slider checked with a finger on a phone.
 
 **Cuts 2 and 3:** to be written with their sections.

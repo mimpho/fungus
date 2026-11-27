@@ -4,6 +4,23 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## Rain layer: smoothed gradient, six-colour scales and gaps estimated from neighbours (2026-11-27, `epic/observatory-meteo`)
+
+**Decision:**
+- **Look (R1):** the accumulated rain is smoothed between cells with a continuous gradient. The point card shows the interpolated figure that matches the colour, as «≈ N mm».
+- **Scales (R2):** white → light blue → blue → violet → garnet → dark garnet, transparent below 1 mm. Marks evenly spaced on the legend, not proportional to mm. 24 h: 1 · 5 · 10 · 20 · 40 · 60+; 7 d: 1 · 10 · 20 · 40 · 60 · 100+; 21 d: 1 · 20 · 40 · 60 · 120 · 180+ (the 60–120 band stays marked). Figures from a production query: table in the PRD.
+- **Gaps:** a cell with a day missing never shows its partial sum. With enough neighbours that have the whole window it gets a weighted estimate; otherwise it shows as without data.
+
+**Why:** rain has no steps at the border of a model cell, and the map stays coherent with Condiciones, whose card also shows the painted value. Two hues separate close amounts in neighbouring cells better than one. The sixth colour was added because 21 days pass 120 mm in 5.4 % of the windows (9.9 % in Sep–Nov), up to 281.8 mm.
+
+**Discarded:** squares per cell (continuous or stepped), smoothed stepped bands, one circle per cell; a single blue scale; garnet for little rain (the white middle reads as a neutral point); five colours; linear scales (light rain all looks alike); showing the cell's own figure over a smoothed map (two taps on one colour could read very differently); leaving every cell with a gap empty.
+
+**Plan decisions (approved the same day, `memory/observatory-meteo-plan.md`):** a gap is estimated only with at least 3 neighbouring cells that have the whole window (weight 1 / distance², estimates never feed others); the map paints an estimate like any cell and only the card says it is one; a past day stored from the forecast counts only if it was downloaded after that day ended (UTC), stricter than Condiciones, so a forecast never refreshed does not count as rain that fell; a missing rain value from Open-Meteo is no longer stored as 0 mm for cells (no migration; rows already stored stay).
+
+**Known costs:** the interpolated figure is not a stored value, and the smoothing suggests more detail than one value per ~8 × 11 km cell.
+
+---
+
 ## Meteo layers: one epic for rain, temperature and wind (2026-11-26)
 
 **Decision:** `epic/observatory-meteo` has one PRD (`memory/observatory-meteo-prd.md`) for the three layers. Rain goes first and is the only one specified; the other two are added to the same file when they are taken up. Each layer is merged into `main` when it is ready, an exception to the cadence rule of `system/workflows.spec.md` (a follow-up epic with its own PRD). With Lluvia on, the point card is the same and its headline figure is the accumulated mm of the active window, never next to the conditions percentage; a window with a missing day shows no partial total; «Observar» opens the zone on the slider's day.
