@@ -45,17 +45,20 @@ export const RAIN_PRESETS = [
 ]
 export const DEFAULT_RAIN_PRESET = '7d'
 
-const RAIN_COLORS = ['var(--meteo-rain-1)', 'var(--meteo-rain-2)', 'var(--meteo-rain-3)']
+// The six colours of the rain layer, transparent → light blue → blue → violet → garnet → dark garnet (the
+// legend; the map paints the same values as literals, see rainLayer.js)
+const RAIN_COLORS = [1, 2, 3, 4, 5, 6].map(n => `var(--meteo-rain-${n})`)
 
 /**
- * One fixed scale per preset, always in mm, never fitted to the data on screen. The cuts for 24 h and
- * 7 d are placeholders, to be set by epic/observatory-meteo with real data; 21 d keeps the 60–120 mm
- * «good» band of the observed zone's rain chart (the same measure as the score's PA21).
+ * One fixed scale per preset, always in mm (= l/m²), never fitted to the data on screen: `marks` are the
+ * amounts of the six colours, evenly spaced on the legend and not in proportion to the mm (PRD, R2).
+ * Up to the first one the layer is transparent; above the last the colour stays. 21 d keeps the 60–120 mm «good»
+ * band of the observed zone's rain chart (the same measure as the score's PA21).
  */
 export const RAIN_SCALES = {
-  '24h': { colors: RAIN_COLORS, min: 0, max: 30, unit: 'mm' },
-  '7d': { colors: RAIN_COLORS, min: 0, max: 60, unit: 'mm' },
-  '21d': { colors: RAIN_COLORS, min: 0, max: 150, unit: 'mm', band: { from: 60, to: 120 } },
+  '24h': { colors: RAIN_COLORS, marks: [1, 5, 10, 20, 40, 60], unit: 'mm' },
+  '7d': { colors: RAIN_COLORS, marks: [1, 10, 20, 40, 60, 100], unit: 'mm' },
+  '21d': { colors: RAIN_COLORS, marks: [1, 20, 40, 60, 120, 180], unit: 'mm', band: { from: 60, to: 120 } },
 }
 
 export const TEMPERATURE_SCALE = {
