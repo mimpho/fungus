@@ -113,5 +113,9 @@
 .map-surface { background: var(--map-surface); } /* token in src/styles/tokens.css, per theme */
 .map-bar-surface { background: var(--map-bar-surface); }
 
-/* Phone: Leaflet's bottom controls (zoom, credits) sit above the tab bar; the page sets how tall it is */
+/* Phone layout: Leaflet's bottom controls (the credits) sit on top of whatever the column holds (bar and sheets) unless they fit
+   beside it; the page sets how high */
 .leaflet-container .leaflet-bottom { bottom: var(--obs-bottom-clear, 0px); }
+/* Narrow maps: the credits at the left, wrapping before they reach «My location» at the right of the same row */
+.obs-credits-left .leaflet-container .leaflet-bottom.leaflet-right { right: auto; left: 0; }
+.obs-credits-left .leaflet-container .leaflet-control-attribution.leaflet-control { float: left; margin-right: 0; max-width: var(--obs-credits-max); }

@@ -11,13 +11,13 @@
 // last day with data) and `dias` (its length, 7–180; missing = 20).
 // The Meteo tab adds what the map is showing, only while Meteo is on: `capa` (the data layer, e.g.
 // `condiciones`) and `dia` (the
-// reference day, YYYY-MM-DD; missing = the last day with data). `dia` is clamped to −30…+7 days from
-// today and means nothing without `capa`. `seta` (species id) belongs to the whole map, not to Meteo:
+// reference day, YYYY-MM-DD; missing = the last day with data). `dia` is clamped to the day selector's range
+// (from `firstBarDay` to today + 7) and means nothing without `capa`. `seta` (species id) belongs to the whole map, not to Meteo:
 // it stays with Meteo off, and a link with only `seta` does not turn Meteo on. Whether it exists in the
 // catalogue is checked by the page once the catalogue has loaded.
 // =====================================================
 import { isInCatalonia } from './catalonia'
-import { addDays, todayIso } from './layerDays'
+import { addDays, firstBarDay, todayIso } from './layerDays'
 import { layerFromParam, paramOfLayer } from './meteoLayers'
 
 export const MIN_WINDOW = 7
@@ -46,15 +46,14 @@ function toDays(raw) {
   return n >= MIN_WINDOW && n <= MAX_WINDOW ? n : null
 }
 
-export const MAX_DAYS_BACK = 30
 export const MAX_DAYS_AHEAD = 7
 const SPECIES_ID = /^[a-z0-9][a-z0-9-]{0,39}$/i
 
-/** A `dia` inside −30…+7 days from `today` (outside, the nearest end); null when it is not a day. */
+/** A `dia` inside the day selector's range (outside, the nearest end); null when it is not a day. */
 export function clampDay(raw, today = todayIso()) {
   const day = toUntil(raw)
   if (!day) return null
-  const first = addDays(today, -MAX_DAYS_BACK)
+  const first = firstBarDay(today)
   const last = addDays(today, MAX_DAYS_AHEAD)
   return day < first ? first : day > last ? last : day
 }

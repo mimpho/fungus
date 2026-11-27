@@ -1,7 +1,7 @@
 import { useApp } from '../../../contexts/AppContext'
 import { fill } from '../../../lib/thermometer'
 import { METEO_LAYERS, TEMPERATURE_SCALE, WIND_SCALE, canOpenLayer, meteoLayer } from '../../../lib/meteoLayers'
-import { LayerDayControl, layerDays } from '../LayerDayControl'
+import { DayBar, layerDays } from '../DayBar'
 import { LayerLegend } from './LayerLegend'
 
 const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-cream/50'
@@ -10,7 +10,7 @@ const FOCUS = 'outline-none focus-visible:ring-2 focus-visible:ring-cream/50'
  * The Meteo tab's content: the segmented control Condiciones · Lluvia · Temp. · Viento and the chosen
  * segment's controls. Layers not built yet carry «Pronto» and `aria-disabled`; in a development build
  * they still open their placeholder panels (src/lib/meteoLayers.js). `conditions` is the Condiciones
- * content (species field, day slider, legend) and `rain` Lluvia's (RainPanel); the placeholders share the
+ * content (species field, day bar, legend) and `rain` Lluvia's (RainPanel); the placeholders share the
  * same day (`date`, `onDateChange`). `hiddenNote`: a line over Condiciones or Lluvia saying why the map does
  * not draw it (Hábitat · De la seta is shown).
  */
@@ -57,7 +57,7 @@ function PreviewPanel({ kind, date, onDateChange }) {
   const days = layerDays()
   return (
     <div className="px-1 flex flex-col gap-3">
-      <LayerDayControl lastDate={days.lastDate} maxDate={days.maxDate} forecastFrom={days.forecastFrom} date={date} onChange={onDateChange} />
+      <DayBar lastDate={days.lastDate} maxDate={days.maxDate} forecastFrom={days.forecastFrom} date={date} onChange={onDateChange} />
       <LayerLegend scale={kind === 'temperature' ? TEMPERATURE_SCALE : WIND_SCALE} />
       <p className="text-[11px] text-cream/80">{fill(t.obsMeteoPreview, { capa: t[meteoLayer(kind)?.label] }, lang)}</p>
     </div>

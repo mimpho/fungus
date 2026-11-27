@@ -12,7 +12,7 @@ export const SHOW_PREVIEWS = import.meta.env.DEV
 /** `param`: its value in the URL's `capa`; `label` / `short`: i18n keys (full name, segment text). */
 export const METEO_LAYERS = [
   { id: 'conditions', param: 'condiciones', label: 'obsLayerProbability', short: 'obsLayerProbability', ready: true },
-  { id: 'rain', param: 'lluvia', label: 'obsLayerRain', short: 'obsLayerRain', ready: false },
+  { id: 'rain', param: 'lluvia', label: 'obsLayerRain', short: 'obsLayerRain', ready: true },
   { id: 'temperature', param: 'temperatura', label: 'obsLayerTemperature', short: 'obsMeteoTempShort', ready: false },
   { id: 'wind', param: 'viento', label: 'obsLayerWind', short: 'obsLayerWind', ready: false },
 ]
@@ -41,6 +41,7 @@ export function paramOfLayer(id) {
 export const RAIN_PRESETS = [
   { id: '24h', days: 1, label: '24 h' },
   { id: '7d', days: 7, label: '7 d' },
+  { id: '14d', days: 14, label: '14 d' },
   { id: '21d', days: 21, label: '21 d' },
 ]
 export const DEFAULT_RAIN_PRESET = '7d'
@@ -58,6 +59,7 @@ const RAIN_COLORS = [1, 2, 3, 4, 5, 6].map(n => `var(--meteo-rain-${n})`)
 export const RAIN_SCALES = {
   '24h': { colors: RAIN_COLORS, marks: [1, 5, 10, 20, 40, 60], unit: 'mm' },
   '7d': { colors: RAIN_COLORS, marks: [1, 10, 20, 40, 60, 100], unit: 'mm' },
+  '14d': { colors: RAIN_COLORS, marks: [1, 15, 30, 60, 100, 150], unit: 'mm' },
   '21d': { colors: RAIN_COLORS, marks: [1, 20, 40, 60, 120, 180], unit: 'mm', band: { from: 60, to: 120 } },
 }
 

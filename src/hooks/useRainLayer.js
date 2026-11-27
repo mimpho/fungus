@@ -4,7 +4,7 @@ import { fetchRainLayer } from '../services/observatoryService'
 const IDLE = { status: 'idle', data: null, error: null, key: null }
 
 /**
- * Accumulated rain of the stored cells over `windowId` ('24h' | '7d' | '21d') ending on `date`
+ * Accumulated rain of the stored cells over `windowId` ('24h' | '7d' | '14d' | '21d') ending on `date`
  * (undefined = the last day with data). `enabled` false = no layer (status 'idle').
  * While another window or day loads, `data` keeps the previous answer, so the map never goes blank
  * (the answer says its own window and dates); `status` is 'ready' only when `data` is the answer to

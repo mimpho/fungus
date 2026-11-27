@@ -180,6 +180,14 @@
   --meteo-wind-2:   #6cc4b0;
   --meteo-wind-3:   #2f8f9d;
   --meteo-wind-4:   #3a4fa0;
+
+  /* The day selector's weekly bars of Condiciones: the five score bands, from green to red. `good` takes
+     the lighter gold here: the bar's dark one disappears on the map's surface. */
+  --meteo-bar-high: var(--ui-score-high-bar);
+  --meteo-bar-good: var(--ui-score-good-text);
+  --meteo-bar-ok:   var(--ui-score-ok-bar);
+  --meteo-bar-mid:  var(--ui-score-mid-bar);
+  --meteo-bar-low:  var(--ui-score-low-bar);
 }
 
 /* ── Light theme overrides ────────────────────────────────────────────────── */
@@ -295,6 +303,7 @@
   --ui-score-mid-text:       #c2410c;   /* dark orange      */
   --ui-score-low-bar:        #dc2626;   /* mid red          */
   --ui-score-low-text:       #b91c1c;   /* dark red         */
+  --meteo-bar-good:          var(--ui-score-good-bar);
 
   /* Observatory map navigation — light: the header's cream as a surface, the buttons' green (--color-bar) for active */
   --map-surface:          #f8f6f0;   /* the header's colour (white at 70 % over the page's cream), opaque: a translucent one lets the satellite show through the text */

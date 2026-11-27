@@ -9,15 +9,16 @@ import { speciesSheetEnabled } from './flag'
  * filled half. Phone and desktop are the same block (`SpeciesSlot`): on the phone it is a bottom sheet of the stack above the
  * tab bar, on desktop a card of the bottom-left stack under the point's card; the page places it.
  * `speciesId`; `lens`: 'conditions' | 'habitat' | null (which legend to show); `onClear()`; `phone`; `onOpenChange(open)`;
- * `onStackHeight(px)`; `closeSignal` (the page asks the card to fold).
+ * `onStackHeight(px)`; `closeSignal` (the page asks the card to fold); `mini` (phone: another sheet is unfolded, the folded bar halves);
+ * `openRequest` (the id of a species just chosen: its card unfolds, then `onOpenRequestDone()`).
  */
-export function SpeciesSheet({ speciesId, lens = null, onClear, phone = false, onOpenChange, onStackHeight, closeSignal = 0 }) {
+export function SpeciesSheet({ speciesId, lens = null, onClear, phone = false, onOpenChange, onStackHeight, closeSignal = 0, mini = false, openRequest = null, onOpenRequestDone }) {
   const rows = useSpeciesRows()
   const { species: catalog } = useSpecies()
   const row = speciesId ? rows.find(r => r.id === speciesId) : null
   const species = speciesId ? (catalog ?? []).find(s => s.id === speciesId) : null
   if (!speciesSheetEnabled() || !speciesId || !row) return null
   return (
-    <SpeciesSlot key={speciesId} desktop={!phone} row={row} species={species} lens={lens} onClear={onClear} onOpenChange={onOpenChange} onStackHeight={onStackHeight} closeSignal={closeSignal} />
+    <SpeciesSlot key={speciesId} desktop={!phone} mini={mini} row={row} species={species} lens={lens} onClear={onClear} onOpenChange={onOpenChange} onStackHeight={onStackHeight} closeSignal={closeSignal} openRequested={openRequest === speciesId} onOpenRequestDone={onOpenRequestDone} />
   )
 }

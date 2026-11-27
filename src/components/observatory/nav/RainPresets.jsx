@@ -1,7 +1,11 @@
 import { useApp } from '../../../contexts/AppContext'
 import { RAIN_PRESETS } from '../../../lib/meteoLayers'
 
-/** The rain window's length: 24 h · 7 d · 21 d, one pressed at a time. */
+/**
+ * The rain window's length: 24 h · 7 d · 14 d · 21 d, one pressed at a time. Outlined, not filled: they are
+ * a choice inside the layer and must weigh less than the layer's own segments above. Each outline has the
+ * colour its fill would have.
+ */
 export function RainPresets({ value, onChange }) {
   const { t } = useApp()
   return (
@@ -14,7 +18,7 @@ export function RainPresets({ value, onChange }) {
             type="button"
             aria-pressed={on}
             onClick={() => onChange(p.id)}
-            className={`flex-1 h-[44px] rounded-full text-sm outline-none focus-visible:ring-2 focus-visible:ring-cream/50 ${on ? 'bg-[var(--nav-active)] text-white font-semibold' : 'bg-cream/[0.08] text-cream font-medium hover:bg-cream/[0.14]'}`}
+            className={`flex-1 h-[44px] rounded-full border-2 text-sm text-cream outline-none focus-visible:ring-2 focus-visible:ring-cream/50 ${on ? 'border-[var(--nav-active)] font-semibold' : 'border-cream/[0.08] font-medium hover:border-cream/20'}`}
           >
             {p.label}
           </button>
