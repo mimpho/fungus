@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — day selector, rain in the point card and the phone map layout (2026-11-27, branch `feat/observatory-meteo-day-selector-rain-card`)
+
+- **One day bar for Lluvia and Condiciones** over about six months (from the Monday 26 weeks before the current week up to a week ahead), with the months marked and weekly figures for all of Catalonia; dragging shows a ±5 day magnifier and asks for the layer when it rests. The forecast is drawn four times wider. A link's `dia` is limited to the same range (it was 30 days back).
+- **`GET /observatory/layer/weeks`** and table `meteo_day_series` (**migration 023**), filled by the API after the cell refresh and at start-up from stored data only: no Open-Meteo calls. For dates older than 30 days the layer endpoints read the history only up to them.
+- **Lluvia is on** (no «Pronto»), with a new **14 d** window (`window=14d`), the accumulation window highlighted on the bar, outlined preset pills and a more compact panel.
+- **Point card with Lluvia:** «≈ N mm» at the point, the window's dates, «estimado con celdas vecinas» and «incluye previsión» when they apply, in place of the conditions figure. «Observar» opens the zone on the Meteo day with Lluvia too, and the link keeps the window in `acum`.
+- **Experiment, not decided:** a filled line instead of the weekly bars (`components/observatory/dayArea/`, on by default; `localStorage['fungus-exp-day-area']='off'` shows the bars). The bar's help texts still speak of bars.
+
+### Changed — Observatory map layout (same branch)
+
+- **Under 1024 px** the map has the phone's layout, with the bar, the sheets and the search in a 450 px column at the left; on desktop Meteo's panel is 450 px wide.
+- **The whole of Catalonia is kept clear** of panels, cards and sheets while it is in view; zoomed in on a place the map is not moved. The zoom now goes by quarter levels with the wheel and pinch.
+- **«My location» and the credits** are placed by the room beside the column; up to 767 px the credits are at the left, on top of the sheets.
+- **Sheets:** the tab sheets' handle is at the same height as the others'; folded sheets halve (one line) while another is unfolded; choosing a species in the search unfolds its sheet.
+
 ### Added — rain layer on the map (2026-11-27, branch `feat/observatory-meteo-rain-map`)
 
 - **Lluvia in Meteo** (development builds only: `ready` stays `false`): accumulated rain smoothed between cells, 24 h · 7 d (default) · 21 d, the window's dates, the «incluye previsión» tag, the shared day slider, loading bar and error notice with retry. Own painter, `src/lib/rainLayer.js`, with plain alpha on the three base maps; cells without data are hatched. Texts in ES / CA / EN.

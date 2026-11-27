@@ -562,6 +562,14 @@ One byte per 16 m: land under about 8 m reads 0. A painter that skips `elev === 
 ### ⚠️ The ICGC lithology map is not Catalonia's shape
 `local-data/geology` reaches the sheet's frame, into France, Aragón and Valencia: dissolving its polygons does not give the boundary.
 
+## Leaflet — fitting the view by code, and size changes (found 2026-11-27, `feat/observatory-meteo-day-selector-rain-card`)
+
+- `invalidateSize` returns early, with no `resize` event, when the change leaves the centre on the same pixel (seen from a 767 to a 768 px wide map): watch the container with a `ResizeObserver` when the exact width matters.
+- With whole zoom levels (`zoomSnap: 1`), a fractional zoom set by code is rounded on the next move: the step must be the map's own. `setMaxBounds` during an animated `setView` cuts the animation short: remove the limits first and set them again on `moveend`.
+- Looking for free space between `getBoundingClientRect` boxes: half-pixel edges can leave no rectangle at all. Round the covers outwards.
+- A view fitted into too little room may not hold what was fitted, so «is it still in view?» is not enough to fit it again later: remember the fitted view and compare.
+- The browser's console keeps the errors of half-edited versions loaded by Vite's HMR: check their `?t=` or open a fresh tab before chasing them.
+
 ## Scoring v2 — the «warm» state depends on where the calculation starts (found 2026-11-27)
 
 ### ⚠️ Two warm-up lengths can give the same day different scores

@@ -125,8 +125,8 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 |---|---|
 | 1 `feat/observatory-meteo-rain-api` | ✅ 2026-11-27 (scenarios 1.1–1.13) |
 | 2 `feat/observatory-meteo-rain-map` | ✅ 2026-11-27 (scenarios 2.1–2.6; see «As built — branch 2») |
-| `feat/observatory-meteo-day-selector` | ⬜ planned (see «Day selector»): back end and front end in one branch. Goes before branch 3 (2026-11-27) |
-| 3 `feat/observatory-meteo-rain-card` | 🟡 point card, «Observar», `acum`: **built inside `feat/observatory-meteo-day-selector`** (Marcos, 2026-11-27; no branch of its own), QA pending. See «As built — branch 3» |
+| `feat/observatory-meteo-day-selector-rain-card` (first named `…-day-selector`) | ✅ 2026-11-27: day selector (back end and front end), 14 d, Lluvia on, the map layout changes of its QA and the work of branch 3. Checks still pending: `pending.md` |
+| 3 `feat/observatory-meteo-rain-card` | ✅ 2026-11-27, no branch of its own: built inside the one above (Marcos). See «As built — branch 3» |
 
 ### As built — branch 1 (2026-11-27)
 
