@@ -124,7 +124,8 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 | Branch | State |
 |---|---|
 | 1 `feat/observatory-meteo-rain-api` | ✅ 2026-11-27 (scenarios 1.1–1.13) |
-| 2 `feat/observatory-meteo-rain-map` | ⬜ |
+| 2 `feat/observatory-meteo-rain-map` | ✅ 2026-11-27 (scenarios 2.1–2.6; see «As built — branch 2») |
+| Next: `feat/observatory-meteo-day-selector` | ⬜ not planned yet: PRD section and plan first. Goes before branch 3 (2026-11-27) |
 | 3 `feat/observatory-meteo-rain-card` | ⬜ |
 
 ### As built — branch 1 (2026-11-27)
@@ -133,6 +134,14 @@ Login required (router dependency). `window` defaults to `7d`, any other value i
 - P3 changed while building (see its row): `includes_forecast` was added to the answer.
 - **For branches 2 and 3:** `includes_forecast` is one flag for the whole map, so with a partial refresh the card of a fully observed cell is tagged too. `last_data_date` can be a day that is still provisional: the default view is then tagged, and «Observar» can open the zone on it.
 - **Not checked:** the endpoint over HTTP against a real database (the service was run with the real SQL store on the local one, read only, and one cell's sum matched SQL); a real Open-Meteo answer without a rain value (tested with a fake payload).
+
+### As built — branch 2 (2026-11-27)
+
+- As planned: `rainLayer.js`, `useRainLayer.js`, `RainPanel.jsx`, the scales with six marks, the pane without blend (set with each picture), and the picture swapped only once decoded.
+- **Changed in QA** (see `decisions.md`, same date). Where the Map section above differs, this wins: no white (first mark transparent, second light blue at 60 %); the clip is the ICGC boundary (`cataloniaOutline.js`) and not the footprints plus the elevation raster, which rain no longer uses; border strips held by no footprint are painted with the blend; the 21 d band is a green line under the numbers.
+- **For branch 3:** `rainValueAt(rainGrid(cells), cells, lat, lon)` gives `{ status, mm }`, or null outside Catalonia or beyond every cell's reach; a spot in a border strip comes as `estimated`. It has not been tried in the card, nor on a real border strip.
+- **Checked:** build; painter with made-up cells in Node (before the boundary change); in the browser with local data the three windows, a past and a forecast day, no empty frame between pictures, the three base maps, Condiciones' blend restored, the boundary zoomed in on the north, the delta and the Empordà coast (before the last simplification, ~40 → ~120 m), phone and desktop, both themes. The request failure and the cells without data were simulated. Marcos approved the look.
+- **Not checked:** loading bar seen on screen; the hidden note under Hábitat · De la seta; text contrast measured; slider with a finger; the sources dialog's new credit; the 21 d band's CA and EN texts and its desktop legend; real `no_data` or `estimated` cells.
 
 All cut from `epic/observatory-meteo`, which Marcos creates from `main`. One after another; each is squashed into the epic. These doc changes must be in the epic (or in `main`) before branch 1.
 

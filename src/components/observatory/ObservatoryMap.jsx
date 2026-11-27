@@ -8,6 +8,7 @@ import {
 import { CATALONIA_BOUNDS } from '../../lib/catalonia'
 import { cellFill, ALPHA_SCALE_BY_BASEMAP } from '../../lib/layerColors'
 import { reliefOverlay } from '../../lib/reliefLayer'
+import { rainOverlay, RAIN_ALPHA_BY_BASEMAP } from '../../lib/rainLayer'
 import { habitatOverlay } from '../../lib/habitatLayer'
 import { forestTypeOverlay, FOREST_ALPHA_SCALE_BY_BASEMAP } from '../../lib/forestLayer'
 import { pinSvg } from '../../lib/cornerKinds'
@@ -135,10 +136,11 @@ function afterPaint(work) {
  * `habitatMap` = { elevation, species, rasters } draws where a species can grow (no weather) in the layer's place.
  * `layer` is the answer of /layer/probability. With the elevation raster (`elevation`) every pixel
  * is coloured by the score of its own elevation; without it every scored cell is a rectangle
- * coloured by its score. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
+ * coloured by its score. `rainLayer` is the answer of /layer/rain: it takes the same pane, drawn by
+ * rainLayer.js with plain alpha. With the habitat rasters (`habitat` = { forest, substrate }) the probability is also lowered where
  * the forest is not one the species fits or the soil pH is not its own. Neither takes clicks, so picking a point works over the layer.
  */
-export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, habitatMap = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, dataSources = null, leafletZoom = true, onMap = null, onDrawing = null, className = '' }) {
+export function ObservatoryMap({ observed, pending, saved = [], showSaved = true, pinLabel = '{name}', layer = null, elevation = null, habitat = null, habitatMap = null, rainLayer = null, forestTypes = null, onPick, label, basemap = 'satellite', flyTo = null, startAt = null, onViewChange = null, centerAbove = null, dataSources = null, leafletZoom = true, onMap = null, onDrawing = null, className = '' }) {
   const { t, setCreditsOpen } = useApp()
   const elRef      = useRef(null)
   const mapRef     = useRef(null)
@@ -274,22 +276,48 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
     return () => el.removeEventListener('click', onClick)
   }, [setCreditsOpen])
 
-  // On the shaded relief the layer multiplies the grey shading instead of covering it: the pane is
-  // blended with the tiles under it (the pane is a sibling of the tile pane, so it sees them)
-  useEffect(() => {
-    const pane = mapRef.current?.getPane(LAYER_PANE)
-    if (pane) pane.style.mixBlendMode = LAYER_BLEND[basemap] ?? ''
-  }, [basemap])
-
+  // Meteo's picture, one layer at a time in one pane: conditions (or the species' habitat), or rain.
   // Probability layer: a picture blending the cells (with relief when the elevation raster is
   // loaded); if drawing it fails, one rectangle per scored cell, sized by the grid the backend measured.
   // The new picture replaces the old one only once it is ready, so the map never blinks empty.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return undefined
+    // The pane's blend changes with the picture, never before it: on the shaded relief the conditions multiply
+    // the grey shading and on the satellite they use hard-light (the pane is a sibling of the tile pane, so it
+    // sees the tiles). Rain is plain alpha: a blend would hide or distort its white
+    const blend = value => { const pane = map.getPane(LAYER_PANE); if (pane) pane.style.mixBlendMode = value }
     const replace = next => {
       layerRef.current?.remove()
       layerRef.current = next ? next.addTo(map) : null
+    }
+    if (rainLayer) {
+      if (!baseReady || !rainLayer.cells?.length) { replace(null); setDrawing('layer', false); return undefined }
+      let cancelled = false
+      setDrawing('layer', true)
+      const cancel = afterPaint(async () => {
+        let overlay = null
+        try {
+          overlay = rainOverlay(rainLayer, { alpha: RAIN_ALPHA_BY_BASEMAP[basemap] ?? 1 })
+          // Decoded before the swap, so there is never an empty frame between two pictures
+          if (overlay) { const img = new Image(); img.src = overlay.url; await img.decode() }
+        } catch (err) {
+          console.warn('Rain layer: picture failed', err)
+        }
+        if (cancelled || mapRef.current !== map) return
+        blend('')
+        if (overlay && layerRef.current?.isRain) {
+          // The same picture element takes the new image: the old one stays until the new one shows
+          layerRef.current.setBounds(overlay.bounds)
+          layerRef.current.setUrl(overlay.url)
+        } else {
+          const next = overlay ? L.imageOverlay(overlay.url, overlay.bounds, { pane: LAYER_PANE, interactive: false }) : null
+          if (next) next.isRain = true
+          replace(next)
+        }
+        setDrawing('layer', false)
+      })
+      return () => { cancelled = true; cancel(); setDrawing('layer', false) }
     }
     // `habitatMap` (Hábitat · De la seta) takes the place of the conditions picture: same pane, blend and opacity
     if (!baseReady || (!habitatMap && !layer?.cells?.length)) { replace(null); setDrawing('layer', false); return undefined }
@@ -318,11 +346,11 @@ export function ObservatoryMap({ observed, pending, saved = [], showSaved = true
           }
         }
       }
-      if (mapRef.current === map) replace(next)
+      if (mapRef.current === map) { blend(LAYER_BLEND[basemap] ?? ''); replace(next) }
       setDrawing('layer', false)
     })
     return () => { cancel(); setDrawing('layer', false) }
-  }, [layer, elevation, habitat, habitatMap, basemap, baseReady]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [layer, elevation, habitat, habitatMap, rainLayer, basemap, baseReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Forest type layer: the forest raster painted by dominant type; `forestTypes` = { raster, active }
   useEffect(() => {

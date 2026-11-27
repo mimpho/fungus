@@ -150,6 +150,10 @@ export const fetchProbabilityLayer = (species, { date, signal } = {}) =>
 export const fetchExcellentLayer = ({ date, signal } = {}) =>
   request('/layer/probability-excellent', { signal, params: { date } })
 
+/** Accumulated rain (mm) of every stored cell over '24h' | '7d' | '21d' ending on `date`. */
+export const fetchRainLayer = (window, { date, signal } = {}) =>
+  request('/layer/rain', { signal, params: { window, date } })
+
 /**
  * A class raster ('forest' or 'substrate'): its description (classes, bounds, size) and its bytes,
  * share*255 of each class, class after class. 404 = not built on this server.

@@ -10,6 +10,7 @@ import { useIsPhone, useIsWide } from '../hooks/useIsPhone'
 import { useMapNavigation, TABS } from '../hooks/useMapNavigation'
 import { useMapBusy } from '../hooks/useMapBusy'
 import { ALL_EXCELLENT, useProbabilityLayer } from '../hooks/useProbabilityLayer'
+import { useRainLayer } from '../hooks/useRainLayer'
 import { pixelElevation, pixelScore, reliefGrid } from '../lib/reliefLayer'
 import { useElevationRasterState } from '../hooks/useElevationRaster'
 import { useClassRasterState } from '../hooks/useClassRaster'
@@ -29,6 +30,7 @@ import { MapFilterStrip } from '../components/observatory/MapFilterStrip'
 import { todayIso } from '../lib/layerDays'
 import { formatDay } from '../lib/thermometer'
 import { MeteoPanel } from '../components/observatory/nav/MeteoPanel'
+import { RainPanel } from '../components/observatory/nav/RainPanel'
 import { ZonasPanel } from '../components/observatory/nav/ZonasPanel'
 import { HabitatPanel } from '../components/observatory/nav/HabitatPanel'
 import { ObservedZone } from '../components/observatory/ObservedZone'
@@ -121,12 +123,13 @@ export default function Observatory() {
   // A link with a Meteo layer (`capa`) turns Meteo on, whatever this browser stored
   const nav = useMapNavigation({ hasCorners: saved.points.length > 0, cornersReady: saved.status === 'ready', dataFromUrl: Boolean(initialMeteo) })
   useEffect(() => { if (pending || observed || nav.openTab) setHintOn(false) }, [pending, observed, nav.openTab])
-  // Meteo: one data layer at a time (Condiciones; Lluvia, Temperatura and Viento are placeholders until
-  // epic/observatory-meteo). The day is shared by every layer. Switching Meteo off hides it but remembers
+  // Meteo: one data layer at a time (Condiciones and Lluvia, still shown only in development builds;
+  // Temperatura and Viento are placeholders until epic/observatory-meteo). The day is shared by every layer. Switching Meteo off hides it but remembers
   // the layer, the species and the day. Opened from a link, they come from the URL.
   const meteoOn = nav.on.data
   const [meteoKind, setMeteoKind] = useState(initialMeteo?.layer ?? DEFAULT_METEO_LAYER)
   const [rainPreset, setRainPreset] = useState(DEFAULT_RAIN_PRESET)
+  const rainOn = meteoOn && meteoKind === 'rain'
   // Probability layer (Meteo · Condiciones): one species at a time (null = the mean of the excellent ones)
   const probabilityOn = meteoOn && meteoKind === 'conditions'
   // The species is the whole map's (the search bar's second half, `seta` in the URL), not Meteo's: it stays with Meteo off
@@ -182,6 +185,10 @@ export default function Observatory() {
   const substrate = substrateState.raster
   const habitat = useMemo(() => ({ forest, substrate }), [forest, substrate])
   const forestTypes = useMemo(() => (forestOn && !habitatShown && forest ? { raster: forest, active: forestShown } : null), [forestOn, habitatShown, forest, forestShown])
+  // Lluvia: the whole map's, with no species. Hábitat · De la seta hides it like Condiciones
+  const rainShown = rainOn && !habitatShown
+  const rain = useRainLayer(rainPreset, { date: layerDate ?? undefined, enabled: rainShown && isAuthenticated })
+  const rainMap = rainShown ? rain.data : null
   // The habitat picture waits for the layer's species block, the elevation and the forest raster; the soil may fail (the map then
   // counts altitude and forest, and says so). A species with nothing to judge by shows a line instead.
   const speciesBlock = !Array.isArray(layer.data?.species) ? layer.data?.species : null
@@ -318,12 +325,13 @@ export default function Observatory() {
   // What the map is waiting for, for the loading bar on its top edge (only layers that are on count)
   const { busy, failed } = useMapBusy(useMemo(() => [
     { id: 'conditions', label: t.obsLayerProbability, on: probabilityOn || habitatShown, loading: layer.status === 'loading', error: layer.status === 'error', retry: layer.retry },
+    { id: 'rain', label: t.obsLayerRain, on: rainShown, loading: rain.status === 'loading', error: rain.status === 'error', retry: rain.retry },
     { id: 'elevation', label: t.obsLayerProbability, on: probabilityOn || habitatShown, loading: elevationState.status === 'loading', error: false },
     { id: 'substrate', label: t.obsLayerProbability, on: probabilityOn || habitatShown, loading: substrateState.status === 'loading', error: false },
     { id: 'forest', label: t.obsTabHabitat, on: forestOn || probabilityOn, loading: forestState.status === 'loading', error: forestOn && forestState.status === 'error', retry: forestState.retry },
     { id: 'corners', label: t.obsLayerCorners, on: cornersOn, loading: saved.status === 'loading', error: saved.status === 'error', retry: saved.reload },
     { id: 'drawing', label: '', on: true, loading: drawing, error: false },
-  ], [drawing, t, probabilityOn, habitatShown, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
+  ], [drawing, t, probabilityOn, habitatShown, rainShown, rain.status, rain.retry, forestOn, cornersOn, layer.status, layer.retry, elevationState.status, substrateState.status, forestState.status, forestState.retry, saved.status, saved.reload]))
 
   // A tab or Vista opens its panel. Below 1024px the point card and a panel take turns; on the phone
   // (one sheet at a time) opening a tab's sheet or Vista also drops the picked point.
@@ -470,11 +478,19 @@ export default function Observatory() {
           kind={meteoKind}
           onKind={setMeteoKind}
           conditions={conditionsFor(probabilityOn)}
+          rain={(
+            <RainPanel
+              layer={rain}
+              preset={rainPreset}
+              onPreset={setRainPreset}
+              date={layerDate}
+              onDateChange={setLayerDate}
+              layerOn={rainShown}
+            />
+          )}
           date={layerDate}
           onDateChange={setLayerDate}
-          rainPreset={rainPreset}
-          onRainPreset={setRainPreset}
-          hiddenNote={habitatShown && meteoOn ? t.obsMeteoHiddenByHabitat : null}
+          hiddenNote={habitatShown && meteoOn ? (meteoKind === 'rain' ? t.obsMeteoRainHiddenByHabitat : t.obsMeteoHiddenByHabitat) : null}
         />
       )}
       {tab === 'zones' && (
@@ -552,6 +568,7 @@ export default function Observatory() {
               pinLabel={t.obsCornerPinLabel}
               layer={probabilityOn && !habitatShown ? layer.data : null}
               habitatMap={habitatMap}
+              rainLayer={rainMap}
               elevation={elevation}
               habitat={habitat}
               forestTypes={forestTypes}
@@ -562,7 +579,7 @@ export default function Observatory() {
               label={t.obsMapLabel}
               basemap={basemap}
               flyTo={flyTo}
-              dataSources={[(probabilityOn || pending) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
+              dataSources={[(probabilityOn || rainShown || pending) && 'Open-Meteo', forestOn && 'CREAF'].filter(Boolean).join('|') || null}
               centerAbove={phone ? { top: 72, bottomPx: barH + (speciesH > 24 ? speciesH - 24 : 0) + (pending ? sheetH : 0) } : desktopPanel ? { top: 0, rightPx: PANEL_CLEAR_PX } : null}
               className="h-full"
             />
@@ -611,8 +628,8 @@ export default function Observatory() {
                 )}
               </>
             )}
-            {/* The conditions panel shows its own error: the map's notice is for when it is closed */}
-            <MapLoadingBar busy={busy} failed={failed?.id === 'conditions' && nav.openTab === 'data' ? null : failed} />
+            {/* The conditions and rain panels show their own error: the map's notice is for when they are closed */}
+            <MapLoadingBar busy={busy} failed={(failed?.id === 'conditions' || failed?.id === 'rain') && nav.openTab === 'data' ? null : failed} />
             {/* Phone: the tabs as a bar at the bottom; a tab's panel grows out of it as a sheet */}
             {phone && (
               <PhoneTabBar

@@ -551,3 +551,13 @@ It follows what is painted (the gap between two halves, a dropdown), which is wh
 ### ⚠️ Geolocation in Brave
 `getCurrentPosition` can hit its timeout with the permission granted for the site (the macOS settings too): Brave turns off Google's location service by default (`brave://settings/privacy`). It worked in production in the same browser, so a local failure there is not necessarily the code; read `error.code` (1 refused, 2 unavailable, 3 timeout).
 
+## Geometry — Catalonia's outline and the elevation raster are not coastlines or borders (found 2026-11-27, `feat/observatory-meteo-rain-map`)
+
+### ⚠️ `catalonia_outline.py` is a drawing
+It was made to choose which cells to ingest. Over the satellite tile it sits kilometres inside the real border in the north and near La Sénia. To clip a picture use `src/lib/cataloniaOutline.js` (ICGC boundary, CC BY 4.0).
+
+### ⚠️ Byte 0 of the elevation raster is not only sea
+One byte per 16 m: land under about 8 m reads 0. A painter that skips `elev === 0` leaves holes on the low coast (all around Deltebre, most of El Prat). The conditions and habitat painters still do it (`memory/pending.md`).
+
+### ⚠️ The ICGC lithology map is not Catalonia's shape
+`local-data/geology` reaches the sheet's frame, into France, Aragón and Valencia: dissolving its polygons does not give the boundary.

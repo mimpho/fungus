@@ -4,6 +4,31 @@ Decisions made during active development, with their reasoning. Complements CLAU
 
 ---
 
+## Day selector of Meteo: one bar over six months, with Catalonia's weekly figures (2026-11-27, `epic/observatory-meteo`)
+
+**Decision:** the slider, its static forecast strip and the 30-day limit are to be replaced by one bar over about six months, with a bar per week behind the handle (option E of five drawings): in Lluvia the rain, in Condiciones a rating for all Catalonia coloured with the five score bands from green to red. It is the **next branch**, before the point card. Not built yet; the open points are in the Meteo PRD.
+
+**Why:** the season's course is read at a glance, without moving through the days and waiting for the map. Dragging the day makes no Open-Meteo calls: the layers read only what is stored; no written reason for the 30 days was found.
+
+**Feasibility (local database, Mac, 26 weeks, 425 cells):** loading the rows 0.4 s; the rain series 0.09 s more; the Condiciones series for the 36 excellent species 23 s more (one pass per cell; against the map's own computation, mean difference 0.17 points and maximum 7 over 42 checks, the maximum unexplained). One conditions map took 5 s. So Condiciones has to be computed ahead (proposed: after the daily cell refresh, stored in a small table, which needs a migration). Not measured: Render, one species alone, and whether production holds six months for every cell.
+
+**Discarded:** one bar over 90 days; one bar over 6 months without data; a detail bar over a 6-month one (two bars again); a ruler dragged under a fixed cursor (only a few weeks in view).
+
+## Rain layer on the map: no white, ICGC boundary as the only clip, green line for the 21 d band (2026-11-27, `feat/observatory-meteo-rain-map`)
+
+**Decision:**
+- **Scale (changes R2):** the first mark is transparent and the second light blue at 60 %; from the third on as before. Chosen among five on the real map (white; light blue from transparent; this one; a single blue; this one with a 20 % veil).
+- **Clip (changes the plan):** the picture is cut along Catalonia's boundary from ICGC «Divisions administratives» v2r2, layer `catalunya` 1:50,000, CC BY 4.0, coast included. The sea is no longer told apart with the elevation raster.
+- **Border strips (changes the plan):** what no cell's footprint holds, inside the boundary, takes the blend of the cells in reach; `rainValueAt` calls such a spot `estimated`. On the local data it was 0.56 % of Catalonia; the likely reason is that the cells were chosen with the rough drawing.
+- **21 d band:** a green line under the legend's numbers with «favorable para setas».
+- **No data:** diagonal hatching, a dark stripe beside a light one.
+
+**Why:** white covered the whole map and made 1 mm look like much. The repo's outline sat kilometres inside the real border, and the elevation raster (16 m steps) reads the low coast, the Ebro delta among it, as sea. The framed band looked like a selected control.
+
+**Discarded:** `catalonia_outline.py` as a mask; dissolving the ICGC lithology polygons already on disk (the map reaches into France, Aragón and Valencia); a bracket above the bar, text only, or no band.
+
+**Known cost:** light rain (1–5 mm) hardly differs from none, above all on the relief. The boundary adds weight to the Observatory's bundle (with the rain code, 72 → 84 kB gzipped).
+
 ## Rain layer: smoothed gradient, six-colour scales and gaps estimated from neighbours (2026-11-27, `epic/observatory-meteo`)
 
 **Decision:**
