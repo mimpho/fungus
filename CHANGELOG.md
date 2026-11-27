@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Docs — the rain layer's open questions and its plan (2026-11-27)
+
+- **R1 and R2 answered** in the Meteo PRD and `memory/decisions.md`: smoothed gradient, «≈ N mm» in the card, six-colour scales, and cells with missing days estimated from their neighbours.
+- **New `memory/observatory-meteo-plan.md`** (rain only), approved the same day.
+- **Roadmap order** in `system/project.spec.md` aligned with `memory/pending.md`: Meteo before the zones of interest.
+- No code.
+
 ### Docs — backlog review and the PRD of the Meteo layers (2026-11-26, branch `docs/observatory-meteo-prd`)
 
 - **`memory/pending.md` reviewed:** the v7.2.0 deployment block is down to two checks not recorded anywhere (rasters' transfer size; login and photo upload). The fullscreen checks are done except the iPhone's (Marcos has none). The open items of the Observatory's phase 1 and of scoring v2 are summarised. Added: the long zone name in the home page's «Mejor zona hoy».
