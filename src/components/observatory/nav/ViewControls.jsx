@@ -115,9 +115,10 @@ export function ZoomButtons({ map }) {
 /**
  * «My location»: asks the browser for the position and hands it to `onLocate(lat, lon)`, which answers
  * `false` when the position is outside Catalonia. A short bubble to the left says why when it fails (the browser blocks the location, it waits for the user's answer, the position cannot be had, it takes too long). `desktop`: the size and the radius
- * of the Vista button, with no text (as in the usual map apps); on the phone it is a round button of 52 px.
+ * of the Vista button, with no text (as in the usual map apps); on the phone it is a round button of 52 px. `low`: round,
+ * as wide as the short rail.
  */
-export function LocateButton({ onLocate, className = '', style, desktop = false }) {
+export function LocateButton({ onLocate, className = '', style, desktop = false, low = false }) {
   const { t } = useApp()
   // 'idle' | 'locating' | a failure: 'denied' (the browser blocks the location) | 'ask' (it waits for the answer to its question) | 'unavailable' | 'timeout' | 'error' | 'outside'
   const [state, setState] = useState('idle')
@@ -188,7 +189,7 @@ export function LocateButton({ onLocate, className = '', style, desktop = false 
         aria-label={t.obsLocate}
         title={t.obsLocate}
         aria-busy={state === 'locating'}
-        className={`${desktop ? `w-[76px] h-[76px] ${CONTROL_RADIUS}` : 'w-[52px] h-[52px] rounded-full'} map-surface shadow-float flex items-center justify-center hover:brightness-110 ${failed ? 'text-amber-400' : 'text-cream'} ${FOCUS}`}
+        className={`${low ? 'w-[52px] h-[52px] [@media(max-height:380px)]:w-[48px] [@media(max-height:380px)]:h-[48px] rounded-full' : desktop ? `w-[76px] h-[76px] ${CONTROL_RADIUS}` : 'w-[52px] h-[52px] rounded-full'} map-surface shadow-float flex items-center justify-center hover:brightness-110 ${failed ? 'text-amber-400' : 'text-cream'} ${FOCUS}`}
       >
         {state === 'locating'
           ? <Loader2 size={24} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />

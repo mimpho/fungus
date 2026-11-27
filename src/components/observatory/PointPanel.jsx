@@ -193,10 +193,11 @@ function PointCard({ label, folded, onUnfold, children }) {
  * can ask; the answer is context, and the button works even while it loads or if it fails.
  * `layerValue` = what the probability layer paints at the point: { score, count } (count > 1: the
  * mean of that many species), null = nothing there, undefined = no layer to speak of. `rainValue`
- * (see PointRain) takes its place while Lluvia is drawn.
+ * (see PointRain) takes its place while Lluvia is drawn. `folded`: the page folds it (another card or sheet is unfolded);
+ * `slim` (short landscape): folded, one line, to fit with the species' folded bar.
  * `saved` is the user's corners: if this point is one, its pin, name, species and notes show under the title, with «Editar».
  */
-export function PointPanel({ point, saved, onObserve, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, rainValue = null, sheet = false, folded = false, mini = false, onExpand, onSheetHeight, onFoldedChange }) {
+export function PointPanel({ point, saved, onObserve, onClose, layerValue, elevationM, layerSpeciesName = null, layerLoading = false, rainValue = null, sheet = false, folded = false, slim = false, mini = false, onExpand, onSheetHeight, onFoldedChange }) {
   const { t } = useApp()
   const [state, setState] = useState({ status: 'loading', data: null, error: null })
   const [attempt, setAttempt] = useState(0)
@@ -252,8 +253,8 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
     else forestLine = t.obsForestUnknown
   }
 
-  // Folded on the phone while another sheet is unfolded: half as tall, the title on one line
-  const small = sheet && shownFolded && mini
+  // Folded on the phone while another sheet is unfolded (or `slim`): half as tall, the title on one line
+  const small = shownFolded && ((sheet && mini) || slim)
   const content = (
     <>
       <div data-point-head="" className={`flex justify-between gap-3 ${small ? 'items-center h-[20px]' : 'items-start'}`}>
@@ -269,7 +270,7 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
           </p>
         </div>
         {/* The cross takes the point off the map, folded or open; desktop adds the chevron that folds and unfolds the card (on the phone the handle does it) */}
-        <div className={`shrink-0 flex items-center ${sheet ? '' : userFolded ? 'mt-[5.5px]' : '-mt-1'}`}>
+        <div className={`shrink-0 flex items-center ${sheet || small ? '' : shownFolded ? 'mt-[5.5px]' : '-mt-1'}`}>
           <button
             type="button"
             onClick={requestClose}
@@ -280,12 +281,12 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
           {!sheet && (
             <button
               type="button"
-              onClick={() => setUserFolded(f => !f)}
+              onClick={() => { if (shownFolded) { setUserFolded(false); onExpand?.() } else setUserFolded(true) }}
               aria-label={t.obsSheetHandle}
-              aria-expanded={!userFolded}
+              aria-expanded={!shownFolded}
               title={t.obsSheetHandle}
-              className="-mr-2.5 w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60"
-            >{userFolded ? <ChevronUp size={20} aria-hidden="true" /> : <ChevronDown size={20} aria-hidden="true" />}</button>
+              className={`-mr-2.5 w-[40px] h-[40px] flex items-center justify-center rounded-xl text-cream hover:bg-cream/10 outline-none focus-visible:ring-2 focus-visible:ring-cream/60 ${small ? '-my-[10px]' : ''}`}
+            >{shownFolded ? <ChevronUp size={20} aria-hidden="true" /> : <ChevronDown size={20} aria-hidden="true" />}</button>
           )}
         </div>
       </div>
@@ -383,5 +384,5 @@ export function PointPanel({ point, saved, onObserve, onClose, layerValue, eleva
 
   // On a phone: a bottom sheet that leaves the map usable above it (no backdrop). Elsewhere: a card, a block of the page's bottom-left stack
   if (sheet) return <PointSheet label={title} leaving={leaving} folded={shownFolded} mini={mini} onFold={() => setUserFolded(true)} onExpand={() => { setUserFolded(false); onExpand?.() }} onOpenZone={() => onObserve(point)} onHeight={onSheetHeight}>{content}</PointSheet>
-  return <PointCard label={title} folded={userFolded} onUnfold={() => setUserFolded(false)}>{content}</PointCard>
+  return <PointCard label={title} folded={shownFolded} onUnfold={() => { setUserFolded(false); onExpand?.() }}>{content}</PointCard>
 }

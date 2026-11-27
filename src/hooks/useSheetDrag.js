@@ -15,8 +15,9 @@ function scrollableDown(from, root) {
   return false
 }
 
+// The sheet itself too: a card that scrolls as a whole must be scrolled back before a drag down folds it
 function scrolledInside(from, root) {
-  for (let e = from; e && e !== root; e = e.parentElement) {
+  for (let e = from; e && e !== root.parentElement; e = e.parentElement) {
     if (e.scrollTop > 0 && e.scrollHeight > e.clientHeight + 1) {
       const oy = getComputedStyle(e).overflowY
       if (oy === 'auto' || oy === 'scroll') return true
